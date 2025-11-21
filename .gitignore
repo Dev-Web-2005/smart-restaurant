@@ -40,7 +40,3 @@ coverage/
 .DS_Store
 thumbs.db
 desktop.ini
-
-# Nested git repositories (if not using submodules)
-src/backend/api-gateway/
-src/backend/identity/
