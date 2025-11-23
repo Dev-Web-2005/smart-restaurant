@@ -1,8 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import dotenv from 'dotenv';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
-dotenv.config();
 
 async function bootstrap() {
 	const app = await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {
@@ -13,5 +11,20 @@ async function bootstrap() {
 	});
 
 	await app.listen();
+
+	process.on('SIGINT', () => {
+		console.log('SIGINT received. Shutting down gracefully...');
+		app.close().then(() => process.exit(0));
+	});
+	process.on('SIGTERM', () => {
+		console.log('SIGTERM received. Shutting down gracefully...');
+		app.close().then(() => process.exit(0));
+	});
 }
-bootstrap();
+bootstrap()
+	.then(() => {
+		console.log(`Microservice is running on port ${process.env.PORT}`);
+	})
+	.catch((err) => {
+		console.error('Error starting the microservice', err);
+	});

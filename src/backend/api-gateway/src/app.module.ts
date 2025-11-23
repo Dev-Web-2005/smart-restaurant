@@ -3,8 +3,11 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { IdentityController } from './identity/identity.controller';
+import { ConfigModule } from '@nestjs/config';
+
 @Module({
 	imports: [
+		ConfigModule.forRoot({ isGlobal: true }),
 		ClientsModule.register([
 			{
 				name: 'IDENTITY_SERVICE',

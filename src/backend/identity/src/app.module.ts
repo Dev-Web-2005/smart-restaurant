@@ -7,9 +7,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/entity/user';
 import { Authority } from 'src/entity/authority';
 import { Role } from 'src/entity/role';
+import { ConfigModule } from '@nestjs/config';
+import { AuthoritiesModule } from 'src/authorities/authorities.module';
 
 @Module({
 	imports: [
+		ConfigModule.forRoot({ isGlobal: true }),
+
 		TypeOrmModule.forRoot({
 			type: 'postgres',
 			host: process.env.HOST_DB,
@@ -18,10 +22,12 @@ import { Role } from 'src/entity/role';
 			password: process.env.PASSWORD_DB,
 			database: process.env.DATABASE_DB,
 			entities: [User, Role, Authority], // add your entity here
+
 			synchronize: true,
 		}),
 		UsersModule,
 		RolesModule,
+		AuthoritiesModule,
 	],
 	controllers: [AppController],
 	providers: [AppService],
