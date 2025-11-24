@@ -49,16 +49,32 @@ export class AddHeaderMiddleware implements NestMiddleware {
 					},
 					this.jwtService,
 				);
+
+				const expiresRefreshInMs = parseInt(process.env.JWT_EXPIRES_REFRESH_IN) * 1000;
+
+				const type = (payload.claims.roles as string).includes('ADMIN')
+					? 'admin'
+					: 'user';
+
 				res.cookie('jwt', newToken, {
 					httpOnly: true,
 					secure: this.configService.get<string>('MOD') === 'production',
 					sameSite:
 						this.configService.get<string>('MOD') === 'production' ? 'none' : 'lax',
 					path: '/',
-					expires: new Date(
-						Date.now() + parseInt(process.env.JWT_EXPIRES_REFRESH_IN) * 1000,
-					),
+					expires: new Date(Date.now() + expiresRefreshInMs),
+					maxAge: expiresRefreshInMs,
 				});
+
+				res.cookie('type', type, {
+					httpOnly: false,
+					maxAge: expiresRefreshInMs,
+					sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
+					secure: process.env.MOD === 'production' ? true : false,
+					path: '/',
+					expires: new Date(Date.now() + expiresRefreshInMs),
+				});
+
 				req.headers['authorization'] = `Bearer ${newToken}`;
 			}
 			console.log('JWT added to Authorization header');

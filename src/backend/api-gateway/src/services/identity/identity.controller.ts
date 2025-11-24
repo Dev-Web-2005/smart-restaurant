@@ -105,7 +105,18 @@ export class IdentityController {
 
 		res.cookie('jwt', token, {
 			httpOnly: true,
-			maxAge: expiresInMs,
+			maxAge: expiresRefreshInMs,
+			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
+			secure: process.env.MOD === 'production' ? true : false,
+			path: '/',
+			expires: new Date(Date.now() + expiresRefreshInMs),
+		});
+
+		const type = convertData.data.roles.includes('ADMIN') ? 'admin' : 'user';
+
+		res.cookie('type', type, {
+			httpOnly: false,
+			maxAge: expiresRefreshInMs,
 			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
 			secure: process.env.MOD === 'production' ? true : false,
 			path: '/',
@@ -145,6 +156,15 @@ export class IdentityController {
 			path: '/',
 			expires: new Date(0),
 		});
+
+		res.clearCookie('type', {
+			httpOnly: false,
+			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
+			secure: process.env.MOD === 'production' ? true : false,
+			path: '/',
+			expires: new Date(0),
+		});
+
 		const user: any = req.user;
 		if (!user) {
 			throw new AppException(ErrorCode.UNAUTHORIZED);

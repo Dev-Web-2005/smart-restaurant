@@ -2,7 +2,7 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { IdentityController } from './identity/identity.controller';
+import { IdentityController } from './services/identity/identity.controller';
 import { ConfigModule } from '@nestjs/config';
 import { LoggerMiddleware } from 'src/middleware/logger/logger.middleware';
 import { JwtConfigModule } from './jwt/jwt.config.module';
