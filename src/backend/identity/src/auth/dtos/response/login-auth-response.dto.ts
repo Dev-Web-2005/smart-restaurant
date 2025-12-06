@@ -3,4 +3,6 @@ export default class LoginAuthResponseDto {
 	username: string;
 	email: string;
 	roles: string[];
+	accessToken: string;
+	refreshToken: string;
 }

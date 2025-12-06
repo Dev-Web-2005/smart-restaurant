@@ -2,8 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { MicroserviceOptions, Transport, RpcException } from '@nestjs/microservices';
-import ErrorCode from 'exception/error-code';
-import { GlobalExceptionFilter } from 'filter/global-exception/global-exception.filter';
+import ErrorCode from '@shared/exceptions/error-code';
+import { GlobalExceptionFilter } from 'src/common/filters/global-exception/global-exception.filter';
 
 async function bootstrap() {
 	const app = await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {

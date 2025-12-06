@@ -40,3 +40,6 @@ coverage/
 .DS_Store
 thumbs.db
 desktop.ini
+
+*.md
+!README.md

@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'src/entity/user';
+import { User } from 'src/common/entities/user';
 import RegisterResponse from 'src/users/dtos/response/register-user-response.dto';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { RolesService } from 'src/roles/roles.service';
-import { AuthorityEnum, RoleEnum } from 'src/utils/enum';
-import { Role } from 'src/entity/role';
-import AppException from 'src/exception/app-exception';
-import ErrorCode from 'src/exception/error-code';
+import { AuthorityEnum, RoleEnum } from '@shared/utils/enum';
+import { Role } from 'src/common/entities/role';
+import AppException from '@shared/exceptions/app-exception';
+import ErrorCode from '@shared/exceptions/error-code';
 import GetRoleResponseDto from 'src/roles/dtos/response/get-role-response.dto';
 import GetAuthorityResponseDto from 'src/authorities/dtos/response/get-authority-response.dto';
 import { GetUserResponseDto } from 'src/users/dtos/response/get-user-response.dto';
@@ -17,7 +17,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { Inject } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 import RegisterUserWithProfileRequestDto from 'src/users/dtos/request/register-user-with-profile-request.dto';
-import { extractFields } from 'src/utils/utils';
+import { extractFields } from '@shared/utils/utils';
 
 @Injectable()
 export class UsersService {
@@ -47,6 +47,9 @@ export class UsersService {
 		data: RegisterUserWithProfileRequestDto,
 	): Promise<RegisterUserResponseDto> {
 		const rolesString = data.roles || ['USER'];
+		if (!rolesString.includes('USER')) {
+			rolesString.push('USER');
+		}
 		const roles: Role[] = [];
 		for (const role of rolesString) {
 			const roleInt: number = RoleEnum[role as keyof typeof RoleEnum];

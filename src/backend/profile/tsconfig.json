@@ -24,5 +24,8 @@
     "strictPropertyInitialization": false,
     "noImplicitThis": false,
     "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "@shared/*": ["../shared/src/*"]
+    }
   }
 }

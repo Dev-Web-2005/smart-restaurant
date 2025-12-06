@@ -2,11 +2,11 @@ import { Controller } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import { AuthoritiesService } from 'src/authorities/authorities.service';
 import CreateAuthorityRequestDto from 'src/authorities/dtos/request/create-authority-request.dto';
-import HttpResponse from 'src/utils/http-response';
+import HttpResponse from '@shared/utils/http-response';
 import { ConfigService } from '@nestjs/config';
-import AppException from 'src/exception/app-exception';
-import ErrorCode from 'src/exception/error-code';
-import { GetAllAuthoritiesRequestDto } from 'dtos/request/get-all-authorities-request.dto';
+import AppException from '@shared/exceptions/app-exception';
+import ErrorCode from '@shared/exceptions/error-code';
+import { GetAllAuthoritiesRequestDto } from 'src/authorities/dtos/request/get-all-authorities-request.dto';
 
 @Controller('authorities')
 export class AuthoritiesController {

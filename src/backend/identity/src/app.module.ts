@@ -4,13 +4,13 @@ import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from 'src/entity/user';
-import { Authority } from 'src/entity/authority';
-import { Role } from 'src/entity/role';
+import { User } from 'src/common/entities/user';
+import { Authority } from 'src/common/entities/authority';
+import { Role } from 'src/common/entities/role';
 import { ConfigModule } from '@nestjs/config';
 import { AuthoritiesModule } from 'src/authorities/authorities.module';
 import { AuthModule } from './auth/auth.module';
-import { RemoveToken } from 'src/entity/remove-token';
+import { RemoveToken } from 'src/common/entities/remove-token';
 
 @Module({
 	imports: [

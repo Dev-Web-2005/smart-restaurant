@@ -2,11 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import CreateAuthorityRequestDto from 'src/authorities/dtos/request/create-authority-request.dto';
 import GetAuthorityResponseDto from 'src/authorities/dtos/response/get-authority-response.dto';
-import { Authority } from 'src/entity/authority';
-import { AuthorityEnum } from 'src/utils/enum';
+import { Authority } from 'src/common/entities/authority';
+
 import { Repository } from 'typeorm';
-import ErrorCode from 'src/exception/error-code';
-import AppException from 'src/exception/app-exception';
+import ErrorCode from '@shared/exceptions/error-code';
+import AppException from '@shared/exceptions/app-exception';
+import { AuthorityEnum } from '@shared/utils/enum';
 
 @Injectable()
 export class AuthoritiesService {

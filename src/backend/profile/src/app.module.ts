@@ -4,7 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
 import { DetailModule } from './detail/detail.module';
-import Profile from 'src/entity/profile';
+import Profile from 'src/common/entities/profile';
 @Module({
 	imports: [
 		ConfigModule.forRoot({ isGlobal: true }),

@@ -2,11 +2,11 @@ import { Controller } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MessagePattern } from '@nestjs/microservices';
 import { plainToInstance } from 'class-transformer';
-import { ModifyProfileRequestDto } from 'dtos/request/modify-profile-request.dto';
-import { GetProfileRequestDto } from 'dtos/request/get-profile-request.dto';
-import GetProfileResponseDto from 'dtos/response/get-profile-response.dto';
-import AppException from 'exception/app-exception';
-import ErrorCode from 'exception/error-code';
+import { ModifyProfileRequestDto } from 'src/detail/dtos/modify-profile-request.dto';
+import { GetProfileRequestDto } from 'src/detail/dtos/get-profile-request.dto';
+import GetProfileResponseDto from 'src/detail/dtos/response/get-profile-response.dto';
+import AppException from '@shared/exceptions/app-exception';
+import ErrorCode from '@shared/exceptions/error-code';
 import { DetailService } from 'src/detail/detail.service';
 
 @Controller()

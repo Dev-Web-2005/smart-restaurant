@@ -2,11 +2,11 @@ import { Controller } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import CreateRoleRequestDto from 'src/roles/dtos/request/create-role-request.dto';
 import { RolesService } from 'src/roles/roles.service';
-import HttpResponse from 'src/utils/http-response';
+import HttpResponse from '@shared/utils/http-response';
 import { ConfigService } from '@nestjs/config';
-import AppException from 'src/exception/app-exception';
-import ErrorCode from 'src/exception/error-code';
-import { GetAllRolesRequestDto } from 'dtos/request/get-all-roles-request.dto';
+import AppException from '@shared/exceptions/app-exception';
+import ErrorCode from '@shared/exceptions/error-code';
+import { GetAllRolesRequestDto } from 'src/roles/dtos/request/get-all-roles-request.dto';
 
 @Controller()
 export class RolesController {

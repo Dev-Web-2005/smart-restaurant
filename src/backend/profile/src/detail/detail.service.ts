@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ModifyProfileRequestDto } from 'dtos/request/modify-profile-request.dto';
-import GetProfileResponseDto from 'dtos/response/get-profile-response.dto';
-import Profile from 'src/entity/profile';
+import { ModifyProfileRequestDto } from 'src/detail/dtos/modify-profile-request.dto';
+import GetProfileResponseDto from 'src/detail/dtos/response/get-profile-response.dto';
+import Profile from 'src/common/entities/profile';
 import { Repository } from 'typeorm';
 import { plainToInstance } from 'class-transformer';
-import AppException from 'exception/app-exception';
-import ErrorCode from 'exception/error-code';
-import { filterNullValues } from 'utils/utils';
+import AppException from '@shared/exceptions/app-exception';
+import ErrorCode from '@shared/exceptions/error-code';
+import { filterNullValues } from '@shared/utils/utils';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()

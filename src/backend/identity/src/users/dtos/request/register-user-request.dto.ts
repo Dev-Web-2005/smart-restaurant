@@ -6,7 +6,7 @@ import {
 	IsString,
 	Length,
 } from 'class-validator';
-import { MatchPassword } from 'src/decorators/decorator-function/match-password.decorator';
+import { MatchPassword } from 'src/common/decorators/decorator-function/match-password.decorator';
 
 export default class RegisterUserRequestDto {
 	@IsNotEmpty({ message: 'username should not be empty' })

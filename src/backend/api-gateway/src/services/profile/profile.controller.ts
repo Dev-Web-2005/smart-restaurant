@@ -10,8 +10,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
-import { AuthGuard } from '@nestjs/passport';
-import Role from 'src/guard/check-role/check-role.guard';
+import type { Request } from 'express';
+import AppException from '@shared/exceptions/app-exception';
+import ErrorCode from '@shared/exceptions/error-code';
+import Role from 'src/common/guards/check-role/check-role.guard';
+import { AuthGuard } from 'src/common/guards/get-role/auth.guard';
 
 @Controller('profiles')
 export class ProfileController {
@@ -20,31 +23,35 @@ export class ProfileController {
 		private readonly configService: ConfigService,
 	) {}
 
+	@UseGuards(AuthGuard)
 	@Get('my-profile')
-	@UseGuards(AuthGuard('jwt'))
 	getMyProfile(@Req() req: Request) {
-		const userId = (req as any).user.userId;
-		console.log('userId from JWT:', userId);
+		const userId = (req as any).user?.userId;
+		if (!userId) {
+			throw new AppException(ErrorCode.UNAUTHORIZED);
+		}
 		return this.profileClient.send('profiles:get-profile', {
 			userId,
 			profileApiKey: this.configService.get('PROFILE_API_KEY'),
 		});
 	}
 
+	@UseGuards(AuthGuard)
 	@Patch('modify')
-	@UseGuards(AuthGuard('jwt'))
 	modifyProfile(@Body() data: any, @Req() req: Request) {
-		const userId = (req as any).user.userId;
-		console.log('userId from JWT:', userId);
-		data.userId = userId;
+		const userId = (req as any).user?.userId;
+		if (!userId) {
+			throw new AppException(ErrorCode.UNAUTHORIZED);
+		}
 		return this.profileClient.send('profiles:modify-profile', {
 			...data,
+			userId,
 			profileApiKey: this.configService.get('PROFILE_API_KEY'),
 		});
 	}
 
+	@UseGuards(AuthGuard, Role('ADMIN'))
 	@Get(':userId')
-	@UseGuards(AuthGuard('jwt'), Role('ADMIN'))
 	getProfile(@Param('userId') userId: string) {
 		return this.profileClient.send('profiles:get-profile', {
 			userId,

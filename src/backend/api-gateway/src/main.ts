@@ -1,9 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import express from 'express';
-import { RpcExceptionFilter } from './filters/rpc-exception.filter';
-import { GlobalExceptionFilter } from './filters/global-exception.filter';
-import { TransformResponseInterceptor } from './interceptors/transform-response.interceptor';
+import { RpcExceptionFilter } from './common/filters/rpc-exception.filter';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { TransformResponseInterceptor } from './common/interceptors/transform-response.interceptor';
 import CookieParser from 'cookie-parser';
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);

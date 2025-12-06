@@ -4,10 +4,9 @@ import { AppService } from './app.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { IdentityController } from './services/identity/identity.controller';
 import { ConfigModule } from '@nestjs/config';
-import { LoggerMiddleware } from 'src/middleware/logger/logger.middleware';
-import { JwtConfigModule } from './jwt/jwt.config.module';
-import { AddHeaderMiddleware } from 'src/middleware/add-header/add-header.middleware';
+import { LoggerMiddleware } from 'src/common/middleware/logger/logger.middleware';
 import { ProfileController } from './services/profile/profile.controller';
+import { RateLimitMiddleware } from 'src/common/middleware/rate-limit/rate-limit.middleware';
 
 @Module({
 	imports: [
@@ -30,13 +29,12 @@ import { ProfileController } from './services/profile/profile.controller';
 				},
 			},
 		]),
-		JwtConfigModule,
 	],
 	controllers: [AppController, IdentityController, ProfileController],
 	providers: [AppService],
 })
 export class AppModule implements NestModule {
 	configure(consumer: MiddlewareConsumer) {
-		consumer.apply(LoggerMiddleware, AddHeaderMiddleware).forRoutes('*');
+		consumer.apply(LoggerMiddleware, RateLimitMiddleware).forRoutes('*');
 	}
 }

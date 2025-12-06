@@ -2,14 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AuthoritiesService } from 'src/authorities/authorities.service';
 import GetAuthorityResponseDto from 'src/authorities/dtos/response/get-authority-response.dto';
-import { Authority } from 'src/entity/authority';
-import { Role } from 'src/entity/role';
-import AppException from 'src/exception/app-exception';
-import ErrorCode from 'src/exception/error-code';
+import { Authority } from 'src/common/entities/authority';
+import { Role } from 'src/common/entities/role';
+import AppException from '@shared/exceptions/app-exception';
+import ErrorCode from '@shared/exceptions/error-code';
 import CreateRoleRequestDto from 'src/roles/dtos/request/create-role-request.dto';
 import CreateRoleResponseDto from 'src/roles/dtos/response/create-role-response.dto';
 import GetRoleResponseDto from 'src/roles/dtos/response/get-role-response.dto';
-import { AuthorityEnum, RoleEnum } from 'src/utils/enum';
+import { AuthorityEnum, RoleEnum } from '@shared/utils/enum';
 import { Repository } from 'typeorm';
 
 @Injectable()

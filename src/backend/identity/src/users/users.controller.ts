@@ -1,13 +1,13 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import { UsersService } from 'src/users/users.service';
-import HttpResponse from 'src/utils/http-response';
+import HttpResponse from '@shared/utils/http-response';
 import { ConfigService } from '@nestjs/config';
-import AppException from 'src/exception/app-exception';
-import ErrorCode from 'src/exception/error-code';
+import AppException from '@shared/exceptions/app-exception';
+import ErrorCode from '@shared/exceptions/error-code';
 import RegisterUserWithProfileRequestDto from 'src/users/dtos/request/register-user-with-profile-request.dto';
-import { GetAllUsersRequestDto } from 'dtos/request/get-all-users-request.dto';
-import { GetUserByIdRequestDto } from 'dtos/request/get-user-by-id-request.dto';
+import { GetAllUsersRequestDto } from 'src/users/dtos/request/get-all-users-request.dto';
+import { GetUserByIdRequestDto } from 'src/users/dtos/request/get-user-by-id-request.dto';
 
 @Controller()
 export class UsersController {

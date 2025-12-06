@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuthoritiesService } from './authorities.service';
 import { AuthoritiesController } from './authorities.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Authority } from 'src/entity/authority';
+import { Authority } from 'src/common/entities/authority';
 
 @Module({
 	imports: [TypeOrmModule.forFeature([Authority])],
