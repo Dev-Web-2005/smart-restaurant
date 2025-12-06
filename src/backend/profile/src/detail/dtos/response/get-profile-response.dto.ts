@@ -15,4 +15,5 @@ export default class GetProfileResponseDto {
 	backImage?: string;
 	createdAt: Date;
 	updatedAt: Date;
+	verified: boolean;
 }

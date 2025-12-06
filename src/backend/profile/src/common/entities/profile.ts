@@ -54,4 +54,7 @@ export default class Profile {
 		onUpdate: 'CURRENT_TIMESTAMP',
 	})
 	updatedAt: Date;
+
+	@Column({ nullable: false, default: () => false })
+	verified: boolean;
 }

@@ -1,3 +1,5 @@
+import { HttpResponse } from '@shared/utils';
+import { firstValueFrom } from 'rxjs';
 import {
 	Body,
 	Controller,
@@ -47,6 +49,25 @@ export class ProfileController {
 			...data,
 			userId,
 			profileApiKey: this.configService.get('PROFILE_API_KEY'),
+		});
+	}
+
+	@UseGuards(AuthGuard)
+	@Get('/verify-state')
+	async getVerifiedState(@Req() req: Request) {
+		const userId = (req as any).user?.userId;
+		if (!userId) {
+			throw new AppException(ErrorCode.UNAUTHORIZED);
+		}
+		const res = await firstValueFrom(
+			this.profileClient.send('profiles:get-verified-state', {
+				userId,
+				profileApiKey: this.configService.get('PROFILE_API_KEY'),
+			}),
+		);
+
+		return new HttpResponse(100, 'Get verified state successful', {
+			verified: res,
 		});
 	}
 
