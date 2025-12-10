@@ -55,7 +55,7 @@ export class QrCodeService {
 		};
 
 		const token = this.signToken(payload);
-		const url = `${this.BASE_URL}/public/scan/${token}`;
+		const url = `${this.BASE_URL}/tables/scan/${token}`;
 
 		// Generate QR code image
 		let qrImage: string;

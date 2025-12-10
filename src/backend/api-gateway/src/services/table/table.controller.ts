@@ -10,10 +10,13 @@ import {
 	Post,
 	Query,
 	Req,
+	Res,
 	UseGuards,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { AuthGuard } from 'src/common/guards/get-role/auth.guard';
+import type { Response } from 'express';
+import { firstValueFrom } from 'rxjs';
 
 @Controller()
 export class TableController {
@@ -91,7 +94,7 @@ export class TableController {
 
 	// QR Code Endpoints
 	@UseGuards(AuthGuard)
-	@Post('table/:tableId/qrcode')
+	@Post('tables/:tableId/qrcode')
 	generateQrCode(@Param('tableId') tableId: string, @Req() req: Request) {
 		const userId = (req as any).user?.userId;
 		return this.tableClient.send('qr:generate', {
@@ -101,11 +104,38 @@ export class TableController {
 		});
 	}
 
-	@Get('table/scan/:token')
-	validateScan(@Param('token') token: string) {
-		return this.tableClient.send('qr:validate-scan', {
-			token,
-			tableApiKey: this.configService.get('TABLE_API_KEY'),
-		});
+	@Get('tables/scan/:token')
+	async validateScan(@Param('token') token: string, @Res() res: Response) {
+		try {
+			const result: any = await firstValueFrom(
+				this.tableClient.send('qr:validate-scan', {
+					token,
+					tableApiKey: this.configService.get('TABLE_API_KEY'),
+				}),
+			);
+
+			// Server-side redirect đến trang menu
+
+			// Test response in development mode
+			if (this.configService.get('MOD') === 'development') {
+				console.log('QR Scan Validated:', result);
+				return res.status(200).json({ redirect: result.redirect });
+			}
+
+			// Production mode - perform redirect
+			const frontendUrl =
+				this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
+			const redirectUrl = frontendUrl + result.redirect;
+
+			return res.redirect(302, redirectUrl);
+		} catch (error) {
+			// Nếu QR invalid, redirect đến error page
+			const frontendUrl =
+				this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
+			return res.redirect(
+				302,
+				`${frontendUrl}/qr-error?message=${encodeURIComponent(error.message || 'Invalid QR Code')}`,
+			);
+		}
 	}
 }

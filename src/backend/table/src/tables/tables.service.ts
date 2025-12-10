@@ -60,6 +60,7 @@ export class TablesService {
 			where: {
 				id: tableId,
 				tenantId: tenantId,
+				isActive: true,
 			},
 		});
 
@@ -82,8 +83,11 @@ export class TablesService {
 			.createQueryBuilder('table')
 			.where('table.tenantId = :tenantId', { tenantId });
 
-		if (isActive !== undefined) {
+		if (isActive !== undefined && isActive !== null) {
 			queryBuilder.andWhere('table.isActive = :isActive', { isActive });
+		} else {
+			// default to only active tables
+			queryBuilder.andWhere('table.isActive = :isActive', { isActive: true });
 		}
 
 		if (location) {
