@@ -1,14 +1,16 @@
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
-import { DetailModule } from './detail/detail.module';
-import Profile from 'src/common/entities/profile';
+import { ItemModule } from './item/item.module';
+import { TablesModule } from './tables/tables.module';
+import { QrCodeModule } from './qr-code/qr-code.module';
+import { TableEntity } from './common/entities/table';
+
 @Module({
 	imports: [
 		ConfigModule.forRoot({ isGlobal: true }),
-
 		TypeOrmModule.forRoot({
 			type: 'postgres',
 			host: process.env.HOST_DB,
@@ -16,12 +18,12 @@ import Profile from 'src/common/entities/profile';
 			username: process.env.USERNAME_DB,
 			password: process.env.PASSWORD_DB,
 			database: process.env.DATABASE_DB,
-			entities: [Profile], // add your entity here
-
+			entities: [TableEntity],
 			synchronize: true,
 		}),
-
-		DetailModule,
+		ItemModule,
+		TablesModule,
+		QrCodeModule,
 	],
 	controllers: [AppController],
 	providers: [AppService],
