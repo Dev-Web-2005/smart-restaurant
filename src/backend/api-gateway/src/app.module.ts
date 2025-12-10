@@ -7,6 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 import { LoggerMiddleware } from 'src/common/middleware/logger/logger.middleware';
 import { ProfileController } from './services/profile/profile.controller';
 import { RateLimitMiddleware } from 'src/common/middleware/rate-limit/rate-limit.middleware';
+import { TableController } from './services/table/table.controller';
 
 @Module({
 	imports: [
@@ -36,9 +37,17 @@ import { RateLimitMiddleware } from 'src/common/middleware/rate-limit/rate-limit
 					port: +process.env.PORT_PRODUCT_SERVICE || 8082,
 				},
 			},
+			{
+				name: 'TABLE_SERVICE',
+				transport: Transport.TCP,
+				options: {
+					host: process.env.HOST_TABLE_SERVICE || 'localhost',
+					port: +process.env.PORT_TABLE_SERVICE || 8083,
+				},
+			},
 		]),
 	],
-	controllers: [AppController, IdentityController, ProfileController],
+	controllers: [AppController, IdentityController, ProfileController, TableController],
 	providers: [AppService],
 })
 export class AppModule implements NestModule {
