@@ -80,6 +80,13 @@ export default class ErrorCode {
     500
   );
 
+  /** Chef account creation failed */
+  static readonly CHEF_ACCOUNT_CREATION_FAILED: ErrorCode = new ErrorCode(
+    2005,
+    "Failed to create chef account",
+    500
+  );
+
   // ==================== ROLE & AUTHORITY (2100-2199) ====================
 
   /** Role not found in system */

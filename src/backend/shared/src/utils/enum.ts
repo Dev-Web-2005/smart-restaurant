@@ -4,8 +4,10 @@
 export enum RoleEnum {
   ADMIN = 1,
   USER = 2,
-  STAFF = 3,
-  MANAGER = 4,
+  CHEF = 3,
+  STAFF = 4,
+  MANAGER = 5,
+  CUSTOMER = 6,
 }
 
 /**
@@ -17,6 +19,10 @@ export enum AuthorityEnum {
   DELETE = 3,
   UPDATE = 4,
   EXECUTE = 5,
+  CREATE = 6,
+  VIEW = 7,
+  MANAGE = 8,
+  MODIFY_STATE = 9,
 }
 
 /**

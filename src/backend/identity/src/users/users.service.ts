@@ -18,6 +18,8 @@ import { Inject } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 import RegisterUserWithProfileRequestDto from 'src/users/dtos/request/register-user-with-profile-request.dto';
 import { extractFields } from '@shared/utils/utils';
+import ChefAccountResponseDto from 'src/users/dtos/response/chef-account-response.dto';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class UsersService {
@@ -46,10 +48,15 @@ export class UsersService {
 	async Register(
 		data: RegisterUserWithProfileRequestDto,
 	): Promise<RegisterUserResponseDto> {
-		const rolesString = data.roles || ['USER'];
+		const isCustomer = data.isCustomer || false;
+		const rolesString =
+			data.roles ||
+			(isCustomer ? [RoleEnum[RoleEnum.CUSTOMER]] : [RoleEnum[RoleEnum.USER]]);
+		/*
 		if (!rolesString.includes('USER')) {
 			rolesString.push('USER');
 		}
+		*/
 		const roles: Role[] = [];
 		for (const role of rolesString) {
 			const roleInt: number = RoleEnum[role as keyof typeof RoleEnum];
@@ -84,31 +91,34 @@ export class UsersService {
 				});
 				return dto;
 			});
+			if (rolesString.includes(RoleEnum[RoleEnum.USER])) {
+				try {
+					const profileData = {
+						userId: savedUser.userId,
+						profileApiKey: process.env.PROFILE_API_KEY,
+						...extractFields(data, this.PROFILE_FIELDS),
+					};
 
-			try {
-				const profileData = {
-					userId: savedUser.userId,
-					profileApiKey: process.env.PROFILE_API_KEY,
-					...extractFields(data, this.PROFILE_FIELDS),
-				};
+					const profile: any = await firstValueFrom(
+						this.profileClient.send('profiles:modify-profile', profileData),
+					);
 
-				const profile: any = await firstValueFrom(
-					this.profileClient.send('profiles:modify-profile', profileData),
-				);
-
-				if (!profile || !profile.userId) {
+					if (!profile || !profile.userId) {
+						await this.userRepository.delete({ userId: savedUser.userId });
+						throw new AppException(ErrorCode.PROFILE_SERVICE_ERROR);
+					}
+				} catch (err) {
 					await this.userRepository.delete({ userId: savedUser.userId });
+					if (err instanceof AppException) {
+						throw err;
+					}
+					console.error('Error calling profile service:', err);
 					throw new AppException(ErrorCode.PROFILE_SERVICE_ERROR);
 				}
-			} catch (err) {
-				await this.userRepository.delete({ userId: savedUser.userId });
-				if (err instanceof AppException) {
-					throw err;
-				}
-				console.error('Error calling profile service:', err);
-				throw new AppException(ErrorCode.PROFILE_SERVICE_ERROR);
-			}
 
+				const chefAccount = await this.generateChefAccount(savedUser.userId);
+				response.chefAccount = chefAccount;
+			}
 			return response;
 		} catch (err) {
 			console.error('Error saving user:', err);
@@ -166,5 +176,42 @@ export class UsersService {
 			return roleDto;
 		});
 		return dto;
+	}
+	async generateChefAccount(userId: string): Promise<ChefAccountResponseDto> {
+		const username = `chef_${Math.random().toString(36).substring(2, 10)}`;
+		const password = `${Math.random().toString(36).substring(2, 10)}`;
+		const email = `${username}@created-by-ltc.com`;
+		try {
+			const chefRole = await this.rolesService.getRoleByName(RoleEnum[RoleEnum.CHEF]);
+			if (!chefRole) {
+				throw new AppException(ErrorCode.ROLE_NOT_FOUND);
+			}
+
+			const user = this.userRepository.create({
+				username: username,
+				email: email,
+				ownerId: userId,
+				password: await bcrypt.hash(password, 10),
+				roles: [chefRole],
+			});
+			try {
+				const createdUser = await this.userRepository.save(user);
+				return plainToInstance(ChefAccountResponseDto, {
+					username: createdUser.username,
+					email: createdUser.email,
+					password: password,
+					ownerId: createdUser.ownerId,
+				});
+			} catch (err) {
+				console.error('Error saving chef user:', err);
+				throw new AppException(ErrorCode.CHEF_ACCOUNT_CREATION_FAILED);
+			}
+		} catch (err) {
+			if (err instanceof AppException) {
+				throw err;
+			}
+			console.error('Error generating chef account:', err);
+			throw new AppException(ErrorCode.CHEF_ACCOUNT_CREATION_FAILED);
+		}
 	}
 }

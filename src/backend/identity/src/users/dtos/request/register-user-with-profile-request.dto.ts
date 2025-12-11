@@ -1,4 +1,4 @@
-import { IsOptional } from 'class-validator';
+import { IsBoolean, IsOptional } from 'class-validator';
 import RegisterUserRequestDto from 'src/users/dtos/request/register-user-request.dto';
 
 export default class RegisterUserWithProfileRequestDto extends RegisterUserRequestDto {
@@ -46,4 +46,7 @@ export default class RegisterUserWithProfileRequestDto extends RegisterUserReque
 
 	@IsOptional()
 	backImage?: string;
+
+	@IsBoolean({ message: 'isCustomer must be a boolean value' })
+	isCustomer: boolean = false;
 }

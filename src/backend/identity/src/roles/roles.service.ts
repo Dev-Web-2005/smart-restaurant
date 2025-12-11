@@ -92,4 +92,16 @@ export class RolesService {
 		const nameInt: number = RoleEnum[name as keyof typeof RoleEnum];
 		await this.roleRepository.delete({ name: nameInt });
 	}
+
+	async getRoleByName(name: string): Promise<Role | null> {
+		const nameInt: number = RoleEnum[name as keyof typeof RoleEnum];
+		const role = await this.roleRepository.findOne({
+			where: { name: nameInt },
+			relations: ['authorities'],
+		});
+		if (!role) {
+			return null;
+		}
+		return role;
+	}
 }
