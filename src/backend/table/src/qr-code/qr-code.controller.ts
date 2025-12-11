@@ -1,9 +1,9 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { QrCodeService } from 'src/qr-code/qr-code.service';
-import { GenerateQrCodeDto } from 'src/qr-code/dtos/generate-qr-code.dto';
-import { QrCodeResponseDto } from 'src/qr-code/dtos/qr-code-response.dto';
-import { ScanResponseDto } from 'src/qr-code/dtos/scan-response.dto';
+import { GenerateQrCodeDto } from 'src/qr-code/dtos/request/generate-qr-code.dto';
+import { QrCodeResponseDto } from 'src/qr-code/dtos/response/qr-code-response.dto';
+import { ScanResponseDto } from 'src/qr-code/dtos/response/scan-response.dto';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
 import { ConfigService } from '@nestjs/config/dist/config.service';

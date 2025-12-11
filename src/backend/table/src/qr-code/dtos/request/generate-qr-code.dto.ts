@@ -7,7 +7,7 @@ export class GenerateQrCodeDto {
 	@IsUUID()
 	tableId: string;
 
-	@IsString()
+	@IsString({ message: 'Tenant ID must be a string' })
 	tenantId: string;
 
 	@IsOptional()

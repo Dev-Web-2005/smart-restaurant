@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TablesService } from 'src/tables/tables.service';
-import { QrCodeResponseDto } from 'src/qr-code/dtos/qr-code-response.dto';
-import { ScanResponseDto } from 'src/qr-code/dtos/scan-response.dto';
+import { QrCodeResponseDto } from 'src/qr-code/dtos/response/qr-code-response.dto';
+import { ScanResponseDto } from 'src/qr-code/dtos/response/scan-response.dto';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
 import * as crypto from 'crypto';
