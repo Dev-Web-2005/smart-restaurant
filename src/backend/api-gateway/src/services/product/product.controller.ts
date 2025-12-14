@@ -15,7 +15,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { AuthGuard } from 'src/common/guards/get-role/auth.guard';
 import Role from 'src/common/guards/check-role/check-role.guard';
 
-@Controller('products')
+@Controller()
 export class ProductController {
 	constructor(
 		@Inject('PRODUCT_SERVICE') private readonly productClient: ClientProxy,
@@ -28,8 +28,8 @@ export class ProductController {
 	@UseGuards(AuthGuard, Role('ADMIN'))
 	createCategory(@Param('tenantId') tenantId: string, @Body() data: any) {
 		return this.productClient.send('categories:create', {
-			tenantId,
 			...data,
+			tenantId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
@@ -47,8 +47,8 @@ export class ProductController {
 	@UseGuards(AuthGuard, Role('ADMIN'))
 	updateCategory(@Param('categoryId') categoryId: string, @Body() data: any) {
 		return this.productClient.send('categories:update', {
-			categoryId,
 			...data,
+			categoryId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
@@ -57,8 +57,8 @@ export class ProductController {
 	@UseGuards(AuthGuard, Role('ADMIN'))
 	publishCategory(@Param('categoryId') categoryId: string, @Body() data: any) {
 		return this.productClient.send('categories:publish', {
-			categoryId,
 			...data,
+			categoryId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
@@ -67,8 +67,8 @@ export class ProductController {
 	@UseGuards(AuthGuard, Role('ADMIN'))
 	deleteCategory(@Param('categoryId') categoryId: string, @Body() data: any) {
 		return this.productClient.send('categories:delete', {
-			categoryId,
 			...data,
+			categoryId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
@@ -79,8 +79,8 @@ export class ProductController {
 	@UseGuards(AuthGuard, Role('ADMIN'))
 	createItem(@Param('tenantId') tenantId: string, @Body() data: any) {
 		return this.productClient.send('items:create', {
-			tenantId,
 			...data,
+			tenantId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
@@ -102,8 +102,8 @@ export class ProductController {
 	@UseGuards(AuthGuard, Role('ADMIN'))
 	updateItem(@Param('itemId') itemId: string, @Body() data: any) {
 		return this.productClient.send('items:update', {
-			itemId,
 			...data,
+			itemId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
@@ -112,8 +112,8 @@ export class ProductController {
 	@UseGuards(AuthGuard, Role('ADMIN'))
 	publishItem(@Param('itemId') itemId: string, @Body() data: any) {
 		return this.productClient.send('items:publish', {
-			itemId,
 			...data,
+			itemId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
@@ -122,8 +122,8 @@ export class ProductController {
 	@UseGuards(AuthGuard, Role('ADMIN'))
 	deleteItem(@Param('itemId') itemId: string, @Body() data: any) {
 		return this.productClient.send('items:delete', {
-			itemId,
 			...data,
+			itemId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
@@ -132,8 +132,8 @@ export class ProductController {
 	@UseGuards(AuthGuard, Role('ADMIN'))
 	addModifiers(@Param('itemId') itemId: string, @Body() data: any) {
 		return this.productClient.send('items:add-modifiers', {
-			itemId,
 			...data,
+			itemId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
