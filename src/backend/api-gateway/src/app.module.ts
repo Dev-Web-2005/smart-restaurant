@@ -8,6 +8,7 @@ import { LoggerMiddleware } from 'src/common/middleware/logger/logger.middleware
 import { ProfileController } from './services/profile/profile.controller';
 import { RateLimitMiddleware } from 'src/common/middleware/rate-limit/rate-limit.middleware';
 import { TableController } from './services/table/table.controller';
+import { ProductController } from './services/product/product.controller';
 
 @Module({
 	imports: [
@@ -47,7 +48,13 @@ import { TableController } from './services/table/table.controller';
 			},
 		]),
 	],
-	controllers: [AppController, IdentityController, ProfileController, TableController],
+	controllers: [
+		AppController,
+		IdentityController,
+		ProfileController,
+		TableController,
+		ProductController,
+	],
 	providers: [AppService],
 })
 export class AppModule implements NestModule {
