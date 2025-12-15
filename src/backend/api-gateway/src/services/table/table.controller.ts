@@ -40,7 +40,9 @@ export class TableController {
 	listTables(
 		@Param('tenantId') tenantId: string,
 		@Query('isActive') isActive?: string,
-		@Query('location') location?: string,
+		@Query('status') status?: string,
+		@Query('floorId') floorId?: string,
+		@Query('includeFloor') includeFloor?: string,
 	) {
 		const payload: any = {
 			tenantId,
@@ -49,8 +51,14 @@ export class TableController {
 		if (isActive !== undefined) {
 			payload.isActive = isActive === 'true';
 		}
-		if (location) {
-			payload.location = location;
+		if (status) {
+			payload.status = status;
+		}
+		if (floorId) {
+			payload.floorId = floorId;
+		}
+		if (includeFloor !== undefined) {
+			payload.includeFloor = includeFloor === 'true';
 		}
 		return this.tableClient.send('tables:list', payload);
 	}

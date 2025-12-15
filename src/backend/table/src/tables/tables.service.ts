@@ -5,6 +5,7 @@ import { TableEntity } from 'src/common/entities/table';
 import { CreateTableDto } from 'src/tables/dtos/request/create-table.dto';
 import { UpdateTableDto } from 'src/tables/dtos/request/update-table.dto';
 import { TableDto } from 'src/tables/dtos/response/table.dto';
+import { TableStatus } from 'src/common/enums/table-status.enum';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
 import { filterNullValues } from '@shared/utils/utils';
@@ -42,7 +43,7 @@ export class TablesService {
 			tenantId: dto.tenantId,
 			name: dto.name,
 			capacity: dto.capacity,
-			location: dto.location,
+			status: dto.status || TableStatus.AVAILABLE,
 			floorId: dto.floorId,
 			gridX: dto.gridX,
 			gridY: dto.gridY,
@@ -80,7 +81,7 @@ export class TablesService {
 	async listTables(
 		tenantId: string,
 		isActive?: boolean,
-		location?: string,
+		status?: string,
 		floorId?: string,
 		includeFloor?: boolean,
 	): Promise<TableDto[]> {
@@ -95,8 +96,8 @@ export class TablesService {
 			queryBuilder.andWhere('table.isActive = :isActive', { isActive: true });
 		}
 
-		if (location) {
-			queryBuilder.andWhere('table.location = :location', { location });
+		if (status) {
+			queryBuilder.andWhere('table.status = :status', { status });
 		}
 
 		if (floorId) {

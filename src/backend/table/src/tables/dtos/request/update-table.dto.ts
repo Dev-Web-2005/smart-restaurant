@@ -1,4 +1,13 @@
-import { IsString, IsInt, IsOptional, IsBoolean, Min, MaxLength } from 'class-validator';
+import {
+	IsString,
+	IsInt,
+	IsOptional,
+	IsBoolean,
+	Min,
+	MaxLength,
+	IsEnum,
+} from 'class-validator';
+import { TableStatus } from 'src/common/enums/table-status.enum';
 
 /**
  * DTO for updating an existing table
@@ -15,10 +24,9 @@ export class UpdateTableDto {
 	@Min(1)
 	capacity?: number;
 
-	@IsString()
+	@IsEnum(TableStatus)
 	@IsOptional()
-	@MaxLength(255)
-	location?: string;
+	status?: TableStatus;
 
 	@IsString()
 	@IsOptional()

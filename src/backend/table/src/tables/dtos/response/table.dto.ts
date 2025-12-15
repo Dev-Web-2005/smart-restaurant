@@ -1,3 +1,5 @@
+import { TableStatus } from 'src/common/enums/table-status.enum';
+
 /**
  * Response DTO for table entity
  * Matches OpenAPI spec: Table
@@ -7,7 +9,7 @@ export class TableDto {
 	tenantId: string;
 	name: string;
 	capacity: number;
-	location?: string;
+	status: TableStatus;
 	floorId?: string;
 	gridX?: number;
 	gridY?: number;

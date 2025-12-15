@@ -1,4 +1,5 @@
-import { IsString, IsInt, IsOptional, Min, MaxLength } from 'class-validator';
+import { IsString, IsInt, IsOptional, Min, MaxLength, IsEnum } from 'class-validator';
+import { TableStatus } from 'src/common/enums/table-status.enum';
 
 /**
  * DTO for creating a new table
@@ -13,10 +14,9 @@ export class CreateTableDto {
 	@Min(1)
 	capacity: number;
 
-	@IsString()
+	@IsEnum(TableStatus)
 	@IsOptional()
-	@MaxLength(255)
-	location?: string;
+	status?: TableStatus;
 
 	@IsString()
 	@IsOptional()

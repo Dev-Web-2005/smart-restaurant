@@ -9,6 +9,7 @@ import {
 	JoinColumn,
 } from 'typeorm';
 import { FloorEntity } from './floor';
+import { TableStatus } from '../enums/table-status.enum';
 
 @Entity('tables')
 @Index(['tenantId', 'name'], { unique: true }) // Unique constraint per tenant
@@ -30,8 +31,11 @@ export class TableEntity {
 	@Column({ type: 'int', default: 4 })
 	capacity: number;
 
-	@Column({ type: 'varchar', nullable: true })
-	location: string; // e.g., "Tầng 1", "Sân vườn" (deprecated, use floor instead)
+	@Column({
+		type: 'varchar',
+		default: TableStatus.AVAILABLE,
+	})
+	status: TableStatus;
 
 	@Column({ type: 'int', nullable: true })
 	gridX: number; // X position on floor grid

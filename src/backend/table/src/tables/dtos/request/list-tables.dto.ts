@@ -15,7 +15,7 @@ export class ListTablesDto {
 
 	@IsString()
 	@IsOptional()
-	location?: string;
+	status?: string; // AVAILABLE | OCCUPIED | RESERVED | MAINTENANCE
 
 	@IsString()
 	@IsOptional()

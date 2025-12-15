@@ -1,4 +1,5 @@
 import { FloorDto } from 'src/floors/dtos/response/floor.dto';
+import { TableStatus } from 'src/common/enums/table-status.enum';
 
 /**
  * Response DTO for table entity with floor information
@@ -8,7 +9,7 @@ export class TableWithFloorDto {
 	tenantId: string;
 	name: string;
 	capacity: number;
-	location?: string;
+	status: TableStatus;
 	floorId?: string;
 	gridX?: number;
 	gridY?: number;

@@ -63,7 +63,7 @@ export class TablesController {
 		return await this.tablesService.listTables(
 			dto.tenantId,
 			dto.isActive,
-			dto.location,
+			dto.status,
 			dto.floorId,
 			dto.includeFloor,
 		);
