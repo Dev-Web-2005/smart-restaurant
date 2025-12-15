@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { FloorEntity } from 'src/common/entities/floor';
 import { CreateFloorDto } from 'src/floors/dtos/request/create-floor.dto';
 import { UpdateFloorDto } from 'src/floors/dtos/request/update-floor.dto';
+import { GetFloorDto } from 'src/floors/dtos/request/get-floor.dto';
+import { ListFloorsDto } from 'src/floors/dtos/request/list-floors.dto';
 import { FloorDto } from 'src/floors/dtos/response/floor.dto';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
@@ -56,11 +58,11 @@ export class FloorsService {
 	 * Get a single floor by ID
 	 * Enforces tenant isolation
 	 */
-	async getFloorById(floorId: string, tenantId: string): Promise<FloorDto> {
+	async getFloorById(dto: GetFloorDto): Promise<FloorDto> {
 		const floor = await this.floorRepository.findOne({
 			where: {
-				id: floorId,
-				tenantId: tenantId,
+				id: dto.floorId,
+				tenantId: dto.tenantId,
 				isActive: true,
 			},
 		});
@@ -75,13 +77,13 @@ export class FloorsService {
 	/**
 	 * List all floors for a tenant with optional filters
 	 */
-	async listFloors(tenantId: string, isActive?: boolean): Promise<FloorDto[]> {
+	async listFloors(dto: ListFloorsDto): Promise<FloorDto[]> {
 		const queryBuilder = this.floorRepository
 			.createQueryBuilder('floor')
-			.where('floor.tenantId = :tenantId', { tenantId });
+			.where('floor.tenantId = :tenantId', { tenantId: dto.tenantId });
 
-		if (isActive !== undefined && isActive !== null) {
-			queryBuilder.andWhere('floor.isActive = :isActive', { isActive });
+		if (dto.isActive !== undefined && dto.isActive !== null) {
+			queryBuilder.andWhere('floor.isActive = :isActive', { isActive: dto.isActive });
 		} else {
 			// default to only active floors
 			queryBuilder.andWhere('floor.isActive = :isActive', { isActive: true });
@@ -141,11 +143,11 @@ export class FloorsService {
 	 * Delete a floor (soft delete by setting isActive = false)
 	 * For hard delete, use deleteFloorPermanently
 	 */
-	async deleteFloor(floorId: string, tenantId: string): Promise<void> {
+	async deleteFloor(dto: GetFloorDto): Promise<void> {
 		const floor = await this.floorRepository.findOne({
 			where: {
-				id: floorId,
-				tenantId: tenantId,
+				id: dto.floorId,
+				tenantId: dto.tenantId,
 			},
 		});
 
@@ -161,10 +163,10 @@ export class FloorsService {
 	 * Permanently delete a floor from database
 	 * USE WITH CAUTION - This is irreversible
 	 */
-	async deleteFloorPermanently(floorId: string, tenantId: string): Promise<void> {
+	async deleteFloorPermanently(dto: GetFloorDto): Promise<void> {
 		const result = await this.floorRepository.delete({
-			id: floorId,
-			tenantId: tenantId,
+			id: dto.floorId,
+			tenantId: dto.tenantId,
 		});
 
 		if (result.affected === 0) {
