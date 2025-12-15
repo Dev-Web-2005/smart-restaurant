@@ -60,7 +60,13 @@ export class TablesController {
 			throw new AppException(ErrorCode.UNAUTHORIZED);
 		}
 
-		return await this.tablesService.listTables(dto.tenantId, dto.isActive, dto.location);
+		return await this.tablesService.listTables(
+			dto.tenantId,
+			dto.isActive,
+			dto.location,
+			dto.floorId,
+			dto.includeFloor,
+		);
 	}
 
 	/**

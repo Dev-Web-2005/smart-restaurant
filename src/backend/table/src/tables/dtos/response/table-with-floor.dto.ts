@@ -1,8 +1,9 @@
+import { FloorDto } from 'src/floors/dtos/response/floor.dto';
+
 /**
- * Response DTO for table entity
- * Matches OpenAPI spec: Table
+ * Response DTO for table entity with floor information
  */
-export class TableDto {
+export class TableWithFloorDto {
 	id: string;
 	tenantId: string;
 	name: string;
@@ -15,8 +16,9 @@ export class TableDto {
 	tokenVersion: number;
 	createdAt: Date;
 	updatedAt: Date;
+	floor?: FloorDto; // Populated floor information
 
-	constructor(partial: Partial<TableDto>) {
+	constructor(partial: Partial<TableWithFloorDto>) {
 		Object.assign(this, partial);
 	}
 }

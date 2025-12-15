@@ -17,6 +17,15 @@ export class ListTablesDto {
 	@IsOptional()
 	location?: string;
 
+	@IsString()
+	@IsOptional()
+	floorId?: string;
+
+	@IsBoolean()
+	@IsOptional()
+	@Transform(({ value }) => value === 'true' || value === true)
+	includeFloor?: boolean; // Whether to populate floor information
+
 	@IsOptional()
 	tableApiKey?: string;
 }

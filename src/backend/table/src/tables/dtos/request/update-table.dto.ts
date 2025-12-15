@@ -20,6 +20,20 @@ export class UpdateTableDto {
 	@MaxLength(255)
 	location?: string;
 
+	@IsString()
+	@IsOptional()
+	floorId?: string;
+
+	@IsInt()
+	@IsOptional()
+	@Min(0)
+	gridX?: number;
+
+	@IsInt()
+	@IsOptional()
+	@Min(0)
+	gridY?: number;
+
 	@IsBoolean()
 	@IsOptional()
 	isActive?: boolean;
