@@ -46,7 +46,7 @@ export class FloorsController {
 			throw new AppException(ErrorCode.UNAUTHORIZED);
 		}
 
-		return await this.floorsService.getFloorById(dto.floorId, dto.tenantId);
+		return await this.floorsService.getFloorById(dto);
 	}
 
 	/**
@@ -60,7 +60,7 @@ export class FloorsController {
 			throw new AppException(ErrorCode.UNAUTHORIZED);
 		}
 
-		return await this.floorsService.listFloors(dto.tenantId, dto.isActive);
+		return await this.floorsService.listFloors(dto);
 	}
 
 	/**
@@ -94,7 +94,7 @@ export class FloorsController {
 			throw new AppException(ErrorCode.UNAUTHORIZED);
 		}
 
-		await this.floorsService.deleteFloor(dto.floorId, dto.tenantId);
+		await this.floorsService.deleteFloor(dto);
 		return { success: true };
 	}
 
@@ -111,7 +111,7 @@ export class FloorsController {
 			throw new AppException(ErrorCode.UNAUTHORIZED);
 		}
 
-		await this.floorsService.deleteFloorPermanently(dto.floorId, dto.tenantId);
+		await this.floorsService.deleteFloorPermanently(dto);
 		return { success: true };
 	}
 }
