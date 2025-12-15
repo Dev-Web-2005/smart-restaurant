@@ -43,6 +43,9 @@ export class TablesService {
 			name: dto.name,
 			capacity: dto.capacity,
 			location: dto.location,
+			floorId: dto.floorId,
+			gridX: dto.gridX,
+			gridY: dto.gridY,
 			isActive: true,
 			tokenVersion: 1,
 		});
@@ -78,6 +81,8 @@ export class TablesService {
 		tenantId: string,
 		isActive?: boolean,
 		location?: string,
+		floorId?: string,
+		includeFloor?: boolean,
 	): Promise<TableDto[]> {
 		const queryBuilder = this.tableRepository
 			.createQueryBuilder('table')
@@ -92,6 +97,14 @@ export class TablesService {
 
 		if (location) {
 			queryBuilder.andWhere('table.location = :location', { location });
+		}
+
+		if (floorId) {
+			queryBuilder.andWhere('table.floorId = :floorId', { floorId });
+		}
+
+		if (includeFloor) {
+			queryBuilder.leftJoinAndSelect('table.floor', 'floor');
 		}
 
 		queryBuilder.orderBy('table.name', 'ASC');

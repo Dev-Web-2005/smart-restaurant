@@ -19,6 +19,20 @@ export class CreateTableDto {
 	location?: string;
 
 	@IsString()
+	@IsOptional()
+	floorId?: string;
+
+	@IsInt()
+	@IsOptional()
+	@Min(0)
+	gridX?: number;
+
+	@IsInt()
+	@IsOptional()
+	@Min(0)
+	gridY?: number;
+
+	@IsString()
 	tenantId: string;
 
 	@IsOptional()
