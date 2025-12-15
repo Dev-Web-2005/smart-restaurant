@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import BasePageLayout from '../../../components/layout/BasePageLayout'
+import { saveTableLayoutAPI } from '../../../services/api/tableAPI'
 
 // --- Dữ liệu Mock cho các bàn với vị trí grid (x, y) ---
 // 🚨 Dùng let thay vì const để có thể thay đổi trong các hàm
@@ -249,6 +250,8 @@ const RestaurantTableManagement = () => {
 	const [dropTarget, setDropTarget] = useState(null)
 	// CRITICAL: Set initial grid to 12 columns (max width) x 5 rows as specified
 	const [gridSize, setGridSize] = useState({ rows: 5, cols: 12 })
+	const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+	const [isSaving, setIsSaving] = useState(false)
 
 	const currentFloor = currentPage
 
@@ -487,6 +490,7 @@ const RestaurantTableManagement = () => {
 
 		setDraggingTable(null)
 		setDropTarget(null)
+		setHasUnsavedChanges(true) // Mark layout as modified
 
 		// PHẦN GIAO TIẾP VỚI BACKEND - UNCOMMENT KHI SẴN SÀNG
 		/*
@@ -613,6 +617,41 @@ const RestaurantTableManagement = () => {
 		alert(`Floor ${newFloorNumber} added successfully!`)
 		fetchTables(newFloorNumber)
 		// Comment: KẾT THÚC: Logic thêm tầng mới
+	}
+
+	// ====================================================================
+	// SAVE LAYOUT FUNCTION
+	// ====================================================================
+
+	const handleSaveLayout = async () => {
+		if (!hasUnsavedChanges) {
+			alert('No changes to save')
+			return
+		}
+
+		if (tables.length === 0) {
+			alert('No tables to save')
+			return
+		}
+
+		setIsSaving(true)
+
+		try {
+			// Call API to save layout
+			const result = await saveTableLayoutAPI(currentFloor, tables, gridSize)
+
+			if (result.success) {
+				alert(`✅ Layout saved successfully! Updated ${result.updatedCount} table(s)`)
+				setHasUnsavedChanges(false)
+			} else {
+				alert(`❌ Failed to save layout: ${result.message}`)
+			}
+		} catch (error) {
+			console.error('Error saving layout:', error)
+			alert('❌ Network error. Please try again.')
+		} finally {
+			setIsSaving(false)
+		}
 	}
 
 	// ====================================================================
@@ -859,6 +898,21 @@ const RestaurantTableManagement = () => {
 							</p>
 						</div>
 						<div className="flex gap-3">
+							<button
+								onClick={handleSaveLayout}
+								disabled={!hasUnsavedChanges || isSaving}
+								className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors font-medium ${
+									hasUnsavedChanges && !isSaving
+										? 'bg-green-600 text-white hover:bg-green-700'
+										: 'bg-gray-600 text-gray-300 cursor-not-allowed'
+								}`}
+								title={hasUnsavedChanges ? 'Save current layout' : 'No changes to save'}
+							>
+								<span className="text-lg">{isSaving ? '⏳' : '💾'}</span>
+								<span className="truncate">
+									{isSaving ? 'Saving...' : hasUnsavedChanges ? 'Save Layout' : 'Saved'}
+								</span>
+							</button>
 							<button
 								onClick={handleAddFloor}
 								className="flex items-center gap-2 bg-[#137fec] text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
