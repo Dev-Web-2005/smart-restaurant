@@ -15,7 +15,7 @@ export class MenuCategory {
 	@Column()
 	tenantId: string;
 
-	@Column()
+	@Column({ nullable: false }) // Đảm bảo TypeORM cũng hiểu là không được null
 	name: string;
 
 	@Column({ nullable: true })

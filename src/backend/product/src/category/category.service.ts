@@ -22,16 +22,7 @@ export class CategoryService {
 		private readonly configService: ConfigService,
 	) {}
 
-	private validateApiKey(providedKey: string): void {
-		const validKey = this.configService.get<string>('PRODUCT_API_KEY');
-		if (providedKey !== validKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
-	}
-
 	async createCategory(dto: CreateCategoryRequestDto): Promise<CategoryResponseDto> {
-		this.validateApiKey(dto.productApiKey);
-
 		const category = this.categoryRepository.create({
 			tenantId: dto.tenantId,
 			name: dto.name,
@@ -45,8 +36,6 @@ export class CategoryService {
 	}
 
 	async getCategories(dto: GetCategoriesRequestDto): Promise<CategoryResponseDto[]> {
-		this.validateApiKey(dto.productApiKey);
-
 		const categories = await this.categoryRepository.find({
 			where: { tenantId: dto.tenantId },
 			order: { displayOrder: 'ASC', createdAt: 'ASC' },
@@ -56,8 +45,6 @@ export class CategoryService {
 	}
 
 	async updateCategory(dto: UpdateCategoryRequestDto): Promise<CategoryResponseDto> {
-		this.validateApiKey(dto.productApiKey);
-
 		const category = await this.categoryRepository.findOne({
 			where: { id: dto.categoryId, tenantId: dto.tenantId },
 		});
@@ -74,8 +61,6 @@ export class CategoryService {
 	}
 
 	async publishCategory(dto: PublishCategoryRequestDto): Promise<CategoryResponseDto> {
-		this.validateApiKey(dto.productApiKey);
-
 		const category = await this.categoryRepository.findOne({
 			where: { id: dto.categoryId, tenantId: dto.tenantId },
 		});
@@ -90,8 +75,6 @@ export class CategoryService {
 	}
 
 	async deleteCategory(dto: DeleteCategoryRequestDto): Promise<void> {
-		this.validateApiKey(dto.productApiKey);
-
 		const category = await this.categoryRepository.findOne({
 			where: { id: dto.categoryId, tenantId: dto.tenantId },
 		});

@@ -333,19 +333,92 @@
       "name": "Product",
       "item": [
         {
-          "name": "New Request",
-          "id": "f23187f6-3844-4c7b-8765-9c2ea2648462",
+          "name": "Get Categories of Tenant",
+          "id": "ded463d2-1c3c-4060-a1ad-c878dce01233",
           "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
             "url": {
-              "raw": ""
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/categories",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Category",
+          "id": "afb8cad5-a058-43e5-b935-1c47f2813d29",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Test Category\",\r\n    \"description\": \"Test\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/categories",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "categories"
+              ]
             }
           },
           "response": []
         }
       ],
-      "id": "66065b3e-971f-45d7-8a1c-c985d1609b46"
+      "id": "8ab72cfb-05a5-48fc-bc3b-0dd9bb65b6ec"
     },
     {
       "name": "create authority",
@@ -495,12 +568,10 @@
           }
         },
         "url": {
-          "raw": "http://localhost:8888/api/v1/identity/users/register",
-          "protocol": "http",
+          "raw": "{{baseURL}}/api/v1/identity/users/register",
           "host": [
-            "localhost"
+            "{{baseURL}}"
           ],
-          "port": "8888",
           "path": [
             "api",
             "v1",
@@ -574,12 +645,10 @@
           }
         },
         "url": {
-          "raw": "http://localhost:8888/api/v1/identity/auth/login",
-          "protocol": "http",
+          "raw": "{{baseURL}}/api/v1/identity/auth/login",
           "host": [
-            "localhost"
+            "{{baseURL}}"
           ],
-          "port": "8888",
           "path": [
             "api",
             "v1",
@@ -835,6 +904,20 @@
         }
       },
       "response": []
+    }
+  ],
+  "variable": [
+    {
+      "id": "1ac03aa8-4482-416b-aca2-18af20b617cd",
+      "key": "baseURL",
+      "value": "",
+      "type": "default"
+    },
+    {
+      "id": "00bd3de6-aeae-4170-851a-851811be9e73",
+      "key": "baseURL",
+      "value": "",
+      "type": "default"
     }
   ]
 }
