@@ -196,6 +196,7 @@ export class TablesService {
 	/**
 	 * Increment token version to invalidate existing QR codes
 	 * Called when regenerating QR code
+	 * Also clears cached token to force regeneration
 	 */
 	async incrementTokenVersion(tableId: string, tenantId: string): Promise<TableEntity> {
 		const table = await this.tableRepository.findOne({
@@ -210,6 +211,32 @@ export class TablesService {
 		}
 
 		table.tokenVersion += 1;
+		table.qrToken = null; // Clear cached token
+		table.qrTokenGeneratedAt = null;
+		return await this.tableRepository.save(table);
+	}
+
+	/**
+	 * Save QR token to table (cache for reuse)
+	 */
+	async saveQrToken(
+		tableId: string,
+		tenantId: string,
+		token: string,
+	): Promise<TableEntity> {
+		const table = await this.tableRepository.findOne({
+			where: {
+				id: tableId,
+				tenantId: tenantId,
+			},
+		});
+
+		if (!table) {
+			throw new AppException(ErrorCode.TABLE_NOT_FOUND);
+		}
+
+		table.qrToken = token;
+		table.qrTokenGeneratedAt = new Date();
 		return await this.tableRepository.save(table);
 	}
 
