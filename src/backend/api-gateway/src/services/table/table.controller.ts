@@ -9,7 +9,6 @@ import {
 	Patch,
 	Post,
 	Query,
-	Req,
 	Res,
 	UseGuards,
 } from '@nestjs/common';
@@ -100,53 +99,12 @@ export class TableController {
 		});
 	}
 
-	// QR Code Endpoints
-	// @UseGuards(AuthGuard)
-	// @Post('tables/:tableId/qrcode')
-	// generateQrCode(@Param('tableId') tableId: string, @Req() req: Request) {
-	// 	const userId = (req as any).user?.userId;
-	// 	return this.tableClient.send('qr:generate', {
-	// 		tableId,
-	// 		tenantId: userId,
-	// 		tableApiKey: this.configService.get('TABLE_API_KEY'),
-	// 	});
-	// }
+	// QR Code Management Endpoints
 
-	// @Get('tables/scan/:token')
-	// async validateScan(@Param('token') token: string, @Res() res: Response) {
-	// 	try {
-	// 		const result: any = await firstValueFrom(
-	// 			this.tableClient.send('qr:validate-scan', {
-	// 				token,
-	// 				tableApiKey: this.configService.get('TABLE_API_KEY'),
-	// 			}),
-	// 		);
-
-	// 		// Server-side redirect đến trang menu
-
-	// 		// Test response in development mode
-	// 		if (this.configService.get('MOD') === 'development') {
-	// 			console.log('QR Scan Validated:', result);
-	// 			return res.status(200).json({ redirect: result.redirect });
-	// 		}
-
-	// 		// Production mode - perform redirect
-	// 		const frontendUrl =
-	// 			this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
-	// 		const redirectUrl = frontendUrl + result.redirect;
-
-	// 		return res.redirect(302, redirectUrl);
-	// 	} catch (error) {
-	// 		// Nếu QR invalid, redirect đến error page
-	// 		const frontendUrl =
-	// 			this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
-	// 		return res.redirect(
-	// 			302,
-	// 			`${frontendUrl}/qr-error?message=${encodeURIComponent(error.message || 'Invalid QR Code')}`,
-	// 		);
-	// 	}
-	// }
-
+	/**
+	 * Generate new QR code (invalidates old ones)
+	 * POST /tenants/:tenantId/tables/:tableId/qrcode
+	 */
 	@UseGuards(AuthGuard)
 	@Post('/tenants/:tenantId/tables/:tableId/qrcode')
 	generateQrCode(@Param('tenantId') tenantId: string, @Param('tableId') tableId: string) {
@@ -157,6 +115,65 @@ export class TableController {
 		});
 	}
 
+	/**
+	 * Get existing QR code without regenerating
+	 * GET /tenants/:tenantId/tables/:tableId/qrcode
+	 */
+	@UseGuards(AuthGuard)
+	@Get('/tenants/:tenantId/tables/:tableId/qrcode')
+	getQrCode(@Param('tenantId') tenantId: string, @Param('tableId') tableId: string) {
+		return this.tableClient.send('qr:get', {
+			tenantId,
+			tableId,
+			tableApiKey: this.configService.get('TABLE_API_KEY'),
+		});
+	}
+
+	/**
+	 * Download QR code in specific format (PNG, PDF, SVG)
+	 * GET /tenants/:tenantId/tables/:tableId/qrcode/download?format=png|pdf|svg
+	 */
+	@UseGuards(AuthGuard)
+	@Get('/tenants/:tenantId/tables/:tableId/qrcode/download')
+	async downloadQrCode(
+		@Param('tenantId') tenantId: string,
+		@Param('tableId') tableId: string,
+		@Query('format') format: string = 'png',
+		@Res() res: Response,
+	) {
+		// Validate format
+		const validFormats = ['png', 'pdf', 'svg'];
+		if (!validFormats.includes(format.toLowerCase())) {
+			return res.status(400).json({
+				statusCode: 400,
+				message: 'Invalid format. Supported formats: png, pdf, svg',
+			});
+		}
+
+		const result: any = await firstValueFrom(
+			this.tableClient.send('qr:download', {
+				tenantId,
+				tableId,
+				format: format.toLowerCase(),
+				tableApiKey: this.configService.get('TABLE_API_KEY'),
+			}),
+		);
+
+		// Convert base64 to buffer
+		const buffer = Buffer.from(result.data, 'base64');
+
+		// Set appropriate headers for file download
+		res.setHeader('Content-Type', result.mimeType);
+		res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+		res.setHeader('Content-Length', buffer.length);
+
+		return res.send(buffer);
+	}
+
+	/**
+	 * Validate QR code scan (public endpoint)
+	 * GET /tenants/:tenantId/tables/scan/:token
+	 */
 	@Get('/tenants/:tenantId/tables/scan/:token')
 	async validateScan(
 		@Param('tenantId') tenantId: string,
