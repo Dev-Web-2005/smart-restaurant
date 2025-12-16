@@ -46,7 +46,7 @@ export class TablesController {
 			throw new AppException(ErrorCode.UNAUTHORIZED);
 		}
 
-		return await this.tablesService.getTableById(dto.tableId, dto.tenantId);
+		return await this.tablesService.getTableById(dto);
 	}
 
 	/**
@@ -60,7 +60,7 @@ export class TablesController {
 			throw new AppException(ErrorCode.UNAUTHORIZED);
 		}
 
-		return await this.tablesService.listTables(dto.tenantId, dto.isActive, dto.location);
+		return await this.tablesService.listTables(dto);
 	}
 
 	/**
@@ -94,7 +94,7 @@ export class TablesController {
 			throw new AppException(ErrorCode.UNAUTHORIZED);
 		}
 
-		await this.tablesService.deleteTable(dto.tableId, dto.tenantId);
+		await this.tablesService.deleteTable(dto);
 		return { success: true };
 	}
 
@@ -111,7 +111,7 @@ export class TablesController {
 			throw new AppException(ErrorCode.UNAUTHORIZED);
 		}
 
-		await this.tablesService.deleteTablePermanently(dto.tableId, dto.tenantId);
+		await this.tablesService.deleteTablePermanently(dto);
 		return { success: true };
 	}
 }

@@ -15,7 +15,16 @@ export class ListTablesDto {
 
 	@IsString()
 	@IsOptional()
-	location?: string;
+	status?: string; // AVAILABLE | OCCUPIED | RESERVED | MAINTENANCE
+
+	@IsString()
+	@IsOptional()
+	floorId?: string;
+
+	@IsBoolean()
+	@IsOptional()
+	@Transform(({ value }) => value === 'true' || value === true)
+	includeFloor?: boolean; // Whether to populate floor information
 
 	@IsOptional()
 	tableApiKey?: string;

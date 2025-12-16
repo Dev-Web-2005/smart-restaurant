@@ -32,7 +32,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"name\": \"Table 3\",\r\n  \"capacity\": 4,\r\n  \"location\": \"Floor 1\"\r\n}",
+              "raw": "{\r\n  \"name\": \"Table 3\",\r\n  \"capacity\": 4,\r\n//   \"status\": \"AVAILABLE\", // default\r\n  \"floorId\": \"3ac7df6b-de49-45f5-9ddd-8c24dc8ad309\", // optional\r\n  \"gridX\": 0, // optional\r\n  \"gridY\": 0 // optional\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -40,12 +40,10 @@
               }
             },
             "url": {
-              "raw": "http://localhost:8888/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables",
-              "protocol": "http",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables",
               "host": [
-                "localhost"
+                "{{baseURL}}"
               ],
-              "port": "8888",
               "path": [
                 "api",
                 "v1",
@@ -80,19 +78,17 @@
               }
             ],
             "url": {
-              "raw": "http://localhost:8888/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/b325d227-0739-44c8-a6cd-441f29b5d227",
-              "protocol": "http",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/4e40e08c-675a-4825-af78-7028ac86fe69",
               "host": [
-                "localhost"
+                "{{baseURL}}"
               ],
-              "port": "8888",
               "path": [
                 "api",
                 "v1",
                 "tenants",
                 "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "tables",
-                "b325d227-0739-44c8-a6cd-441f29b5d227"
+                "4e40e08c-675a-4825-af78-7028ac86fe69"
               ]
             }
           },
@@ -133,12 +129,10 @@
               }
             },
             "url": {
-              "raw": "http://localhost:8888/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables",
-              "protocol": "http",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables",
               "host": [
-                "localhost"
+                "{{baseURL}}"
               ],
-              "port": "8888",
               "path": [
                 "api",
                 "v1",
@@ -174,7 +168,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"name\": \"Table 1 (Update)\"\r\n}",
+              "raw": "{\r\n    // All is optional\r\n    \"name\": \"Table 1 (Update)\"\r\n    // \"capacity\": 10,\r\n    // \"status\": \"AVAILABLE\",\r\n    // \"floorId\": \"4e40e08c-675a-4825-af78-7028ac86fe69\",\r\n    // \"gridX\": \"1\",\r\n    // \"gridY\": \"1\",\r\n    // \"isActive\": \"true\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -182,19 +176,17 @@
               }
             },
             "url": {
-              "raw": "http://localhost:8888/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/b325d227-0739-44c8-a6cd-441f29b5d227",
-              "protocol": "http",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/4e40e08c-675a-4825-af78-7028ac86fe69",
               "host": [
-                "localhost"
+                "{{baseURL}}"
               ],
-              "port": "8888",
               "path": [
                 "api",
                 "v1",
                 "tenants",
                 "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "tables",
-                "b325d227-0739-44c8-a6cd-441f29b5d227"
+                "4e40e08c-675a-4825-af78-7028ac86fe69"
               ]
             }
           },
@@ -246,6 +238,235 @@
           "response": []
         },
         {
+          "name": "Create Floor",
+          "id": "c57a138f-cd6a-49bd-a316-97207f890bee",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Tầng 2\",\r\n    \"floorNumber\": 2,\r\n    \"gridWidth\": 10,\r\n    \"gridHeight\": 10\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "floors"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Floors",
+          "id": "fe8e47f4-1abe-4e86-910e-e0d23bdac0f2",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "floors"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Floor By Id",
+          "id": "18ecb4be-14bd-4666-8368-f6af8ca6196a",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors/3ac7df6b-de49-45f5-9ddd-8c24dc8ad309",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "floors",
+                "3ac7df6b-de49-45f5-9ddd-8c24dc8ad309"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Floor",
+          "id": "a38bbc0a-015b-460a-88ed-4febe00affb5",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    // All is optional\r\n    \"name\": \"Tầng 1 (Update)\"\r\n    // \"floorNumber\": 2,\r\n    // \"gridWidth\": 10,\r\n    // \"gridHeight\": 10,\r\n    // \"description\": \"hehe\",\r\n    // \"isActive\": true\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors/3ac7df6b-de49-45f5-9ddd-8c24dc8ad309",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "floors",
+                "3ac7df6b-de49-45f5-9ddd-8c24dc8ad309"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Floor",
+          "id": "a434f3f8-2f6a-47d1-b92d-8a36ff929638",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors/3ac7df6b-de49-45f5-9ddd-8c24dc8ad309",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "floors",
+                "3ac7df6b-de49-45f5-9ddd-8c24dc8ad309"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Generate QR Code",
           "id": "a5057cfc-2b9f-4bd4-9b12-034d64d8c359",
           "request": {
@@ -272,18 +493,113 @@
               "raw": ""
             },
             "url": {
-              "raw": "http://localhost:8888/api/v1/tables/66182b49-6b64-499a-a2c5-fe9416fdd813/qrcode",
-              "protocol": "http",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/4e40e08c-675a-4825-af78-7028ac86fe69/qrcode",
               "host": [
-                "localhost"
+                "{{baseURL}}"
               ],
-              "port": "8888",
               "path": [
                 "api",
                 "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "tables",
-                "66182b49-6b64-499a-a2c5-fe9416fdd813",
+                "4e40e08c-675a-4825-af78-7028ac86fe69",
                 "qrcode"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get QR Code",
+          "id": "1d3c915f-3536-4a9a-a08e-fb0a9bcbdd92",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/4e40e08c-675a-4825-af78-7028ac86fe69/qrcode",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "tables",
+                "4e40e08c-675a-4825-af78-7028ac86fe69",
+                "qrcode"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Download QR Code",
+          "id": "4aa98de1-e643-4559-86b1-32ab61794c7f",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/4e40e08c-675a-4825-af78-7028ac86fe69/qrcode/download?format=svg",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "tables",
+                "4e40e08c-675a-4825-af78-7028ac86fe69",
+                "qrcode",
+                "download"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "svg"
+                }
               ]
             }
           },
@@ -309,18 +625,18 @@
               "raw": ""
             },
             "url": {
-              "raw": "http://localhost:8888/api/v1/tables/scan/eyJ0YWJsZUlkIjoiNjYxODJiNDktNmI2NC00OTlhLWEyYzUtZmU5NDE2ZmRkODEzIiwidGVuYW50SWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ0b2tlblZlcnNpb24iOjMsImlzc3VlZEF0IjoxNzY1MzU3NDM1MjY5fQ.Ol_Ppr0aBO_8lWuGNU_cQKD1DxReCuZhuCBSWgyUyQM",
-              "protocol": "http",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/scan/eyJ0YWJsZUlkIjoiNGU0MGUwOGMtNjc1YS00ODI1LWFmNzgtNzAyOGFjODZmZTY5IiwidGVuYW50SWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ0b2tlblZlcnNpb24iOjIsImlzc3VlZEF0IjoxNzY1ODQ5NDAxMDAzfQ.TsRuII9sChZUPthauWY5VUxTdvYokjg0w99oxNRC38I",
               "host": [
-                "localhost"
+                "{{baseURL}}"
               ],
-              "port": "8888",
               "path": [
                 "api",
                 "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "tables",
                 "scan",
-                "eyJ0YWJsZUlkIjoiNjYxODJiNDktNmI2NC00OTlhLWEyYzUtZmU5NDE2ZmRkODEzIiwidGVuYW50SWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ0b2tlblZlcnNpb24iOjMsImlzc3VlZEF0IjoxNzY1MzU3NDM1MjY5fQ.Ol_Ppr0aBO_8lWuGNU_cQKD1DxReCuZhuCBSWgyUyQM"
+                "eyJ0YWJsZUlkIjoiNGU0MGUwOGMtNjc1YS00ODI1LWFmNzgtNzAyOGFjODZmZTY5IiwidGVuYW50SWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ0b2tlblZlcnNpb24iOjIsImlzc3VlZEF0IjoxNzY1ODQ5NDAxMDAzfQ.TsRuII9sChZUPthauWY5VUxTdvYokjg0w99oxNRC38I"
               ]
             }
           },
@@ -419,6 +735,54 @@
         }
       ],
       "id": "8ab72cfb-05a5-48fc-bc3b-0dd9bb65b6ec"
+    },
+    {
+      "name": "Update Floor",
+      "id": "a38bbc0a-015b-460a-88ed-4febe00affb5",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "m",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{x-api-key}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    // All is optional\r\n    \"name\": \"Tầng 1 (Update)\"\r\n    // \"floorNumber\": 2,\r\n    // \"gridWidth\": 10,\r\n    // \"gridHeight\": 10,\r\n    // \"description\": \"hehe\",\r\n    // \"isActive\": true\r\n\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors/3ac7df6b-de49-45f5-9ddd-8c24dc8ad309",
+          "host": [
+            "{{baseURL}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "tenants",
+            "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+            "floors",
+            "3ac7df6b-de49-45f5-9ddd-8c24dc8ad309"
+          ]
+        }
+      },
+      "response": []
     },
     {
       "name": "create authority",

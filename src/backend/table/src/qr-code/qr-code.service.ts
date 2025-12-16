@@ -3,10 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import { TablesService } from 'src/tables/tables.service';
 import { QrCodeResponseDto } from 'src/qr-code/dtos/response/qr-code-response.dto';
 import { ScanResponseDto } from 'src/qr-code/dtos/response/scan-response.dto';
+import { DownloadQrCodeResponseDto } from 'src/qr-code/dtos/response/download-qr-code-response.dto';
+import { QrCodeFormat } from 'src/qr-code/dtos/request/download-qr-code.dto';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
 import * as crypto from 'crypto';
 import * as QRCode from 'qrcode';
+import PDFDocument from 'pdfkit';
 
 /**
  * Payload structure for QR code tokens
@@ -123,6 +126,221 @@ export class QrCodeService {
 			tableId: table.id,
 			tableName: table.name,
 			redirect,
+		});
+	}
+
+	/**
+	 * Get existing QR code without regenerating
+	 * Returns current QR code for the table
+	 */
+	async getQrCode(tableId: string, tenantId: string): Promise<QrCodeResponseDto> {
+		const table = await this.tablesService.getTableEntity(tableId, tenantId);
+
+		if (!table.isActive) {
+			throw new AppException(ErrorCode.TABLE_NOT_FOUND);
+		}
+
+		// Create token with current version (no increment)
+		const payload: QrTokenPayload = {
+			tableId: table.id,
+			tenantId: table.tenantId,
+			tokenVersion: table.tokenVersion,
+			issuedAt: Date.now(),
+		};
+
+		const token = this.signToken(payload);
+		const url = `${this.BASE_URL}/tables/scan/${token}`;
+
+		// Generate QR code image
+		let qrImage: string;
+		try {
+			qrImage = await QRCode.toDataURL(url, {
+				errorCorrectionLevel: 'M',
+				type: 'image/png',
+				width: 512,
+				margin: 2,
+			});
+		} catch {
+			throw new AppException(ErrorCode.QR_GENERATION_FAILED);
+		}
+
+		// Remove data URL prefix to return only base64
+		const base64Image = qrImage.replace(/^data:image\/png;base64,/, '');
+
+		return new QrCodeResponseDto({
+			url,
+			image: base64Image,
+			tableId: table.id,
+			tableName: table.name,
+			tokenVersion: table.tokenVersion,
+		});
+	}
+
+	/**
+	 * Download QR code in specified format
+	 * Supports PNG, PDF, and SVG formats
+	 */
+	async downloadQrCode(
+		tableId: string,
+		tenantId: string,
+		format: QrCodeFormat,
+	): Promise<DownloadQrCodeResponseDto> {
+		const table = await this.tablesService.getTableEntity(tableId, tenantId);
+
+		if (!table.isActive) {
+			throw new AppException(ErrorCode.TABLE_NOT_FOUND);
+		}
+
+		// Create token
+		const payload: QrTokenPayload = {
+			tableId: table.id,
+			tenantId: table.tenantId,
+			tokenVersion: table.tokenVersion,
+			issuedAt: Date.now(),
+		};
+
+		const token = this.signToken(payload);
+		const url = `${this.BASE_URL}/tables/scan/${token}`;
+
+		let data: string;
+		let mimeType: string;
+		let filename: string;
+
+		switch (format) {
+			case QrCodeFormat.PNG:
+				data = await this.generatePNG(url);
+				mimeType = 'image/png';
+				filename = `table-${table.name}-qr.png`;
+				break;
+
+			case QrCodeFormat.PDF:
+				data = await this.generatePDF(url, table.name);
+				mimeType = 'application/pdf';
+				filename = `table-${table.name}-qr.pdf`;
+				break;
+
+			case QrCodeFormat.SVG:
+				data = await this.generateSVG(url);
+				mimeType = 'image/svg+xml';
+				filename = `table-${table.name}-qr.svg`;
+				break;
+
+			default:
+				throw new AppException(ErrorCode.QR_GENERATION_FAILED);
+		}
+
+		return new DownloadQrCodeResponseDto({
+			data,
+			format,
+			mimeType,
+			filename,
+			tableId: table.id,
+			tableName: table.name,
+		});
+	}
+
+	/**
+	 * Generate QR code as PNG (base64)
+	 */ private async generatePNG(url: string): Promise<string> {
+		try {
+			const qrImage = await QRCode.toDataURL(url, {
+				errorCorrectionLevel: 'M',
+				type: 'image/png',
+				width: 1024, // Higher resolution for download
+				margin: 2,
+			});
+			return qrImage.replace(/^data:image\/png;base64,/, '');
+		} catch {
+			throw new AppException(ErrorCode.QR_GENERATION_FAILED);
+		}
+	}
+
+	/**
+	 * Generate QR code as SVG (base64 encoded)
+	 */
+	private async generateSVG(url: string): Promise<string> {
+		try {
+			const svg = await QRCode.toString(url, {
+				errorCorrectionLevel: 'M',
+				type: 'svg',
+				width: 512,
+				margin: 2,
+			});
+			return Buffer.from(svg).toString('base64');
+		} catch {
+			throw new AppException(ErrorCode.QR_GENERATION_FAILED);
+		}
+	}
+
+	/**
+	 * Generate QR code as PDF (base64 encoded)
+	 * Creates a PDF with QR code and table information
+	 */
+	private async generatePDF(url: string, tableName: string): Promise<string> {
+		// Generate QR code as buffer first
+		const qrBuffer = await QRCode.toBuffer(url, {
+			errorCorrectionLevel: 'M',
+			type: 'png',
+			width: 400,
+			margin: 2,
+		});
+
+		return new Promise((resolve, reject) => {
+			try {
+				// Create PDF
+				const doc = new PDFDocument({
+					size: 'A4',
+					margin: 50,
+				});
+
+				const chunks: Buffer[] = [];
+
+				doc.on('data', (chunk) => chunks.push(chunk));
+				doc.on('end', () => {
+					const pdfBuffer = Buffer.concat(chunks);
+					resolve(pdfBuffer.toString('base64'));
+				});
+				doc.on('error', reject);
+
+				// Add title
+				doc
+					.fontSize(24)
+					.font('Helvetica-Bold')
+					.text(`QR Code - Table ${tableName}`, { align: 'center' });
+
+				doc.moveDown(2);
+
+				// Add QR code image (centered)
+				const pageWidth = doc.page.width;
+				const imageWidth = 400;
+				const xPosition = (pageWidth - imageWidth) / 2;
+
+				doc.image(qrBuffer, xPosition, doc.y, {
+					width: imageWidth,
+					align: 'center',
+				});
+
+				doc.moveDown(3);
+
+				// Add instructions
+				doc
+					.fontSize(12)
+					.font('Helvetica')
+					.text('Scan this QR code to view the menu', { align: 'center' });
+
+				doc.moveDown(1);
+
+				// Add URL as text (for reference)
+				doc
+					.fontSize(10)
+					.font('Helvetica')
+					.fillColor('gray')
+					.text(url, { align: 'center' });
+
+				doc.end();
+			} catch {
+				reject(new AppException(ErrorCode.QR_GENERATION_FAILED));
+			}
 		});
 	}
 

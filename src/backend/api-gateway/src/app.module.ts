@@ -8,6 +8,7 @@ import { LoggerMiddleware } from 'src/common/middleware/logger/logger.middleware
 import { ProfileController } from './services/profile/profile.controller';
 import { RateLimitMiddleware } from 'src/common/middleware/rate-limit/rate-limit.middleware';
 import { TableController } from './services/table/table.controller';
+import { FloorController } from './services/table/floor.controller';
 import { ProductController } from './services/product/product.controller';
 
 @Module({
@@ -53,6 +54,7 @@ import { ProductController } from './services/product/product.controller';
 		IdentityController,
 		ProfileController,
 		TableController,
+		FloorController,
 		ProductController,
 	],
 	providers: [AppService],

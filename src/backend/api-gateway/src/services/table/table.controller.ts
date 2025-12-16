@@ -9,7 +9,6 @@ import {
 	Patch,
 	Post,
 	Query,
-	Req,
 	Res,
 	UseGuards,
 } from '@nestjs/common';
@@ -17,6 +16,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { AuthGuard } from 'src/common/guards/get-role/auth.guard';
 import type { Response } from 'express';
 import { firstValueFrom } from 'rxjs';
+import Role from 'src/common/guards/check-role/check-role.guard';
 
 @Controller()
 export class TableController {
@@ -25,7 +25,7 @@ export class TableController {
 		private readonly configService: ConfigService,
 	) {}
 
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthGuard, Role('USER'))
 	@Post('/tenants/:tenantId/tables')
 	createTable(@Param('tenantId') tenantId: string, @Body() data: any) {
 		return this.tableClient.send('tables:create', {
@@ -35,12 +35,14 @@ export class TableController {
 		});
 	}
 
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthGuard, Role('USER'))
 	@Get('/tenants/:tenantId/tables')
 	listTables(
 		@Param('tenantId') tenantId: string,
 		@Query('isActive') isActive?: string,
-		@Query('location') location?: string,
+		@Query('status') status?: string,
+		@Query('floorId') floorId?: string,
+		@Query('includeFloor') includeFloor?: string,
 	) {
 		const payload: any = {
 			tenantId,
@@ -49,13 +51,19 @@ export class TableController {
 		if (isActive !== undefined) {
 			payload.isActive = isActive === 'true';
 		}
-		if (location) {
-			payload.location = location;
+		if (status) {
+			payload.status = status;
+		}
+		if (floorId) {
+			payload.floorId = floorId;
+		}
+		if (includeFloor !== undefined) {
+			payload.includeFloor = includeFloor === 'true';
 		}
 		return this.tableClient.send('tables:list', payload);
 	}
 
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthGuard, Role('USER'))
 	@Get('/tenants/:tenantId/tables/:tableId')
 	getTableById(@Param('tenantId') tenantId: string, @Param('tableId') tableId: string) {
 		return this.tableClient.send('tables:get-by-id', {
@@ -65,7 +73,7 @@ export class TableController {
 		});
 	}
 
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthGuard, Role('USER'))
 	@Patch('/tenants/:tenantId/tables/:tableId')
 	updateTable(
 		@Param('tenantId') tenantId: string,
@@ -82,7 +90,7 @@ export class TableController {
 		});
 	}
 
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthGuard, Role('USER'))
 	@Delete('/tenants/:tenantId/tables/:tableId')
 	deleteTable(@Param('tenantId') tenantId: string, @Param('tableId') tableId: string) {
 		return this.tableClient.send('tables:delete', {
@@ -92,23 +100,91 @@ export class TableController {
 		});
 	}
 
-	// QR Code Endpoints
-	@UseGuards(AuthGuard)
-	@Post('tables/:tableId/qrcode')
-	generateQrCode(@Param('tableId') tableId: string, @Req() req: Request) {
-		const userId = (req as any).user?.userId;
+	// QR Code Management Endpoints
+
+	/**
+	 * Generate new QR code (invalidates old ones)
+	 * POST /tenants/:tenantId/tables/:tableId/qrcode
+	 */
+	@UseGuards(AuthGuard, Role('USER'))
+	@Post('/tenants/:tenantId/tables/:tableId/qrcode')
+	generateQrCode(@Param('tenantId') tenantId: string, @Param('tableId') tableId: string) {
 		return this.tableClient.send('qr:generate', {
+			tenantId,
 			tableId,
-			tenantId: userId,
 			tableApiKey: this.configService.get('TABLE_API_KEY'),
 		});
 	}
 
-	@Get('tables/scan/:token')
-	async validateScan(@Param('token') token: string, @Res() res: Response) {
+	/**
+	 * Get existing QR code without regenerating
+	 * GET /tenants/:tenantId/tables/:tableId/qrcode
+	 */
+	@UseGuards(AuthGuard, Role('USER'))
+	@Get('/tenants/:tenantId/tables/:tableId/qrcode')
+	getQrCode(@Param('tenantId') tenantId: string, @Param('tableId') tableId: string) {
+		return this.tableClient.send('qr:get', {
+			tenantId,
+			tableId,
+			tableApiKey: this.configService.get('TABLE_API_KEY'),
+		});
+	}
+
+	/**
+	 * Download QR code in specific format (PNG, PDF, SVG)
+	 * GET /tenants/:tenantId/tables/:tableId/qrcode/download?format=png|pdf|svg
+	 */
+	@UseGuards(AuthGuard, Role('USER'))
+	@Get('/tenants/:tenantId/tables/:tableId/qrcode/download')
+	async downloadQrCode(
+		@Param('tenantId') tenantId: string,
+		@Param('tableId') tableId: string,
+		@Query('format') format: string = 'png',
+		@Res() res: Response,
+	) {
+		// Validate format
+		const validFormats = ['png', 'pdf', 'svg'];
+		if (!validFormats.includes(format.toLowerCase())) {
+			return res.status(400).json({
+				statusCode: 400,
+				message: 'Invalid format. Supported formats: png, pdf, svg',
+			});
+		}
+
+		const result: any = await firstValueFrom(
+			this.tableClient.send('qr:download', {
+				tenantId,
+				tableId,
+				format: format.toLowerCase(),
+				tableApiKey: this.configService.get('TABLE_API_KEY'),
+			}),
+		);
+
+		// Convert base64 to buffer
+		const buffer = Buffer.from(result.data, 'base64');
+
+		// Set appropriate headers for file download
+		res.setHeader('Content-Type', result.mimeType);
+		res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+		res.setHeader('Content-Length', buffer.length);
+
+		return res.send(buffer);
+	}
+
+	/**
+	 * Validate QR code scan (public endpoint)
+	 * GET /tenants/:tenantId/tables/scan/:token
+	 */
+	@Get('/tenants/:tenantId/tables/scan/:token')
+	async validateScan(
+		@Param('tenantId') tenantId: string,
+		@Param('token') token: string,
+		@Res() res: Response,
+	) {
 		try {
 			const result: any = await firstValueFrom(
 				this.tableClient.send('qr:validate-scan', {
+					tenantId,
 					token,
 					tableApiKey: this.configService.get('TABLE_API_KEY'),
 				}),

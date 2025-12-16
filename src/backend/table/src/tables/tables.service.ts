@@ -4,7 +4,10 @@ import { Repository } from 'typeorm';
 import { TableEntity } from 'src/common/entities/table';
 import { CreateTableDto } from 'src/tables/dtos/request/create-table.dto';
 import { UpdateTableDto } from 'src/tables/dtos/request/update-table.dto';
+import { GetTableDto } from 'src/tables/dtos/request/get-table.dto';
+import { ListTablesDto } from 'src/tables/dtos/request/list-tables.dto';
 import { TableDto } from 'src/tables/dtos/response/table.dto';
+import { TableStatus } from 'src/common/enums/table-status.enum';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
 import { filterNullValues } from '@shared/utils/utils';
@@ -42,7 +45,10 @@ export class TablesService {
 			tenantId: dto.tenantId,
 			name: dto.name,
 			capacity: dto.capacity,
-			location: dto.location,
+			status: dto.status || TableStatus.AVAILABLE,
+			floorId: dto.floorId,
+			gridX: dto.gridX,
+			gridY: dto.gridY,
 			isActive: true,
 			tokenVersion: 1,
 		});
@@ -55,11 +61,11 @@ export class TablesService {
 	 * Get a single table by ID
 	 * Enforces tenant isolation
 	 */
-	async getTableById(tableId: string, tenantId: string): Promise<TableDto> {
+	async getTableById(dto: GetTableDto): Promise<TableDto> {
 		const table = await this.tableRepository.findOne({
 			where: {
-				id: tableId,
-				tenantId: tenantId,
+				id: dto.tableId,
+				tenantId: dto.tenantId,
 				isActive: true,
 			},
 		});
@@ -74,24 +80,28 @@ export class TablesService {
 	/**
 	 * List all tables for a tenant with optional filters
 	 */
-	async listTables(
-		tenantId: string,
-		isActive?: boolean,
-		location?: string,
-	): Promise<TableDto[]> {
+	async listTables(dto: ListTablesDto): Promise<TableDto[]> {
 		const queryBuilder = this.tableRepository
 			.createQueryBuilder('table')
-			.where('table.tenantId = :tenantId', { tenantId });
+			.where('table.tenantId = :tenantId', { tenantId: dto.tenantId });
 
-		if (isActive !== undefined && isActive !== null) {
-			queryBuilder.andWhere('table.isActive = :isActive', { isActive });
+		if (dto.isActive !== undefined && dto.isActive !== null) {
+			queryBuilder.andWhere('table.isActive = :isActive', { isActive: dto.isActive });
 		} else {
 			// default to only active tables
 			queryBuilder.andWhere('table.isActive = :isActive', { isActive: true });
 		}
 
-		if (location) {
-			queryBuilder.andWhere('table.location = :location', { location });
+		if (dto.status) {
+			queryBuilder.andWhere('table.status = :status', { status: dto.status });
+		}
+
+		if (dto.floorId) {
+			queryBuilder.andWhere('table.floorId = :floorId', { floorId: dto.floorId });
+		}
+
+		if (dto.includeFloor) {
+			queryBuilder.leftJoinAndSelect('table.floor', 'floor');
 		}
 
 		queryBuilder.orderBy('table.name', 'ASC');
@@ -152,11 +162,11 @@ export class TablesService {
 	 * Delete a table (soft delete by setting isActive = false)
 	 * For hard delete, use deleteTablePermanently
 	 */
-	async deleteTable(tableId: string, tenantId: string): Promise<void> {
+	async deleteTable(dto: GetTableDto): Promise<void> {
 		const table = await this.tableRepository.findOne({
 			where: {
-				id: tableId,
-				tenantId: tenantId,
+				id: dto.tableId,
+				tenantId: dto.tenantId,
 			},
 		});
 
@@ -172,10 +182,10 @@ export class TablesService {
 	 * Permanently delete a table from database
 	 * USE WITH CAUTION - This is irreversible
 	 */
-	async deleteTablePermanently(tableId: string, tenantId: string): Promise<void> {
+	async deleteTablePermanently(dto: GetTableDto): Promise<void> {
 		const result = await this.tableRepository.delete({
-			id: tableId,
-			tenantId: tenantId,
+			id: dto.tableId,
+			tenantId: dto.tenantId,
 		});
 
 		if (result.affected === 0) {

@@ -196,6 +196,20 @@ export default class ErrorCode {
     500
   );
 
+  /** Floor not found */
+  static readonly FLOOR_NOT_FOUND: ErrorCode = new ErrorCode(
+    4006,
+    "Floor not found",
+    404
+  );
+
+  /** Attempting to create floor with existing name for same tenant */
+  static readonly FLOOR_ALREADY_EXISTS: ErrorCode = new ErrorCode(
+    4007,
+    "Floor with this name already exists",
+    409
+  );
+
   // ==================== PAYMENT (5000-5999) ====================
   // Reserved for payment service
 
