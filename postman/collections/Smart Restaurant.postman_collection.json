@@ -581,7 +581,7 @@
               "raw": ""
             },
             "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/4e40e08c-675a-4825-af78-7028ac86fe69/qrcode/download?format=png",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/4e40e08c-675a-4825-af78-7028ac86fe69/qrcode/download?format=svg",
               "host": [
                 "{{baseURL}}"
               ],
@@ -598,7 +598,7 @@
               "query": [
                 {
                   "key": "format",
-                  "value": "png"
+                  "value": "svg"
                 }
               ]
             }
