@@ -1,4 +1,4 @@
-import { IsEnum, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 
 export enum BatchQrCodeFormat {
 	ZIP_PNG = 'zip-png',
@@ -21,11 +21,13 @@ export class BatchDownloadQrCodeDto {
 	 * Optional: specific table IDs to include
 	 * If empty, download all active tables
 	 */
+	@IsOptional()
 	tableIds?: string[];
 
 	/**
 	 * Optional: filter by floor
 	 */
+	@IsOptional()
 	floorId?: string;
 
 	@IsString({ message: 'Table API key must be a string' })
