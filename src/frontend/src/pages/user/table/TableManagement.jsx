@@ -8,15 +8,16 @@ import {
 	updateTableStatusAPI,
 	updateTablePositionAPI,
 	getTableStatsAPI,
+	getTableQRCodeAPI,
 	regenerateTableQRAPI,
-	regenerateAllTableQRAPI,
-	downloadTableQRCode,
-	printTableQRCode,
-	downloadAllTableQRCodes,
-	printAllTableQRCodes,
+	bulkRegenerateQRCodesAPI,
+	downloadTableQRCodeAPI,
+	batchDownloadQRCodesAPI,
+	validateQRScanAPI,
 } from '../../../services/api/tableAPI'
 import AddTableModal from './AddTableModal'
 import { useLoading } from '../../../contexts/LoadingContext'
+import { useAlert } from '../../../contexts/AlertContext'
 import { InlineLoader, SkeletonLoader } from '../../../components/common/LoadingSpinner'
 import AuthenticationWarning from '../../../components/common/AuthenticationWarning'
 
@@ -611,107 +612,186 @@ const TableStatusModal = ({ isOpen, onClose, table, onUpdateStatus }) => {
 
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 					{/* QR Code Section - Left Side */}
-					{table.qrCodeUrl && (
-						<div className="md:col-span-1 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-xl p-6 border border-white/10">
-							<div className="flex flex-col items-center">
-								<p className="text-lg font-semibold text-gray-300 mb-4 text-center">
-									Mã QR Bàn
-								</p>
-								<div className="bg-white rounded-xl p-4 shadow-2xl mb-4">
-									<img
-										src={table.qrCodeUrl}
-										alt={`QR Code ${table.name}`}
-										className="w-full max-w-64 h-auto object-contain"
-										onError={(e) => {
-											e.target.src =
-												'https://via.placeholder.com/300x300?text=QR+Code+Error'
-										}}
-									/>
-								</div>
+					<div className="md:col-span-1 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-xl p-6 border border-white/10">
+						<div className="flex flex-col items-center">
+							<p className="text-lg font-semibold text-gray-300 mb-4 text-center">
+								Mã QR Bàn
+							</p>
+							{table.qrCodeUrl ? (
+								<>
+									<div className="bg-white rounded-xl p-4 shadow-2xl mb-4">
+										<img
+											src={table.qrCodeUrl}
+											alt={`QR Code ${table.name}`}
+											className="w-full max-w-64 h-auto object-contain"
+											onError={(e) => {
+												console.error('QR image load error')
+												e.target.src =
+													'https://via.placeholder.com/300x300?text=Loading+QR...'
+											}}
+										/>
+									</div>
 
-								{/* QR Info */}
-								<div className="text-center mb-4">
-									<p className="text-sm text-gray-400 mb-1">Quét để đặt bàn</p>
-									<p className="text-xs text-gray-500">ID: #{table.id}</p>
+									{/* QR Info */}
+									<div className="text-center mb-4">
+										<p className="text-sm text-gray-400 mb-1">Quét để đặt bàn</p>
+										<p className="text-xs text-gray-500">{table.name}</p>
+									</div>
+								</>
+							) : (
+								<div className="bg-white/10 rounded-xl p-8 shadow-2xl mb-4 flex flex-col items-center justify-center min-h-[300px]">
+									<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
+									<p className="text-gray-400 text-sm">Đang tải QR Code...</p>
 								</div>
+							)}
 
-								{/* QR Action Buttons */}
-								<div className="grid grid-cols-1 gap-3 w-full">
+							{/* QR Action Buttons - Using All 6 Backend APIs */}
+							<div className="grid grid-cols-1 gap-3 w-full">
+								{/* 1. Print QR (getTableQRCodeAPI) */}
+								<button
+									onClick={async () => {
+										const result = await getTableQRCodeAPI(table.id)
+										if (result.success && result.image) {
+											// Add data URL prefix if needed
+											const qrDataUrl = result.image.startsWith('data:')
+												? result.image
+												: `data:image/png;base64,${result.image}`
+
+											const printWindow = window.open('', '_blank')
+											printWindow.document.write(`
+												<html>
+												<head>
+													<title>In QR Code - ${table.name}</title>
+													<style>
+														@media print {
+															body { margin: 0; padding: 20px; }
+															.no-print { display: none; }
+														}
+														body {
+															display: flex;
+															flex-direction: column;
+															align-items: center;
+															justify-content: center;
+															min-height: 100vh;
+															font-family: system-ui;
+															background: #fff;
+														}
+														h1 { color: #1f2937; margin-bottom: 20px; }
+														img { max-width: 400px; border: 4px solid #3b82f6; border-radius: 12px; }
+														p { color: #6b7280; margin-top: 16px; }
+														.print-btn {
+															margin-top: 24px;
+															padding: 12px 24px;
+															background: #3b82f6;
+															color: white;
+															border: none;
+															border-radius: 8px;
+															cursor: pointer;
+															font-size: 16px;
+															font-weight: 600;
+														}
+														.print-btn:hover { background: #2563eb; }
+													</style>
+												</head>
+												<body>
+													<h1>${table.name}</h1>
+													<img src="${qrDataUrl}" alt="QR Code" />
+													<p>Scan để vào menu</p>
+													<button class="print-btn no-print" onclick="window.print()">🖨️ In QR Code</button>
+												</body>
+												</html>
+											`)
+											printWindow.document.close()
+											// Auto print after 500ms
+											setTimeout(() => {
+												printWindow.print()
+											}, 500)
+										} else {
+											showError('Lỗi in QR', result.message)
+										}
+									}}
+									className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600/20 border-2 border-indigo-600/30 text-indigo-400 rounded-lg hover:bg-indigo-600/40 hover:border-indigo-500 transition-all duration-200"
+									title="In QR Code"
+								>
+									<span className="text-lg">🖨️</span>
+									<span className="font-semibold">In QR Code</span>
+								</button>
+
+								{/* 2-4. Download QR with format selection (downloadTableQRCodeAPI) */}
+								<div className="grid grid-cols-3 gap-2">
 									<button
 										onClick={async () => {
-											const success = await downloadTableQRCode(
-												table.qrCodeUrl,
-												table.name,
+											const result = await downloadTableQRCodeAPI(table.id, 'png')
+											if (!result.success) showError('Lỗi tải PNG', result.message)
+										}}
+										className="flex flex-col items-center justify-center gap-1 px-2 py-2 bg-blue-600/20 border border-blue-600/30 text-blue-400 rounded-lg hover:bg-blue-600/40 hover:border-blue-500 transition-all duration-200 text-xs"
+										title="Tải QR PNG"
+									>
+										<span>📥</span>
+										<span className="font-semibold">PNG</span>
+									</button>
+									<button
+										onClick={async () => {
+											const result = await downloadTableQRCodeAPI(table.id, 'pdf')
+											if (!result.success) showError('Lỗi tải PDF', result.message)
+										}}
+										className="flex flex-col items-center justify-center gap-1 px-2 py-2 bg-red-600/20 border border-red-600/30 text-red-400 rounded-lg hover:bg-red-600/40 hover:border-red-500 transition-all duration-200 text-xs"
+										title="Tải QR PDF"
+									>
+										<span>📥</span>
+										<span className="font-semibold">PDF</span>
+									</button>
+									<button
+										onClick={async () => {
+											const result = await downloadTableQRCodeAPI(table.id, 'svg')
+											if (!result.success) showError('Lỗi tải SVG', result.message)
+										}}
+										className="flex flex-col items-center justify-center gap-1 px-2 py-2 bg-purple-600/20 border border-purple-600/30 text-purple-400 rounded-lg hover:bg-purple-600/40 hover:border-purple-500 transition-all duration-200 text-xs"
+										title="Tải QR SVG"
+									>
+										<span>📥</span>
+										<span className="font-semibold">SVG</span>
+									</button>
+								</div>
+
+								{/* 5. Regenerate QR (regenerateTableQRAPI) */}
+								<button
+									onClick={async () => {
+										if (
+											window.confirm(
+												`Bạn có chắc muốn tạo lại QR Code cho ${table.name}?\nQR cũ sẽ không còn hoạt động.`,
 											)
-											if (success) {
-												alert('QR Code đã được tải xuống!')
-											} else {
-												alert('Không thể tải QR Code. Vui lòng thử lại.')
-											}
-										}}
-										className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600/20 border-2 border-blue-600/30 text-blue-400 rounded-lg hover:bg-blue-600/40 hover:border-blue-500 transition-all duration-200"
-										title="Tải QR Code"
-									>
-										<span className="text-lg">⬇️</span>
-										<span className="font-semibold">Tải QR Code</span>
-									</button>
-
-									<button
-										onClick={() => {
-											printTableQRCode(table.qrCodeUrl, table.name, {
-												location: table.location,
-												capacity: table.capacity,
-											})
-										}}
-										className="flex items-center justify-center gap-2 px-4 py-3 bg-green-600/20 border-2 border-green-600/30 text-green-400 rounded-lg hover:bg-green-600/40 hover:border-green-500 transition-all duration-200"
-										title="In QR Code"
-									>
-										<span className="text-lg">🖨️</span>
-										<span className="font-semibold">In QR Code</span>
-									</button>
-
-									<button
-										onClick={async () => {
-											if (
-												window.confirm(
-													`Bạn có chắc muốn tạo lại QR Code cho ${table.name}?`,
+										) {
+											const result = await regenerateTableQRAPI(table.id)
+											if (result.success) {
+												showSuccess(
+													'QR Code đã được tạo mới!',
+													'QR cũ đã hết hạn và không còn hoạt động.',
 												)
-											) {
-												const result = await regenerateTableQRAPI(table.id)
-												if (result.success) {
-													// Update the table with new QR code
-													const tableIndex = rawTablesData.findIndex(
-														(t) => t.id === table.id,
-													)
-													if (tableIndex !== -1) {
-														rawTablesData[tableIndex].qrCodeUrl = result.qrCodeUrl
-													}
-													alert('QR Code đã được tạo mới!')
-													onClose()
-													window.location.reload() // Refresh to show new QR
-												} else {
-													alert(result.message || 'Không thể tạo lại QR Code')
-												}
+												onClose()
+												window.location.reload()
+											} else {
+												showError('Lỗi tạo QR', result.message)
 											}
-										}}
-										className="flex items-center justify-center gap-2 px-4 py-3 bg-purple-600/20 border-2 border-purple-600/30 text-purple-400 rounded-lg hover:bg-purple-600/40 hover:border-purple-500 transition-all duration-200"
-										title="Tạo lại QR Code"
-									>
-										<span className="text-lg">🔄</span>
-										<span className="font-semibold">Tạo lại QR</span>
-									</button>
-								</div>
+										}
+									}}
+									className="flex items-center justify-center gap-2 px-4 py-3 bg-yellow-600/20 border-2 border-yellow-600/30 text-yellow-400 rounded-lg hover:bg-yellow-600/40 hover:border-yellow-500 transition-all duration-200"
+									title="Tạo lại QR Code"
+								>
+									<span className="text-lg">🔄</span>
+									<span className="font-semibold">Tạo Lại QR</span>
+								</button>
 							</div>
 						</div>
-					)}
+					</div>
 
 					{/* Table Information Section - Right Side */}
 					<div className="md:col-span-2">
 						{/* Table Details Grid */}
 						<div className="grid grid-cols-2 gap-4 mb-6">
 							<div className="bg-black/30 rounded-lg p-4 border border-white/10">
-								<p className="text-xs text-gray-400 mb-1">ID Bàn</p>
-								<p className="text-lg font-bold text-white">#{table.id}</p>
+								<p className="text-xs text-gray-400 mb-1">Tên Bàn</p>
+								<p className="text-lg font-bold text-white">{table.name}</p>
 							</div>
 							<div className="bg-black/30 rounded-lg p-4 border border-white/10">
 								<p className="text-xs text-gray-400 mb-1">Sức Chứa</p>
@@ -803,6 +883,7 @@ const TableStatusModal = ({ isOpen, onClose, table, onUpdateStatus }) => {
 
 const RestaurantTableManagement = () => {
 	const { showLoading, hideLoading } = useLoading()
+	const { showAlert, showSuccess, showError, showWarning, showInfo } = useAlert()
 	const [tables, setTables] = useState([])
 	const [loading, setLoading] = useState(false)
 	const [currentPage, setCurrentPage] = useState(1)
@@ -846,32 +927,67 @@ const RestaurantTableManagement = () => {
 						// Add frontend-only fields if not present
 						floor: currentFloor, // Infer from current floor
 						location: table.location || 'Trong nhà', // Default if missing
-						qrCodeUrl:
-							table.qrCodeUrl ||
-							`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=table-${table.id}`,
+						qrCodeUrl: null, // Will be fetched from backend
 					}))
 
-					// Debug: Check first table fields
-					if (result.tables.length > 0) {
-						console.log('🔍 First table data:', {
-							id: result.tables[0].id,
-							name: result.tables[0].name,
-							status: result.tables[0].status,
-							capacity: result.tables[0].capacity,
-							hasId: !!result.tables[0].id,
-							hasStatus: !!result.tables[0].status,
-						})
-					}
+					// Ensure location field exists in state tables
+					setTables(
+						result.tables.map((table) => ({
+							...table,
+							location: table.location || 'Trong nhà', // Default if missing
+						})),
+					)
 
-					setTables(result.tables)
+					// ✅ Fetch real QR codes from backend for all tables
+					console.log('🔄 Fetching QR codes for', result.tables.length, 'tables...')
+					const qrPromises = result.tables.map(async (table) => {
+						try {
+							const qrResult = await getTableQRCodeAPI(table.id)
+							console.log('📊 QR Response for table', table.id, ':', {
+								success: qrResult.success,
+								hasImage: !!qrResult.image,
+								imageType: qrResult.image ? typeof qrResult.image : 'N/A',
+								imageLength: qrResult.image ? qrResult.image.length : 0,
+								imagePrefix: qrResult.image ? qrResult.image.substring(0, 50) : 'N/A',
+								url: qrResult.url,
+								tableName: qrResult.tableName,
+								tokenVersion: qrResult.tokenVersion,
+								fullResponse: qrResult,
+							})
+							if (qrResult.success && qrResult.image) {
+								// Backend returns base64 without prefix, need to add data URL prefix for <img> tag
+								const qrDataUrl = qrResult.image.startsWith('data:')
+									? qrResult.image
+									: `data:image/png;base64,${qrResult.image}`
 
-					// Update grid config if provided by backend
-					if (result.gridConfig) {
-						setGridSize({
-							rows: result.gridConfig.rows || result.gridConfig.gridHeight || 5,
-							cols: result.gridConfig.cols || result.gridConfig.gridWidth || 10,
-						})
-					}
+								// Update both rawTablesData and tables state with real QR
+								const tableIndex = rawTablesData.findIndex((t) => t.id === table.id)
+								if (tableIndex !== -1) {
+									rawTablesData[tableIndex].qrCodeUrl = qrDataUrl
+								}
+								return { id: table.id, qrCodeUrl: qrDataUrl }
+							}
+						} catch (error) {
+							console.warn(`⚠️ Failed to fetch QR for table ${table.id}:`, error)
+						}
+						return null
+					})
+
+					// Wait for all QR codes to be fetched
+					const qrResults = await Promise.all(qrPromises)
+
+					// Update tables state with QR codes
+					setTables((prevTables) =>
+						prevTables.map((table) => {
+							const qrData = qrResults.find((qr) => qr && qr.id === table.id)
+							return {
+								...table,
+								qrCodeUrl: qrData ? qrData.qrCodeUrl : null,
+							}
+						}),
+					)
+
+					console.log('✅ All QR codes fetched successfully')
 
 					// Update total floors
 					if (result.totalFloors) {
@@ -1052,9 +1168,21 @@ const RestaurantTableManagement = () => {
 	)
 
 	const handleTableClick = (table) => {
-		setSelectedTable(table)
+		// Find the latest table data with QR code from tables state
+		const latestTable = tables.find((t) => t.id === table.id) || table
+		setSelectedTable(latestTable)
 		setIsStatusModalOpen(true)
 	}
+
+	// ✅ Sync selectedTable with latest table data when tables update
+	useEffect(() => {
+		if (selectedTable && tables.length > 0) {
+			const updatedTable = tables.find((t) => t.id === selectedTable.id)
+			if (updatedTable && updatedTable.qrCodeUrl !== selectedTable.qrCodeUrl) {
+				setSelectedTable(updatedTable)
+			}
+		}
+	}, [tables, selectedTable])
 
 	const handleStatusUpdate = async (tableId, newStatus) => {
 		console.log(`Updating table ${tableId} status to ${newStatus}`)
@@ -1143,7 +1271,7 @@ const RestaurantTableManagement = () => {
 		)
 
 		if (isOccupied) {
-			alert('This position is already occupied!')
+			showWarning('Vị trí đã có bàn', 'Vui lòng chọn vị trí trống khác.')
 			setDraggingTable(null)
 			setDropTarget(null)
 			return
@@ -1180,7 +1308,7 @@ const RestaurantTableManagement = () => {
 
 				console.log('✅ Table position updated successfully')
 			} else {
-				alert(`Failed to update position: ${result.message}`)
+				showError('Cập nhật vị trí thất bại', result.message)
 			}
 		} catch (error) {
 			console.error('❌ Error updating table position:', error)
@@ -1292,7 +1420,10 @@ const RestaurantTableManagement = () => {
 		const newFloorNumber = totalPages + 1
 		setTotalPages(newFloorNumber)
 		setCurrentPage(newFloorNumber)
-		alert(`Floor ${newFloorNumber} added successfully!`)
+		showSuccess(
+			'Thêm tầng thành công',
+			`Tầng ${newFloorNumber} đã được thêm vào hệ thống.`,
+		)
 		fetchTables(newFloorNumber)
 	}
 
@@ -1300,7 +1431,7 @@ const RestaurantTableManagement = () => {
 		console.log('Manually deleting last row from grid')
 
 		if (gridSize.rows <= 1) {
-			alert('Cannot delete row. Grid must have at least 1 row.')
+			showWarning('Không thể xóa hàng', 'Lưới phải có ít nhất 1 hàng.')
 			return
 		}
 
@@ -1309,8 +1440,9 @@ const RestaurantTableManagement = () => {
 
 		if (tablesInLastRow.length > 0) {
 			const tableNames = tablesInLastRow.map((t) => t.name).join(', ')
-			alert(
-				`Cannot delete row. The following tables are in this row: ${tableNames}. Please move or delete them first.`,
+			showWarning(
+				'Không thể xóa hàng',
+				`Các bàn sau đang ở hàng này: ${tableNames}. Vui lòng di chuyển hoặc xóa chúng trước.`,
 			)
 			return
 		}
@@ -1326,7 +1458,7 @@ const RestaurantTableManagement = () => {
 		console.log('Manually adding column to grid')
 
 		if (gridSize.cols >= 10) {
-			alert('Cannot add column. Maximum grid width is 10 columns.')
+			showWarning('Không thể thêm cột', 'Lưới chỉ được phép tối đa 10 cột.')
 			return
 		}
 
@@ -1341,7 +1473,7 @@ const RestaurantTableManagement = () => {
 		console.log('Manually deleting last column from grid')
 
 		if (gridSize.cols <= 1) {
-			alert('Cannot delete column. Grid must have at least 1 column.')
+			showWarning('Không thể xóa cột', 'Lưới phải có ít nhất 1 cột.')
 			return
 		}
 
@@ -1350,8 +1482,9 @@ const RestaurantTableManagement = () => {
 
 		if (tablesInLastCol.length > 0) {
 			const tableNames = tablesInLastCol.map((t) => t.name).join(', ')
-			alert(
-				`Cannot delete column. The following tables are in this column: ${tableNames}. Please move or delete them first.`,
+			showWarning(
+				'Không thể xóa cột',
+				`Các bàn sau đang ở cột này: ${tableNames}. Vui lòng di chuyển hoặc xóa chúng trước.`,
 			)
 			return
 		}
@@ -1472,6 +1605,7 @@ const RestaurantTableManagement = () => {
 	return (
 		<>
 			<AuthenticationWarning />
+
 			<BasePageLayout>
 				<div className="min-h-screen p-8 text-white">
 					<div className="max-w-7xl mx-auto h-full flex flex-col">
@@ -1486,71 +1620,126 @@ const RestaurantTableManagement = () => {
 									</p>
 								</div>
 
-								{/* QR Code Operations - nằm ngang */}
+								{/* QR Code Operations - Using Backend APIs (4, 5) */}
 								<div className="bg-black/20 backdrop-blur-md rounded-xl p-4 border border-white/10">
 									<h3 className="text-sm font-semibold text-gray-300 mb-3 text-center">
-										QR Code Operations
+										QR Code Operations (Floor {currentFloor})
 									</h3>
 									<div className="flex flex-wrap gap-3 justify-center">
+										{/* API 4: batchDownloadQRCodesAPI - Combined PDF */}
 										<HeaderButton
-											icon="⬇️🗜️"
-											text="Tải tất cả QR"
+											icon="📄"
+											text="Tải Combined PDF"
+											color="red"
+											onClick={async () => {
+												showLoading('Đang tạo file PDF...')
+												try {
+													const tableIds = rawTablesData
+														.filter((t) => t.floor === currentFloor)
+														.map((t) => t.id)
+													const result = await batchDownloadQRCodesAPI(
+														tableIds,
+														null,
+														'combined-pdf',
+													)
+													hideLoading()
+													if (!result.success) alert(`❌ Lỗi: ${result.message}`)
+												} catch (error) {
+													hideLoading()
+													alert(`❌ Lỗi: ${error.message}`)
+												}
+											}}
+											title="Tải tất cả QR vào 1 file PDF"
+										/>
+
+										{/* API 4: batchDownloadQRCodesAPI - ZIP PNG */}
+										<HeaderButton
+											icon="🗜️"
+											text="Tải ZIP PNG"
+											color="blue"
+											onClick={async () => {
+												showLoading('Đang tạo file ZIP...')
+												try {
+													const tableIds = rawTablesData
+														.filter((t) => t.floor === currentFloor)
+														.map((t) => t.id)
+													const result = await batchDownloadQRCodesAPI(
+														tableIds,
+														null,
+														'zip-png',
+													)
+													hideLoading()
+													if (!result.success) alert(`❌ Lỗi: ${result.message}`)
+												} catch (error) {
+													hideLoading()
+													alert(`❌ Lỗi: ${error.message}`)
+												}
+											}}
+											title="Tải tất cả QR dạng PNG trong ZIP"
+										/>
+
+										{/* API 4: batchDownloadQRCodesAPI - ZIP PDF */}
+										<HeaderButton
+											icon="📦"
+											text="Tải ZIP PDF"
 											color="cyan"
 											onClick={async () => {
-												showLoading('Đang tải tất cả QR Code...')
-												const success = await downloadAllTableQRCodes(rawTablesData)
-												hideLoading()
-
-												if (success) {
-													alert('Đã tải xuống tất cả QR Code thành công!')
-												} else {
-													alert('Không thể tải QR Code. Vui lòng thử lại.')
-												}
-											}}
-											title="Tải tất cả QR Code vào file ZIP"
-										/>
-
-										<HeaderButton
-											icon="🖨️"
-											text="In tất cả QR"
-											color="teal"
-											onClick={() => {
-												if (
-													window.confirm(
-														`Bạn có muốn in QR Code cho tất cả ${rawTablesData.length} bàn?`,
+												showLoading('Đang tạo file ZIP...')
+												try {
+													const tableIds = rawTablesData
+														.filter((t) => t.floor === currentFloor)
+														.map((t) => t.id)
+													const result = await batchDownloadQRCodesAPI(
+														tableIds,
+														null,
+														'zip-pdf',
 													)
-												) {
-													printAllTableQRCodes(rawTablesData)
+													hideLoading()
+													if (!result.success) alert(`❌ Lỗi: ${result.message}`)
+												} catch (error) {
+													hideLoading()
+													alert(`❌ Lỗi: ${error.message}`)
 												}
 											}}
-											title="In tất cả QR Code"
+											title="Tải tất cả QR dạng PDF trong ZIP"
 										/>
 
+										{/* API 5: bulkRegenerateQRCodesAPI */}
 										<HeaderButton
 											icon="🔄"
-											text="Tạo mới tất cả QR"
-											color="purple"
+											text="Tạo lại tất cả QR"
+											color="orange"
 											onClick={async () => {
+												const floorTables = rawTablesData.filter(
+													(t) => t.floor === currentFloor,
+												)
 												if (
 													window.confirm(
-														'Bạn có chắc muốn tạo lại QR Code cho TẤT CẢ bàn? Thao tác này không thể hoàn tác.',
+														`Bạn có chắc muốn tạo lại QR Code cho ${floorTables.length} bàn trên tầng ${currentFloor}?\nTất cả QR cũ sẽ không còn hoạt động.`,
 													)
 												) {
-													showLoading('Đang tạo lại QR Code cho tất cả bàn...')
-													const result = await regenerateAllTableQRAPI()
-													hideLoading()
+													showLoading('Đang tạo lại QR Code...')
+													try {
+														const tableIds = floorTables.map((t) => t.id)
+														const result = await bulkRegenerateQRCodesAPI(tableIds, null)
+														hideLoading()
 
-													if (result.success) {
-														alert(
-															`Đã tạo mới thành công ${result.regeneratedCount} QR Code!`,
-														)
-														window.location.reload()
-													} else {
-														alert(result.message || 'Không thể tạo lại QR Code')
+														if (result.success) {
+															showSuccess(
+																'Tạo QR thành công',
+																`Đã tạo mới ${result.regeneratedCount} QR Code!`,
+															)
+															window.location.reload()
+														} else {
+															showError('Lỗi tạo QR', result.message)
+														}
+													} catch (error) {
+														hideLoading()
+														showError('Lỗi', error.message)
 													}
 												}
 											}}
-											title="Tạo lại QR Code cho tất cả bàn"
+											title="Tạo lại QR Code cho tất cả bàn trên tầng này"
 										/>
 									</div>
 								</div>
