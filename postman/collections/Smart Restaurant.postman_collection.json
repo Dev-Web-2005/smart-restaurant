@@ -511,6 +511,101 @@
           "response": []
         },
         {
+          "name": "Get QR Code",
+          "id": "1d3c915f-3536-4a9a-a08e-fb0a9bcbdd92",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/4e40e08c-675a-4825-af78-7028ac86fe69/qrcode",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "tables",
+                "4e40e08c-675a-4825-af78-7028ac86fe69",
+                "qrcode"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Download QR Code",
+          "id": "4aa98de1-e643-4559-86b1-32ab61794c7f",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/4e40e08c-675a-4825-af78-7028ac86fe69/qrcode/download?format=png",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "tables",
+                "4e40e08c-675a-4825-af78-7028ac86fe69",
+                "qrcode",
+                "download"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "png"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Validate QR Token",
           "id": "6b09f957-1cc0-488b-9ed1-98eef313d9d2",
           "protocolProfileBehavior": {
