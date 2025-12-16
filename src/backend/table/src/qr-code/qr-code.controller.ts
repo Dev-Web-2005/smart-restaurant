@@ -35,7 +35,7 @@ export class QrCodeController {
 			throw new AppException(ErrorCode.UNAUTHORIZED);
 		}
 
-		return await this.qrCodeService.generateQrCode(dto.tableId, dto.tenantId);
+		return await this.qrCodeService.generateQrCode(dto);
 	}
 
 	/**
@@ -49,7 +49,7 @@ export class QrCodeController {
 			throw new AppException(ErrorCode.UNAUTHORIZED);
 		}
 
-		return await this.qrCodeService.getQrCode(dto.tableId, dto.tenantId);
+		return await this.qrCodeService.getQrCode(dto);
 	}
 
 	/**
@@ -65,7 +65,7 @@ export class QrCodeController {
 			throw new AppException(ErrorCode.UNAUTHORIZED);
 		}
 
-		return await this.qrCodeService.downloadQrCode(dto.tableId, dto.tenantId, dto.format);
+		return await this.qrCodeService.downloadQrCode(dto);
 	}
 
 	/**
@@ -96,11 +96,6 @@ export class QrCodeController {
 			throw new AppException(ErrorCode.UNAUTHORIZED);
 		}
 
-		return await this.qrCodeService.batchDownloadQrCode(
-			dto.tenantId,
-			dto.format,
-			dto.tableIds,
-			dto.floorId,
-		);
+		return await this.qrCodeService.batchDownloadQrCode(dto);
 	}
 }
