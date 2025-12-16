@@ -26,28 +26,29 @@ export class LoggerMiddleware implements NestMiddleware {
 			// Parse response body safely
 			let parsedBody: any = null;
 			const contentType = res.getHeader('content-type') as string;
-			
+
 			if (responseBody) {
 				// Skip parsing for binary content types
-				if (contentType && (
-					contentType.includes('image/') ||
-					contentType.includes('application/pdf') ||
-					contentType.includes('application/octet-stream')
-				)) {
-					parsedBody = Buffer.isBuffer(responseBody) 
+				if (
+					contentType &&
+					(contentType.includes('image/') ||
+						contentType.includes('application/pdf') ||
+						contentType.includes('application/octet-stream'))
+				) {
+					parsedBody = Buffer.isBuffer(responseBody)
 						? `<Binary data: ${responseBody.length} bytes>`
 						: '<Binary data>';
 				} else {
 					// Try to parse JSON for text-based responses
 					try {
-						parsedBody = typeof responseBody === 'string' 
-							? JSON.parse(responseBody) 
-							: responseBody;
+						parsedBody =
+							typeof responseBody === 'string' ? JSON.parse(responseBody) : responseBody;
 					} catch {
 						// If parsing fails, use string representation
-						parsedBody = typeof responseBody === 'string'
-							? responseBody.substring(0, 200) // Truncate long strings
-							: '<Non-JSON response>';
+						parsedBody =
+							typeof responseBody === 'string'
+								? responseBody.substring(0, 200) // Truncate long strings
+								: '<Non-JSON response>';
 					}
 				}
 			}

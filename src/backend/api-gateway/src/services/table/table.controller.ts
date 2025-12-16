@@ -16,6 +16,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { AuthGuard } from 'src/common/guards/get-role/auth.guard';
 import type { Response } from 'express';
 import { firstValueFrom } from 'rxjs';
+import Role from 'src/common/guards/check-role/check-role.guard';
 
 @Controller()
 export class TableController {
@@ -24,7 +25,7 @@ export class TableController {
 		private readonly configService: ConfigService,
 	) {}
 
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthGuard, Role('USER'))
 	@Post('/tenants/:tenantId/tables')
 	createTable(@Param('tenantId') tenantId: string, @Body() data: any) {
 		return this.tableClient.send('tables:create', {
@@ -34,7 +35,7 @@ export class TableController {
 		});
 	}
 
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthGuard, Role('USER'))
 	@Get('/tenants/:tenantId/tables')
 	listTables(
 		@Param('tenantId') tenantId: string,
@@ -62,7 +63,7 @@ export class TableController {
 		return this.tableClient.send('tables:list', payload);
 	}
 
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthGuard, Role('USER'))
 	@Get('/tenants/:tenantId/tables/:tableId')
 	getTableById(@Param('tenantId') tenantId: string, @Param('tableId') tableId: string) {
 		return this.tableClient.send('tables:get-by-id', {
@@ -72,7 +73,7 @@ export class TableController {
 		});
 	}
 
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthGuard, Role('USER'))
 	@Patch('/tenants/:tenantId/tables/:tableId')
 	updateTable(
 		@Param('tenantId') tenantId: string,
@@ -89,7 +90,7 @@ export class TableController {
 		});
 	}
 
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthGuard, Role('USER'))
 	@Delete('/tenants/:tenantId/tables/:tableId')
 	deleteTable(@Param('tenantId') tenantId: string, @Param('tableId') tableId: string) {
 		return this.tableClient.send('tables:delete', {
@@ -105,7 +106,7 @@ export class TableController {
 	 * Generate new QR code (invalidates old ones)
 	 * POST /tenants/:tenantId/tables/:tableId/qrcode
 	 */
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthGuard, Role('USER'))
 	@Post('/tenants/:tenantId/tables/:tableId/qrcode')
 	generateQrCode(@Param('tenantId') tenantId: string, @Param('tableId') tableId: string) {
 		return this.tableClient.send('qr:generate', {
@@ -119,7 +120,7 @@ export class TableController {
 	 * Get existing QR code without regenerating
 	 * GET /tenants/:tenantId/tables/:tableId/qrcode
 	 */
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthGuard, Role('USER'))
 	@Get('/tenants/:tenantId/tables/:tableId/qrcode')
 	getQrCode(@Param('tenantId') tenantId: string, @Param('tableId') tableId: string) {
 		return this.tableClient.send('qr:get', {
@@ -133,7 +134,7 @@ export class TableController {
 	 * Download QR code in specific format (PNG, PDF, SVG)
 	 * GET /tenants/:tenantId/tables/:tableId/qrcode/download?format=png|pdf|svg
 	 */
-	@UseGuards(AuthGuard)
+	@UseGuards(AuthGuard, Role('USER'))
 	@Get('/tenants/:tenantId/tables/:tableId/qrcode/download')
 	async downloadQrCode(
 		@Param('tenantId') tenantId: string,
