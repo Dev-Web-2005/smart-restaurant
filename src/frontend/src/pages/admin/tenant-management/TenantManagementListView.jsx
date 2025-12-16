@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 // import axios from 'axios'; // Import Axios khi bạn sẵn sàng tích hợp API
 import { useUser } from '../../../contexts/UserContext' // 👈 IMPORT CONTEXT
+import { useLoading } from '../../../contexts/LoadingContext'
 import BasePageLayout from '../../../components/layout/BasePageLayout' // 👈 IMPORT LAYOUT CHUNG
 import TenantDetails from './TenantManagementDetail' // 👈 IMPORT COMPONENT XEM CHI TIẾT
+import { InlineLoader, TableSkeleton } from '../../../components/common/LoadingSpinner'
 
 // ----------------------------------------------------------------------
 // ⚡️ DỮ LIỆU GIẢ ĐỊNH (MOCK DATA)

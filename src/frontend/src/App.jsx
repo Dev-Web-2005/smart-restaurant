@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { UserProvider, useUser } from './contexts/UserContext'
+import { LoadingProvider } from './contexts/LoadingContext'
 import ProtectedRoute from './routes/ProtectedRoute'
 
 // Import pages
@@ -50,107 +51,109 @@ const RoleBasedRedirect = () => {
 function App() {
 	return (
 		<UserProvider>
-			<BrowserRouter>
-				<Routes>
-					{/* Public routes */}
-					<Route path="/login" element={<Login />} />
-					<Route path="/signup" element={<SignUp />} />
-					<Route path="/onboarding" element={<RestaurantSetupWizard />} />
-					<Route path="/kyc/callback" element={<KYCCallback />} />
+			<LoadingProvider>
+				<BrowserRouter>
+					<Routes>
+						{/* Public routes */}
+						<Route path="/login" element={<Login />} />
+						<Route path="/signup" element={<SignUp />} />
+						<Route path="/onboarding" element={<RestaurantSetupWizard />} />
+						<Route path="/kyc/callback" element={<KYCCallback />} />
 
-					{/* Root redirect based on role */}
-					<Route path="/" element={<RoleBasedRedirect />} />
+						{/* Root redirect based on role */}
+						<Route path="/" element={<RoleBasedRedirect />} />
 
-					{/* Admin routes - Only for Super Administrator */}
-					<Route
-						path="/admin/dashboard"
-						element={
-							<ProtectedRoute allowedRoles={['Super Administrator']}>
-								<Dashboard />
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path="/admin/tenant-management"
-						element={
-							<ProtectedRoute allowedRoles={['Super Administrator']}>
-								<TenantManagementListView />
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path="/admin/settings"
-						element={
-							<ProtectedRoute allowedRoles={['Super Administrator']}>
-								<SystemSettings />
-							</ProtectedRoute>
-						}
-					/>
+						{/* Admin routes - Only for Super Administrator */}
+						<Route
+							path="/admin/dashboard"
+							element={
+								<ProtectedRoute allowedRoles={['Super Administrator']}>
+									<Dashboard />
+								</ProtectedRoute>
+							}
+						/>
+						<Route
+							path="/admin/tenant-management"
+							element={
+								<ProtectedRoute allowedRoles={['Super Administrator']}>
+									<TenantManagementListView />
+								</ProtectedRoute>
+							}
+						/>
+						<Route
+							path="/admin/settings"
+							element={
+								<ProtectedRoute allowedRoles={['Super Administrator']}>
+									<SystemSettings />
+								</ProtectedRoute>
+							}
+						/>
 
-					{/* User routes - Only for User role */}
-					<Route
-						path="/user/menu"
-						element={
-							<ProtectedRoute allowedRoles={['User']}>
-								<Menu />
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path="/user/menu/:categorySlug"
-						element={
-							<ProtectedRoute allowedRoles={['User']}>
-								<CategoryDishes />
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path="/user/table"
-						element={
-							<ProtectedRoute allowedRoles={['User']}>
-								<TableManagement />
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path="/user/order"
-						element={
-							<ProtectedRoute allowedRoles={['User']}>
-								<OrderManagement />
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path="/user/analytics"
-						element={
-							<ProtectedRoute allowedRoles={['User']}>
-								<Reports />
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path="/user/settings"
-						element={
-							<ProtectedRoute allowedRoles={['User']}>
-								<Settings />
-							</ProtectedRoute>
-						}
-					/>
+						{/* User routes - Only for User role */}
+						<Route
+							path="/user/menu"
+							element={
+								<ProtectedRoute allowedRoles={['User']}>
+									<Menu />
+								</ProtectedRoute>
+							}
+						/>
+						<Route
+							path="/user/menu/:categorySlug"
+							element={
+								<ProtectedRoute allowedRoles={['User']}>
+									<CategoryDishes />
+								</ProtectedRoute>
+							}
+						/>
+						<Route
+							path="/user/table"
+							element={
+								<ProtectedRoute allowedRoles={['User']}>
+									<TableManagement />
+								</ProtectedRoute>
+							}
+						/>
+						<Route
+							path="/user/order"
+							element={
+								<ProtectedRoute allowedRoles={['User']}>
+									<OrderManagement />
+								</ProtectedRoute>
+							}
+						/>
+						<Route
+							path="/user/analytics"
+							element={
+								<ProtectedRoute allowedRoles={['User']}>
+									<Reports />
+								</ProtectedRoute>
+							}
+						/>
+						<Route
+							path="/user/settings"
+							element={
+								<ProtectedRoute allowedRoles={['User']}>
+									<Settings />
+								</ProtectedRoute>
+							}
+						/>
 
-					{/* Profile - Available for both roles */}
-					<Route
-						path="/profile"
-						element={
-							<ProtectedRoute>
-								<Profile />
-							</ProtectedRoute>
-						}
-					/>
+						{/* Profile - Available for both roles */}
+						<Route
+							path="/profile"
+							element={
+								<ProtectedRoute>
+									<Profile />
+								</ProtectedRoute>
+							}
+						/>
 
-					{/* 404 - Redirect to role-based home */}
-					<Route path="*" element={<RoleBasedRedirect />} />
-				</Routes>
-			</BrowserRouter>
+						{/* 404 - Redirect to role-based home */}
+						<Route path="*" element={<RoleBasedRedirect />} />
+					</Routes>
+				</BrowserRouter>
+			</LoadingProvider>
 		</UserProvider>
 	)
 }

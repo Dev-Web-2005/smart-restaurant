@@ -16,3 +16,41 @@
 	/* Optional: Show faint scrollbar on hover */
 	background-color: rgba(157, 171, 185, 0.2);
 }
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-hide::-webkit-scrollbar {
+	display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-hide {
+	-ms-overflow-style: none; /* IE and Edge */
+	scrollbar-width: none; /* Firefox */
+}
+
+const globalStyles = `
+@keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+}
+
+@keyframes pulse-slow {
+    0%, 100% { opacity: 0.2; }
+    75% { opacity: 0.4; }
+}
+
+/* @keyframes shine {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(100%); }
+} */
+
+@keyframes shine {
+    0% { transform: translateX(-3%) skewX(0deg); }
+    100% { transform: translateX(3%) skewX(0deg); }
+}	
+
+@keyframes border-glow {
+    0% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+`

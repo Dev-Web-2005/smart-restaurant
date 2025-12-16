@@ -1,10 +1,8 @@
-// components/modals/AddDishModal.jsx (Đã gỡ bỏ Context và logic thừa)
-
-import React, { useState } from 'react'
-// import axios from 'axios'; // Import Axios khi bạn sẵn sàng tích hợp API
+import React, { useState, useEffect, useRef } from 'react'
+import ReactDOM from 'react-dom'
 
 const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) => {
-	// 1. State quản lý form data (Không trùng lặp với state của CategoryDishes)
+	const modalRef = useRef(null)
 	const [formData, setFormData] = useState({
 		name: '',
 		description: '',
@@ -13,19 +11,59 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 	})
 	const [previewImage, setPreviewImage] = useState(null)
 	const [loading, setLoading] = useState(false)
+	const [isVisible, setIsVisible] = useState(false)
 
-	// 2. Hàm xử lý thay đổi input
+	useEffect(() => {
+		if (isOpen) {
+			document.body.style.overflow = 'hidden'
+			requestAnimationFrame(() => {
+				setIsVisible(true)
+			})
+		} else {
+			document.body.style.overflow = 'auto'
+			setIsVisible(false)
+			setFormData({ name: '', description: '', price: '', imageFile: null })
+			setPreviewImage(null)
+		}
+
+		return () => {
+			document.body.style.overflow = 'auto'
+		}
+	}, [isOpen])
+
+	useEffect(() => {
+		const handleClickOutside = (event) => {
+			if (modalRef.current && !modalRef.current.contains(event.target)) {
+				onClose()
+			}
+		}
+
+		const handleEscape = (event) => {
+			if (event.key === 'Escape') {
+				onClose()
+			}
+		}
+
+		if (isOpen) {
+			document.addEventListener('mousedown', handleClickOutside)
+			document.addEventListener('keydown', handleEscape)
+		}
+
+		return () => {
+			document.removeEventListener('mousedown', handleClickOutside)
+			document.removeEventListener('keydown', handleEscape)
+		}
+	}, [isOpen, onClose])
+
 	const handleChange = (e) => {
 		const { name, value } = e.target
 		setFormData((prev) => ({ ...prev, [name]: value }))
 	}
 
-	// 3. Hàm xử lý chọn ảnh và tạo preview
 	const handleFileChange = (e) => {
 		const file = e.target.files[0]
 		if (file) {
 			setFormData((prev) => ({ ...prev, imageFile: file }))
-			// Tạo URL preview cho ảnh
 			const reader = new FileReader()
 			reader.onloadend = () => {
 				setPreviewImage(reader.result)
@@ -34,43 +72,14 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 		}
 	}
 
-	// 4. Hàm xử lý submit form
 	const handleSubmit = async (e) => {
 		e.preventDefault()
 		setLoading(true)
 
-		// Comment: BẮT ĐẦU: Logic gọi API thêm Dish mới
 		console.log(`Submitting new dish to ${categorySlug}:`, formData)
 
-		// 🚨 CHÚ Ý: Cần sử dụng FormData vì có file upload
-		// const payload = new FormData();
-		// payload.append('name', formData.name);
-		// payload.append('description', formData.description);
-		// payload.append('price', parseFloat(formData.price));
-		// payload.append('categorySlug', categorySlug); // Gửi slug/ID category
-		// if (formData.imageFile) {
-		//     payload.append('image', formData.imageFile);
-		// }
-
-		// try {
-		//     // API endpoint: POST /api/tenant/menu/dishes
-		//     const response = await axios.post('/api/tenant/menu/dishes', payload, {
-		//         headers: { 'Content-Type': 'multipart/form-data' }
-		//     });
-		//     onSave(response.data.newDish); // Truyền món ăn mới về component cha
-		//     onClose(); // Đóng modal
-		// } catch (error) {
-		//     console.error("Error adding dish:", error);
-		//     alert("Failed to add dish.");
-		// } finally {
-		//     setLoading(false);
-		// }
-
-		// Giả định thành công
 		setTimeout(() => {
-			alert(`Dish "${formData.name}" added! (Simulated)`)
 			if (onSave) {
-				// Giả lập dữ liệu món ăn mới
 				onSave({
 					id: Date.now(),
 					name: formData.name,
@@ -81,21 +90,32 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 			}
 			setLoading(false)
 			onClose()
-			// Reset form
 			setFormData({ name: '', description: '', price: '', imageFile: null })
 			setPreviewImage(null)
 		}, 1000)
-		// Comment: KẾT THÚC
 	}
 
 	if (!isOpen) return null
 
-	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm font-['Work_Sans',_sans-serif]">
-			<div className="relative w-full max-w-lg transform overflow-hidden rounded-xl bg-black/80 backdrop-blur-md p-8 shadow-2xl transition-all border border-white/10">
+	const ModalContent = () => (
+		<div
+			className={`fixed inset-0 z-[99999] flex items-center justify-center transition-all duration-300 ${
+				isVisible ? 'bg-black/70 backdrop-blur-sm' : 'bg-transparent pointer-events-none'
+			}`}
+		>
+			<div
+				ref={modalRef}
+				className={`relative w-full max-w-lg mx-4 bg-black/80 backdrop-blur-md p-8 rounded-xl shadow-2xl border border-white/10 transition-all duration-300 transform ${
+					isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+				}`}
+				style={{
+					maxHeight: '90vh',
+					overflowY: 'auto',
+				}}
+			>
 				<button
 					onClick={onClose}
-					className="absolute top-4 right-4 text-[#9dabb9] hover:text-white transition-colors"
+					className="absolute top-4 right-4 text-[#9dabb9] hover:text-white transition-colors z-10"
 				>
 					<span className="material-symbols-outlined text-2xl">close</span>
 				</button>
@@ -107,7 +127,6 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 				</div>
 
 				<form onSubmit={handleSubmit} className="space-y-6">
-					{/* Dish Name */}
 					<div className="space-y-2">
 						<label htmlFor="name" className="block text-sm font-medium text-gray-300">
 							Dish Name
@@ -124,7 +143,6 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 						/>
 					</div>
 
-					{/* Price */}
 					<div className="space-y-2">
 						<label htmlFor="price" className="block text-sm font-medium text-gray-300">
 							Price ($)
@@ -142,7 +160,6 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 						/>
 					</div>
 
-					{/* Description */}
 					<div className="space-y-2">
 						<label
 							htmlFor="description"
@@ -161,11 +178,9 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 						></textarea>
 					</div>
 
-					{/* Image Upload */}
 					<div className="space-y-2">
 						<label className="block text-sm font-medium text-gray-300">Dish Image</label>
-						<div className="flex items-center gap-6">
-							{/* Image Preview */}
+						<div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
 							<div className="shrink-0">
 								<div
 									className="w-24 h-24 bg-[#2D3748] rounded-lg flex items-center justify-center border-2 border-dashed border-[#4b5563] overflow-hidden bg-cover bg-center"
@@ -186,7 +201,6 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 								</div>
 							</div>
 
-							{/* Upload Button */}
 							<div className="flex-1">
 								<label
 									htmlFor="dish-file-upload"
@@ -211,7 +225,6 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 						</div>
 					</div>
 
-					{/* Actions */}
 					<div className="flex justify-end items-center gap-4 pt-4 border-t border-[#374151]">
 						<button
 							type="button"
@@ -237,6 +250,8 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 			</div>
 		</div>
 	)
+
+	return ReactDOM.createPortal(<ModalContent />, document.body)
 }
 
 export default AddDishModal

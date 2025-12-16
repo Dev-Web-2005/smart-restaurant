@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Test QR Code APIs</title>
+		<style>
+			body {
+				font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+				max-width: 1200px;
+				margin: 30px auto;
+				padding: 20px;
+				background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+				color: #fff;
+			}
+			h1 {
+				text-align: center;
+				color: #60a5fa;
+				margin-bottom: 10px;
+			}
+			.subtitle {
+				text-align: center;
+				color: #9ca3af;
+				margin-bottom: 30px;
+			}
+			.section {
+				background: rgba(42, 42, 42, 0.8);
+				padding: 25px;
+				margin: 20px 0;
+				border-radius: 12px;
+				border: 1px solid #444;
+				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+			}
+			.section h2 {
+				margin-top: 0;
+				color: #60a5fa;
+				border-bottom: 2px solid #444;
+				padding-bottom: 10px;
+			}
+			button {
+				background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+				color: white;
+				border: none;
+				padding: 12px 24px;
+				border-radius: 6px;
+				cursor: pointer;
+				margin: 5px;
+				font-weight: 600;
+				transition: all 0.3s ease;
+			}
+			button:hover {
+				background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+				transform: translateY(-2px);
+				box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+			}
+			button:disabled {
+				background: #4b5563;
+				cursor: not-allowed;
+				transform: none;
+			}
+			pre {
+				background: #1a1a1a;
+				padding: 15px;
+				border-radius: 6px;
+				overflow-x: auto;
+				border: 1px solid #555;
+				max-height: 400px;
+				overflow-y: auto;
+			}
+			.success {
+				color: #4ade80;
+				font-weight: bold;
+			}
+			.error {
+				color: #f87171;
+				font-weight: bold;
+			}
+			.warning {
+				color: #fbbf24;
+				font-weight: bold;
+			}
+			input,
+			select {
+				width: 100%;
+				padding: 10px;
+				margin: 8px 0;
+				background: #1a1a1a;
+				border: 1px solid #555;
+				color: #fff;
+				border-radius: 6px;
+				font-size: 14px;
+			}
+			input:focus,
+			select:focus {
+				outline: none;
+				border-color: #60a5fa;
+			}
+			label {
+				display: block;
+				margin-top: 12px;
+				color: #d1d5db;
+				font-weight: 500;
+			}
+			.qr-preview {
+				text-align: center;
+				margin-top: 20px;
+			}
+			.qr-preview img {
+				max-width: 300px;
+				border: 4px solid #444;
+				border-radius: 8px;
+				box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+			}
+			.grid {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 20px;
+			}
+			@media (max-width: 768px) {
+				.grid {
+					grid-template-columns: 1fr;
+				}
+			}
+			.info-box {
+				background: rgba(96, 165, 250, 0.1);
+				border-left: 4px solid #60a5fa;
+				padding: 12px;
+				margin: 12px 0;
+				border-radius: 4px;
+			}
+			.button-group {
+				display: flex;
+				gap: 10px;
+				flex-wrap: wrap;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>🔲 QR Code API Testing Suite</h1>
+		<p class="subtitle">Test all QR code generation and management endpoints</p>
+
+		<div class="section">
+			<h2>📋 Step 1: Check Authentication</h2>
+			<button onclick="checkAuth()">🔐 Check Auth Status</button>
+			<pre id="auth-result">Click button to check authentication...</pre>
+		</div>
+
+		<div class="section">
+			<h2>📊 Step 2: Get Tables List</h2>
+			<button onclick="listTables()">📥 Fetch All Tables</button>
+			<button onclick="selectFirstTable()">✅ Auto-select First Table</button>
+			<pre id="tables-result">Click to fetch tables...</pre>
+		</div>
+
+		<div class="grid">
+			<div class="section">
+				<h2>🎯 Step 3: Generate QR Code</h2>
+				<label>Select Table:</label>
+				<select id="tableSelect">
+					<option value="">-- Select a table --</option>
+				</select>
+				<div class="info-box">
+					💡 <strong>Note:</strong> Generating QR increments tokenVersion and invalidates
+					old QR codes
+				</div>
+				<div class="button-group">
+					<button onclick="generateQR()">🔄 Generate New QR</button>
+					<button onclick="getExistingQR()">👀 Get Existing QR</button>
+				</div>
+				<pre id="qr-result">Select a table and click Generate...</pre>
+				<div id="qr-preview" class="qr-preview"></div>
+			</div>
+
+			<div class="section">
+				<h2>⬇️ Step 4: Download QR Code</h2>
+				<label>Table ID:</label>
+				<input type="text" id="downloadTableId" placeholder="Enter table UUID" />
+				<label>Format:</label>
+				<select id="downloadFormat">
+					<option value="png">PNG (Raster Image)</option>
+					<option value="svg">SVG (Vector Image)</option>
+					<option value="pdf">PDF (Document)</option>
+				</select>
+				<div class="info-box">💡 Downloads file with appropriate format</div>
+				<button onclick="downloadQR()">⬇️ Download QR Code</button>
+				<pre id="download-result">Configure and click Download...</pre>
+			</div>
+		</div>
+
+		<div class="section">
+			<h2>✅ Step 5: Validate QR Scan</h2>
+			<label>Scan Token (from QR URL):</label>
+			<input type="text" id="scanToken" placeholder="Enter token from QR scan URL" />
+			<div class="info-box">
+				💡 <strong>Public endpoint</strong> - No auth required. Tests QR code validation.
+			</div>
+			<button onclick="validateScan()">🔍 Validate Scan Token</button>
+			<pre id="scan-result">Enter token and click Validate...</pre>
+		</div>
+
+		<script>
+			        let cachedTables = [];
+			        let currentTenantId = null;
+
+			        function checkAuth() {
+			            const result = document.getElementById('auth-result');
+			            const user = localStorage.getItem('user');
+			            const token = window.accessToken;
+			            const tenantId = window.currentTenantId;
+
+			            if (!token) {
+			                result.innerHTML = '<span class="error">❌ Not authenticated</span>\\n\\nPlease login at /login first';
+			                return false;
+			            }
+
+			            const userData = user ? JSON.parse(user) : null;
+			            currentTenantId = tenantId || userData?.userId;
+
+			            result.innerHTML = \`<span class="success">✅ Authenticated</span>
+
+			<strong>Token:</strong> \${token.substring(0, 30)}...
+			<strong>TenantId:</strong> \${currentTenantId}
+			<strong>User:</strong> \${userData?.username || 'Unknown'}
+			<strong>Email:</strong> \${userData?.email || 'N/A'}
+
+			<span class="success">Ready to test QR APIs!</span>\`;
+			            return true;
+			        }
+
+			        async function listTables() {
+			            const result = document.getElementById('tables-result');
+			            result.innerHTML = '⏳ Fetching tables...';
+
+			            if (!checkAuth()) return;
+
+			            try {
+			                const response = await fetch(\`/api/v1/tenants/\${currentTenantId}/tables\`, {
+			                    headers: {
+			                        'Authorization': \`Bearer \${window.accessToken}\`
+			                    }
+			                });
+
+			                const data = await response.json();
+
+			                if (response.ok && (data.code === 1000 || data.code === 200)) {
+			                    cachedTables = data.data || [];
+
+			                    // Populate select dropdown
+			                    const select = document.getElementById('tableSelect');
+			                    select.innerHTML = '<option value="">-- Select a table --</option>';
+			                    cachedTables.forEach(table => {
+			                        const option = document.createElement('option');
+			                        option.value = table.id;
+			                        option.textContent = \`\${table.name} (ID: \${table.id.substring(0, 8)}...) - \${table.status}\`;
+			                        select.appendChild(option);
+			                    });
+
+			                    result.innerHTML = \`<span class="success">✅ Found \${cachedTables.length} tables</span>
+
+			<strong>Tables:</strong>
+			\${cachedTables.map(t => \`- \${t.name} (ID: \${t.id})
+			  Status: \${t.status || 'N/A'}
+			  Capacity: \${t.capacity}
+			  TokenVersion: \${t.tokenVersion || 'N/A'}\`).join('\\n')}\`;
+			                } else {
+			                    result.innerHTML = \`<span class="error">❌ Failed to fetch tables</span>\\n\\n\${JSON.stringify(data, null, 2)}\`;
+			                }
+			            } catch (error) {
+			                result.innerHTML = \`<span class="error">❌ Error:</span> \${error.message}\`;
+			            }
+			        }
+
+			        function selectFirstTable() {
+			            if (cachedTables.length > 0) {
+			                document.getElementById('tableSelect').value = cachedTables[0].id;
+			                document.getElementById('downloadTableId').value = cachedTables[0].id;
+			                alert(\`✅ Selected: \${cachedTables[0].name}\`);
+			            } else {
+			                alert('⚠️ Please fetch tables first!');
+			            }
+			        }
+
+			        async function generateQR() {
+			            const result = document.getElementById('qr-result');
+			            const preview = document.getElementById('qr-preview');
+			            const tableId = document.getElementById('tableSelect').value;
+
+			            if (!tableId) {
+			                alert('Please select a table first!');
+			                return;
+			            }
+
+			            result.innerHTML = '⏳ Generating QR code...';
+			            preview.innerHTML = '';
+
+			            if (!checkAuth()) return;
+
+			            try {
+			                const response = await fetch(\`/api/v1/tenants/\${currentTenantId}/tables/\${tableId}/qrcode\`, {
+			                    method: 'POST',
+			                    headers: {
+			                        'Authorization': \`Bearer \${window.accessToken}\`
+			                    }
+			                });
+
+			                const data = await response.json();
+
+			                if (response.ok && (data.code === 1000 || data.code === 200)) {
+			                    result.innerHTML = \`<span class="success">✅ QR Code Generated!</span>
+
+			<strong>URL:</strong> \${data.data.url}
+			<strong>Table ID:</strong> \${data.data.tableId}
+			<strong>Table Name:</strong> \${data.data.tableName}
+			<strong>Token Version:</strong> \${data.data.tokenVersion}
+
+			<strong>Image:</strong> Base64 PNG (\${data.data.image.length} characters)\`;
+
+			                    // Show QR preview
+			                    preview.innerHTML = \`
+			                        <h3>QR Code Preview:</h3>
+			                        <img src="\${data.data.image}" alt="QR Code">
+			                        <p><strong>Scan URL:</strong> \${data.data.url}</p>
+			                    \`;
+			                } else {
+			                    result.innerHTML = \`<span class="error">❌ Failed</span>\\n\\n\${JSON.stringify(data, null, 2)}\`;
+			                }
+			            } catch (error) {
+			                result.innerHTML = \`<span class="error">❌ Error:</span> \${error.message}\`;
+			            }
+			        }
+
+			        async function getExistingQR() {
+			            const result = document.getElementById('qr-result');
+			            const preview = document.getElementById('qr-preview');
+			            const tableId = document.getElementById('tableSelect').value;
+
+			            if (!tableId) {
+			                alert('Please select a table first!');
+			                return;
+			            }
+
+			            result.innerHTML = '⏳ Fetching existing QR code...';
+			            preview.innerHTML = '';
+
+			            if (!checkAuth()) return;
+
+			            try {
+			                const response = await fetch(\`/api/v1/tenants/\${currentTenantId}/tables/\${tableId}/qrcode\`, {
+			                    headers: {
+			                        'Authorization': \`Bearer \${window.accessToken}\`
+			                    }
+			                });
+
+			                const data = await response.json();
+
+			                if (response.ok && (data.code === 1000 || data.code === 200)) {
+			                    result.innerHTML = \`<span class="success">✅ Fetched QR Code!</span>
+
+			<strong>URL:</strong> \${data.data.url}
+			<strong>Table ID:</strong> \${data.data.tableId}
+			<strong>Table Name:</strong> \${data.data.tableName}
+			<strong>Token Version:</strong> \${data.data.tokenVersion}
+
+			<span class="warning">Note: Version NOT incremented (existing QR)</span>\`;
+
+			                    preview.innerHTML = \`
+			                        <h3>QR Code Preview:</h3>
+			                        <img src="\${data.data.image}" alt="QR Code">
+			                        <p><strong>Scan URL:</strong> \${data.data.url}</p>
+			                    \`;
+			                } else {
+			                    result.innerHTML = \`<span class="error">❌ Failed</span>\\n\\n\${JSON.stringify(data, null, 2)}\`;
+			                }
+			            } catch (error) {
+			                result.innerHTML = \`<span class="error">❌ Error:</span> \${error.message}\`;
+			            }
+			        }
+
+			        function downloadQR() {
+			            const tableId = document.getElementById('downloadTableId').value;
+			            const format = document.getElementById('downloadFormat').value;
+			            const result = document.getElementById('download-result');
+
+			            if (!tableId) {
+			                alert('Please enter table ID!');
+			                return;
+			            }
+
+			            if (!checkAuth()) return;
+
+			            const url = \`/api/v1/tenants/\${currentTenantId}/tables/\${tableId}/qrcode/download?format=\${format}\`;
+
+			            result.innerHTML = \`<span class="success">⬇️ Downloading...</span>
+
+			<strong>URL:</strong> \${url}
+			<strong>Format:</strong> \${format.toUpperCase()}
+
+			Opening download in new window...\`;
+
+			            // Open in new window to trigger download
+			            window.open(url, '_blank');
+			        }
+
+			        async function validateScan() {
+			            const token = document.getElementById('scanToken').value;
+			            const result = document.getElementById('scan-result');
+
+			            if (!token) {
+			                alert('Please enter scan token!');
+			                return;
+			            }
+
+			            result.innerHTML = '⏳ Validating scan token...';
+
+			            // Public endpoint - no auth needed
+			            try {
+			                const response = await fetch(\`/api/v1/tenants/any-tenant/tables/scan/\${token}\`);
+			                const data = await response.json();
+
+			                if (response.ok) {
+			                    result.innerHTML = \`<span class="success">✅ Valid QR Code!</span>
+
+			<strong>Response:</strong>
+			\${JSON.stringify(data, null, 2)}
+
+			<strong>Redirect URL:</strong> \${data.redirect || data.data?.redirect || 'Not provided'}\`;
+			                } else {
+			                    result.innerHTML = \`<span class="error">❌ Invalid or Expired</span>
+
+			<strong>Status:</strong> \${response.status}
+			<strong>Response:</strong>
+			\${JSON.stringify(data, null, 2)}\`;
+			                }
+			            } catch (error) {
+			                result.innerHTML = \`<span class="error">❌ Error:</span> \${error.message}\`;
+			            }
+			        }
+
+			        // Auto-check auth on page load
+			        window.onload = () => {
+			            checkAuth();
+			        };
+		</script>
+	</body>
+</html>

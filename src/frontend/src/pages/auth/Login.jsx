@@ -2,12 +2,15 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 // import axios from 'axios'; // Import Axios khi bạn sẵn sàng tích hợp API
 import { useUser } from '../../contexts/UserContext' // Giả định đã có UserContext
+import { useLoading } from '../../contexts/LoadingContext'
 import FloatingInputField from '../../components/form/FloatingInputField'
+import { ButtonLoader } from '../../components/common/LoadingSpinner'
 
 const AdminLogin = () => {
 	const navigate = useNavigate()
 	// Lấy hàm login từ Context (Dùng để thay thế onLoginSuccess prop)
 	const { login } = useUser()
+	const { showLoading, hideLoading } = useLoading()
 
 	// 1. State để quản lý input form
 	const [credentials, setCredentials] = useState({
@@ -56,6 +59,7 @@ const AdminLogin = () => {
 		}
 
 		try {
+			showLoading('Đang đăng nhập...')
 			// 🚀 Call login API from context
 			const result = await login(credentials.username, credentials.password)
 
@@ -75,6 +79,7 @@ const AdminLogin = () => {
 			setErrorMessage('Login failed. Please try again.')
 		} finally {
 			setLoading(false)
+			hideLoading()
 		}
 	}
 

@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useUser } from '../../contexts/UserContext'
+import { useLoading } from '../../contexts/LoadingContext'
 import FloatingInputField from '../../components/form/FloatingInputField'
 import BasePageLayout from '../../components/layout/BasePageLayout'
+import { ButtonLoader } from '../../components/common/LoadingSpinner'
 import {
 	createKYCSession,
 	getKYCResult,

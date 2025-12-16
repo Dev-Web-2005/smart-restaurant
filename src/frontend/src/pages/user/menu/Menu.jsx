@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react'
 // import axios from 'axios'; // Import Axios khi bạn sẵn sàng tích hợp API
 import { useUser } from '../../../contexts/UserContext' // 👈 IMPORT CONTEXT
+import { useLoading } from '../../../contexts/LoadingContext'
 import BasePageLayout from '../../../components/layout/BasePageLayout'
 import AddCategoryModal from './AddCategoryModal'
 import CategoryDishes from './CategoryDishes'
+import ReactDOM from 'react-dom' // Thêm import này
+import { InlineLoader, CardSkeleton } from '../../../components/common/LoadingSpinner'
 
 // --- Dữ liệu Mock (Giữ nguyên) ---
 const mockCategories = [
-	// ... (mock data categories) ...
 	{
 		id: 1,
 		name: 'Soups',
@@ -71,13 +73,66 @@ const mockCategories = [
 	},
 ]
 
-// --- Sub-component: Delete Confirmation Modal (GIỮ NGUYÊN) ---
+// --- Sub-component: Delete Confirmation Modal (ĐÃ SỬA VỚI PORTAL) ---
 const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, categoryName }) => {
+	const modalRef = React.useRef(null)
+	const [isVisible, setIsVisible] = useState(false)
+
+	useEffect(() => {
+		if (isOpen) {
+			document.body.style.overflow = 'hidden'
+			requestAnimationFrame(() => {
+				setIsVisible(true)
+			})
+		} else {
+			document.body.style.overflow = 'auto'
+			setIsVisible(false)
+		}
+
+		return () => {
+			document.body.style.overflow = 'auto'
+		}
+	}, [isOpen])
+
+	// Close on outside click
+	useEffect(() => {
+		const handleClickOutside = (event) => {
+			if (modalRef.current && !modalRef.current.contains(event.target)) {
+				onClose()
+			}
+		}
+
+		const handleEscape = (event) => {
+			if (event.key === 'Escape') {
+				onClose()
+			}
+		}
+
+		if (isOpen) {
+			document.addEventListener('mousedown', handleClickOutside)
+			document.addEventListener('keydown', handleEscape)
+		}
+
+		return () => {
+			document.removeEventListener('mousedown', handleClickOutside)
+			document.removeEventListener('keydown', handleEscape)
+		}
+	}, [isOpen, onClose])
+
 	if (!isOpen) return null
 
-	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm font-['Work_Sans',_sans-serif]">
-			<div className="bg-[#1A202C] p-6 rounded-xl w-full max-w-sm shadow-2xl">
+	const ModalContent = () => (
+		<div
+			className={`fixed inset-0 z-[99999] flex items-center justify-center transition-all duration-300 ${
+				isVisible ? 'bg-black/70 backdrop-blur-sm' : 'bg-transparent pointer-events-none'
+			}`}
+		>
+			<div
+				ref={modalRef}
+				className={`relative bg-[#1A202C] p-6 rounded-xl w-full max-w-sm mx-4 shadow-2xl transition-all duration-300 transform ${
+					isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+				}`}
+			>
 				<h3 className="text-xl font-bold text-red-400 mb-4">Confirm Deletion</h3>
 				<p className="text-[#9dabb9] mb-6">
 					Are you sure you want to delete the category &quot;{categoryName}
@@ -100,24 +155,23 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, categoryName }) =
 			</div>
 		</div>
 	)
+
+	return ReactDOM.createPortal(<ModalContent />, document.body)
 }
 
-// --- Sub-component: Category Button Card (ĐÃ SỬA ĐỔI) ---
+// --- Sub-component: Category Button Card (GIỮ NGUYÊN) ---
 const CategoryCard = ({ category, onClick, onDeleteRequest }) => {
-	// Ngăn chặn sự kiện click thẻ khi nhấn nút X
 	const handleDeleteClick = (e) => {
-		e.stopPropagation() // Ngăn chặn kích hoạt onClick của thẻ
-		onDeleteRequest(category) // Mở modal xác nhận
+		e.stopPropagation()
+		onDeleteRequest(category)
 	}
 
 	return (
 		<button
 			onClick={onClick}
-			className="group relative flex w-full aspect-square bg-[#1A202C] rounded-lg overflow-hidden transition-all duration-200 hover:bg-[#2D3748] hover:shadow-xl active:scale-95 border border-transparent focus:outline-none focus:ring-2 focus:ring-[#137fec] p-0" // Bỏ p-5, thêm aspect-square
+			className="group relative flex w-full aspect-square bg-[#1A202C] rounded-lg overflow-hidden transition-all duration-200 hover:bg-[#2D3748] hover:shadow-xl active:scale-95 border border-transparent focus:outline-none focus:ring-2 focus:ring-[#137fec] p-0"
 		>
-			{/* 1. Image Container (Chiếm toàn bộ thẻ) */}
 			<div className="h-full w-full overflow-hidden relative">
-				{/* Lớp Overlay và hiệu ứng Hover Image */}
 				<div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors z-10"></div>
 				<img
 					src={category.image}
@@ -126,15 +180,12 @@ const CategoryCard = ({ category, onClick, onDeleteRequest }) => {
 				/>
 			</div>
 
-			{/* 2. Content Container (Tên nổi trên ảnh) */}
 			<div className="absolute inset-0 z-20 flex flex-col items-start justify-end p-5 w-full text-left">
 				<h3 className="text-2xl font-extrabold text-white group-hover:text-[#137fec] transition-colors text-left bg-black/50 p-2 leading-none rounded-lg backdrop-blur-sm shadow-lg">
 					{category.name}
 				</h3>
-				{/* Mô tả đã bị loại bỏ theo yêu cầu */}
 			</div>
 
-			{/* 3. DELETE BUTTON (Hiện khi hover) */}
 			<div className="absolute top-2 right-2 z-30 opacity-0 group-hover:opacity-100 transition-opacity">
 				<button
 					onClick={handleDeleteClick}
@@ -148,7 +199,7 @@ const CategoryCard = ({ category, onClick, onDeleteRequest }) => {
 	)
 }
 
-// --- Sub-component: Add Category Card (ĐÃ SỬA ĐỔI - Thêm aspect-square) ---
+// --- Sub-component: Add Category Card (GIỮ NGUYÊN) ---
 const AddCategoryCard = ({ onClick }) => (
 	<button
 		onClick={onClick}
@@ -165,39 +216,24 @@ const AddCategoryCard = ({ onClick }) => (
 // --- Main Component ---
 const MenuCategoryManagement = () => {
 	const { user, loading: contextLoading } = useUser()
+	const { showLoading, hideLoading } = useLoading()
 
 	const [categories, setCategories] = useState(mockCategories)
 	const [loading, setLoading] = useState(false)
 	const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 	const [selectedCategorySlug, setSelectedCategorySlug] = useState(null)
-
-	// 🚀 STATE XÓA: Quản lý modal xóa và đối tượng cần xóa
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 	const [categoryToDelete, setCategoryToDelete] = useState(null)
 
-	// 2. Hàm Fetch Data (GET) - Giữ nguyên
 	const fetchCategories = async () => {
-		// Comment: BẮT ĐẦU: Logic gọi API lấy danh sách Category
 		console.log('Fetching menu categories...')
-		// setLoading(true);
-		// try {
-		//      const response = await axios.get('/api/tenant/menu/categories');
-		//      setCategories(response.data.categories);
-		// } catch (error) {
-		//      console.error("Error fetching categories:", error);
-		// } finally {
-		//      setLoading(false);
-		// }
-		// Comment: KẾT THÚC: Logic gọi API lấy danh sách Category
 	}
 
 	useEffect(() => {
 		// if (!contextLoading) fetchCategories();
 	}, [contextLoading])
 
-	// 3. Hàm Xử lý Xóa (DELETE)
 	const handleDeleteCategory = async (category) => {
-		// Comment: MỞ MODAL xác nhận
 		setCategoryToDelete(category)
 		setIsDeleteModalOpen(true)
 	}
@@ -210,32 +246,17 @@ const MenuCategoryManagement = () => {
 
 		setIsDeleteModalOpen(false)
 		setLoading(true)
+		showLoading('Đang xóa danh mục...')
 
-		// 🚀 BƯỚC 1: CẬP NHẬT UI NGAY LẬP TỨC (Optimistic Update)
 		setCategories((prev) => prev.filter((c) => c.id !== categoryId))
-		setCategoryToDelete(null) // Reset đối tượng
+		setCategoryToDelete(null)
 
-		// Comment: BẮT ĐẦU: Logic gọi API xóa Category
 		console.log(`DELETING Category: ${categoryId}`)
 
-		// try {
-		//      // API endpoint: DELETE /api/tenant/menu/categories/:id
-		//      // Backend cần đảm bảo xóa sạch món ăn liên quan
-		//      await axios.delete(`/api/tenant/menu/categories/${categoryId}`);
-		//      console.log(`Category ${categoryId} deleted successfully.`);
-		// } catch (error) {
-		//      console.error("Error deleting category:", error);
-		//      // Khắc phục trạng thái: Nếu xóa thất bại, fetch lại toàn bộ danh sách
-		//      fetchCategories();
-		//      alert(`Xóa ${categoryName} thất bại! Vui lòng kiểm tra console.`);
-		// } finally {
-		//      setLoading(false);
-		// }
-		// Comment: KẾT THÚC: Logic gọi API xóa Category
-		setLoading(false) // Vì đang dùng mock data nên set lại loading
+		setLoading(false)
+		hideLoading()
 	}
 
-	// --- Các hàm khác (giữ nguyên) ---
 	const handleCardClick = (route) => {
 		setSelectedCategorySlug(route)
 	}
@@ -260,9 +281,7 @@ const MenuCategoryManagement = () => {
 	const handleAddDish = () => {
 		alert('Opening form to add new dish directly.')
 	}
-	// --- Kết thúc các hàm khác ---
 
-	// Xử lý loading state của Context
 	if (contextLoading) {
 		return (
 			<div className="flex min-h-screen bg-[#101922] w-full items-center justify-center">
@@ -274,7 +293,6 @@ const MenuCategoryManagement = () => {
 	const renderCategoryListView = () => {
 		return (
 			<>
-				{/* Page Header (Giữ nguyên) */}
 				<header className="flex flex-wrap justify-between items-center gap-4 mb-8">
 					<div className="flex flex-col gap-2">
 						<h1 className="text-white text-4xl font-black leading-tight tracking-[-0.033em]">
@@ -286,7 +304,6 @@ const MenuCategoryManagement = () => {
 					</div>
 				</header>
 
-				{/* Category Grid (CĂN CHỈNH ĐẸP MẮT) */}
 				<div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
 					{loading ? (
 						<p className="text-[#9dabb9] lg:col-span-3 text-center py-10">
@@ -298,47 +315,46 @@ const MenuCategoryManagement = () => {
 								key={category.id}
 								category={category}
 								onClick={() => handleCardClick(category.route)}
-								// 🚨 Gắn hàm xóa vào thẻ
 								onDeleteRequest={handleDeleteCategory}
 							/>
 						))
 					)}
 
-					{/* THẺ ADD CATEGORY LUÔN Ở CUỐI */}
 					<AddCategoryCard onClick={handleAddCategory} />
 				</div>
 
-				{/* MODALS */}
-				<AddCategoryModal
-					isOpen={isAddModalOpen}
-					onClose={() => setIsAddModalOpen(false)}
-					onSave={handleSaveCategory}
-				/>
-
-				{/* 🚨 MODAL XÁC NHẬN XÓA */}
-				<DeleteConfirmationModal
-					isOpen={isDeleteModalOpen}
-					onClose={() => setIsDeleteModalOpen(false)}
-					onConfirm={confirmDelete}
-					categoryName={categoryToDelete?.name}
-				/>
+				{/* MODALS - Được render ở ngoài BasePageLayout */}
 			</>
 		)
 	}
 
 	return (
-		<BasePageLayout activeRoute="Menu">
-			{selectedCategorySlug ? (
-				// Render trang Dishes nếu có category được chọn
-				<CategoryDishes
-					categorySlug={selectedCategorySlug}
-					onBack={handleBackToCategories}
-				/>
-			) : (
-				// Render trang quản lý Categories
-				renderCategoryListView()
-			)}
-		</BasePageLayout>
+		<>
+			<BasePageLayout activeRoute="Menu">
+				{selectedCategorySlug ? (
+					<CategoryDishes
+						categorySlug={selectedCategorySlug}
+						onBack={handleBackToCategories}
+					/>
+				) : (
+					renderCategoryListView()
+				)}
+			</BasePageLayout>
+
+			{/* MODALS - Render ở ngoài BasePageLayout */}
+			<AddCategoryModal
+				isOpen={isAddModalOpen}
+				onClose={() => setIsAddModalOpen(false)}
+				onSave={handleSaveCategory}
+			/>
+
+			<DeleteConfirmationModal
+				isOpen={isDeleteModalOpen}
+				onClose={() => setIsDeleteModalOpen(false)}
+				onConfirm={confirmDelete}
+				categoryName={categoryToDelete?.name}
+			/>
+		</>
 	)
 }
 

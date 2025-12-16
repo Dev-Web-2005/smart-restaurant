@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react'
-// import axios from 'axios'; // 👈 IMPORT MỚI: Import Axios khi bạn sẵn sàng tích hợp API
-import { useUser } from '../../../contexts/UserContext' // Lấy Context user (nếu cần)
-import BasePageLayout from '../../../components/layout/BasePageLayout' // 👈 IMPORT LAYOUT CHUNG
+import React, { useState, useEffect, useRef } from 'react'
+import ReactDOM from 'react-dom'
+import { useUser } from '../../../contexts/UserContext'
+import { useLoading } from '../../../contexts/LoadingContext'
+import BasePageLayout from '../../../components/layout/BasePageLayout'
+import { InlineLoader, CardSkeleton } from '../../../components/common/LoadingSpinner'
 
 // --- CONSTANTS ---
-const TIME_LIMIT_MINUTES = 30 // 30 phút là thời gian chờ tối đa
+const TIME_LIMIT_MINUTES = 30
 const TIME_LIMIT_MS = TIME_LIMIT_MINUTES * 60 * 1000
 
 // Helper tạo timestamp giả lập
@@ -14,7 +16,7 @@ const getMockTime = (minutesAgo) => {
 	return d.getTime()
 }
 
-// --- Dữ liệu Mock (Loại bỏ progress, timeRemaining, isDelayed, isTable) ---
+// --- Dữ liệu Mock ---
 const mockActiveOrders = [
 	{
 		id: 'A3F8B',
@@ -22,21 +24,21 @@ const mockActiveOrders = [
 		items: 3,
 		totalPrice: 45.0,
 		placedTime: getMockTime(15),
-	}, // 15 mins ago
+	},
 	{
 		id: 'C1D9E',
 		destination: 'Table 12',
 		items: 5,
 		totalPrice: 62.5,
 		placedTime: getMockTime(35),
-	}, // 35 mins ago (Delayed)
+	},
 	{
 		id: 'E4F2A',
 		destination: 'Takeaway',
 		items: 2,
 		totalPrice: 23.75,
 		placedTime: getMockTime(5),
-	}, // 5 mins ago
+	},
 	{
 		id: 'B7G8H',
 		destination: 'Table 3',
@@ -57,11 +59,10 @@ const mockActiveOrders = [
 		items: 4,
 		totalPrice: 12.75,
 		placedTime: getMockTime(30),
-	}, // Boundary
+	},
 ]
 
 const mockPendingOrders = [
-	// Giả định Pending orders có placedTime để sắp xếp chính xác
 	{
 		id: 'L1V4T',
 		destination: 'Table 9',
@@ -80,7 +81,7 @@ const mockPendingOrders = [
 	},
 ]
 
-// --- Dữ liệu Mock Chi tiết Order (GIỮ NGUYÊN) ---
+// --- Dữ liệu Mock Chi tiết Order ---
 const mockOrderDetails = {
 	A3F8B: {
 		id: 'A3F8B',
@@ -125,7 +126,7 @@ const getColor = (name) => {
 	}
 }
 
-// 💡 HÀM TÍNH TOÁN DỮ LIỆU TIMER (PROGRESS, TIME REMAINING, DELAYED)
+// Hàm tính toán dữ liệu TIMER
 const calculateTimeData = (placedTime) => {
 	const elapsed = Date.now() - placedTime
 	const remainingMs = TIME_LIMIT_MS - elapsed
@@ -133,7 +134,6 @@ const calculateTimeData = (placedTime) => {
 
 	let progress = Math.min(100, (elapsed / TIME_LIMIT_MS) * 100)
 
-	// Format thời gian còn lại (hoặc thời gian trễ)
 	let displayTime
 	let absRemaining = Math.abs(remainingMs)
 	const minutes = Math.floor(absRemaining / 60000)
@@ -147,20 +147,82 @@ const calculateTimeData = (placedTime) => {
 		progress: progress,
 		timeRemaining: displayTime,
 		isDelayed: isDelayed,
-		// Dùng cho API update
 		timeStatus: isDelayed ? 'Delayed' : 'Preparing',
 	}
 }
 
 // =========================================================
-// 🚨 COMPONENT MỚI: OrderDetailModal (GIỮ NGUYÊN)
+// 🚨 COMPONENT MỚI: OrderDetailModal (ĐÃ SỬA VỚI PORTAL)
 // =========================================================
 const OrderDetailModal = ({ isOpen, onClose, details }) => {
+	const modalRef = useRef(null)
+	const [isVisible, setIsVisible] = useState(false)
+
+	useEffect(() => {
+		if (isOpen) {
+			document.body.style.overflow = 'hidden'
+			requestAnimationFrame(() => {
+				setIsVisible(true)
+			})
+		} else {
+			document.body.style.overflow = 'auto'
+			setIsVisible(false)
+		}
+
+		return () => {
+			document.body.style.overflow = 'auto'
+		}
+	}, [isOpen])
+
+	useEffect(() => {
+		const handleClickOutside = (event) => {
+			if (modalRef.current && !modalRef.current.contains(event.target)) {
+				onClose()
+			}
+		}
+
+		const handleEscape = (event) => {
+			if (event.key === 'Escape') {
+				onClose()
+			}
+		}
+
+		if (isOpen) {
+			document.addEventListener('mousedown', handleClickOutside)
+			document.addEventListener('keydown', handleEscape)
+		}
+
+		return () => {
+			document.removeEventListener('mousedown', handleClickOutside)
+			document.removeEventListener('keydown', handleEscape)
+		}
+	}, [isOpen, onClose])
+
 	if (!isOpen || !details) return null
 
-	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm font-['Work_Sans',_sans-serif]">
-			<div className="relative w-full max-w-xl transform overflow-hidden rounded-xl bg-black/80 backdrop-blur-md p-8 shadow-2xl transition-all border border-white/10">
+	const ModalContent = () => (
+		<div
+			className={`fixed inset-0 z-[99999] flex items-center justify-center transition-all duration-300 ${
+				isVisible ? 'bg-black/70 backdrop-blur-sm' : 'bg-transparent pointer-events-none'
+			}`}
+		>
+			<div
+				ref={modalRef}
+				className={`relative w-full max-w-xl mx-4 bg-black/80 backdrop-blur-md p-8 rounded-xl shadow-2xl border border-white/10 transition-all duration-300 transform ${
+					isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+				}`}
+				style={{
+					maxHeight: '90vh',
+					overflowY: 'auto',
+				}}
+			>
+				<button
+					onClick={onClose}
+					className="absolute top-4 right-4 text-[#9dabb9] hover:text-red-400 transition-colors z-10"
+				>
+					<span className="material-symbols-outlined text-2xl">close</span>
+				</button>
+
 				<div className="flex justify-between items-start mb-6 border-b border-white/10 pb-3">
 					<div>
 						<h3 className="text-2xl font-bold text-white m-0">Order Details</h3>
@@ -168,12 +230,6 @@ const OrderDetailModal = ({ isOpen, onClose, details }) => {
 							ID: {details.id} | To: {details.table}
 						</p>
 					</div>
-					<button
-						onClick={onClose}
-						className="absolute top-4 right-4 text-[#9dabb9] hover:text-red-400 transition-colors"
-					>
-						<span className="material-symbols-outlined text-2xl">close</span>
-					</button>
 				</div>
 
 				<div className="space-y-4 max-h-96 overflow-y-auto pr-4">
@@ -206,11 +262,12 @@ const OrderDetailModal = ({ isOpen, onClose, details }) => {
 			</div>
 		</div>
 	)
+
+	return ReactDOM.createPortal(<ModalContent />, document.body)
 }
 
 // --- Sub-component: Active Order Card ---
 const ActiveOrderCard = ({ order, onServe, onView, timeData }) => {
-	// 🚨 NHẬN timeData
 	const timeBoxClass = timeData.isDelayed ? 'bg-red-600' : 'bg-black/50 backdrop-blur-md'
 	const timeBoxTextColor = timeData.isDelayed
 		? `text-[${getColor('yellow-400')}]`
@@ -222,7 +279,7 @@ const ActiveOrderCard = ({ order, onServe, onView, timeData }) => {
 
 	return (
 		<div
-			onClick={() => onView(order.id)} // 🚨 Kích hoạt xem chi tiết khi click vào card
+			onClick={() => onView(order.id)}
 			className="bg-black/40 backdrop-blur-md rounded-xl p-4 flex flex-col gap-3 text-left border border-white/10 cursor-pointer 
                        transition-all duration-200 hover:bg-black/50 hover:shadow-lg active:scale-[0.99] 
                        focus:ring-2 focus:ring-[#137fec]"
@@ -252,12 +309,11 @@ const ActiveOrderCard = ({ order, onServe, onView, timeData }) => {
 				></div>
 			</div>
 
-			{/* NÚT XÁC NHẬN HOÀN THÀNH (Served Button) */}
 			<button
 				onClick={(e) => {
 					e.stopPropagation()
 					onServe(order.id)
-				}} // Ngăn chặn nổi bọt click card
+				}}
 				className="w-full h-10 rounded-lg bg-[#4ade80]/20 text-[#4ade80] text-sm font-bold transition-colors hover:bg-green-600/30 active:scale-[0.98] border border-[#4ade80]/50"
 			>
 				Mark as Served
@@ -273,7 +329,7 @@ const PendingOrderItem = ({ order, onApprove, onDecline, onView }) => {
 
 	return (
 		<div
-			onClick={() => onView(order.id)} // 🚨 Kích hoạt xem chi tiết khi click vào card
+			onClick={() => onView(order.id)}
 			className="bg-black/30 backdrop-blur-md rounded-lg m-4 p-4 flex items-center justify-between transition-all duration-200 hover:bg-black/40 hover:shadow-md cursor-pointer border border-white/10"
 		>
 			<div className="flex flex-col gap-1">
@@ -281,7 +337,6 @@ const PendingOrderItem = ({ order, onApprove, onDecline, onView }) => {
 				<div className="flex items-center gap-4 text-sm text-gray-300">
 					<span className="flex items-center">
 						<span className="material-symbols-outlined text-sm mr-1">schedule</span>
-						{/* 🚨 Dùng placedTime để hiển thị thời gian đã đặt */}
 						{new Date(order.placedTime).toLocaleTimeString('en-US', {
 							hour: '2-digit',
 							minute: '2-digit',
@@ -296,7 +351,7 @@ const PendingOrderItem = ({ order, onApprove, onDecline, onView }) => {
 					onClick={(e) => {
 						e.stopPropagation()
 						handleDeclineClick()
-					}} // Ngăn chặn nổi bọt click card
+					}}
 					title="Decline"
 					className="flex items-center justify-center w-9 h-9 rounded-lg bg-red-600/20 text-[#f87171] hover:bg-red-600/30 transition-colors"
 				>
@@ -306,7 +361,7 @@ const PendingOrderItem = ({ order, onApprove, onDecline, onView }) => {
 					onClick={(e) => {
 						e.stopPropagation()
 						handleApproveClick()
-					}} // Ngăn chặn nổi bọt click card
+					}}
 					title="Approve"
 					className="flex items-center justify-center w-9 h-9 rounded-lg bg-green-600/20 text-[#4ade80] hover:bg-green-600/30 transition-colors"
 				>
@@ -320,109 +375,51 @@ const PendingOrderItem = ({ order, onApprove, onDecline, onView }) => {
 const OrderManagement = () => {
 	const { user, loading: contextLoading } = useUser()
 
-	// 1. State cho Dữ liệu
-	const [activeOrders, setActiveOrders] = useState([]) // Khởi tạo rỗng, sẽ được tính toán
-	const [pendingOrders, setPendingOrders] = useState([]) // Khởi tạo rỗng, sẽ được tính toán
+	const [activeOrders, setActiveOrders] = useState([])
+	const [pendingOrders, setPendingOrders] = useState([])
 	const [loading, setLoading] = useState(true)
-
-	// 🚨 STATE MỚI: Modal và Chi tiết Order
 	const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
-	const [orderDetails, setOrderDetails] = useState(null) // Chi tiết món ăn đang xem
-	const [tick, setTick] = useState(0) // State để force re-render timer
+	const [orderDetails, setOrderDetails] = useState(null)
+	const [tick, setTick] = useState(0)
 
-	// 2. Hàm Fetch Data (Polling)
 	const fetchOrders = async () => {
-		// Comment: BẮT ĐẦU: Logic gọi API để lấy dữ liệu liên tục (hoặc polling)
 		console.log('Fetching active and pending orders...')
-		// setLoading(true);
+		setLoading(true)
 
-		// try {
-		//     const activeRes = await axios.get('/api/tenant/orders/active');
-		//     const pendingRes = await axios.get('/api/tenant/orders/pending');
-
-		//     const fetchedActive = activeRes.data.orders;
-		//     const fetchedPending = pendingRes.data.orders;
-
-		//     // Sắp xếp theo placedTime (sớm nhất ở trên cùng)
-		//     const sortedActive = fetchedActive.sort((a, b) => a.placedTime - b.placedTime);
-		//     const sortedPending = fetchedPending.sort((a, b) => a.placedTime - b.placedTime);
-
-		//     setActiveOrders(sortedActive);
-		//     setPendingOrders(sortedPending);
-		// } catch (error) {
-		//     console.error("Error fetching orders:", error);
-		// } finally {
-		//     setLoading(false);
-		// }
-
-		// Giả lập (Sắp xếp mock data)
-		const sortedMockActive = [...mockActiveOrders].sort(
-			(a, b) => a.placedTime - b.placedTime,
-		)
-		const sortedMockPending = [...mockPendingOrders].sort(
-			(a, b) => a.placedTime - b.placedTime,
-		)
-		setActiveOrders(sortedMockActive)
-		setPendingOrders(sortedMockPending)
-
-		setTimeout(() => setLoading(false), 500)
-		// Comment: KẾT THÚC: Logic gọi API để lấy dữ liệu liên tục (hoặc polling)
+		setTimeout(() => {
+			const sortedMockActive = [...mockActiveOrders].sort(
+				(a, b) => a.placedTime - b.placedTime,
+			)
+			const sortedMockPending = [...mockPendingOrders].sort(
+				(a, b) => a.placedTime - b.placedTime,
+			)
+			setActiveOrders(sortedMockActive)
+			setPendingOrders(sortedMockPending)
+			setLoading(false)
+		}, 500)
 	}
 
-	// 3. Hàm Fetch Chi tiết Order (MỚI)
 	const handleViewDetails = async (orderId) => {
-		// Comment: BẮT ĐẦU: Logic gọi API GET Order Details
 		console.log(`Fetching details for Order ID: ${orderId}`)
 		setIsDetailModalOpen(true)
-		setOrderDetails(null) // Clear previous details
+		setOrderDetails(null)
 
-		// try {
-		//     // API endpoint: GET /api/tenant/orders/:id/details
-		//     const res = await axios.get(`/api/tenant/orders/${orderId}/details`);
-		//     setOrderDetails(res.data);
-		// } catch (error) {
-		//     console.error("Error fetching order details:", error);
-		//     setOrderDetails(mockOrderDetails['A3F8B']); // Fallback name
-		// }
-
-		// Giả lập
 		setTimeout(() => {
-			setOrderDetails(mockOrderDetails[orderId] || mockOrderDetails['A3F8B']) // Fallback mock
+			setOrderDetails(mockOrderDetails[orderId] || mockOrderDetails['A3F8B'])
 		}, 300)
-		// Comment: KẾT THÚC: Logic gọi API GET Order Details
 	}
 
-	// 4. Hàm Xử lý Served (PUT - Món đã phục vụ)
 	const handleServe = async (orderId) => {
-		// Comment: BẮT ĐẦU: Logic gọi API PUT Mark as Served
 		console.log(`Marking order ${orderId} as served.`)
-
-		const servedOrder = activeOrders.find((order) => order.id === orderId)
 		setActiveOrders((prev) => prev.filter((order) => order.id !== orderId))
-
-		// try {
-		//     // API endpoint: PUT /api/tenant/orders/serve/:id
-		//     await axios.put(`/api/tenant/orders/serve/${orderId}`);
-		//     console.log(`Order ${orderId} successfully served.`);
-		// } catch (error) {
-		//     console.error("Error marking as served:", error);
-		//     setActiveOrders(prev => [...prev, servedOrder]);
-		//     fetchOrders();
-		//     alert(`Failed to mark order ${orderId} as served. Please try again.`);
-		// }
-		// Comment: KẾT THÚC: Logic gọi API PUT Mark as Served
 	}
 
-	// 5. Hàm Xử lý Approve (PUT)
 	const handleApprove = async (orderId) => {
-		// Comment: BẮT ĐẦU: Logic gọi API PUT Approve Order
 		console.log(`Approving order: ${orderId}`)
 
 		const approvedOrder = pendingOrders.find((o) => o.id === orderId)
 		if (approvedOrder) {
 			setPendingOrders((prev) => prev.filter((o) => o.id !== orderId))
-
-			// 🚨 TÍNH TOÁN DỮ LIỆU BAN ĐẦU CHO ACTIVE ORDER
 			const currentTimeData = calculateTimeData(approvedOrder.placedTime)
 
 			setActiveOrders((prev) =>
@@ -430,43 +427,23 @@ const OrderManagement = () => {
 					...prev,
 					{
 						...approvedOrder,
-						destination: approvedOrder.destination, // Giữ nguyên destination
-						...currentTimeData, // Thêm các trường tính toán từ timer
+						destination: approvedOrder.destination,
+						...currentTimeData,
 					},
 				].sort((a, b) => (a.placedTime || 0) - (b.placedTime || 0)),
-			) // Sắp xếp lại Active List
+			)
 		}
-
-		// try {
-		//     // API endpoint: PUT /api/tenant/orders/approve/:id
-		//     await axios.put(`/api/tenant/orders/approve/${orderId}`);
-		// } catch (error) {
-		//     console.error("Error approving order:", error);
-		// }
-		// Comment: KẾT THÚC: Logic gọi API PUT Approve Order
 	}
 
-	// 6. Hàm Xử lý Decline (DELETE/PUT)
 	const handleDecline = async (orderId) => {
-		// Comment: BẮT ĐẦU: Logic gọi API PUT/DELETE Decline Order
 		console.log(`Declining order: ${orderId}`)
-
 		setPendingOrders((prev) => prev.filter((o) => o.id !== orderId))
-
-		// try {
-		//     // API endpoint: PUT /api/tenant/orders/decline/:id (Hoặc DELETE)
-		//     await axios.put(`/api/tenant/orders/decline/${orderId}`);
-		// } catch (error) {
-		//     console.error("Error declining order:", error);
-		// }
-		// Comment: KẾT THÚC: Logic gọi API PUT/DELETE Decline Order
 	}
 
-	// 7. Setup Timer (Re-render mỗi giây)
 	useEffect(() => {
 		if (!loading) {
 			const interval = setInterval(() => {
-				setTick((prev) => prev + 1) // Cập nhật state giả để force re-render
+				setTick((prev) => prev + 1)
 			}, 1000)
 			return () => clearInterval(interval)
 		}
@@ -475,9 +452,6 @@ const OrderManagement = () => {
 	useEffect(() => {
 		if (!contextLoading) {
 			fetchOrders()
-			// Comment: Setup Polling: Lấy dữ liệu mới mỗi 30 giây (nếu cần dữ liệu server-side mới)
-			// const intervalId = setInterval(fetchOrders, 30000);
-			// return () => clearInterval(intervalId);
 		}
 	}, [contextLoading])
 
@@ -489,91 +463,91 @@ const OrderManagement = () => {
 		)
 	}
 
-	const pageContent = (
-		<div className="w-full h-full">
-			<header className="mb-8">
-				<h1 className="text-white text-4xl font-black leading-tight tracking-[-0.033em]">
-					Order Management
-				</h1>
-				<p className="text-gray-300 text-base mt-2">
-					Monitor and manage all active and incoming orders.
-				</p>
-			</header>
-
-			<div className="flex flex-col lg:flex-row gap-8 h-full">
-				{/* Active Orders Column (3/5 width) */}
-				<div className="flex flex-col flex-3 lg:w-3/5">
-					<div className="section-header mb-6">
-						<h2 className="text-2xl font-bold text-white m-0">Active Orders</h2>
-						<p className="text-gray-300 text-sm">
-							Orders currently in preparation or delivery.
-						</p>
-					</div>
-
-					<div className="flex-1 overflow-hidden">
-						{/* active-orders-grid là div chứa toàn bộ grid, cần overflow-y:auto và padding-right để cuộn */}
-						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto pr-4 -mr-4 h-full">
-							{loading ? (
-								<p className="text-[#9dabb9] lg:col-span-3">Loading active orders...</p>
-							) : (
-								activeOrders.map((order) => (
-									<ActiveOrderCard
-										key={order.id}
-										order={order}
-										onServe={handleServe}
-										onView={handleViewDetails}
-										// 🚨 TRUYỀN DỮ LIỆU TIMER TÍNH TOÁN MỖI LẦN TICK
-										timeData={calculateTimeData(order.placedTime)}
-									/>
-								))
-							)}
-						</div>
-					</div>
-				</div>
-
-				{/* Pending Orders Column (2/5 width) */}
-				<div className="flex flex-col flex-2 lg:w-2/5 bg-black/40 backdrop-blur-md rounded-xl p-6 border border-white/10">
-					<header className="section-header mb-6">
-						<h2 className="text-2xl font-bold text-white m-0">
-							Pending Orders ({pendingOrders.length})
-						</h2>
-						<p className="text-gray-300 text-sm">
-							Approve or decline new incoming orders.
+	return (
+		<>
+			<BasePageLayout activeRoute="Order">
+				<div className="w-full h-full">
+					<header className="mb-8">
+						<h1 className="text-white text-4xl font-black leading-tight tracking-[-0.033em]">
+							Order Management
+						</h1>
+						<p className="text-gray-300 text-base mt-2">
+							Monitor and manage all active and incoming orders.
 						</p>
 					</header>
 
-					<div className="pending-orders-list flex-1 space-y-4 overflow-y-auto pr-4 -mr-4">
-						{loading ? (
-							<p className="text-[#9dabb9]">Loading pending list...</p>
-						) : pendingOrders.length > 0 ? (
-							pendingOrders.map((order) => (
-								<PendingOrderItem
-									key={order.id}
-									order={order}
-									onApprove={handleApprove}
-									onDecline={handleDecline}
-									onView={handleViewDetails}
-								/>
-							))
-						) : (
-							<p className="text-[#9dabb9] text-center py-10">
-								No new orders waiting for approval.
-							</p>
-						)}
+					<div className="flex flex-col lg:flex-row gap-8 h-full">
+						<div className="flex flex-col flex-3 lg:w-3/5">
+							<div className="section-header mb-6">
+								<h2 className="text-2xl font-bold text-white m-0">Active Orders</h2>
+								<p className="text-gray-300 text-sm">
+									Orders currently in preparation or delivery.
+								</p>
+							</div>
+
+							<div className="flex-1 overflow-hidden">
+								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto pr-4 -mr-4 h-full">
+									{loading ? (
+										<p className="text-[#9dabb9] lg:col-span-3">
+											Loading active orders...
+										</p>
+									) : (
+										activeOrders.map((order) => (
+											<ActiveOrderCard
+												key={order.id}
+												order={order}
+												onServe={handleServe}
+												onView={handleViewDetails}
+												timeData={calculateTimeData(order.placedTime)}
+											/>
+										))
+									)}
+								</div>
+							</div>
+						</div>
+
+						<div className="flex flex-col flex-2 lg:w-2/5 bg-black/40 backdrop-blur-md rounded-xl p-6 border border-white/10">
+							<header className="section-header mb-6">
+								<h2 className="text-2xl font-bold text-white m-0">
+									Pending Orders ({pendingOrders.length})
+								</h2>
+								<p className="text-gray-300 text-sm">
+									Approve or decline new incoming orders.
+								</p>
+							</header>
+
+							<div className="pending-orders-list flex-1 space-y-4 overflow-y-auto pr-4 -mr-4">
+								{loading ? (
+									<p className="text-[#9dabb9]">Loading pending list...</p>
+								) : pendingOrders.length > 0 ? (
+									pendingOrders.map((order) => (
+										<PendingOrderItem
+											key={order.id}
+											order={order}
+											onApprove={handleApprove}
+											onDecline={handleDecline}
+											onView={handleViewDetails}
+										/>
+									))
+								) : (
+									<p className="text-[#9dabb9] text-center py-10">
+										No new orders waiting for approval.
+									</p>
+								)}
+							</div>
+						</div>
 					</div>
 				</div>
-			</div>
+			</BasePageLayout>
 
-			{/* 🚨 MODAL CHI TIẾT */}
+			{/* 🚨 MODAL CHI TIẾT - Nằm ngoài BasePageLayout */}
 			<OrderDetailModal
 				isOpen={isDetailModalOpen}
 				onClose={() => setIsDetailModalOpen(false)}
 				details={orderDetails}
 			/>
-		</div>
+		</>
 	)
-
-	return <BasePageLayout activeRoute="Order">{pageContent}</BasePageLayout>
 }
 
 export default OrderManagement

@@ -32,6 +32,10 @@ export const loginAPI = async (username, password) => {
 			}
 			localStorage.setItem('user', JSON.stringify(userData))
 
+			// Set tenantId for table management (userId = tenantId in this system)
+			window.currentTenantId = userId
+			console.log('✅ Login successful - TenantId set:', userId)
+
 			return {
 				success: true,
 				user: userData,

@@ -1,27 +1,70 @@
-import React, { useState } from 'react'
-// import axios from 'axios'; // Import Axios khi bạn sẵn sàng tích hợp API
+import React, { useState, useEffect, useRef } from 'react'
+import ReactDOM from 'react-dom'
 
 const AddCategoryModal = ({ isOpen, onClose, onSave }) => {
-	// 1. State quản lý form data
+	const modalRef = useRef(null)
 	const [formData, setFormData] = useState({
 		categoryName: '',
 		imageFile: null,
 	})
 	const [previewImage, setPreviewImage] = useState(null)
 	const [loading, setLoading] = useState(false)
+	const [isVisible, setIsVisible] = useState(false)
 
-	// 2. Hàm xử lý thay đổi input
+	// Control body scroll và animation
+	useEffect(() => {
+		if (isOpen) {
+			document.body.style.overflow = 'hidden'
+			requestAnimationFrame(() => {
+				setIsVisible(true)
+			})
+		} else {
+			document.body.style.overflow = 'auto'
+			setIsVisible(false)
+			// Reset form khi đóng modal
+			setFormData({ categoryName: '', imageFile: null })
+			setPreviewImage(null)
+		}
+
+		return () => {
+			document.body.style.overflow = 'auto'
+		}
+	}, [isOpen])
+
+	// Close on outside click và ESC
+	useEffect(() => {
+		const handleClickOutside = (event) => {
+			if (modalRef.current && !modalRef.current.contains(event.target)) {
+				onClose()
+			}
+		}
+
+		const handleEscape = (event) => {
+			if (event.key === 'Escape') {
+				onClose()
+			}
+		}
+
+		if (isOpen) {
+			document.addEventListener('mousedown', handleClickOutside)
+			document.addEventListener('keydown', handleEscape)
+		}
+
+		return () => {
+			document.removeEventListener('mousedown', handleClickOutside)
+			document.removeEventListener('keydown', handleEscape)
+		}
+	}, [isOpen, onClose])
+
 	const handleChange = (e) => {
 		const { name, value } = e.target
 		setFormData((prev) => ({ ...prev, [name]: value }))
 	}
 
-	// 3. Hàm xử lý chọn ảnh và tạo preview
 	const handleFileChange = (e) => {
 		const file = e.target.files[0]
 		if (file) {
 			setFormData((prev) => ({ ...prev, imageFile: file }))
-			// Tạo URL preview cho ảnh
 			const reader = new FileReader()
 			reader.onloadend = () => {
 				setPreviewImage(reader.result)
@@ -30,77 +73,58 @@ const AddCategoryModal = ({ isOpen, onClose, onSave }) => {
 		}
 	}
 
-	// 4. Hàm xử lý submit form
 	const handleSubmit = async (e) => {
 		e.preventDefault()
 		setLoading(true)
 
-		// Comment: BẮT ĐẦU: Logic gọi API thêm Category mới
 		console.log('Submitting new category:', formData)
 
-		// const payload = new FormData();
-		// payload.append('name', formData.categoryName);
-		// payload.append('description', formData.description);
-		// if (formData.imageFile) {
-		//     payload.append('image', formData.imageFile);
-		// }
-
-		// try {
-		//     const response = await axios.post('/api/tenant/menu/categories', payload, {
-		//         headers: { 'Content-Type': 'multipart/form-data' }
-		//     });
-		//     onSave(response.data); // Truyền dữ liệu mới về component cha để cập nhật list
-		//     onClose(); // Đóng modal
-		// } catch (error) {
-		//     console.error("Error adding category:", error);
-		//     alert("Failed to add category.");
-		// } finally {
-		//     setLoading(false);
-		// }
-
-		// Giả định thành công
+		// Simulate API call
 		setTimeout(() => {
-			alert('Category added successfully! (Simulated)')
-			// Gọi callback onSave để cập nhật UI cha (nếu có)
-			if (onSave)
+			if (onSave) {
 				onSave({
 					id: Date.now(),
 					name: formData.categoryName,
 					image: previewImage || 'default_image_url',
 				})
+			}
 			setLoading(false)
 			onClose()
-			// Reset form
 			setFormData({ categoryName: '', imageFile: null })
 			setPreviewImage(null)
 		}, 1000)
-		// Comment: KẾT THÚC
 	}
 
-	// Nếu modal không mở, không render gì cả
 	if (!isOpen) return null
 
-	return (
-		// Overlay: Lớp nền mờ bao phủ toàn màn hình
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm font-['Work_Sans',_sans-serif]">
-			{/* Modal Container */}
-			<div className="relative w-full max-w-2xl transform overflow-hidden rounded-xl bg-black/80 backdrop-blur-md p-8 shadow-2xl transition-all border border-white/10">
-				{/* Close Button (Optional X icon at top right) */}
+	const ModalContent = () => (
+		<div
+			className={`fixed inset-0 z-[99999] flex items-center justify-center transition-all duration-300 ${
+				isVisible ? 'bg-black/70 backdrop-blur-sm' : 'bg-transparent pointer-events-none'
+			}`}
+		>
+			<div
+				ref={modalRef}
+				className={`relative w-full max-w-2xl mx-4 bg-black/80 backdrop-blur-md p-8 rounded-xl shadow-2xl border border-white/10 transition-all duration-300 transform ${
+					isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+				}`}
+				style={{
+					maxHeight: '90vh',
+					overflowY: 'auto',
+				}}
+			>
 				<button
 					onClick={onClose}
-					className="absolute top-4 right-4 text-[#9dabb9] hover:text-white transition-colors"
+					className="absolute top-4 right-4 text-[#9dabb9] hover:text-white transition-colors z-10"
 				>
 					<span className="material-symbols-outlined text-2xl">close</span>
 				</button>
 
-				{/* Header */}
 				<div className="mb-8">
 					<h2 className="text-2xl font-bold text-white m-0">Add New Category</h2>
 				</div>
 
-				{/* Form */}
 				<form onSubmit={handleSubmit} className="space-y-8">
-					{/* Category Name */}
 					<div className="space-y-2">
 						<label
 							htmlFor="categoryName"
@@ -120,13 +144,11 @@ const AddCategoryModal = ({ isOpen, onClose, onSave }) => {
 						/>
 					</div>
 
-					{/* Image Upload */}
 					<div className="space-y-2">
 						<label className="block text-sm font-medium text-gray-300">
 							Category Icon/Image
 						</label>
-						<div className="flex items-center gap-6">
-							{/* Image Preview */}
+						<div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
 							<div className="shrink-0">
 								<div
 									className="w-32 h-32 bg-[#2D3748] rounded-lg flex items-center justify-center border-2 border-dashed border-[#4b5563] overflow-hidden bg-cover bg-center"
@@ -147,7 +169,6 @@ const AddCategoryModal = ({ isOpen, onClose, onSave }) => {
 								</div>
 							</div>
 
-							{/* Upload Button & Details */}
 							<div className="flex-1">
 								<p className="text-gray-400 text-sm mb-4 m-0">
 									Upload an image or select an icon for the category. Recommended size:
@@ -171,7 +192,6 @@ const AddCategoryModal = ({ isOpen, onClose, onSave }) => {
 						</div>
 					</div>
 
-					{/* Actions */}
 					<div className="flex justify-end items-center gap-4 pt-4 border-t border-[#374151]">
 						<button
 							type="button"
@@ -197,6 +217,8 @@ const AddCategoryModal = ({ isOpen, onClose, onSave }) => {
 			</div>
 		</div>
 	)
+
+	return ReactDOM.createPortal(<ModalContent />, document.body)
 }
 
 export default AddCategoryModal

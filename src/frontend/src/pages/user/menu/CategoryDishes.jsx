@@ -1,12 +1,10 @@
-// pages/tenant/CategoryDishes.jsx (Sửa đổi)
+import React, { useState, useEffect, useRef } from 'react'
+import ReactDOM from 'react-dom'
+import { useUser } from '../../../contexts/UserContext'
+import BasePageLayout from '../../../components/layout/BasePageLayout'
+import AddDishModal from './AddDishModal'
 
-import React, { useState, useEffect } from 'react'
-// import axios from "axios"; // 👈 IMPORT MỚI: Import Axios
-import { useUser } from '../../../contexts/UserContext' // Lấy Context user (nếu cần)
-import BasePageLayout from '../../../components/layout/BasePageLayout' // Giả định BasePageLayout được dùng
-import AddDishModal from './AddDishModal' // Giả định Modal này tồn tại
-
-// --- Dữ liệu Mock (Giữ nguyên) ---
+// --- Dữ liệu Mock ---
 const mockDishesData = {
 	'noodle-dishes': [
 		{
@@ -18,7 +16,6 @@ const mockDishesData = {
 			image:
 				'https://images.unsplash.com/photo-1591814468924-caf88d1232e1?auto=format&fit=crop&w=500&q=80',
 		},
-		// Thêm các món khác nếu cần
 		{
 			id: 2,
 			name: 'Classic Pad Thai',
@@ -49,13 +46,65 @@ const formatCategoryName = (slug) => {
 		.join(' ')
 }
 
-// 🚨 COMPONENT MỚI: Modal Xác nhận Xóa (Giả định phong cách tối màu)
+// 🚨 COMPONENT MỚI: Modal Xác nhận Xóa (ĐÃ SỬA VỚI PORTAL)
 const ConfirmationModal = ({ isOpen, title, message, onConfirm, onClose }) => {
+	const modalRef = useRef(null)
+	const [isVisible, setIsVisible] = useState(false)
+
+	useEffect(() => {
+		if (isOpen) {
+			document.body.style.overflow = 'hidden'
+			requestAnimationFrame(() => {
+				setIsVisible(true)
+			})
+		} else {
+			document.body.style.overflow = 'auto'
+			setIsVisible(false)
+		}
+
+		return () => {
+			document.body.style.overflow = 'auto'
+		}
+	}, [isOpen])
+
+	useEffect(() => {
+		const handleClickOutside = (event) => {
+			if (modalRef.current && !modalRef.current.contains(event.target)) {
+				onClose()
+			}
+		}
+
+		const handleEscape = (event) => {
+			if (event.key === 'Escape') {
+				onClose()
+			}
+		}
+
+		if (isOpen) {
+			document.addEventListener('mousedown', handleClickOutside)
+			document.addEventListener('keydown', handleEscape)
+		}
+
+		return () => {
+			document.removeEventListener('mousedown', handleClickOutside)
+			document.removeEventListener('keydown', handleEscape)
+		}
+	}, [isOpen, onClose])
+
 	if (!isOpen) return null
 
-	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 backdrop-blur-sm">
-			<div className="bg-black/80 backdrop-blur-md rounded-lg shadow-2xl p-6 w-full max-w-sm border border-white/10">
+	const ModalContent = () => (
+		<div
+			className={`fixed inset-0 z-[99999] flex items-center justify-center transition-all duration-300 ${
+				isVisible ? 'bg-black/70 backdrop-blur-sm' : 'bg-transparent pointer-events-none'
+			}`}
+		>
+			<div
+				ref={modalRef}
+				className={`relative bg-black/80 backdrop-blur-md rounded-lg shadow-2xl p-6 w-full max-w-sm mx-4 border border-white/10 transition-all duration-300 transform ${
+					isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+				}`}
+			>
 				<h3 className="text-2xl font-bold text-red-500 mb-4">{title}</h3>
 				<p className="text-[#9dabb9] mb-6">{message}</p>
 				<div className="flex justify-end gap-3">
@@ -75,36 +124,33 @@ const ConfirmationModal = ({ isOpen, title, message, onConfirm, onClose }) => {
 			</div>
 		</div>
 	)
+
+	return ReactDOM.createPortal(<ModalContent />, document.body)
 }
 
-// 🚨 COMPONENT ĐÃ SỬA ĐỔI: Thẻ hình vuông, Tên & mô tả nổi trên ảnh, Giá riêng biệt
+// 🚨 COMPONENT ĐÃ SỬA ĐỔI: DishCard (Giữ nguyên)
 const DishCard = ({ dish, onDelete }) => {
 	const [isHovering, setIsHovering] = useState(false)
 
-	// Ngăn chặn sự kiện click thẻ khi nhấn nút X
 	const handleDeleteClick = (e) => {
-		e.stopPropagation() // Ngăn chặn kích hoạt hành vi mặc định (nếu DishCard là button)
-		onDelete(dish) // Gửi toàn bộ object dish (hoặc ID và Name)
+		e.stopPropagation()
+		onDelete(dish)
 	}
 
 	return (
 		<div className="flex flex-col items-center">
-			{/* 1. KHUNG CHÍNH (Hình vuông, Hình ảnh chiếm toàn bộ, Nội dung nổi) */}
 			<div
 				className="relative w-full aspect-square overflow-hidden rounded-xl bg-black/40 backdrop-blur-md transition-all group hover:shadow-2xl hover:scale-[1.02] border border-white/10"
 				onMouseEnter={() => setIsHovering(true)}
 				onMouseLeave={() => setIsHovering(false)}
 			>
-				{/* Hình ảnh nền */}
 				<div
 					className="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
 					style={{ backgroundImage: `url('${dish.image}')` }}
 				>
-					{/* Lớp phủ */}
 					<div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors"></div>
 				</div>
 
-				{/* Nội dung nổi (Tên và Mô tả) */}
 				<div className="absolute inset-0 z-10 flex flex-col justify-end p-4">
 					<div className="p-3 bg-black/50 rounded-lg backdrop-blur-sm transition-colors duration-300 group-hover:bg-black/70">
 						<h3 className="text-xl font-bold text-white m-0 leading-tight">
@@ -116,7 +162,6 @@ const DishCard = ({ dish, onDelete }) => {
 					</div>
 				</div>
 
-				{/* Nút Xóa (Hiển thị khi hover) */}
 				{isHovering && (
 					<button
 						onClick={handleDeleteClick}
@@ -128,7 +173,6 @@ const DishCard = ({ dish, onDelete }) => {
 				)}
 			</div>
 
-			{/* 2. KHU VỰC GIÁ (Nổi bật, Căn giữa) */}
 			<div className="mt-3 text-center">
 				<p className="text-3xl font-black text-[#137fec] mt-1 m-0">
 					${(dish.price || 0).toFixed(2)}
@@ -138,7 +182,7 @@ const DishCard = ({ dish, onDelete }) => {
 	)
 }
 
-// --- Sub-component: Add Dish Card (Kích hoạt Modal, Hình vuông) ---
+// --- Sub-component: Add Dish Card ---
 const AddDishCard = ({ onClick }) => (
 	<button
 		onClick={onClick}
@@ -152,113 +196,63 @@ const AddDishCard = ({ onClick }) => (
 )
 
 const CategoryDishes = ({ categorySlug, onBack }) => {
-	// Lấy Context user (nếu cần dùng BasePageLayout)
-	const { user, loading: contextLoading, logout } = useUser()
+	const { user, loading: contextLoading } = useUser()
 
 	const [dishes, setDishes] = useState([])
 	const [categoryName, setCategoryName] = useState('')
 	const [loading, setLoading] = useState(true)
-
-	// 🚨 STATE MỚI: Quản lý Modal/Form thêm món ăn
 	const [isAddDishModalOpen, setIsAddDishModalOpen] = useState(false)
-
-	// 🚨 STATE MỚI: Quản lý Modal xác nhận xóa
-	// Lưu trữ object món ăn cần xóa { id: number, name: string }
 	const [dishToDelete, setDishToDelete] = useState(null)
 
 	const fetchDishes = async (slug) => {
-		// Comment: BẮT ĐẦU: Logic gọi API lấy danh sách món ăn theo category
 		console.log(`Fetching dishes for category: ${slug}`)
 		setLoading(true)
 
-		// try {
-		//      // API endpoint ví dụ: GET /api/tenant/menu/:categorySlug/dishes
-		//      // Cần gửi Header Authorization (JWT Token) để xác định nhà hàng
-		//      const response = await axios.get(`/api/tenant/menu/${slug}/dishes`);
-		//      setDishes(response.data.dishes);
-		//      setCategoryName(response.data.categoryDisplayName);
-		// } catch (error) {
-		//      console.error("Error fetching dishes:", error);
-		//      setDishes([]);
-		//      setCategoryName(formatCategoryName(slug)); // Fallback name
-		// } finally {
-		//      setLoading(false);
-		// }
-
-		// Giả định dữ liệu mock
 		setTimeout(() => {
-			// 🚨 FIX: Tạo bản sao sâu để đảm bảo dữ liệu mock có thể được thay đổi (xóa) mà không ảnh hưởng đến object gốc
 			const data = JSON.parse(JSON.stringify(mockDishesData[slug] || []))
 			setDishes(data)
 			setCategoryName(formatCategoryName(slug))
 			setLoading(false)
 		}, 500)
-		// Comment: KẾT THÚC: Logic gọi API lấy danh sách món ăn theo category
 	}
 
-	// 🚨 HÀM XỬ LÝ LƯU MÓN ĂN MỚI (CALLBACK TỪ MODAL)
 	const handleSaveDish = (newDish) => {
-		// Comment: BẮT ĐẦU: Logic API POST đã được xử lý trong AddDishModal (hoặc đây là kết quả thành công)
-		// Cập nhật dishes state (Optimistic update)
 		setDishes((prev) => [...prev, newDish])
-		// Comment: KẾT THÚC: Logic API POST
 	}
 
-	// 🚨 HÀM KÍCH HOẠT MODAL XÁC NHẬN XÓA (Truyền vào DishCard)
 	const openDeleteConfirmation = (dish) => {
-		// Lưu trữ món ăn cần xóa vào state, tự động mở ConfirmationModal
 		setDishToDelete(dish)
 	}
 
-	// 🚨 HÀM THỰC THI XÓA MÓN ĂN (Gắn vào nút Confirm của Modal)
 	const executeDeleteDish = async () => {
 		if (!dishToDelete) return
 
 		const dishId = dishToDelete.id
 		const dishName = dishToDelete.name
 
-		// Đóng modal ngay lập tức
 		setDishToDelete(null)
 
-		// Comment: BẮT ĐẦU: Logic gọi API DELETE món ăn
-		console.log(`Attempting to delete dish ID: ${dishId}`)
-
-		// Tạm thời xóa khỏi UI (Optimistic UI Update)
 		const prevDishes = dishes
 		setDishes(prevDishes.filter((dish) => dish.id !== dishId))
 
 		try {
-			// API endpoint ví dụ: DELETE /api/tenant/menu/dishes/:dishId
-			// const response = await axios.delete(`/api/tenant/menu/dishes/${dishId}`, {
-			//      headers: { Authorization: `Bearer ${user.token}` }, // Giả định có token
-			// });
-
-			// Giả lập API call thành công
 			await new Promise((resolve) => setTimeout(resolve, 300))
-
 			console.log(`Dish ${dishId} deleted successfully.`)
-			// Sau khi xóa thành công, không cần làm gì thêm vì state đã được cập nhật
 		} catch (error) {
 			console.error('Error deleting dish:', error)
-			// Hoàn tác (Rollback) state nếu API call thất bại
 			setDishes(prevDishes)
 			alert(`Failed to delete dish: ${error.message}. Please try again.`)
 		}
-		// Comment: KẾT THÚC: Logic gọi API DELETE món ăn
 	}
 
 	useEffect(() => {
-		// Comment: Chỉ fetch khi categorySlug thay đổi
 		fetchDishes(categorySlug)
 	}, [categorySlug])
 
-	// Nút kích hoạt modal thêm món ăn (Gắn vào AddDishCard)
 	const openAddDishForm = () => {
-		// Logic mở Modal/Form thêm món ăn
 		setIsAddDishModalOpen(true)
 	}
 
-	// Logic BasePageLayout (Giả định user đã load)
 	if (contextLoading) {
 		return (
 			<div className="flex min-h-screen w-full items-center justify-center">
@@ -266,93 +260,77 @@ const CategoryDishes = ({ categorySlug, onBack }) => {
 			</div>
 		)
 	}
-	const simpleUserProfile = {
-		name: user?.name,
-		role: user?.role,
-		avatarUrl: user?.avatarUrl,
-	}
 
 	return (
-		<div>
-			<header className="mb-8 flex flex-wrap justify-between items-end gap-4">
-				<div className="flex flex-col gap-1">
-					{/* Breadcrumb có chức năng Back */}
-					<div className="flex items-center gap-2 text-[#9dabb9]">
-						<button
-							onClick={onBack}
-							className="text-sm text-[#9dabb9] hover:text-[#137fec] transition-colors no-underline bg-transparent border-none cursor-pointer p-0"
-						>
-							Menu Management
-						</button>
-						<span className="material-symbols-outlined text-lg">chevron_right</span>
-						<span className="text-sm text-white font-medium">{categoryName}</span>
+		<>
+			<div>
+				<header className="mb-8 flex flex-wrap justify-between items-end gap-4">
+					<div className="flex flex-col gap-1">
+						<div className="flex items-center gap-2 text-[#9dabb9]">
+							<button
+								onClick={onBack}
+								className="text-sm text-[#9dabb9] hover:text-[#137fec] transition-colors no-underline bg-transparent border-none cursor-pointer p-0"
+							>
+								Menu Management
+							</button>
+							<span className="material-symbols-outlined text-lg">chevron_right</span>
+							<span className="text-sm text-white font-medium">{categoryName}</span>
+						</div>
+
+						<h1 className="text-white text-4xl font-black leading-tight tracking-[-0.033em] m-0 mt-2">
+							{categoryName}
+						</h1>
 					</div>
 
-					<h1 className="text-white text-4xl font-black leading-tight tracking-[-0.033em] m-0 mt-2">
-						{categoryName}
-					</h1>
+					<button
+						onClick={onBack}
+						className="flex items-center justify-center h-10 px-4 rounded-lg bg-[#2D3748] text-white text-sm font-bold gap-2 transition-colors hover:bg-[#4A5568] border-none cursor-pointer"
+					>
+						<span className="material-symbols-outlined text-xl">arrow_back</span>
+						Back to Categories
+					</button>
+				</header>
+
+				<div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+					{loading ? (
+						<p className="text-[#9dabb9] lg:col-span-3 xl:col-span-4 text-center py-10">
+							Loading dishes...
+						</p>
+					) : dishes.length > 0 ? (
+						dishes.map((dish) => (
+							<DishCard key={dish.id} dish={dish} onDelete={openDeleteConfirmation} />
+						))
+					) : (
+						<p className="text-[#9dabb9] lg:col-span-3 xl:col-span-4 text-center py-10">
+							No dishes found in this category.
+						</p>
+					)}
+
+					<AddDishCard onClick={openAddDishForm} />
 				</div>
-
-				{/* Nút Back lớn (Optional) */}
-				<button
-					onClick={onBack}
-					className="flex items-center justify-center h-10 px-4 rounded-lg bg-[#2D3748] text-white text-sm font-bold gap-2 transition-colors hover:bg-[#4A5568] border-none cursor-pointer"
-				>
-					<span className="material-symbols-outlined text-xl">arrow_back</span>
-					Back to Categories
-				</button>
-			</header>
-
-			{/* Dishes Grid */}
-			<div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-				{loading ? (
-					<p className="text-[#9dabb9] lg:col-span-3 xl:col-span-4 text-center py-10">
-						Loading dishes...
-					</p>
-				) : dishes.length > 0 ? (
-					// 🚨 TRUYỀN HÀM KÍCH HOẠT MODAL VÀO DishCard
-					dishes.map((dish) => (
-						<DishCard
-							key={dish.id}
-							dish={dish}
-							onDelete={openDeleteConfirmation} // 👈 Gửi dish object
-						/>
-					))
-				) : (
-					<p className="text-[#9dabb9] lg:col-span-3 xl:col-span-4 text-center py-10">
-						No dishes found in this category.
-					</p>
-				)}
-
-				{/* 🚨 THẺ THÊM MÓN ĂN MỚI LUÔN Ở CUỐI */}
-				<AddDishCard onClick={openAddDishForm} />
 			</div>
 
-			{/* 🚨 MODAL THÊM MÓN ĂN */}
-			{isAddDishModalOpen && (
-				// Comment: Nơi Modal/Form thêm món ăn sẽ được render
-				<AddDishModal
-					categorySlug={categorySlug}
-					categoryName={categoryName}
-					onSave={handleSaveDish} // 👈 Xử lý lưu và cập nhật UI
-					onClose={() => setIsAddDishModalOpen(false)}
-					isOpen={isAddDishModalOpen}
-				/>
-			)}
+			{/* MODALS - Nằm ngoài BasePageLayout */}
+			<AddDishModal
+				isOpen={isAddDishModalOpen}
+				onClose={() => setIsAddDishModalOpen(false)}
+				onSave={handleSaveDish}
+				categorySlug={categorySlug}
+				categoryName={categoryName}
+			/>
 
-			{/* 🚨 MODAL XÁC NHẬN XÓA MÓN ĂN */}
 			<ConfirmationModal
-				isOpen={!!dishToDelete} // Mở nếu dishToDelete có giá trị (không null)
+				isOpen={!!dishToDelete}
 				title="Confirm Dish Deletion"
 				message={
 					dishToDelete
 						? `Are you sure you want to permanently delete the dish: "${dishToDelete.name}"? This action cannot be undone.`
 						: ''
 				}
-				onConfirm={executeDeleteDish} // 👈 Hàm thực thi xóa và gọi API
-				onClose={() => setDishToDelete(null)} // Đóng modal
+				onConfirm={executeDeleteDish}
+				onClose={() => setDishToDelete(null)}
 			/>
-		</div>
+		</>
 	)
 }
 

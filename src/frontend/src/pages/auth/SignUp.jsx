@@ -1,13 +1,16 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useUser } from '../../contexts/UserContext'
+import { useLoading } from '../../contexts/LoadingContext'
 import FloatingInputField from '../../components/form/FloatingInputField'
 import PasswordStrengthIndicator from '../../components/form/PasswordStrengthIndicator'
+import { ButtonLoader } from '../../components/common/LoadingSpinner'
 // import axios from 'axios'; // Import Axios khi bạn sẵn sàng tích hợp API
 
 const SignUp = () => {
 	const navigate = useNavigate()
 	const { startSignup } = useUser()
+	const { showLoading, hideLoading } = useLoading()
 	// 1. State để quản lý input form
 	const [formData, setFormData] = useState({
 		username: '',
@@ -101,6 +104,7 @@ const SignUp = () => {
 
 		// Lưu dữ liệu signup tạm thời và chuyển sang onboarding
 		try {
+			showLoading('Đang xử lý đăng ký...')
 			startSignup(signupData)
 			setLoading(false)
 			// Chuyển hướng sang trang onboarding
@@ -109,6 +113,8 @@ const SignUp = () => {
 			console.error('Error during signup:', error)
 			setErrorMessage('Failed to proceed to onboarding.')
 			setLoading(false)
+		} finally {
+			hideLoading()
 		}
 	}
 

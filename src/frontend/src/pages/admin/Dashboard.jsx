@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 // import axios from 'axios'; // Import Axios khi bạn sẵn sàng tích hợp API
 import BasePageLayout from '../../components/layout/BasePageLayout' // Import component Layout
 import { useUser } from '../../contexts/UserContext'
+import { useLoading } from '../../contexts/LoadingContext'
+import { InlineLoader, CardSkeleton } from '../../components/common/LoadingSpinner'
 
 // Import components từ Recharts
 import {
