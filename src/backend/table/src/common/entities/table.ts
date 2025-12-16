@@ -57,6 +57,19 @@ export class TableEntity {
 	@Column({ type: 'int', default: 1 })
 	tokenVersion: number;
 
+	/**
+	 * Cached QR token (signed HMAC-SHA256)
+	 * Format: base64(payload).base64(signature)
+	 */
+	@Column({ type: 'text', nullable: true })
+	qrToken: string;
+
+	/**
+	 * Timestamp when QR token was last generated
+	 */
+	@Column({ type: 'timestamp', nullable: true })
+	qrTokenGeneratedAt: Date;
+
 	@CreateDateColumn()
 	createdAt: Date;
 

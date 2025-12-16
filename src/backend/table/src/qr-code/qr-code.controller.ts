@@ -4,8 +4,12 @@ import { QrCodeService } from 'src/qr-code/qr-code.service';
 import { GenerateQrCodeDto } from 'src/qr-code/dtos/request/generate-qr-code.dto';
 import { GetQrCodeDto } from 'src/qr-code/dtos/request/get-qr-code.dto';
 import { DownloadQrCodeDto } from 'src/qr-code/dtos/request/download-qr-code.dto';
+import { BatchDownloadQrCodeDto } from 'src/qr-code/dtos/request/batch-download-qr-code.dto';
+import { BulkRegenerateQrCodeDto } from 'src/qr-code/dtos/request/bulk-regenerate-qr-code.dto';
 import { QrCodeResponseDto } from 'src/qr-code/dtos/response/qr-code-response.dto';
 import { DownloadQrCodeResponseDto } from 'src/qr-code/dtos/response/download-qr-code-response.dto';
+import { BatchDownloadQrCodeResponseDto } from 'src/qr-code/dtos/response/batch-download-qr-code-response.dto';
+import { BulkRegenerateQrCodeResponseDto } from 'src/qr-code/dtos/response/bulk-regenerate-qr-code-response.dto';
 import { ScanResponseDto } from 'src/qr-code/dtos/response/scan-response.dto';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
@@ -33,7 +37,7 @@ export class QrCodeController {
 			throw new AppException(ErrorCode.UNAUTHORIZED);
 		}
 
-		return await this.qrCodeService.generateQrCode(dto.tableId, dto.tenantId);
+		return await this.qrCodeService.generateQrCode(dto);
 	}
 
 	/**
@@ -47,7 +51,7 @@ export class QrCodeController {
 			throw new AppException(ErrorCode.UNAUTHORIZED);
 		}
 
-		return await this.qrCodeService.getQrCode(dto.tableId, dto.tenantId);
+		return await this.qrCodeService.getQrCode(dto);
 	}
 
 	/**
@@ -63,7 +67,7 @@ export class QrCodeController {
 			throw new AppException(ErrorCode.UNAUTHORIZED);
 		}
 
-		return await this.qrCodeService.downloadQrCode(dto.tableId, dto.tenantId, dto.format);
+		return await this.qrCodeService.downloadQrCode(dto);
 	}
 
 	/**
@@ -79,5 +83,37 @@ export class QrCodeController {
 			throw new AppException(ErrorCode.UNAUTHORIZED);
 		}
 		return await this.qrCodeService.validateScanToken(payload.token);
+	}
+
+	/**
+	 * Batch download QR codes for multiple tables
+	 * Pattern: qr:batch-download
+	 */
+	@MessagePattern('qr:batch-download')
+	async batchDownloadQrCode(
+		@Payload() dto: BatchDownloadQrCodeDto,
+	): Promise<BatchDownloadQrCodeResponseDto> {
+		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+		if (dto.tableApiKey !== expectedApiKey) {
+			throw new AppException(ErrorCode.UNAUTHORIZED);
+		}
+
+		return await this.qrCodeService.batchDownloadQrCode(dto);
+	}
+
+	/**
+	 * Bulk regenerate QR codes for multiple tables
+	 * Pattern: qr:bulk-regenerate
+	 */
+	@MessagePattern('qr:bulk-regenerate')
+	async bulkRegenerateQrCode(
+		@Payload() dto: BulkRegenerateQrCodeDto,
+	): Promise<BulkRegenerateQrCodeResponseDto> {
+		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+		if (dto.tableApiKey !== expectedApiKey) {
+			throw new AppException(ErrorCode.UNAUTHORIZED);
+		}
+
+		return await this.qrCodeService.bulkRegenerateQrCode(dto);
 	}
 }
