@@ -44,9 +44,10 @@ export class QrCodeService {
 	/**
 	 * Generate or regenerate QR code for a table
 	 * Increments token version to invalidate old QR codes
+	 * Caches token for future reuse
 	 */
 	async generateQrCode(tableId: string, tenantId: string): Promise<QrCodeResponseDto> {
-		// Increment token version (invalidates old QR codes)
+		// Increment token version (invalidates old QR codes and clears cache)
 		const table = await this.tablesService.incrementTokenVersion(tableId, tenantId);
 
 		// Create signed token
@@ -58,6 +59,10 @@ export class QrCodeService {
 		};
 
 		const token = this.signToken(payload);
+
+		// Cache token for reuse
+		await this.tablesService.saveQrToken(tableId, tenantId, token);
+
 		const url = `${this.BASE_URL}/tables/scan/${token}`;
 
 		// Generate QR code image
@@ -132,6 +137,7 @@ export class QrCodeService {
 	/**
 	 * Get existing QR code without regenerating
 	 * Returns current QR code for the table
+	 * Reuses cached token for better performance
 	 */
 	async getQrCode(tableId: string, tenantId: string): Promise<QrCodeResponseDto> {
 		const table = await this.tablesService.getTableEntity(tableId, tenantId);
@@ -140,18 +146,28 @@ export class QrCodeService {
 			throw new AppException(ErrorCode.TABLE_NOT_FOUND);
 		}
 
-		// Create token with current version (no increment)
-		const payload: QrTokenPayload = {
-			tableId: table.id,
-			tenantId: table.tenantId,
-			tokenVersion: table.tokenVersion,
-			issuedAt: Date.now(),
-		};
+		let token: string;
 
-		const token = this.signToken(payload);
+		// Reuse cached token if available
+		if (table.qrToken) {
+			token = table.qrToken;
+		} else {
+			// Generate new token if not cached (shouldn't happen, but safe fallback)
+			const payload: QrTokenPayload = {
+				tableId: table.id,
+				tenantId: table.tenantId,
+				tokenVersion: table.tokenVersion,
+				issuedAt: Date.now(),
+			};
+
+			token = this.signToken(payload);
+			// Cache it for next time
+			await this.tablesService.saveQrToken(tableId, tenantId, token);
+		}
+
 		const url = `${this.BASE_URL}/tables/scan/${token}`;
 
-		// Generate QR code image
+		// Generate QR code image from cached token
 		let qrImage: string;
 		try {
 			qrImage = await QRCode.toDataURL(url, {
@@ -179,6 +195,7 @@ export class QrCodeService {
 	/**
 	 * Download QR code in specified format
 	 * Supports PNG, PDF, and SVG formats
+	 * Reuses cached token for better performance
 	 */
 	async downloadQrCode(
 		tableId: string,
@@ -191,15 +208,25 @@ export class QrCodeService {
 			throw new AppException(ErrorCode.TABLE_NOT_FOUND);
 		}
 
-		// Create token
-		const payload: QrTokenPayload = {
-			tableId: table.id,
-			tenantId: table.tenantId,
-			tokenVersion: table.tokenVersion,
-			issuedAt: Date.now(),
-		};
+		let token: string;
 
-		const token = this.signToken(payload);
+		// Reuse cached token if available
+		if (table.qrToken) {
+			token = table.qrToken;
+		} else {
+			// Generate new token if not cached
+			const payload: QrTokenPayload = {
+				tableId: table.id,
+				tenantId: table.tenantId,
+				tokenVersion: table.tokenVersion,
+				issuedAt: Date.now(),
+			};
+
+			token = this.signToken(payload);
+			// Cache it for next time
+			await this.tablesService.saveQrToken(tableId, tenantId, token);
+		}
+
 		const url = `${this.BASE_URL}/tables/scan/${token}`;
 
 		let data: string;
