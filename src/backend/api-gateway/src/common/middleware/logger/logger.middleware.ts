@@ -23,6 +23,35 @@ export class LoggerMiddleware implements NestMiddleware {
 			const duration = Date.now() - startTime;
 			const statusCode = res.statusCode;
 
+			// Parse response body safely
+			let parsedBody: any = null;
+			const contentType = res.getHeader('content-type') as string;
+			
+			if (responseBody) {
+				// Skip parsing for binary content types
+				if (contentType && (
+					contentType.includes('image/') ||
+					contentType.includes('application/pdf') ||
+					contentType.includes('application/octet-stream')
+				)) {
+					parsedBody = Buffer.isBuffer(responseBody) 
+						? `<Binary data: ${responseBody.length} bytes>`
+						: '<Binary data>';
+				} else {
+					// Try to parse JSON for text-based responses
+					try {
+						parsedBody = typeof responseBody === 'string' 
+							? JSON.parse(responseBody) 
+							: responseBody;
+					} catch {
+						// If parsing fails, use string representation
+						parsedBody = typeof responseBody === 'string'
+							? responseBody.substring(0, 200) // Truncate long strings
+							: '<Non-JSON response>';
+					}
+				}
+			}
+
 			const logData = {
 				timestamp: new Date().toISOString(),
 				request: {
@@ -36,7 +65,8 @@ export class LoggerMiddleware implements NestMiddleware {
 				},
 				response: {
 					statusCode: statusCode,
-					body: responseBody ? JSON.parse(responseBody) : null,
+					contentType: contentType || 'unknown',
+					body: parsedBody,
 				},
 				duration: `${duration}ms`,
 			};
