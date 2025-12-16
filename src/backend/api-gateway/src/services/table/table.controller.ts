@@ -101,22 +101,72 @@ export class TableController {
 	}
 
 	// QR Code Endpoints
+	// @UseGuards(AuthGuard)
+	// @Post('tables/:tableId/qrcode')
+	// generateQrCode(@Param('tableId') tableId: string, @Req() req: Request) {
+	// 	const userId = (req as any).user?.userId;
+	// 	return this.tableClient.send('qr:generate', {
+	// 		tableId,
+	// 		tenantId: userId,
+	// 		tableApiKey: this.configService.get('TABLE_API_KEY'),
+	// 	});
+	// }
+
+	// @Get('tables/scan/:token')
+	// async validateScan(@Param('token') token: string, @Res() res: Response) {
+	// 	try {
+	// 		const result: any = await firstValueFrom(
+	// 			this.tableClient.send('qr:validate-scan', {
+	// 				token,
+	// 				tableApiKey: this.configService.get('TABLE_API_KEY'),
+	// 			}),
+	// 		);
+
+	// 		// Server-side redirect đến trang menu
+
+	// 		// Test response in development mode
+	// 		if (this.configService.get('MOD') === 'development') {
+	// 			console.log('QR Scan Validated:', result);
+	// 			return res.status(200).json({ redirect: result.redirect });
+	// 		}
+
+	// 		// Production mode - perform redirect
+	// 		const frontendUrl =
+	// 			this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
+	// 		const redirectUrl = frontendUrl + result.redirect;
+
+	// 		return res.redirect(302, redirectUrl);
+	// 	} catch (error) {
+	// 		// Nếu QR invalid, redirect đến error page
+	// 		const frontendUrl =
+	// 			this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
+	// 		return res.redirect(
+	// 			302,
+	// 			`${frontendUrl}/qr-error?message=${encodeURIComponent(error.message || 'Invalid QR Code')}`,
+	// 		);
+	// 	}
+	// }
+
 	@UseGuards(AuthGuard)
-	@Post('tables/:tableId/qrcode')
-	generateQrCode(@Param('tableId') tableId: string, @Req() req: Request) {
-		const userId = (req as any).user?.userId;
+	@Post('/tenants/:tenantId/tables/:tableId/qrcode')
+	generateQrCode(@Param('tenantId') tenantId: string, @Param('tableId') tableId: string) {
 		return this.tableClient.send('qr:generate', {
+			tenantId,
 			tableId,
-			tenantId: userId,
 			tableApiKey: this.configService.get('TABLE_API_KEY'),
 		});
 	}
 
-	@Get('tables/scan/:token')
-	async validateScan(@Param('token') token: string, @Res() res: Response) {
+	@Get('/tenants/:tenantId/tables/scan/:token')
+	async validateScan(
+		@Param('tenantId') tenantId: string,
+		@Param('token') token: string,
+		@Res() res: Response,
+	) {
 		try {
 			const result: any = await firstValueFrom(
 				this.tableClient.send('qr:validate-scan', {
+					tenantId,
 					token,
 					tableApiKey: this.configService.get('TABLE_API_KEY'),
 				}),
