@@ -4,12 +4,15 @@ import { TablesService } from 'src/tables/tables.service';
 import { QrCodeResponseDto } from 'src/qr-code/dtos/response/qr-code-response.dto';
 import { ScanResponseDto } from 'src/qr-code/dtos/response/scan-response.dto';
 import { DownloadQrCodeResponseDto } from 'src/qr-code/dtos/response/download-qr-code-response.dto';
+import { BatchDownloadQrCodeResponseDto } from 'src/qr-code/dtos/response/batch-download-qr-code-response.dto';
 import { QrCodeFormat } from 'src/qr-code/dtos/request/download-qr-code.dto';
+import { BatchQrCodeFormat } from 'src/qr-code/dtos/request/batch-download-qr-code.dto';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
 import * as crypto from 'crypto';
 import * as QRCode from 'qrcode';
 import PDFDocument from 'pdfkit';
+import * as archiver from 'archiver';
 
 /**
  * Payload structure for QR code tokens
@@ -418,5 +421,272 @@ export class QrCodeService {
 		} catch {
 			return null;
 		}
+	}
+
+	/**
+	 * Batch download QR codes for multiple tables
+	 * Supports ZIP (individual files) or combined PDF
+	 */
+	async batchDownloadQrCode(
+		tenantId: string,
+		format: BatchQrCodeFormat,
+		tableIds?: string[],
+		floorId?: string,
+	): Promise<BatchDownloadQrCodeResponseDto> {
+		// Get tables to generate QR codes for
+		let tables;
+		if (tableIds && tableIds.length > 0) {
+			// Specific tables - fetch each one
+			const tablePromises = tableIds.map((id) =>
+				this.tablesService.getTableEntity(id, tenantId),
+			);
+			tables = await Promise.all(tablePromises);
+		} else {
+			// All active tables (optionally filtered by floor)
+			const listDto: any = {
+				tenantId,
+				isActive: true,
+			};
+			if (floorId) {
+				listDto.floorId = floorId;
+			}
+			const tableDtos = await this.tablesService.listTables(listDto);
+
+			// Convert DTOs to entities (need full entity for qrToken field)
+			const entityPromises = tableDtos.map((dto) =>
+				this.tablesService.getTableEntity(dto.id, tenantId),
+			);
+			tables = await Promise.all(entityPromises);
+		}
+
+		// Filter only active tables
+		tables = tables.filter((t) => t && t.isActive);
+
+		if (tables.length === 0) {
+			throw new AppException(ErrorCode.TABLE_NOT_FOUND);
+		}
+
+		let data: string;
+		let mimeType: string;
+		let filename: string;
+
+		switch (format) {
+			case BatchQrCodeFormat.ZIP_PNG:
+				data = await this.generateZipArchive(tables, 'png');
+				mimeType = 'application/zip';
+				filename = `qr-codes-${tenantId}.zip`;
+				break;
+
+			case BatchQrCodeFormat.ZIP_PDF:
+				data = await this.generateZipArchive(tables, 'pdf');
+				mimeType = 'application/zip';
+				filename = `qr-codes-${tenantId}.zip`;
+				break;
+
+			case BatchQrCodeFormat.ZIP_SVG:
+				data = await this.generateZipArchive(tables, 'svg');
+				mimeType = 'application/zip';
+				filename = `qr-codes-${tenantId}.zip`;
+				break;
+
+			case BatchQrCodeFormat.COMBINED_PDF:
+				data = await this.generateCombinedPDF(tables);
+				mimeType = 'application/pdf';
+				filename = `all-qr-codes-${tenantId}.pdf`;
+				break;
+
+			default:
+				throw new AppException(ErrorCode.QR_GENERATION_FAILED);
+		}
+
+		return new BatchDownloadQrCodeResponseDto({
+			data,
+			format,
+			mimeType,
+			filename,
+			tableCount: tables.length,
+			tableIds: tables.map((t) => t.id),
+		});
+	}
+
+	/**
+	 * Generate ZIP archive with individual QR code files
+	 */
+	private async generateZipArchive(
+		tables: any[],
+		format: 'png' | 'pdf' | 'svg',
+	): Promise<string> {
+		return new Promise(async (resolve, reject) => {
+			try {
+				const archive = archiver('zip', {
+					zlib: { level: 9 }, // Maximum compression
+				});
+
+				const chunks: Buffer[] = [];
+
+				archive.on('data', (chunk) => chunks.push(chunk));
+				archive.on('end', () => {
+					const zipBuffer = Buffer.concat(chunks);
+					resolve(zipBuffer.toString('base64'));
+				});
+				archive.on('error', reject);
+
+				// Add QR code for each table
+				for (const table of tables) {
+					let token: string;
+
+					// Reuse cached token if available
+					if (table.qrToken) {
+						token = table.qrToken;
+					} else {
+						const payload: QrTokenPayload = {
+							tableId: table.id,
+							tenantId: table.tenantId,
+							tokenVersion: table.tokenVersion,
+							issuedAt: Date.now(),
+						};
+						token = this.signToken(payload);
+						await this.tablesService.saveQrToken(table.id, table.tenantId, token);
+					}
+
+					const url = `${this.BASE_URL}/tables/scan/${token}`;
+					let fileData: Buffer;
+					let ext: string;
+
+					switch (format) {
+						case 'png':
+							const pngBase64 = await this.generatePNG(url);
+							fileData = Buffer.from(pngBase64, 'base64');
+							ext = 'png';
+							break;
+
+						case 'pdf':
+							const pdfBase64 = await this.generatePDF(url, table.name);
+							fileData = Buffer.from(pdfBase64, 'base64');
+							ext = 'pdf';
+							break;
+
+						case 'svg':
+							const svgBase64 = await this.generateSVG(url);
+							fileData = Buffer.from(svgBase64, 'base64');
+							ext = 'svg';
+							break;
+					}
+
+					// Sanitize filename (remove special characters)
+					const safeName = table.name.replace(/[^a-zA-Z0-9-_]/g, '_');
+					archive.append(fileData, { name: `table-${safeName}-qr.${ext}` });
+				}
+
+				archive.finalize();
+			} catch (error) {
+				reject(new AppException(ErrorCode.QR_GENERATION_FAILED));
+			}
+		});
+	}
+
+	/**
+	 * Generate combined PDF with all QR codes
+	 * Each table gets one page
+	 */
+	private async generateCombinedPDF(tables: any[]): Promise<string> {
+		return new Promise(async (resolve, reject) => {
+			try {
+				const doc = new PDFDocument({
+					size: 'A4',
+					margin: 50,
+					autoFirstPage: false,
+				});
+
+				const chunks: Buffer[] = [];
+
+				doc.on('data', (chunk) => chunks.push(chunk));
+				doc.on('end', () => {
+					const pdfBuffer = Buffer.concat(chunks);
+					resolve(pdfBuffer.toString('base64'));
+				});
+				doc.on('error', reject);
+
+				// Generate QR code for each table on a separate page
+				for (let i = 0; i < tables.length; i++) {
+					const table = tables[i];
+
+					// Add new page
+					doc.addPage();
+
+					let token: string;
+
+					// Reuse cached token if available
+					if (table.qrToken) {
+						token = table.qrToken;
+					} else {
+						const payload: QrTokenPayload = {
+							tableId: table.id,
+							tenantId: table.tenantId,
+							tokenVersion: table.tokenVersion,
+							issuedAt: Date.now(),
+						};
+						token = this.signToken(payload);
+						await this.tablesService.saveQrToken(table.id, table.tenantId, token);
+					}
+
+					const url = `${this.BASE_URL}/tables/scan/${token}`;
+
+					// Generate QR code as buffer
+					const qrBuffer = await QRCode.toBuffer(url, {
+						errorCorrectionLevel: 'M',
+						type: 'png',
+						width: 400,
+						margin: 2,
+					});
+
+					// Add title
+					doc
+						.fontSize(24)
+						.font('Helvetica-Bold')
+						.text(`QR Code - ${table.name}`, { align: 'center' });
+
+					doc.moveDown(2);
+
+					// Add QR code image (centered)
+					const pageWidth = doc.page.width;
+					const imageWidth = 400;
+					const xPosition = (pageWidth - imageWidth) / 2;
+
+					doc.image(qrBuffer, xPosition, doc.y, {
+						width: imageWidth,
+						align: 'center',
+					});
+
+					doc.moveDown(3);
+
+					// Add capacity info
+					doc
+						.fontSize(14)
+						.font('Helvetica')
+						.text(`Capacity: ${table.capacity} people`, { align: 'center' });
+
+					doc.moveDown(1);
+
+					// Add instructions
+					doc
+						.fontSize(12)
+						.font('Helvetica')
+						.text('Scan this QR code to view the menu', { align: 'center' });
+
+					doc.moveDown(1);
+
+					// Add page number
+					doc
+						.fontSize(10)
+						.fillColor('gray')
+						.text(`Page ${i + 1} of ${tables.length}`, { align: 'center' });
+				}
+
+				doc.end();
+			} catch (error) {
+				reject(new AppException(ErrorCode.QR_GENERATION_FAILED));
+			}
+		});
 	}
 }

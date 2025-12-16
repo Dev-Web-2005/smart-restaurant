@@ -4,8 +4,10 @@ import { QrCodeService } from 'src/qr-code/qr-code.service';
 import { GenerateQrCodeDto } from 'src/qr-code/dtos/request/generate-qr-code.dto';
 import { GetQrCodeDto } from 'src/qr-code/dtos/request/get-qr-code.dto';
 import { DownloadQrCodeDto } from 'src/qr-code/dtos/request/download-qr-code.dto';
+import { BatchDownloadQrCodeDto } from 'src/qr-code/dtos/request/batch-download-qr-code.dto';
 import { QrCodeResponseDto } from 'src/qr-code/dtos/response/qr-code-response.dto';
 import { DownloadQrCodeResponseDto } from 'src/qr-code/dtos/response/download-qr-code-response.dto';
+import { BatchDownloadQrCodeResponseDto } from 'src/qr-code/dtos/response/batch-download-qr-code-response.dto';
 import { ScanResponseDto } from 'src/qr-code/dtos/response/scan-response.dto';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
@@ -79,5 +81,26 @@ export class QrCodeController {
 			throw new AppException(ErrorCode.UNAUTHORIZED);
 		}
 		return await this.qrCodeService.validateScanToken(payload.token);
+	}
+
+	/**
+	 * Batch download QR codes for multiple tables
+	 * Pattern: qr:batch-download
+	 */
+	@MessagePattern('qr:batch-download')
+	async batchDownloadQrCode(
+		@Payload() dto: BatchDownloadQrCodeDto,
+	): Promise<BatchDownloadQrCodeResponseDto> {
+		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+		if (dto.tableApiKey !== expectedApiKey) {
+			throw new AppException(ErrorCode.UNAUTHORIZED);
+		}
+
+		return await this.qrCodeService.batchDownloadQrCode(
+			dto.tenantId,
+			dto.format,
+			dto.tableIds,
+			dto.floorId,
+		);
 	}
 }

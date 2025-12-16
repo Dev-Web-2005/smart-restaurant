@@ -214,4 +214,54 @@ export class TableController {
 			);
 		}
 	}
+
+	/**
+	 * Batch download QR codes for multiple tables
+	 * GET /tenants/:tenantId/tables/qrcode/batch-download?format=zip-png|zip-pdf|zip-svg|combined-pdf
+	 */
+	@UseGuards(AuthGuard, Role('USER'))
+	@Get('/tenants/:tenantId/tables/qrcode/batch-download')
+	async batchDownloadQrCode(
+		@Param('tenantId') tenantId: string,
+		@Query('format') format: string = 'combined-pdf',
+		@Query('tableIds') tableIds?: string,
+		@Query('floorId') floorId?: string,
+		@Res() res: Response,
+	) {
+		// Validate format
+		const validFormats = ['zip-png', 'zip-pdf', 'zip-svg', 'combined-pdf'];
+		if (!validFormats.includes(format.toLowerCase())) {
+			return res.status(400).json({
+				statusCode: 400,
+				message:
+					'Invalid format. Supported formats: zip-png, zip-pdf, zip-svg, combined-pdf',
+			});
+		}
+
+		// Parse tableIds if provided
+		let tableIdArray: string[] | undefined;
+		if (tableIds) {
+			tableIdArray = tableIds.split(',').filter((id) => id.trim());
+		}
+
+		const result: any = await firstValueFrom(
+			this.tableClient.send('qr:batch-download', {
+				tenantId,
+				format: format.toLowerCase(),
+				tableIds: tableIdArray,
+				floorId,
+				tableApiKey: this.configService.get('TABLE_API_KEY'),
+			}),
+		);
+
+		// Convert base64 to buffer
+		const buffer = Buffer.from(result.data, 'base64');
+
+		// Set appropriate headers for file download
+		res.setHeader('Content-Type', result.mimeType);
+		res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+		res.setHeader('Content-Length', buffer.length);
+
+		return res.send(buffer);
+	}
 }
