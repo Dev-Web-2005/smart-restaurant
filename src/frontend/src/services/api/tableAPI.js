@@ -3,23 +3,32 @@
 // Last Updated: 16/12/2025
 
 /**
- * API STATUS (Updated: 16/12/2025 - After tenantId fix)
+ * API STATUS (Updated: 16/12/2025 - All 6 QR APIs Integrated in UI)
  *
- * ✅ WORKING - Backend fully implemented (8 APIs):
+ * ✅ WORKING - Backend fully implemented (15 APIs):
+ *    TABLE MANAGEMENT:
  *    - getTablesAPI: GET /tenants/:tenantId/tables
  *    - createTableAPI: POST /tenants/:tenantId/tables
  *    - updateTableStatusAPI: PATCH /tenants/:tenantId/tables/:tableId (status field)
  *    - updateTablePositionAPI: PATCH /tenants/:tenantId/tables/:tableId (gridX, gridY fields)
  *    - deleteTableAPI: DELETE /tenants/:tenantId/tables/:tableId (soft delete)
- *    - regenerateTableQRAPI: POST /tenants/:tenantId/tables/:tableId/qrcode
+ *
+ *    FLOOR MANAGEMENT:
  *    - createFloorAPI: POST /tenants/:tenantId/floors
  *    - updateGridConfigAPI: PATCH /tenants/:tenantId/floors/:floorId
  *
- * ❌ NOT IMPLEMENTED - Backend needs development (3 APIs):
+ *    QR CODE MANAGEMENT (All 6 APIs ✅ In Use):
+ *    - getTableQRCodeAPI: GET /tenants/:tenantId/tables/:tableId/qrcode (Modal: View QR)
+ *    - regenerateTableQRAPI: POST /tenants/:tenantId/tables/:tableId/qrcode (Modal: Regenerate button)
+ *    - downloadTableQRCodeAPI: GET /tenants/:tenantId/tables/:tableId/qrcode/download (Modal: PNG/PDF/SVG buttons)
+ *    - batchDownloadQRCodesAPI: GET /tenants/:tenantId/tables/qrcode/batch-download (Toolbar: Download All buttons)
+ *    - bulkRegenerateQRCodesAPI: POST /tenants/:tenantId/tables/qrcode/bulk-regenerate (Toolbar: Regenerate All button)
+ *    - validateQRScanAPI: GET /tenants/:tenantId/tables/scan/:token (public, available for future use)
+ *
+ * ❌ NOT IMPLEMENTED - Backend needs development (2 APIs):
  *    - getTableStatsAPI: GET /tenants/:tenantId/tables/stats
  *    - saveTableLayoutAPI: PUT /tenants/:tenantId/tables/layout
- *    - regenerateAllTableQRAPI: POST /tenants/:tenantId/tables/qr-code/regenerate-all
- *    → Workarounds: Client-side stats, individual PATCH calls, loop regenerate
+ *    → Workarounds: Client-side stats, individual PATCH calls
  *
  * 🔄 CLIENT-SIDE HELPERS (4 functions):
  *    - downloadTableQRCode: Downloads QR from backend URL
@@ -602,24 +611,61 @@ export const updateGridConfigAPI = async (floorId, gridWidth, gridHeight) => {
 }
 
 /**
- * Regenerate QR code for a specific table
- * @param {number} tableId - Table ID
+ * Get existing QR code without regenerating
+ * Backend: GET /tenants/:tenantId/tables/:tableId/qrcode
+ * @param {string} tableId - Table ID (UUID)
+ * @returns {Promise} Response with QR code data
+ */
+export const getTableQRCodeAPI = async (tableId) => {
+	try {
+		const tenantId = getTenantId()
+		const response = await apiClient.get(`/tenants/${tenantId}/tables/${tableId}/qrcode`)
+		const { code, message, data } = response.data
+
+		if (code === 1000 || code === 200) {
+			// Backend returns: { url, image, tableId, tableName, tokenVersion }
+			return {
+				success: true,
+				url: data.url, // Scan URL
+				image: data.image, // Base64 PNG
+				tableId: data.tableId,
+				tableName: data.tableName,
+				tokenVersion: data.tokenVersion,
+				message: message || 'QR code retrieved successfully',
+			}
+		} else {
+			return {
+				success: false,
+				message: message || 'Failed to get QR code',
+			}
+		}
+	} catch (error) {
+		console.error('❌ Error getting table QR code:', error)
+		return {
+			success: false,
+			message: error?.response?.data?.message || 'Network error',
+		}
+	}
+}
+
+/**
+ * Regenerate QR code for a specific table (creates new token version)
+ * Backend: POST /tenants/:tenantId/tables/:tableId/qrcode
+ * @param {string} tableId - Table ID (UUID)
  * @returns {Promise} Response with new QR code URL
  */
 export const regenerateTableQRAPI = async (tableId) => {
 	try {
 		const tenantId = getTenantId()
-		// Backend endpoint: POST /tenants/:tenantId/tables/:tableId/qrcode
 		const response = await apiClient.post(`/tenants/${tenantId}/tables/${tableId}/qrcode`)
 		const { code, message, data } = response.data
 
 		if (code === 1000 || code === 200) {
 			// Backend returns: { url, image, tableId, tableName, tokenVersion }
-			// Convert to format expected by frontend
 			return {
 				success: true,
-				qrCodeUrl: data.url, // Scan URL
-				qrCodeImage: data.image, // Base64 PNG
+				url: data.url, // Scan URL
+				image: data.image, // Base64 PNG
 				tableId: data.tableId,
 				tableName: data.tableName,
 				tokenVersion: data.tokenVersion,
@@ -641,44 +687,200 @@ export const regenerateTableQRAPI = async (tableId) => {
 }
 
 /**
- * Regenerate QR codes for all tables
- * @returns {Promise} Response with regeneration result
+ * Download QR code in specific format (PNG, PDF, SVG)
+ * Backend: GET /tenants/:tenantId/tables/:tableId/qrcode/download?format=png|pdf|svg
+ * @param {string} tableId - Table ID (UUID)
+ * @param {string} format - Download format (png, pdf, svg)
+ * @returns {Promise} File download initiated via browser
  */
-export const regenerateAllTableQRAPI = async () => {
+export const downloadTableQRCodeAPI = async (tableId, format = 'png') => {
 	try {
-		// TODO: Backend needs to implement POST /tenants/:tenantId/tables/qr-code/regenerate-all
-		// const tenantId = getTenantId()
-		console.warn('⚠️ regenerateAllTableQRAPI: Backend endpoint not implemented yet')
+		const tenantId = getTenantId()
+		const response = await apiClient.get(
+			`/tenants/${tenantId}/tables/${tableId}/qrcode/download`,
+			{
+				params: { format },
+				responseType: 'blob', // Important for file download
+			},
+		)
 
-		// TEMP: Return mock success
-		return {
-			success: true,
-			regeneratedCount: 0,
-			message: 'Feature not available (backend not implemented)',
+		// Create download link
+		const blob = new Blob([response.data])
+		const url = window.URL.createObjectURL(blob)
+		const link = document.createElement('a')
+		link.href = url
+
+		// Extract filename from Content-Disposition header
+		const contentDisposition = response.headers['content-disposition']
+		let filename = `qr-code-${tableId}.${format}`
+		if (contentDisposition) {
+			const filenameMatch = contentDisposition.match(/filename="?(.+)"?/)
+			if (filenameMatch) filename = filenameMatch[1]
 		}
 
-		/* Uncomment when backend is ready:
-		const response = await apiClient.post(`/tenants/${tenantId}/tables/qr-code/regenerate-all`)
+		link.download = filename
+		document.body.appendChild(link)
+		link.click()
+		document.body.removeChild(link)
+		window.URL.revokeObjectURL(url)
+
+		return {
+			success: true,
+			message: 'QR code downloaded successfully',
+		}
+	} catch (error) {
+		console.error('❌ Error downloading QR code:', error)
+		return {
+			success: false,
+			message: error?.response?.data?.message || 'Network error',
+		}
+	}
+}
+
+/**
+ * Batch download QR codes for multiple tables
+ * Backend: GET /tenants/:tenantId/tables/qrcode/batch-download?format=zip-png|zip-pdf|zip-svg|combined-pdf
+ * @param {Array<string>} tableIds - Optional array of table IDs (if empty, downloads all)
+ * @param {string} floorId - Optional floor ID to filter tables
+ * @param {string} format - Batch format (zip-png, zip-pdf, zip-svg, combined-pdf)
+ * @returns {Promise} File download initiated via browser
+ */
+export const batchDownloadQRCodesAPI = async (
+	tableIds = null,
+	floorId = null,
+	format = 'combined-pdf',
+) => {
+	try {
+		const tenantId = getTenantId()
+		const params = { format }
+		if (tableIds && tableIds.length > 0) params.tableIds = tableIds.join(',')
+		if (floorId) params.floorId = floorId
+
+		const response = await apiClient.get(
+			`/tenants/${tenantId}/tables/qrcode/batch-download`,
+			{
+				params,
+				responseType: 'blob', // Important for file download
+			},
+		)
+
+		// Create download link
+		const blob = new Blob([response.data])
+		const url = window.URL.createObjectURL(blob)
+		const link = document.createElement('a')
+		link.href = url
+
+		// Extract filename from Content-Disposition header
+		const contentDisposition = response.headers['content-disposition']
+		let filename = `qr-codes-batch.${format.includes('pdf') ? 'pdf' : 'zip'}`
+		if (contentDisposition) {
+			const filenameMatch = contentDisposition.match(/filename="?(.+)"?/)
+			if (filenameMatch) filename = filenameMatch[1]
+		}
+
+		link.download = filename
+		document.body.appendChild(link)
+		link.click()
+		document.body.removeChild(link)
+		window.URL.revokeObjectURL(url)
+
+		return {
+			success: true,
+			message: 'QR codes downloaded successfully',
+		}
+	} catch (error) {
+		console.error('❌ Error batch downloading QR codes:', error)
+		return {
+			success: false,
+			message: error?.response?.data?.message || 'Network error',
+		}
+	}
+}
+
+/**
+ * Bulk regenerate QR codes for multiple tables
+ * Backend: POST /tenants/:tenantId/tables/qrcode/bulk-regenerate
+ * @param {Array<string>} tableIds - Optional array of table IDs to regenerate (if empty, regenerates all)
+ * @param {string} floorId - Optional floor ID to filter tables
+ * @returns {Promise} Response with regeneration result
+ */
+export const bulkRegenerateQRCodesAPI = async (tableIds = null, floorId = null) => {
+	try {
+		const tenantId = getTenantId()
+		// ✅ Backend endpoint: POST /tenants/:tenantId/tables/qrcode/bulk-regenerate
+		const payload = {}
+		if (tableIds && tableIds.length > 0) payload.tableIds = tableIds
+		if (floorId) payload.floorId = floorId
+
+		const response = await apiClient.post(
+			`/tenants/${tenantId}/tables/qrcode/bulk-regenerate`,
+			payload,
+		)
+		const { code, message, data } = response.data
+
+		if (code === 1000 || code === 200) {
+			// Backend returns: { tableCount, tableIds, failedCount, failedTableIds, success }
+			return {
+				success: data.success,
+				regeneratedCount: data.tableCount || 0,
+				tableIds: data.tableIds || [],
+				failedCount: data.failedCount || 0,
+				failedTableIds: data.failedTableIds || [],
+				message:
+					message ||
+					`Successfully regenerated ${data.tableCount} QR code(s)${
+						data.failedCount > 0 ? `, ${data.failedCount} failed` : ''
+					}`,
+			}
+		} else {
+			return {
+				success: false,
+				regeneratedCount: 0,
+				message: message || 'Failed to regenerate QR codes',
+			}
+		}
+	} catch (error) {
+		console.error('❌ Error regenerating QR codes:', error)
+		return {
+			success: false,
+			regeneratedCount: 0,
+			message: error?.response?.data?.message || 'Network error',
+		}
+	}
+}
+
+/**
+ * Validate QR scan token (public endpoint)
+ * Backend: GET /tenants/:tenantId/tables/scan/:token
+ * @param {string} token - QR code token
+ * @returns {Promise} Response with table info and redirect URL
+ */
+export const validateQRScanAPI = async (token) => {
+	try {
+		const tenantId = getTenantId()
+		const response = await apiClient.get(`/tenants/${tenantId}/tables/scan/${token}`)
 		const { code, message, data } = response.data
 
 		if (code === 1000 || code === 200) {
 			return {
 				success: true,
-				regeneratedCount: data.regeneratedCount || 0,
-				message: message || 'All QR codes regenerated successfully',
+				tableId: data.tableId,
+				tableName: data.tableName,
+				redirect: data.redirect,
+				message: message || 'QR code validated successfully',
 			}
 		} else {
+			console.warn('⚠️ Unexpected response:', response.data)
 			return {
 				success: false,
-				message: message || 'Failed to regenerate QR codes',
+				message: message || 'Invalid QR code',
 			}
 		}
-		*/
 	} catch (error) {
-		console.error('❌ Error regenerating all table QR codes:', error)
+		console.error('❌ Error validating QR scan:', error)
 		return {
 			success: false,
-			message: error?.response?.data?.message || 'Network error',
+			message: error?.response?.data?.message || 'QR code validation failed',
 		}
 	}
 }
