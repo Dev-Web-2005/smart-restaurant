@@ -160,7 +160,55 @@ export default class ErrorCode {
   // Reserved for product service
 
   // ==================== ORDER & TABLE (4000-4999) ====================
-  // Reserved for order and table services
+
+  /** Table not found */
+  static readonly TABLE_NOT_FOUND: ErrorCode = new ErrorCode(
+    4001,
+    "Table not found",
+    404
+  );
+
+  /** Attempting to create table with existing name for same tenant */
+  static readonly TABLE_ALREADY_EXISTS: ErrorCode = new ErrorCode(
+    4002,
+    "Table with this name already exists",
+    409
+  );
+
+  /** Invalid QR token (expired, malformed, or invalidated) */
+  static readonly INVALID_QR_TOKEN: ErrorCode = new ErrorCode(
+    4003,
+    "QR code token is invalid or expired",
+    410
+  );
+
+  /** Table is currently occupied/reserved */
+  static readonly TABLE_OCCUPIED: ErrorCode = new ErrorCode(
+    4004,
+    "Table is currently occupied",
+    409
+  );
+
+  /** QR code generation failed */
+  static readonly QR_GENERATION_FAILED: ErrorCode = new ErrorCode(
+    4005,
+    "Failed to generate QR code",
+    500
+  );
+
+  /** Floor not found */
+  static readonly FLOOR_NOT_FOUND: ErrorCode = new ErrorCode(
+    4006,
+    "Floor not found",
+    404
+  );
+
+  /** Attempting to create floor with existing name for same tenant */
+  static readonly FLOOR_ALREADY_EXISTS: ErrorCode = new ErrorCode(
+    4007,
+    "Floor with this name already exists",
+    409
+  );
 
   // ==================== PAYMENT (5000-5999) ====================
   // Reserved for payment service

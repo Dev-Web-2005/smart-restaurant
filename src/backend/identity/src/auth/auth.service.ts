@@ -5,7 +5,7 @@ import { Repository } from 'typeorm';
 import LoginAuthRequestDto from 'src/auth/dtos/request/login-auth-request.dto';
 import LoginAuthResponseDto from 'src/auth/dtos/response/login-auth-response.dto';
 import AppException from '@shared/exceptions/app-exception';
-import ErrorCode from '@shared/exceptions/error-code';
+import { ErrorCode } from '@shared/exceptions';
 import * as bcrypt from 'bcrypt';
 import { RoleEnum } from '@shared/utils/enum';
 import { GetUserResponseDto } from 'src/users/dtos/response/get-user-response.dto';
