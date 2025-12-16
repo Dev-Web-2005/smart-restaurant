@@ -5,10 +5,12 @@ import { GenerateQrCodeDto } from 'src/qr-code/dtos/request/generate-qr-code.dto
 import { GetQrCodeDto } from 'src/qr-code/dtos/request/get-qr-code.dto';
 import { DownloadQrCodeDto } from 'src/qr-code/dtos/request/download-qr-code.dto';
 import { BatchDownloadQrCodeDto } from 'src/qr-code/dtos/request/batch-download-qr-code.dto';
+import { BulkRegenerateQrCodeDto } from 'src/qr-code/dtos/request/bulk-regenerate-qr-code.dto';
 import { QrCodeResponseDto } from 'src/qr-code/dtos/response/qr-code-response.dto';
 import { ScanResponseDto } from 'src/qr-code/dtos/response/scan-response.dto';
 import { DownloadQrCodeResponseDto } from 'src/qr-code/dtos/response/download-qr-code-response.dto';
 import { BatchDownloadQrCodeResponseDto } from 'src/qr-code/dtos/response/batch-download-qr-code-response.dto';
+import { BulkRegenerateQrCodeResponseDto } from 'src/qr-code/dtos/response/bulk-regenerate-qr-code-response.dto';
 import { QrCodeFormat } from 'src/qr-code/dtos/request/download-qr-code.dto';
 import { BatchQrCodeFormat } from 'src/qr-code/dtos/request/batch-download-qr-code.dto';
 import AppException from '@shared/exceptions/app-exception';
@@ -696,6 +698,93 @@ export class QrCodeService {
 					reject(new AppException(ErrorCode.QR_GENERATION_FAILED));
 				}
 			})();
+		});
+	}
+
+	/**
+	 * Bulk regenerate QR codes for multiple tables
+	 * Increments token version for each table to invalidate old QR codes
+	 * Provides progress tracking and error handling
+	 */
+	async bulkRegenerateQrCode(
+		dto: BulkRegenerateQrCodeDto,
+	): Promise<BulkRegenerateQrCodeResponseDto> {
+		// Get tables to regenerate QR codes for
+		let tables;
+		if (dto.tableIds && dto.tableIds.length > 0) {
+			// Specific tables - fetch each one
+			const tablePromises = dto.tableIds.map((id) =>
+				this.tablesService.getTableEntity(id, dto.tenantId),
+			);
+			tables = await Promise.all(tablePromises);
+		} else {
+			// All active tables (optionally filtered by floor)
+			const listDto: any = {
+				tenantId: dto.tenantId,
+				isActive: true,
+			};
+			if (dto.floorId) {
+				listDto.floorId = dto.floorId;
+			}
+			const tableDtos = await this.tablesService.listTables(listDto);
+
+			// Convert DTOs to entities (need full entity for token operations)
+			const entityPromises = tableDtos.map((tableDto) =>
+				this.tablesService.getTableEntity(tableDto.id, dto.tenantId),
+			);
+			tables = await Promise.all(entityPromises);
+		}
+
+		// Filter only active tables
+		tables = tables.filter((t) => t && t.isActive);
+
+		if (tables.length === 0) {
+			throw new AppException(ErrorCode.TABLE_NOT_FOUND);
+		}
+
+		const successfulTableIds: string[] = [];
+		const failedTableIds: string[] = [];
+
+		// Regenerate QR codes for each table
+		for (const table of tables) {
+			try {
+				// Increment token version (invalidates old QR codes and clears cache)
+				const updatedTable = await this.tablesService.incrementTokenVersion(
+					table.id,
+					table.tenantId,
+				);
+
+				// Create new signed token
+				const payload: QrTokenPayload = {
+					tableId: updatedTable.id,
+					tenantId: updatedTable.tenantId,
+					tokenVersion: updatedTable.tokenVersion,
+					issuedAt: Date.now(),
+				};
+
+				const token = this.signToken(payload);
+
+				// Cache token for future reuse
+				await this.tablesService.saveQrToken(
+					updatedTable.id,
+					updatedTable.tenantId,
+					token,
+				);
+
+				successfulTableIds.push(table.id);
+			} catch (error) {
+				// Track failed tables but continue processing
+				failedTableIds.push(table.id);
+				console.error(`Failed to regenerate QR code for table ${table.id}:`, error);
+			}
+		}
+
+		return new BulkRegenerateQrCodeResponseDto({
+			tableCount: successfulTableIds.length,
+			tableIds: successfulTableIds,
+			failedCount: failedTableIds.length,
+			failedTableIds: failedTableIds,
+			success: failedTableIds.length === 0,
 		});
 	}
 }

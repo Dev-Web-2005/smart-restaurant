@@ -511,6 +511,43 @@
           "response": []
         },
         {
+          "name": "Validate QR Token",
+          "id": "6b09f957-1cc0-488b-9ed1-98eef313d9d2",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/scan/eyJ0YWJsZUlkIjoiNGU0MGUwOGMtNjc1YS00ODI1LWFmNzgtNzAyOGFjODZmZTY5IiwidGVuYW50SWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ0b2tlblZlcnNpb24iOjIsImlzc3VlZEF0IjoxNzY1ODQ5NDAxMDAzfQ.TsRuII9sChZUPthauWY5VUxTdvYokjg0w99oxNRC38I",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "tables",
+                "scan",
+                "eyJ0YWJsZUlkIjoiNGU0MGUwOGMtNjc1YS00ODI1LWFmNzgtNzAyOGFjODZmZTY5IiwidGVuYW50SWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ0b2tlblZlcnNpb24iOjIsImlzc3VlZEF0IjoxNzY1ODQ5NDAxMDAzfQ.TsRuII9sChZUPthauWY5VUxTdvYokjg0w99oxNRC38I"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Get QR Code",
           "id": "1d3c915f-3536-4a9a-a08e-fb0a9bcbdd92",
           "request": {
@@ -656,13 +693,20 @@
           "response": []
         },
         {
-          "name": "Validate QR Token",
-          "id": "6b09f957-1cc0-488b-9ed1-98eef313d9d2",
-          "protocolProfileBehavior": {
-            "disableBodyPruning": true
-          },
+          "name": "Bulk Regeneration For All QR Code",
+          "id": "74a49e7b-6864-4c11-bc7f-33a6cfa605a1",
           "request": {
-            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
             "header": [
               {
                 "key": "x-api-key",
@@ -672,10 +716,10 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": ""
+              "raw": "{\r\n    \r\n}"
             },
             "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/scan/eyJ0YWJsZUlkIjoiNGU0MGUwOGMtNjc1YS00ODI1LWFmNzgtNzAyOGFjODZmZTY5IiwidGVuYW50SWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ0b2tlblZlcnNpb24iOjIsImlzc3VlZEF0IjoxNzY1ODQ5NDAxMDAzfQ.TsRuII9sChZUPthauWY5VUxTdvYokjg0w99oxNRC38I",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/qrcode/bulk-regenerate",
               "host": [
                 "{{baseURL}}"
               ],
@@ -685,8 +729,8 @@
                 "tenants",
                 "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "tables",
-                "scan",
-                "eyJ0YWJsZUlkIjoiNGU0MGUwOGMtNjc1YS00ODI1LWFmNzgtNzAyOGFjODZmZTY5IiwidGVuYW50SWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ0b2tlblZlcnNpb24iOjIsImlzc3VlZEF0IjoxNzY1ODQ5NDAxMDAzfQ.TsRuII9sChZUPthauWY5VUxTdvYokjg0w99oxNRC38I"
+                "qrcode",
+                "bulk-regenerate"
               ]
             }
           },

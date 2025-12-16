@@ -264,4 +264,22 @@ export class TableController {
 			);
 		}
 	}
+
+	/**
+	 * Bulk regenerate QR codes for multiple tables
+	 * POST /tenants/:tenantId/tables/qrcode/bulk-regenerate
+	 */
+	@UseGuards(AuthGuard, Role('USER'))
+	@Post('/tenants/:tenantId/tables/qrcode/bulk-regenerate')
+	bulkRegenerateQrCode(
+		@Param('tenantId') tenantId: string,
+		@Body() body: { tableIds?: string[]; floorId?: string },
+	) {
+		return this.tableClient.send('qr:bulk-regenerate', {
+			tenantId,
+			tableIds: body?.tableIds,
+			floorId: body?.floorId,
+			tableApiKey: this.configService.get('TABLE_API_KEY'),
+		});
+	}
 }
