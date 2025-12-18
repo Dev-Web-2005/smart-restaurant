@@ -6,10 +6,12 @@ import ErrorCode from '@shared/exceptions/error-code';
 import { GlobalExceptionFilter } from 'src/common/filters/global-exception/global-exception.filter';
 
 async function bootstrap() {
-	const app = await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {
+	const app = await NestFactory.create(AppModule);
+	const port = parseInt(process.env.PORT, 10);
+	app.connectMicroservice<MicroserviceOptions>({
 		transport: Transport.TCP,
 		options: {
-			port: parseInt(process.env.PORT, 10),
+			port: port,
 		},
 	});
 
@@ -36,7 +38,11 @@ async function bootstrap() {
 
 	app.useGlobalFilters(new GlobalExceptionFilter());
 
-	await app.listen();
+	await app.startAllMicroservices();
+	console.log(`Identity Service is running on TCP port ${port}`);
+
+	await app.listen(port, '0.0.0.0');
+	console.log(`HTTP Health endpoint listening on 0.0.0.0:${port}`);
 
 	process.on('SIGINT', () => {
 		console.log('SIGINT received. Shutting down gracefully...');

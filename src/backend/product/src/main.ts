@@ -11,7 +11,6 @@ async function bootstrap() {
 
 	const port = configService.get<number>('PORT') || 8082;
 
-	// Configure microservice with TCP transport
 	app.connectMicroservice<MicroserviceOptions>({
 		transport: Transport.TCP,
 		options: {
@@ -19,7 +18,6 @@ async function bootstrap() {
 		},
 	});
 
-	// Global pipes and filters
 	app.useGlobalPipes(
 		new ValidationPipe({
 			whitelist: true,
@@ -31,7 +29,10 @@ async function bootstrap() {
 	app.useGlobalFilters(new GlobalExceptionFilter(), new CatchAppExceptionFilter());
 
 	await app.startAllMicroservices();
-	console.log(`🚀 Product Service is running on TCP port ${port}`);
+	console.log(`Product Service is running on TCP port ${port}`);
+
+	await app.listen(port, '0.0.0.0');
+	console.log(`HTTP Health endpoint listening on 0.0.0.0:${port}`);
 
 	process.on('SIGINT', () => {
 		console.log('SIGINT received. Shutting down gracefully...');

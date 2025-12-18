@@ -1,4 +1,4 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
 import { MessagePattern } from '@nestjs/microservices';
 @Controller()
@@ -8,6 +8,15 @@ export class AppController {
 	@MessagePattern('health-check')
 	healthCheck(): string {
 		return this.appService.healthCheck();
+	}
+
+	@Get('health')
+	httpHealthCheck(): { status: string; service: string; timestamp: string } {
+		return {
+			status: 'ok',
+			service: 'identity-service',
+			timestamp: new Date().toISOString(),
+		};
 	}
 
 	//TODO: Add more message patterns as needed for the identity service
