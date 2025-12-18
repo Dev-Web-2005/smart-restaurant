@@ -43,8 +43,8 @@ async function bootstrap() {
 	await app.startAllMicroservices();
 	console.log(`🚀 Table Service is running on TCP port ${port}`);
 
-	await app.listen(port, '0.0.0.0');
-	console.log(`🏥 HTTP Health endpoint listening on 0.0.0.0:${port}`);
+	await app.listen(port, '127.0.0.1');
+	console.log(`🏥 HTTP Health endpoint listening on 127.0.0.1:${port}`);
 
 	process.on('SIGINT', () => {
 		console.log('SIGINT received. Shutting down gracefully...');
