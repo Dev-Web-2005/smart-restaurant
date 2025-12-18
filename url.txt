@@ -2,3 +2,4 @@ https://smart-restaurant-api-gateway.onrender.com
 https://smart-restaurant-table.onrender.com
 https://smart-restaurant-product.onrender.com
 https://smart-restaurant-identity.onrender.com
+https://smart-restaurant-profile.onrender.com
