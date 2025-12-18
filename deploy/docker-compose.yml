@@ -1,0 +1,162 @@
+# Multi-service Docker Compose - All-in-One
+# Chạy tất cả microservices trong một môi trường
+
+version: '3.9'
+
+services:
+  # API Gateway - HTTP REST API
+  api-gateway:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api-gateway
+    container_name: smart-restaurant-api-gateway
+    ports:
+      - "8888:8888"
+    environment:
+      - NODE_ENV=production
+      - PORT=8888
+      
+      # Database
+      - DATABASE_HOST=${DATABASE_HOST}
+      - DATABASE_PORT=${DATABASE_PORT:-6543}
+      - DATABASE_USERNAME=${DATABASE_USERNAME}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_NAME=${DATABASE_NAME:-postgres}
+      
+      # JWT
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-7d}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION:-30d}
+      
+      # Microservices - Internal communication
+      - IDENTITY_SERVICE_HOST=identity
+      - IDENTITY_SERVICE_PORT=8080
+      - PROFILE_SERVICE_HOST=profile
+      - PROFILE_SERVICE_PORT=8081
+      - PRODUCT_SERVICE_HOST=product
+      - PRODUCT_SERVICE_PORT=8082
+      - TABLE_SERVICE_HOST=table
+      - TABLE_SERVICE_PORT=8083
+    depends_on:
+      - identity
+      - profile
+      - product
+      - table
+    networks:
+      - smart-restaurant-network
+    restart: unless-stopped
+
+  # Identity Service - Authentication & Authorization
+  identity:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.identity
+    container_name: smart-restaurant-identity
+    expose:
+      - "8080"
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      
+      # Database
+      - HOST_DB=${DATABASE_HOST}
+      - PORT_DB=${DATABASE_PORT:-6543}
+      - USERNAME_DB=${DATABASE_USERNAME}
+      - PASSWORD_DB=${DATABASE_PASSWORD}
+      - DATABASE_DB=${DATABASE_NAME:-postgres}
+      
+      # API Key
+      - IDENTITY_API_KEY=${IDENTITY_API_KEY:-identity-service-secret-key-2024}
+      
+      # JWT
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-7d}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION:-30d}
+    networks:
+      - smart-restaurant-network
+    restart: unless-stopped
+
+  # Profile Service - User Profile Management
+  profile:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.profile
+    container_name: smart-restaurant-profile
+    expose:
+      - "8081"
+    environment:
+      - NODE_ENV=production
+      - PORT=8081
+      
+      # Database
+      - HOST_DB=${DATABASE_HOST}
+      - PORT_DB=${DATABASE_PORT:-6543}
+      - USERNAME_DB=${DATABASE_USERNAME}
+      - PASSWORD_DB=${DATABASE_PASSWORD}
+      - DATABASE_DB=${DATABASE_NAME:-postgres}
+      
+      # API Key
+      - PROFILE_API_KEY=${PROFILE_API_KEY:-profile-service-secret-key-2024}
+    networks:
+      - smart-restaurant-network
+    restart: unless-stopped
+
+  # Product Service - Menu & Products Management
+  product:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.product
+    container_name: smart-restaurant-product
+    expose:
+      - "8082"
+    environment:
+      - NODE_ENV=production
+      - PORT=8082
+      
+      # Database
+      - HOST_DB=${DATABASE_HOST}
+      - PORT_DB=${DATABASE_PORT:-6543}
+      - USERNAME_DB=${DATABASE_USERNAME}
+      - PASSWORD_DB=${DATABASE_PASSWORD}
+      - DATABASE_DB=${DATABASE_NAME:-postgres}
+      
+      # API Key
+      - PRODUCT_API_KEY=${PRODUCT_API_KEY:-product-service-secret-key-2024}
+    networks:
+      - smart-restaurant-network
+    restart: unless-stopped
+
+  # Table Service - Table & QR Code Management
+  table:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.table
+    container_name: smart-restaurant-table
+    expose:
+      - "8083"
+    environment:
+      - NODE_ENV=production
+      - PORT=8083
+      
+      # Database
+      - HOST_DB=${DATABASE_HOST}
+      - PORT_DB=${DATABASE_PORT:-6543}
+      - USERNAME_DB=${DATABASE_USERNAME}
+      - PASSWORD_DB=${DATABASE_PASSWORD}
+      - DATABASE_DB=${DATABASE_NAME:-postgres}
+      
+      # API Key
+      - TABLE_API_KEY=${TABLE_API_KEY:-table-service-secret-key-2024}
+    networks:
+      - smart-restaurant-network
+    restart: unless-stopped
+
+networks:
+  smart-restaurant-network:
+    driver: bridge
+
+# Volume cho development (optional)
+# volumes:
+#   postgres-data:

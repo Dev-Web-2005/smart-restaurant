@@ -46,8 +46,8 @@ export interface PaginatedResponse<T> {
  * API Response structure
  */
 export class ApiResponse<T = any> {
-  code: number;
-  message: string;
+  code!: number;
+  message!: string;
   data?: T;
 
   constructor(init?: Partial<ApiResponse<T>>) {
