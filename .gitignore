@@ -43,3 +43,6 @@ desktop.ini
 
 *.md
 !README.md
+
+/deploy
+/deploy/*
