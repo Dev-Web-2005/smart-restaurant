@@ -1,0 +1,75 @@
+services:
+  - type: web
+    name: smart-restaurant
+    env: docker
+    region: singapore
+    plan: starter
+    branch: release
+    dockerfilePath: ./deploy/Dockerfile.all-in-one
+    dockerContext: .
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_HOST
+        value: aws-1-ap-south-1.pooler.supabase.com
+      - key: DATABASE_PORT
+        value: 6543
+      - key: DATABASE_USERNAME
+        value: postgres.vzfhpiietyrgfobaxwhj
+      - key: DATABASE_PASSWORD
+        value: Cong2642005@@
+      - key: DATABASE_NAME
+        value: postgres
+      - key: HOST_DB
+        value: aws-1-ap-south-1.pooler.supabase.com
+      - key: PORT_DB
+        value: 6543
+      - key: USERNAME_DB
+        value: postgres.vzfhpiietyrgfobaxwhj
+      - key: PASSWORD_DB
+        value: Cong2642005@@
+      - key: DATABASE_DB
+        value: postgres
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRATION
+        value: 7d
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_EXPIRATION
+        value: 30d
+      - key: IDENTITY_API_KEY
+        value: lethanhcong
+      - key: PROFILE_API_KEY
+        value: lethanhcong
+      - key: PRODUCT_API_KEY
+        value: lethanhcong
+      - key: TABLE_API_KEY
+        value: lethanhcong
+      - key: API_GATEWAY_PORT
+        value: 8888
+      - key: IDENTITY_PORT
+        value: 8080
+      - key: PROFILE_PORT
+        value: 8081
+      - key: PRODUCT_PORT
+        value: 8082
+      - key: TABLE_PORT
+        value: 8083
+      - key: HOST_IDENTITY_SERVICE
+        value: localhost
+      - key: PORT_IDENTITY_SERVICE
+        value: 8080
+      - key: HOST_PROFILE_SERVICE
+        value: localhost
+      - key: PORT_PROFILE_SERVICE
+        value: 8081
+      - key: HOST_PRODUCT_SERVICE
+        value: localhost
+      - key: PORT_PRODUCT_SERVICE
+        value: 8082
+      - key: HOST_TABLE_SERVICE
+        value: localhost
+      - key: PORT_TABLE_SERVICE
+        value: 8083
