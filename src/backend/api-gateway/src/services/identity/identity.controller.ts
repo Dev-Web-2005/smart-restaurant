@@ -101,15 +101,17 @@ export class IdentityController {
 
 	@Post('auth/login')
 	async login(@Body() data: any, @Res() res: Response) {
-		const observableResponse = this.identityClient.send('auth:login', {
-			...data,
-			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
-		});
-		const response = await firstValueFrom(observableResponse);
+		try {
+			const observableResponse = this.identityClient.send('auth:login', {
+				...data,
+				identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+			});
+			const response = await firstValueFrom(observableResponse);
 
-		if (!response || !response.code || response.code !== HttpStatus.OK) {
-			return res.status(response?.code || HttpStatus.UNAUTHORIZED).json(response);
-		}
+			if (!response || typeof response.code !== 'number' || response.code !== HttpStatus.OK) {
+				const statusCode = typeof response?.code === 'number' ? response.code : HttpStatus.UNAUTHORIZED;
+				return res.status(statusCode).json(response);
+			}
 
 		const convertData: {
 			code: number;
@@ -156,6 +158,13 @@ export class IdentityController {
 				},
 			}),
 		);
+		} catch (error) {
+			return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+				code: 500,
+				message: 'Identity service unavailable',
+				error: error.message,
+			});
+		}
 	}
 
 	@Get('auth/refresh')
