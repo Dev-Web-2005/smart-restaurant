@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Head } from '@nestjs/common';
 import { AppService } from './app.service';
 import { MessagePattern } from '@nestjs/microservices';
 @Controller()
@@ -10,7 +10,8 @@ export class AppController {
 		return this.appService.healthCheck();
 	}
 
-	@Get('health')
+	@Get()
+	@Head()
 	httpHealthCheck(): { status: string; service: string; timestamp: string } {
 		return {
 			status: 'ok',

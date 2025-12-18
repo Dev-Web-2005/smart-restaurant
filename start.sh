@@ -27,12 +27,12 @@ while IFS= read -r url || [ -n "$url" ]; do
     SERVICE_NAME=$(echo "$url" | sed -E 's|https?://smart-restaurant-([^.]+)\..*|\1|')
     
     echo "📡 Checking: $SERVICE_NAME"
-    echo "   URL: $url/health"
+    echo "   URL: $url"
     RESPONSE=$(curl -s -w "\n%{http_code}" \
         -H "x-api-key: $API_KEY" \
         -H "Content-Type: application/json" \
         -X GET \
-        "$url/health" \
+        "$url" \
         --max-time 10)
     
     HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
