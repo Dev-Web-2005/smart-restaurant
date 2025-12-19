@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>KYC Callback Test</title>
+		<style>
+			body {
+				font-family: Arial, sans-serif;
+				max-width: 800px;
+				margin: 50px auto;
+				padding: 20px;
+				background: #1a1a2e;
+				color: #eee;
+			}
+			.section {
+				background: #16213e;
+				padding: 20px;
+				margin: 20px 0;
+				border-radius: 8px;
+			}
+			button {
+				background: #0f4c75;
+				color: white;
+				border: none;
+				padding: 10px 20px;
+				border-radius: 5px;
+				cursor: pointer;
+				margin: 5px;
+			}
+			button:hover {
+				background: #3282b8;
+			}
+			.log {
+				background: #0f0f0f;
+				padding: 10px;
+				border-radius: 5px;
+				margin-top: 10px;
+				max-height: 400px;
+				overflow-y: auto;
+				font-family: monospace;
+				font-size: 12px;
+			}
+			.log-entry {
+				margin: 5px 0;
+				padding: 5px;
+				border-left: 3px solid #3282b8;
+				padding-left: 10px;
+			}
+			.success {
+				border-left-color: #4caf50;
+			}
+			.error {
+				border-left-color: #f44336;
+			}
+			.warning {
+				border-left-color: #ff9800;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>🔐 KYC Message Flow Test</h1>
+
+		<div class="section">
+			<h2>1. Simulate Parent Window (Wizard)</h2>
+			<button onclick="openPopup()">Open KYC Pop-up</button>
+			<button onclick="clearLogs()">Clear Logs</button>
+			<div class="log" id="parentLog"></div>
+		</div>
+
+		<div class="section">
+			<h2>2. Simulate Callback (From Pop-up)</h2>
+			<p>
+				In real scenario, Didit redirects to:
+				<code>/kyc/callback?verificationSessionId=xxx&status=Approved</code>
+			</p>
+			<button onclick="simulateCallback()">Simulate Success Callback</button>
+			<button onclick="simulateErrorCallback()">Simulate Error Callback</button>
+		</div>
+
+		<script>
+			let popupWindow = null
+
+			// Add message listener (like RestaurantSetupWizard)
+			window.addEventListener('message', (event) => {
+				logToParent(`📨 Message received from: ${event.origin}`, 'success')
+				logToParent(`Data: ${JSON.stringify(event.data, null, 2)}`, 'success')
+
+				if (event.data?.type === 'KYC_COMPLETE') {
+					logToParent(`✅ KYC Complete! Session ID: ${event.data.sessionId}`, 'success')
+					logToParent(`Status: ${event.data.status}`, 'success')
+
+					// Simulate fetching KYC result
+					setTimeout(() => {
+						logToParent('📥 Fetching KYC result...', 'warning')
+						setTimeout(() => {
+							logToParent('✅ CCCD images extracted successfully!', 'success')
+							logToParent('✅ Citizen info: Cao Tâm Chính Võ', 'success')
+							logToParent('🔓 Finish button enabled!', 'success')
+						}, 1000)
+					}, 500)
+				}
+			})
+
+			function openPopup() {
+				const width = 600
+				const height = 400
+				const left = (screen.width - width) / 2
+				const top = (screen.height - height) / 2
+
+				// Open a test popup
+				popupWindow = window.open(
+					'about:blank',
+					'KYCTest',
+					`width=${width},height=${height},left=${left},top=${top}`,
+				)
+
+				if (popupWindow) {
+					logToParent('🪟 Pop-up window opened', 'success')
+
+					// Write content to popup
+					popupWindow.document.write(`
+                    <html>
+                    <head>
+                        <title>KYC Verification (Test)</title>
+                        <style>
+                            body { 
+                                font-family: Arial; 
+                                padding: 40px; 
+                                background: #1a1a2e; 
+                                color: #eee;
+                                text-align: center;
+                            }
+                            button {
+                                background: #4caf50;
+                                color: white;
+                                border: none;
+                                padding: 15px 30px;
+                                border-radius: 5px;
+                                cursor: pointer;
+                                font-size: 16px;
+                                margin: 10px;
+                            }
+                            button:hover { background: #45a049; }
+                            .error { background: #f44336; }
+                            .error:hover { background: #da190b; }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>🔐 KYC Verification</h1>
+                        <p>This simulates Didit verification page</p>
+                        <p>After verification, click button to send result:</p>
+                        <button onclick="sendSuccess()">✅ Verification Success</button>
+                        <button class="error" onclick="sendError()">❌ Verification Failed</button>
+                        
+                        <script>
+                            function sendSuccess() {
+                                if (window.opener) {
+                                    const sessionId = 'test-session-' + Date.now();
+                                    console.log('Sending success message to parent...');
+                                    console.log('window.opener exists:', !!window.opener);
+                                    console.log('window.opener.closed:', window.opener.closed);
+                                    
+                                    window.opener.postMessage({
+                                        type: 'KYC_COMPLETE',
+                                        sessionId: sessionId,
+                                        status: 'Approved',
+                                        timestamp: Date.now()
+                                    }, '*');
+                                    
+                                    alert('✅ Success message sent! Closing in 2 seconds...');
+                                    setTimeout(() => window.close(), 2000);
+                                } else {
+                                    alert('❌ No parent window found!');
+                                }
+                            }
+                            
+                            function sendError() {
+                                if (window.opener) {
+                                    window.opener.postMessage({
+                                        type: 'KYC_COMPLETE',
+                                        sessionId: 'test-error-session',
+                                        status: 'Rejected',
+                                        timestamp: Date.now()
+                                    }, '*');
+                                    
+                                    alert('❌ Error message sent! Closing in 2 seconds...');
+                                    setTimeout(() => window.close(), 2000);
+                                } else {
+                                    alert('❌ No parent window found!');
+                                }
+                            }
+                        <\/script>
+                    </body>
+                    </html>
+                `)
+					popupWindow.document.close()
+				} else {
+					logToParent('❌ Failed to open pop-up. Please allow pop-ups!', 'error')
+				}
+			}
+
+			function simulateCallback() {
+				if (!popupWindow || popupWindow.closed) {
+					logToParent('⚠️ No pop-up window open. Opening one...', 'warning')
+					openPopup()
+					return
+				}
+
+				logToParent('📤 Simulating callback from pop-up...', 'warning')
+
+				// Simulate message from popup
+				const messageData = {
+					type: 'KYC_COMPLETE',
+					sessionId: 'simulated-' + Date.now(),
+					status: 'Approved',
+					timestamp: Date.now(),
+				}
+
+				window.postMessage(messageData, '*')
+			}
+
+			function simulateErrorCallback() {
+				const messageData = {
+					type: 'KYC_COMPLETE',
+					sessionId: 'error-' + Date.now(),
+					status: 'Rejected',
+					timestamp: Date.now(),
+				}
+
+				window.postMessage(messageData, '*')
+				logToParent('📤 Simulated error callback', 'error')
+			}
+
+			function logToParent(message, type = '') {
+				const log = document.getElementById('parentLog')
+				const entry = document.createElement('div')
+				entry.className = 'log-entry ' + type
+				entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`
+				log.appendChild(entry)
+				log.scrollTop = log.scrollHeight
+			}
+
+			function clearLogs() {
+				document.getElementById('parentLog').innerHTML = ''
+				logToParent('🧹 Logs cleared', 'warning')
+			}
+
+			// Initial log
+			logToParent('🎯 Test page loaded. Click "Open KYC Pop-up" to start.', 'success')
+		</script>
+	</body>
+</html>
