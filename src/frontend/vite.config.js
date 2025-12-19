@@ -4,6 +4,18 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
 	plugins: [react(), tailwindcss()],
+	build: {
+		rollupOptions: {
+			external: [
+				'node:path',
+				'node:fs',
+				'node:url',
+				'node:crypto',
+				'node:stream',
+				'node:util',
+			],
+		},
+	},
 	server: {
 		proxy: {
 			// Proxy backend API requests to avoid CORS issues
