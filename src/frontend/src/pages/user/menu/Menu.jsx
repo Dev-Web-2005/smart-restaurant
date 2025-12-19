@@ -167,9 +167,9 @@ const CategoryCard = ({ category, onClick, onDeleteRequest }) => {
 	}
 
 	return (
-		<button
+		<div
 			onClick={onClick}
-			className="group relative flex w-full aspect-square bg-[#1A202C] rounded-lg overflow-hidden transition-all duration-200 hover:bg-[#2D3748] hover:shadow-xl active:scale-95 border border-transparent focus:outline-none focus:ring-2 focus:ring-[#137fec] p-0"
+			className="group relative flex w-full aspect-square bg-[#1A202C] rounded-lg overflow-hidden transition-all duration-200 hover:bg-[#2D3748] hover:shadow-xl active:scale-95 border border-transparent focus:outline-none focus:ring-2 focus:ring-[#137fec] p-0 cursor-pointer"
 		>
 			<div className="h-full w-full overflow-hidden relative">
 				<div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors z-10"></div>
@@ -195,7 +195,7 @@ const CategoryCard = ({ category, onClick, onDeleteRequest }) => {
 					<span className="material-symbols-outlined text-base">close</span>
 				</button>
 			</div>
-		</button>
+		</div>
 	)
 }
 

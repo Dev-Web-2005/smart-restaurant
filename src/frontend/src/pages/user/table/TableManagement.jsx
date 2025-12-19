@@ -7,6 +7,7 @@ import {
 	deleteTableAPI,
 	updateTableStatusAPI,
 	updateTablePositionAPI,
+	updateTableAPI,
 	getTableStatsAPI,
 	getTableQRCodeAPI,
 	regenerateTableQRAPI,
@@ -15,282 +16,20 @@ import {
 	batchDownloadQRCodesAPI,
 	validateQRScanAPI,
 } from '../../../services/api/tableAPI'
+import {
+	getFloorsAPI,
+	createFloorAPI,
+	deleteFloorAPI,
+} from '../../../services/api/floorAPI'
 import AddTableModal from './AddTableModal'
+import AddFloorModal from './AddFloorModal'
 import { useLoading } from '../../../contexts/LoadingContext'
 import { useAlert } from '../../../contexts/AlertContext'
 import { InlineLoader, SkeletonLoader } from '../../../components/common/LoadingSpinner'
 import AuthenticationWarning from '../../../components/common/AuthenticationWarning'
 
-// --- Dữ liệu Mock cho các bàn với vị trí grid (x, y) ---
-// ⚠️ Updated to match Backend Schema (16/12/2025)
-// ⚠️ NOTE: Mock data chỉ dùng làm FALLBACK khi API chưa sẵn sàng
-// ⚠️ Component sẽ tự động fetch từ backend API khi mount
-// Backend fields: id (UUID), tenantId (UUID), floorId (UUID), name, capacity, status, gridX, gridY, isActive, tokenVersion, createdAt, updatedAt
-// Frontend additions: floor (number - for UI navigation), location (for display), qrCodeUrl (fetched from QR API)
-
-const MOCK_TENANT_ID = 'tenant-123e4567-e89b-12d3-a456-426614174000'
-const MOCK_FLOOR_1_ID = 'floor-550e8400-e29b-41d4-a716-446655440001'
-const MOCK_FLOOR_2_ID = 'floor-550e8400-e29b-41d4-a716-446655440002'
-
-let rawTablesData = [
-	{
-		// Backend fields (match TableDto)
-		id: '550e8400-e29b-41d4-a716-446655440101', // UUID string
-		tenantId: MOCK_TENANT_ID,
-		floorId: MOCK_FLOOR_1_ID,
-		name: 'Bàn 101',
-		capacity: 4,
-		status: 'Occupied',
-		gridX: 0,
-		gridY: 0,
-		isActive: true,
-		tokenVersion: 1,
-		createdAt: '2025-12-01T08:00:00Z',
-		updatedAt: '2025-12-01T08:00:00Z',
-		// Frontend-only fields (for UI)
-		floor: 1, // For navigation/filtering
-		location: 'Trong nhà', // Display only
-		qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=table-101',
-	},
-	{
-		id: '550e8400-e29b-41d4-a716-446655440102',
-		tenantId: MOCK_TENANT_ID,
-		floorId: MOCK_FLOOR_1_ID,
-		name: 'Bàn 102',
-		capacity: 2,
-		status: 'Available',
-		gridX: 1,
-		gridY: 0,
-		isActive: true,
-		tokenVersion: 1,
-		createdAt: '2025-12-02T09:30:00Z',
-		updatedAt: '2025-12-02T09:30:00Z',
-		floor: 1,
-		location: 'Trong nhà',
-		qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=table-102',
-	},
-	{
-		id: '550e8400-e29b-41d4-a716-446655440103',
-		tenantId: MOCK_TENANT_ID,
-		floorId: MOCK_FLOOR_1_ID,
-		name: 'VIP 1',
-		capacity: 8,
-		status: 'Available',
-		gridX: 2,
-		gridY: 0,
-		isActive: true,
-		tokenVersion: 1,
-		createdAt: '2025-12-03T10:15:00Z',
-		updatedAt: '2025-12-03T10:15:00Z',
-		floor: 1,
-		location: 'Phòng VIP',
-		qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=table-103',
-	},
-	{
-		id: '550e8400-e29b-41d4-a716-446655440104',
-		tenantId: MOCK_TENANT_ID,
-		floorId: MOCK_FLOOR_1_ID,
-		name: 'Bàn 104',
-		capacity: 4,
-		status: 'Cleaning',
-		gridX: 0,
-		gridY: 1,
-		isActive: true,
-		tokenVersion: 1,
-		createdAt: '2025-12-04T11:00:00Z',
-		updatedAt: '2025-12-04T11:00:00Z',
-		floor: 1,
-		location: 'Trong nhà',
-		qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=table-104',
-	},
-	{
-		id: '550e8400-e29b-41d4-a716-446655440105',
-		tenantId: MOCK_TENANT_ID,
-		floorId: MOCK_FLOOR_1_ID,
-		name: 'Bàn 105',
-		capacity: 6,
-		status: 'Available',
-		gridX: 1,
-		gridY: 1,
-		isActive: true,
-		tokenVersion: 1,
-		createdAt: '2025-12-05T14:20:00Z',
-		updatedAt: '2025-12-05T14:20:00Z',
-		floor: 1,
-		location: 'Ngoài trời',
-		qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=table-105',
-	},
-	{
-		id: '550e8400-e29b-41d4-a716-446655440106',
-		tenantId: MOCK_TENANT_ID,
-		floorId: MOCK_FLOOR_1_ID,
-		name: 'Bàn 106',
-		capacity: 2,
-		status: 'Available',
-		gridX: 2,
-		gridY: 1,
-		isActive: true,
-		tokenVersion: 1,
-		createdAt: '2025-12-06T16:45:00Z',
-		updatedAt: '2025-12-06T16:45:00Z',
-		floor: 1,
-		location: 'Quầy bar',
-		qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=table-106',
-	},
-	{
-		id: '550e8400-e29b-41d4-a716-446655440107',
-		tenantId: MOCK_TENANT_ID,
-		floorId: MOCK_FLOOR_1_ID,
-		name: 'Bàn 107',
-		capacity: 4,
-		status: 'Occupied',
-		gridX: 0,
-		gridY: 2,
-		isActive: true,
-		tokenVersion: 1,
-		createdAt: '2025-12-07T08:30:00Z',
-		updatedAt: '2025-12-07T08:30:00Z',
-		floor: 1,
-		location: 'Trong nhà',
-		qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=table-107',
-	},
-	{
-		id: '550e8400-e29b-41d4-a716-446655440108',
-		tenantId: MOCK_TENANT_ID,
-		floorId: MOCK_FLOOR_1_ID,
-		name: 'Bàn 108',
-		capacity: 4,
-		status: 'Available',
-		gridX: 1,
-		gridY: 2,
-		isActive: true,
-		tokenVersion: 1,
-		createdAt: '2025-12-08T10:00:00Z',
-		updatedAt: '2025-12-08T10:00:00Z',
-		floor: 1,
-		location: 'Khu gia đình',
-		qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=table-108',
-	},
-	{
-		id: '550e8400-e29b-41d4-a716-446655440109',
-		tenantId: MOCK_TENANT_ID,
-		floorId: MOCK_FLOOR_1_ID,
-		name: 'Bàn 109',
-		capacity: 2,
-		status: 'Available',
-		gridX: 2,
-		gridY: 2,
-		isActive: true,
-		tokenVersion: 1,
-		createdAt: '2025-12-09T12:15:00Z',
-		updatedAt: '2025-12-09T12:15:00Z',
-		floor: 1,
-		location: 'Trong nhà',
-		qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=table-109',
-	},
-	{
-		id: '550e8400-e29b-41d4-a716-446655440110',
-		tenantId: MOCK_TENANT_ID,
-		floorId: MOCK_FLOOR_1_ID,
-		name: 'Bàn 110',
-		capacity: 4,
-		status: 'Available',
-		gridX: 3,
-		gridY: 2,
-		isActive: true,
-		tokenVersion: 1,
-		createdAt: '2025-12-10T09:00:00Z',
-		updatedAt: '2025-12-10T09:00:00Z',
-		floor: 1,
-		location: 'Trong nhà',
-		qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=table-110',
-	},
-	{
-		id: '550e8400-e29b-41d4-a716-446655440201',
-		tenantId: MOCK_TENANT_ID,
-		floorId: MOCK_FLOOR_2_ID,
-		name: 'Bàn 201',
-		capacity: 6,
-		status: 'Available',
-		gridX: 0,
-		gridY: 0,
-		isActive: true,
-		tokenVersion: 1,
-		createdAt: '2025-12-11T08:00:00Z',
-		updatedAt: '2025-12-11T08:00:00Z',
-		floor: 2,
-		location: 'Trong nhà',
-		qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=table-201',
-	},
-	{
-		id: '550e8400-e29b-41d4-a716-446655440202',
-		tenantId: MOCK_TENANT_ID,
-		floorId: MOCK_FLOOR_2_ID,
-		name: 'VIP 2',
-		capacity: 10,
-		status: 'Occupied',
-		gridX: 1,
-		gridY: 0,
-		isActive: true,
-		tokenVersion: 1,
-		createdAt: '2025-12-12T10:30:00Z',
-		updatedAt: '2025-12-12T10:30:00Z',
-		floor: 2,
-		location: 'Phòng VIP',
-		qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=table-202',
-	},
-	{
-		id: '550e8400-e29b-41d4-a716-446655440203',
-		tenantId: MOCK_TENANT_ID,
-		floorId: MOCK_FLOOR_2_ID,
-		name: 'Bàn 203',
-		capacity: 4,
-		status: 'Cleaning',
-		gridX: 0,
-		gridY: 1,
-		isActive: true,
-		tokenVersion: 1,
-		createdAt: '2025-12-13T11:45:00Z',
-		updatedAt: '2025-12-13T11:45:00Z',
-		floor: 2,
-		location: 'Ngoài trời',
-		qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=table-203',
-	},
-	{
-		id: '550e8400-e29b-41d4-a716-446655440204',
-		tenantId: MOCK_TENANT_ID,
-		floorId: MOCK_FLOOR_2_ID,
-		name: 'Bàn 204',
-		capacity: 2,
-		status: 'Available',
-		gridX: 1,
-		gridY: 1,
-		isActive: true,
-		tokenVersion: 1,
-		createdAt: '2025-12-14T13:00:00Z',
-		updatedAt: '2025-12-14T13:00:00Z',
-		floor: 2,
-		location: 'Quầy bar',
-		qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=table-204',
-	},
-	{
-		id: '550e8400-e29b-41d4-a716-446655440205',
-		tenantId: MOCK_TENANT_ID,
-		floorId: MOCK_FLOOR_2_ID,
-		name: 'Bàn 205',
-		capacity: 4,
-		status: 'Available',
-		gridX: 2,
-		gridY: 1,
-		isActive: true,
-		tokenVersion: 1,
-		createdAt: '2025-12-15T09:30:00Z',
-		updatedAt: '2025-12-15T09:30:00Z',
-		floor: 2,
-		location: 'Trong nhà',
-		qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=table-205',
-	},
-]
+// rawTablesData will be populated from API
+let rawTablesData = []
 
 const getStatusColor = (status) => {
 	switch (status) {
@@ -438,7 +177,7 @@ const TableCard = ({ table, onClick, onDelete, onDragStart, onDragEnd, isDraggin
 					{table.capacity} chỗ
 				</p>
 
-				{/* Vị trí - Giảm kích thước */}
+				{/* Ngày tạo - Giảm kích thước */}
 				<p
 					className="text-white/75 leading-tight text-center overflow-hidden text-ellipsis whitespace-nowrap w-full transition-all duration-300"
 					style={{
@@ -448,7 +187,7 @@ const TableCard = ({ table, onClick, onDelete, onDragStart, onDragEnd, isDraggin
 						transform: isHovered ? 'translateY(-1px)' : 'translateY(0)',
 					}}
 				>
-					{table.location}
+					{table.createdAt ? new Date(table.createdAt).toLocaleDateString('vi-VN') : ''}
 				</p>
 			</button>
 
@@ -504,9 +243,23 @@ const AddTableQuickCard = ({ onClick }) => (
 )
 
 // --- Modal sử dụng React Portal ---
-const TableStatusModal = ({ isOpen, onClose, table, onUpdateStatus }) => {
+const TableStatusModal = ({ isOpen, onClose, table, onUpdateStatus, onUpdateInfo }) => {
 	const modalRef = React.useRef(null)
+	const nameInputRef = React.useRef(null)
+	const capacityInputRef = React.useRef(null)
 	const [isVisible, setIsVisible] = useState(false)
+	const [isEditMode, setIsEditMode] = useState(false)
+	const [editedName, setEditedName] = useState('')
+	const [editedCapacity, setEditedCapacity] = useState('')
+	const [isSaving, setIsSaving] = useState(false)
+
+	// Initialize edit values when table changes
+	useEffect(() => {
+		if (table) {
+			setEditedName(table.name || '')
+			setEditedCapacity(table.capacity?.toString() || '')
+		}
+	}, [table])
 
 	// Control body scroll
 	useEffect(() => {
@@ -602,12 +355,23 @@ const TableStatusModal = ({ isOpen, onClose, table, onUpdateStatus }) => {
 			>
 				<div className="flex items-center justify-between mb-6">
 					<h3 className="text-2xl font-bold text-white">{table.name}</h3>
-					<button
-						onClick={onClose}
-						className="text-gray-400 hover:text-white hover:bg-red-600/20 rounded-full w-10 h-10 flex items-center justify-center transition-all duration-200"
-					>
-						✕
-					</button>
+					<div className="flex items-center gap-2">
+						{!isEditMode && (
+							<button
+								onClick={() => setIsEditMode(true)}
+								className="text-blue-400 hover:text-blue-300 hover:bg-blue-600/20 rounded-full w-10 h-10 flex items-center justify-center transition-all duration-200"
+								title="Chỉnh sửa thông tin bàn"
+							>
+								<span className="material-symbols-outlined">edit</span>
+							</button>
+						)}
+						<button
+							onClick={onClose}
+							className="text-gray-400 hover:text-white hover:bg-red-600/20 rounded-full w-10 h-10 flex items-center justify-center transition-all duration-200"
+						>
+							✕
+						</button>
+					</div>
 				</div>
 
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -757,11 +521,11 @@ const TableStatusModal = ({ isOpen, onClose, table, onUpdateStatus }) => {
 								{/* 5. Regenerate QR (regenerateTableQRAPI) */}
 								<button
 									onClick={async () => {
-										if (
-											window.confirm(
-												`Bạn có chắc muốn tạo lại QR Code cho ${table.name}?\nQR cũ sẽ không còn hoạt động.`,
-											)
-										) {
+										const confirmed = await showConfirm(
+											'Tạo lại QR Code',
+											`Bạn có chắc muốn tạo lại QR Code cho ${table.name}?\nQR cũ sẽ không còn hoạt động.`,
+										)
+										if (confirmed) {
 											const result = await regenerateTableQRAPI(table.id)
 											if (result.success) {
 												showSuccess(
@@ -769,7 +533,8 @@ const TableStatusModal = ({ isOpen, onClose, table, onUpdateStatus }) => {
 													'QR cũ đã hết hạn và không còn hoạt động.',
 												)
 												onClose()
-												window.location.reload()
+												// Trigger refetch instead of full page reload
+												setRefreshTrigger((prev) => prev + 1)
 											} else {
 												showError('Lỗi tạo QR', result.message)
 											}
@@ -789,17 +554,58 @@ const TableStatusModal = ({ isOpen, onClose, table, onUpdateStatus }) => {
 					<div className="md:col-span-2">
 						{/* Table Details Grid */}
 						<div className="grid grid-cols-2 gap-4 mb-6">
+							{/* Tên Bàn - Editable */}
 							<div className="bg-black/30 rounded-lg p-4 border border-white/10">
 								<p className="text-xs text-gray-400 mb-1">Tên Bàn</p>
-								<p className="text-lg font-bold text-white">{table.name}</p>
+								{isEditMode ? (
+									<input
+										ref={nameInputRef}
+										type="text"
+										value={editedName}
+										onChange={(e) => {
+											setEditedName(e.target.value)
+											setTimeout(() => nameInputRef.current?.focus(), 0)
+										}}
+										className="w-full bg-white/10 text-white text-lg font-bold rounded px-2 py-1 border border-white/20 focus:outline-none focus:border-blue-500"
+										placeholder="Nhập tên bàn"
+										maxLength={50}
+									/>
+								) : (
+									<p className="text-lg font-bold text-white">{table.name}</p>
+								)}
 							</div>
+							{/* Sức Chứa - Editable */}
 							<div className="bg-black/30 rounded-lg p-4 border border-white/10">
 								<p className="text-xs text-gray-400 mb-1">Sức Chứa</p>
-								<p className="text-lg font-bold text-white">{table.capacity} chỗ</p>
+								{isEditMode ? (
+									<input
+										ref={capacityInputRef}
+										type="number"
+										value={editedCapacity}
+										onChange={(e) => {
+											setEditedCapacity(e.target.value)
+											setTimeout(() => capacityInputRef.current?.focus(), 0)
+										}}
+										className="w-full bg-white/10 text-white text-lg font-bold rounded px-2 py-1 border border-white/20 focus:outline-none focus:border-blue-500"
+										placeholder="Số chỗ"
+										min="1"
+										max="20"
+									/>
+								) : (
+									<p className="text-lg font-bold text-white">{table.capacity} chỗ</p>
+								)}
 							</div>
 							<div className="bg-black/30 rounded-lg p-4 border border-white/10">
-								<p className="text-xs text-gray-400 mb-1">Vị Trí</p>
-								<p className="text-lg font-bold text-white">{table.location}</p>
+								<p className="text-xs text-gray-400 mb-1">Ngày Tạo</p>
+								<p className="text-lg font-bold text-white">
+									{table.createdAt
+										? new Date(table.createdAt).toLocaleDateString('vi-VN', {
+												year: 'numeric',
+												month: '2-digit',
+												day: '2-digit',
+										  })
+										: 'N/A'}
+								</p>
 							</div>
 							<div className="bg-black/30 rounded-lg p-4 border border-white/10">
 								<p className="text-xs text-gray-400 mb-1">Trạng Thái</p>
@@ -847,31 +653,88 @@ const TableStatusModal = ({ isOpen, onClose, table, onUpdateStatus }) => {
 								))}
 							</div>
 						</div>
-
-						{/* Additional Info */}
-						<div className="mt-6 grid grid-cols-2 gap-4 text-sm">
-							<div className="text-gray-400">
-								<p className="mb-1">Tầng:</p>
-								<p className="text-white font-semibold">{table.floor}</p>
-							</div>
-							<div className="text-gray-400">
-								<p className="mb-1">Ngày tạo:</p>
-								<p className="text-white font-semibold">
-									{new Date(table.createdAt).toLocaleDateString('vi-VN')}
-								</p>
-							</div>
-						</div>
 					</div>
 				</div>
 
 				{/* Close Button */}
-				<div className="flex justify-end mt-6 pt-4 border-t border-white/10">
-					<button
-						onClick={onClose}
-						className="h-10 px-4 rounded-lg bg-black/40 backdrop-blur-md text-white text-sm font-bold hover:bg-black/60 transition-colors"
-					>
-						Đóng
-					</button>
+				<div className="flex justify-end gap-3 mt-6 pt-4 border-t border-white/10">
+					{isEditMode ? (
+						<>
+							<button
+								onClick={() => {
+									setIsEditMode(false)
+									setEditedName(table.name)
+									setEditedCapacity(table.capacity?.toString() || '')
+								}}
+								disabled={isSaving}
+								className="h-10 px-4 rounded-lg bg-gray-600/40 backdrop-blur-md text-white text-sm font-bold hover:bg-gray-600/60 transition-colors disabled:opacity-50"
+							>
+								Hủy
+							</button>
+							<button
+								onClick={async () => {
+									// Validation
+									if (!editedName.trim()) {
+										showWarning('Lỗi nhập liệu', 'Tên bàn không được để trống')
+										return
+									}
+									const capacity = parseInt(editedCapacity)
+									if (!capacity || capacity < 1 || capacity > 20) {
+										showWarning('Lỗi nhập liệu', 'Sức chứa phải từ 1 đến 20 chỗ')
+										return
+									}
+
+									setIsSaving(true)
+									const result = await onUpdateInfo(table.id, {
+										name: editedName.trim(),
+										capacity: capacity,
+									})
+									setIsSaving(false)
+
+									if (result) {
+										setIsEditMode(false)
+									}
+								}}
+								disabled={isSaving}
+								className="h-10 px-4 rounded-lg bg-blue-600 backdrop-blur-md text-white text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+							>
+								{isSaving ? (
+									<>
+										<svg
+											className="animate-spin h-4 w-4"
+											xmlns="http://www.w3.org/2000/svg"
+											fill="none"
+											viewBox="0 0 24 24"
+										>
+											<circle
+												className="opacity-25"
+												cx="12"
+												cy="12"
+												r="10"
+												stroke="currentColor"
+												strokeWidth="4"
+											></circle>
+											<path
+												className="opacity-75"
+												fill="currentColor"
+												d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+											></path>
+										</svg>
+										<span>Đang lưu...</span>
+									</>
+								) : (
+									'Lưu thay đổi'
+								)}
+							</button>
+						</>
+					) : (
+						<button
+							onClick={onClose}
+							className="h-10 px-4 rounded-lg bg-black/40 backdrop-blur-md text-white text-sm font-bold hover:bg-black/60 transition-colors"
+						>
+							Đóng
+						</button>
+					)}
 				</div>
 			</div>
 		</div>
@@ -883,8 +746,11 @@ const TableStatusModal = ({ isOpen, onClose, table, onUpdateStatus }) => {
 
 const RestaurantTableManagement = () => {
 	const { showLoading, hideLoading } = useLoading()
-	const { showAlert, showSuccess, showError, showWarning, showInfo } = useAlert()
+	const { showAlert, showSuccess, showError, showWarning, showInfo, showConfirm } =
+		useAlert()
 	const [tables, setTables] = useState([])
+	const [floors, setFloors] = useState([])
+	const [currentFloorId, setCurrentFloorId] = useState(null)
 	const [loading, setLoading] = useState(false)
 	const [currentPage, setCurrentPage] = useState(1)
 	const [totalPages, setTotalPages] = useState(0)
@@ -892,14 +758,18 @@ const RestaurantTableManagement = () => {
 	const [selectedTable, setSelectedTable] = useState(null)
 	const [draggingTable, setDraggingTable] = useState(null)
 	const [dropTarget, setDropTarget] = useState(null)
-	const [gridSize, setGridSize] = useState({ rows: 5, cols: 10 })
+	const [gridSize, setGridSize] = useState({ rows: 4, cols: 4 })
 	const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+	const [isAddFloorModalOpen, setIsAddFloorModalOpen] = useState(false)
 
 	// Filter and Sort states
 	const [filterStatus, setFilterStatus] = useState('All')
 	const [filterLocation, setFilterLocation] = useState('All')
 	const [sortBy, setSortBy] = useState('id')
 	const [sortOrder, setSortOrder] = useState('asc')
+	const [downloadDropdownOpen, setDownloadDropdownOpen] = useState(false)
+	const [filterDropdownOpen, setFilterDropdownOpen] = useState(false)
+	const [refreshTrigger, setRefreshTrigger] = useState(0)
 	const [tableStats, setTableStats] = useState({
 		Available: 0,
 		Occupied: 0,
@@ -908,17 +778,68 @@ const RestaurantTableManagement = () => {
 
 	const currentFloor = currentPage
 
-	// ✅ Fetch tables from API when component mounts or filters change
+	// ✅ Fetch floors from API when component mounts
 	useEffect(() => {
+		const fetchFloors = async () => {
+			try {
+				const floorsData = await getFloorsAPI()
+
+				// Ensure floorsData is an array
+				const floorsArray = Array.isArray(floorsData) ? floorsData : []
+				setFloors(floorsArray)
+
+				if (floorsArray.length > 0) {
+					// Sort by floorNumber and get smallest
+					const sortedFloors = [...floorsArray].sort(
+						(a, b) => a.floorNumber - b.floorNumber,
+					)
+					const firstFloor = sortedFloors[0]
+
+					setCurrentPage(firstFloor.floorNumber)
+					setCurrentFloorId(firstFloor.id)
+					setTotalPages(floorsArray.length)
+				} else {
+					// No floors exist - show empty state
+					setTotalPages(0)
+					setCurrentFloorId(null)
+				}
+			} catch (error) {
+				console.error('❌ Failed to fetch floors:', error)
+				console.error('❌ Error details:', error.response?.data)
+				console.error('❌ Error status:', error.response?.status)
+				setFloors([])
+				setCurrentFloorId(null)
+				showError(`Không thể tải danh sách tầng: ${error.message}`)
+			}
+		}
+		fetchFloors()
+	}, [])
+
+	// ✅ Fetch tables from API when floor changes or filters change
+	useEffect(() => {
+		// Don't fetch if no floor is selected
+		if (!currentFloorId) {
+			return
+		}
+
 		const fetchTables = async () => {
 			showLoading('fetchTables')
 			try {
-				const result = await getTablesAPI(currentFloor, {
+				const floorId = currentFloorId
+				const currentFloorData = floors.find((f) => f.id === currentFloorId)
+
+				// ✅ Backend ListTablesDto expects: floorId (UUID), status, isActive
+				// ⚠️ Backend does NOT support: location, sortBy, sortOrder, floor (number)
+				const apiParams = {
+					floorId: floorId, // ✅ Required: Filter by floorId UUID
 					status: filterStatus !== 'All' ? filterStatus : undefined,
+					// Note: location, sortBy, sortOrder are ignored by backend
 					location: filterLocation !== 'All' ? filterLocation : undefined,
 					sortBy: sortBy,
 					sortOrder: sortOrder,
-				})
+				}
+
+				const result = await getTablesAPI(currentFloor, apiParams)
 
 				if (result.success) {
 					// Update rawTablesData with real data from backend
@@ -939,21 +860,9 @@ const RestaurantTableManagement = () => {
 					)
 
 					// ✅ Fetch real QR codes from backend for all tables
-					console.log('🔄 Fetching QR codes for', result.tables.length, 'tables...')
 					const qrPromises = result.tables.map(async (table) => {
 						try {
 							const qrResult = await getTableQRCodeAPI(table.id)
-							console.log('📊 QR Response for table', table.id, ':', {
-								success: qrResult.success,
-								hasImage: !!qrResult.image,
-								imageType: qrResult.image ? typeof qrResult.image : 'N/A',
-								imageLength: qrResult.image ? qrResult.image.length : 0,
-								imagePrefix: qrResult.image ? qrResult.image.substring(0, 50) : 'N/A',
-								url: qrResult.url,
-								tableName: qrResult.tableName,
-								tokenVersion: qrResult.tokenVersion,
-								fullResponse: qrResult,
-							})
 							if (qrResult.success && qrResult.image) {
 								// Backend returns base64 without prefix, need to add data URL prefix for <img> tag
 								const qrDataUrl = qrResult.image.startsWith('data:')
@@ -987,25 +896,33 @@ const RestaurantTableManagement = () => {
 						}),
 					)
 
-					console.log('✅ All QR codes fetched successfully')
-
 					// Update total floors
 					if (result.totalFloors) {
 						setTotalPages(result.totalFloors)
 					}
 
-					console.log('✅ Fetched tables from API:', result.tables.length, 'tables')
+					// ✅ Calculate and update grid size based on tables (enforce minimum 4x4)
+					const newGridSize = calculateGridSize(rawTablesData)
+					setGridSize(newGridSize)
 				} else {
 					console.warn('⚠️ Failed to fetch tables from API, using mock data')
 					// Fallback to mock data
 					const mockTables = filterTablesByFloor(currentFloor)
 					setTables(mockTables)
+
+					// Update grid size for mock data
+					const newGridSize = calculateGridSize(mockTables)
+					setGridSize(newGridSize)
 				}
 			} catch (error) {
 				console.error('❌ Error fetching tables:', error)
 				// Fallback to mock data
 				const mockTables = filterTablesByFloor(currentFloor)
 				setTables(mockTables)
+
+				// Update grid size for mock data
+				const newGridSize = calculateGridSize(mockTables)
+				setGridSize(newGridSize)
 			} finally {
 				hideLoading('fetchTables')
 			}
@@ -1013,13 +930,15 @@ const RestaurantTableManagement = () => {
 
 		fetchTables()
 	}, [
-		currentFloor,
+		currentFloorId,
 		filterStatus,
 		filterLocation,
 		sortBy,
 		sortOrder,
 		showLoading,
 		hideLoading,
+		floors, // ✅ Add floors to dependencies to refetch when floors change
+		refreshTrigger, // ✅ Trigger refetch when this changes
 	])
 
 	// ✅ Fetch table stats from API
@@ -1029,7 +948,6 @@ const RestaurantTableManagement = () => {
 				const result = await getTableStatsAPI()
 				if (result.success && result.stats) {
 					setTableStats(result.stats)
-					console.log('✅ Fetched table stats from API:', result.stats)
 				} else {
 					// Fallback: Calculate stats from current tables
 					const stats = rawTablesData.reduce(
@@ -1059,16 +977,19 @@ const RestaurantTableManagement = () => {
 	}, [tables])
 
 	const calculateGridSize = (tablesOnFloor) => {
-		if (tablesOnFloor.length === 0) {
-			return { rows: 5, cols: 10 }
+		// If no tables, return minimum 4x4
+		if (!tablesOnFloor || tablesOnFloor.length === 0) {
+			return { rows: 4, cols: 4 }
 		}
 
-		const maxX = Math.max(...tablesOnFloor.map((t) => t.gridX))
-		const maxY = Math.max(...tablesOnFloor.map((t) => t.gridY))
+		// Calculate based on table positions, but enforce minimum 4x4
+		const maxX = Math.max(...tablesOnFloor.map((t) => t.gridX || 0))
+		const maxY = Math.max(...tablesOnFloor.map((t) => t.gridY || 0))
 
+		// Always use minimum 4x4, expand only if tables need more space
 		return {
-			cols: Math.min(Math.max(maxX + 1, 1), 10),
-			rows: Math.max(maxY + 1, 1),
+			cols: Math.max(maxX + 1, 4),
+			rows: Math.max(maxY + 1, 4),
 		}
 	}
 
@@ -1091,12 +1012,9 @@ const RestaurantTableManagement = () => {
 		(data) => {
 			let filtered = [...data]
 
-			// Filter by status
-			if (filterStatus !== 'All') {
-				filtered = filtered.filter((t) => t.status === filterStatus)
-			}
+			// ⚠️ Status filter is already applied by backend, no need to filter again
 
-			// Filter by location
+			// Filter by location (backend doesn't support this)
 			if (filterLocation !== 'All') {
 				filtered = filtered.filter((t) => t.location === filterLocation)
 			}
@@ -1146,7 +1064,6 @@ const RestaurantTableManagement = () => {
 
 	const fetchTables = useCallback(
 		async (page) => {
-			console.log(`Fetching tables for Floor/Page: ${page}`)
 			setLoading(true)
 
 			setTimeout(() => {
@@ -1185,8 +1102,6 @@ const RestaurantTableManagement = () => {
 	}, [tables, selectedTable])
 
 	const handleStatusUpdate = async (tableId, newStatus) => {
-		console.log(`Updating table ${tableId} status to ${newStatus}`)
-
 		showLoading('updateStatus')
 		try {
 			// ✅ Call API to update status
@@ -1206,13 +1121,12 @@ const RestaurantTableManagement = () => {
 				}
 
 				await fetchTableStats()
-				console.log('✅ Table status updated successfully')
 			} else {
-				alert(`Failed to update status: ${result.message}`)
+				showError('Cập nhật thất bại', `Không thể cập nhật trạng thái: ${result.message}`)
 			}
 		} catch (error) {
 			console.error('❌ Error updating table status:', error)
-			alert('Network error. Please try again.')
+			showError('Lỗi kết nối', 'Lỗi mạng. Vui lòng thử lại.')
 		} finally {
 			hideLoading('updateStatus')
 			setIsStatusModalOpen(false)
@@ -1220,12 +1134,54 @@ const RestaurantTableManagement = () => {
 		}
 	}
 
+	const handleUpdateTableInfo = async (tableId, updateData) => {
+		showLoading('updateTable')
+		try {
+			// ✅ Call API to update table info (name, capacity)
+			const result = await updateTableAPI(tableId, updateData)
+
+			if (result.success) {
+				showSuccess('Cập nhật thành công', `Thông tin bàn đã được cập nhật!`)
+
+				// Update local state
+				setTables((prevTables) =>
+					prevTables.map((table) =>
+						table.id === tableId ? { ...table, ...updateData } : table,
+					),
+				)
+
+				const tableIndex = rawTablesData.findIndex((table) => table.id === tableId)
+				if (tableIndex !== -1) {
+					Object.assign(rawTablesData[tableIndex], updateData)
+				}
+
+				// Update selectedTable to reflect changes immediately
+				if (selectedTable && selectedTable.id === tableId) {
+					setSelectedTable({ ...selectedTable, ...updateData })
+				}
+
+				return true
+			} else {
+				showError('Cập nhật thất bại', result.message)
+				return false
+			}
+		} catch (error) {
+			console.error('❌ Error updating table info:', error)
+			showError('Lỗi', error?.message || 'Không thể cập nhật thông tin bàn')
+			return false
+		} finally {
+			hideLoading('updateTable')
+		}
+	}
+
 	const handleDeleteTable = async (tableId) => {
-		if (!window.confirm(`Are you sure you want to delete Table ${tableId}?`)) {
+		const confirmed = await showConfirm(
+			'Xác nhận xóa bàn',
+			`Bạn có chắc chắn muốn xóa bàn này?\nHành động này không thể hoàn tác.`,
+		)
+		if (!confirmed) {
 			return
 		}
-
-		console.log(`Deleting table ${tableId}`)
 
 		showLoading('deleteTable')
 		try {
@@ -1236,13 +1192,12 @@ const RestaurantTableManagement = () => {
 				// Update local state
 				setTables((prevTables) => prevTables.filter((table) => table.id !== tableId))
 				rawTablesData = rawTablesData.filter((table) => table.id !== tableId)
-				console.log('✅ Table deleted successfully')
 			} else {
-				alert(`Failed to delete table: ${result.message}`)
+				showError('Xóa thất bại', `Không thể xóa bàn: ${result.message}`)
 			}
 		} catch (error) {
 			console.error('❌ Error deleting table:', error)
-			alert('Network error. Please try again.')
+			showError('Lỗi kết nối', 'Lỗi mạng. Vui lòng thử lại.')
 		} finally {
 			hideLoading('deleteTable')
 		}
@@ -1263,8 +1218,6 @@ const RestaurantTableManagement = () => {
 
 	const handleDrop = async (newGridX, newGridY) => {
 		if (!draggingTable) return
-
-		console.log(`Moving table ${draggingTable.id} to position (${newGridX}, ${newGridY})`)
 
 		const isOccupied = tables.some(
 			(t) => t.id !== draggingTable.id && t.gridX === newGridX && t.gridY === newGridY,
@@ -1305,8 +1258,6 @@ const RestaurantTableManagement = () => {
 					rawTablesData[tableIndex].gridX = newGridX
 					rawTablesData[tableIndex].gridY = newGridY
 				}
-
-				console.log('✅ Table position updated successfully')
 			} else {
 				showError('Cập nhật vị trí thất bại', result.message)
 			}
@@ -1325,7 +1276,6 @@ const RestaurantTableManagement = () => {
 				cols: Math.min(Math.max(gridSize.cols, newGridX + 1), 10),
 				rows: Math.max(gridSize.rows, newGridY + 1),
 			})
-			console.log('Grid expanded due to table placement outside boundary')
 		}
 
 		setDraggingTable(null)
@@ -1333,7 +1283,6 @@ const RestaurantTableManagement = () => {
 	}
 
 	const handleAddRow = () => {
-		console.log('Manually adding row to grid')
 		const newRows = gridSize.rows + 1
 		setGridSize({
 			...gridSize,
@@ -1367,20 +1316,15 @@ const RestaurantTableManagement = () => {
 
 		showLoading('createTable')
 		try {
-			// ✅ Call API to create table
-			// TODO: Get real floorId from Floor API when floor management is implemented
-			// For now, create tables without floorId (optional field)
-
 			const newTablePayload = {
 				name: tableData.name,
 				capacity: tableData.capacity,
-				status: 'Available', // ✅ IMPORTANT: Set default status
+				status: 'Available',
 				gridX: newGridX,
 				gridY: newGridY,
-				// floorId: null, // Skip floorId for now - it's optional
+				floorId: tableData.floorId || currentFloorId, // ✅ Use floorId from tableData or fallback to currentFloorId
 			}
 
-			console.log('📋 Creating table with payload:', newTablePayload)
 			const result = await createTableAPI(newTablePayload)
 
 			if (result.success) {
@@ -1394,7 +1338,6 @@ const RestaurantTableManagement = () => {
 						`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=table-${result.table.id}`,
 				}
 
-				console.log('✅ Table created successfully:', newTableData)
 				rawTablesData.push(newTableData)
 
 				// Refresh tables from API
@@ -1402,11 +1345,11 @@ const RestaurantTableManagement = () => {
 				await fetchTables(floorToAdd)
 				await fetchTableStats()
 			} else {
-				alert(`Failed to create table: ${result.message}`)
+				showError('Tạo bàn thất bại', `Không thể tạo bàn: ${result.message}`)
 			}
 		} catch (error) {
 			console.error('❌ Error creating table:', error)
-			alert('Network error. Please try again.')
+			showError('Lỗi kết nối', 'Lỗi mạng. Vui lòng thử lại.')
 		} finally {
 			hideLoading('createTable')
 		}
@@ -1416,20 +1359,97 @@ const RestaurantTableManagement = () => {
 		setIsAddModalOpen(true)
 	}
 
-	const handleAddFloor = async () => {
-		const newFloorNumber = totalPages + 1
-		setTotalPages(newFloorNumber)
-		setCurrentPage(newFloorNumber)
-		showSuccess(
-			'Thêm tầng thành công',
-			`Tầng ${newFloorNumber} đã được thêm vào hệ thống.`,
+	const handleAddFloor = () => {
+		setIsAddFloorModalOpen(true)
+	}
+
+	const handleCreateFloor = async (floorData) => {
+		showLoading('createFloor')
+		try {
+			const result = await createFloorAPI(floorData)
+
+			if (result.success) {
+				showSuccess('Tạo tầng mới thành công!')
+
+				// Re-fetch floors to update count
+				const floorsData = await getFloorsAPI()
+				const floorsArray = Array.isArray(floorsData) ? floorsData : []
+				setFloors(floorsArray)
+				setTotalPages(floorsArray.length)
+
+				// Switch to the newly created floor
+				setCurrentPage(result.floor.floorNumber)
+				setCurrentFloorId(result.floor.id)
+
+				setIsAddFloorModalOpen(false)
+			} else {
+				showError('Không thể tạo tầng mới')
+			}
+		} catch (error) {
+			console.error('❌ Error creating floor:', error)
+			showError(error.message || 'Lỗi khi tạo tầng mới')
+		} finally {
+			hideLoading('createFloor')
+		}
+	}
+
+	const handleDeleteFloor = async () => {
+		if (!currentFloorId) {
+			showWarning('Không có tầng nào để xóa')
+			return
+		}
+
+		const currentFloorData = floors.find((f) => f.id === currentFloorId)
+		const floorName = currentFloorData?.name || `Tầng ${currentPage}`
+
+		const confirmed = await showConfirm(
+			`Xóa tầng "${floorName}"`,
+			`Bạn có chắc chắn muốn XÓA tầng này?\n\nLưu ý:\n- Tất cả bàn ăn trên tầng này sẽ KHÔNG bị xóa\n- Các bàn sẽ không còn liên kết với tầng này`,
 		)
-		fetchTables(newFloorNumber)
+		if (!confirmed) {
+			return
+		}
+
+		showLoading('deleteFloor')
+		try {
+			// ⚠️ Backend chưa implement /permanent endpoint, dùng DELETE thông thường
+			const result = await deleteFloorAPI(currentFloorId)
+
+			if (result.success) {
+				showSuccess(`Đã xóa tầng "${floorName}" thành công`)
+
+				// Re-fetch floors
+				const floorsData = await getFloorsAPI()
+				const floorsArray = Array.isArray(floorsData) ? floorsData : []
+				setFloors(floorsArray)
+
+				if (floorsArray.length > 0) {
+					// Switch to first floor
+					const sortedFloors = [...floorsArray].sort(
+						(a, b) => a.floorNumber - b.floorNumber,
+					)
+					const firstFloor = sortedFloors[0]
+					setCurrentPage(firstFloor.floorNumber)
+					setCurrentFloorId(firstFloor.id)
+					setTotalPages(floorsArray.length)
+				} else {
+					// No floors left
+					setCurrentFloorId(null)
+					setTotalPages(0)
+					setTables([])
+				}
+			} else {
+				showError('Không thể xóa tầng')
+			}
+		} catch (error) {
+			console.error('❌ Error deleting floor:', error)
+			showError(error.message || 'Lỗi khi xóa tầng')
+		} finally {
+			hideLoading('deleteFloor')
+		}
 	}
 
 	const handleDeleteRow = () => {
-		console.log('Manually deleting last row from grid')
-
 		if (gridSize.rows <= 1) {
 			showWarning('Không thể xóa hàng', 'Lưới phải có ít nhất 1 hàng.')
 			return
@@ -1455,8 +1475,6 @@ const RestaurantTableManagement = () => {
 	}
 
 	const handleAddColumn = () => {
-		console.log('Manually adding column to grid')
-
 		if (gridSize.cols >= 10) {
 			showWarning('Không thể thêm cột', 'Lưới chỉ được phép tối đa 10 cột.')
 			return
@@ -1470,8 +1488,6 @@ const RestaurantTableManagement = () => {
 	}
 
 	const handleDeleteColumn = () => {
-		console.log('Manually deleting last column from grid')
-
 		if (gridSize.cols <= 1) {
 			showWarning('Không thể xóa cột', 'Lưới phải có ít nhất 1 cột.')
 			return
@@ -1550,18 +1566,25 @@ const RestaurantTableManagement = () => {
 
 	const renderPagination = () => {
 		const links = []
-		for (let i = 1; i <= totalPages; i++) {
+		const sortedFloors = [...floors].sort((a, b) => a.floorNumber - b.floorNumber)
+
+		for (let i = 0; i < sortedFloors.length; i++) {
+			const floor = sortedFloors[i]
 			links.push(
 				<button
-					key={i}
-					onClick={() => setCurrentPage(i)}
+					key={floor.id}
+					onClick={() => {
+						setCurrentPage(floor.floorNumber)
+						setCurrentFloorId(floor.id)
+					}}
 					className={`inline-flex items-center justify-center rounded-lg w-10 h-10 text-base transition-colors border-none cursor-pointer ${
-						i === currentPage
+						floor.id === currentFloorId
 							? 'bg-[#137fec] text-white'
 							: 'bg-black/40 backdrop-blur-md text-gray-300 hover:bg-[#137fec] hover:text-white'
 					}`}
+					title={floor.name}
 				>
-					{i}
+					{floor.floorNumber}
 				</button>,
 			)
 		}
@@ -1613,249 +1636,193 @@ const RestaurantTableManagement = () => {
 							<div className="flex justify-between items-start mb-6">
 								<div className="flex flex-col gap-2">
 									<h1 className="text-white text-4xl font-black leading-tight tracking-tight">
-										Table Management (Floor {currentFloor})
+										Table Management
 									</h1>
 									<p className="text-gray-300 text-base">
 										Manage your restaurant's dining tables - Drag to rearrange
 									</p>
 								</div>
-
-								{/* QR Code Operations - Using Backend APIs (4, 5) */}
-								<div className="bg-black/20 backdrop-blur-md rounded-xl p-4 border border-white/10">
-									<h3 className="text-sm font-semibold text-gray-300 mb-3 text-center">
-										QR Code Operations (Floor {currentFloor})
-									</h3>
-									<div className="flex flex-wrap gap-3 justify-center">
-										{/* API 4: batchDownloadQRCodesAPI - Combined PDF */}
-										<HeaderButton
-											icon="📄"
-											text="Tải Combined PDF"
-											color="red"
-											onClick={async () => {
-												showLoading('Đang tạo file PDF...')
-												try {
-													const tableIds = rawTablesData
-														.filter((t) => t.floor === currentFloor)
-														.map((t) => t.id)
-													const result = await batchDownloadQRCodesAPI(
-														tableIds,
-														null,
-														'combined-pdf',
-													)
-													hideLoading()
-													if (!result.success) alert(`❌ Lỗi: ${result.message}`)
-												} catch (error) {
-													hideLoading()
-													alert(`❌ Lỗi: ${error.message}`)
-												}
-											}}
-											title="Tải tất cả QR vào 1 file PDF"
-										/>
-
-										{/* API 4: batchDownloadQRCodesAPI - ZIP PNG */}
-										<HeaderButton
-											icon="🗜️"
-											text="Tải ZIP PNG"
-											color="blue"
-											onClick={async () => {
-												showLoading('Đang tạo file ZIP...')
-												try {
-													const tableIds = rawTablesData
-														.filter((t) => t.floor === currentFloor)
-														.map((t) => t.id)
-													const result = await batchDownloadQRCodesAPI(
-														tableIds,
-														null,
-														'zip-png',
-													)
-													hideLoading()
-													if (!result.success) alert(`❌ Lỗi: ${result.message}`)
-												} catch (error) {
-													hideLoading()
-													alert(`❌ Lỗi: ${error.message}`)
-												}
-											}}
-											title="Tải tất cả QR dạng PNG trong ZIP"
-										/>
-
-										{/* API 4: batchDownloadQRCodesAPI - ZIP PDF */}
-										<HeaderButton
-											icon="📦"
-											text="Tải ZIP PDF"
-											color="cyan"
-											onClick={async () => {
-												showLoading('Đang tạo file ZIP...')
-												try {
-													const tableIds = rawTablesData
-														.filter((t) => t.floor === currentFloor)
-														.map((t) => t.id)
-													const result = await batchDownloadQRCodesAPI(
-														tableIds,
-														null,
-														'zip-pdf',
-													)
-													hideLoading()
-													if (!result.success) alert(`❌ Lỗi: ${result.message}`)
-												} catch (error) {
-													hideLoading()
-													alert(`❌ Lỗi: ${error.message}`)
-												}
-											}}
-											title="Tải tất cả QR dạng PDF trong ZIP"
-										/>
-
-										{/* API 5: bulkRegenerateQRCodesAPI */}
-										<HeaderButton
-											icon="🔄"
-											text="Tạo lại tất cả QR"
-											color="orange"
-											onClick={async () => {
-												const floorTables = rawTablesData.filter(
-													(t) => t.floor === currentFloor,
-												)
-												if (
-													window.confirm(
-														`Bạn có chắc muốn tạo lại QR Code cho ${floorTables.length} bàn trên tầng ${currentFloor}?\nTất cả QR cũ sẽ không còn hoạt động.`,
-													)
-												) {
-													showLoading('Đang tạo lại QR Code...')
-													try {
-														const tableIds = floorTables.map((t) => t.id)
-														const result = await bulkRegenerateQRCodesAPI(tableIds, null)
-														hideLoading()
-
-														if (result.success) {
-															showSuccess(
-																'Tạo QR thành công',
-																`Đã tạo mới ${result.regeneratedCount} QR Code!`,
-															)
-															window.location.reload()
-														} else {
-															showError('Lỗi tạo QR', result.message)
-														}
-													} catch (error) {
-														hideLoading()
-														showError('Lỗi', error.message)
-													}
-												}
-											}}
-											title="Tạo lại QR Code cho tất cả bàn trên tầng này"
-										/>
-									</div>
-								</div>
 							</div>
 						</header>
 
 						{/* Filter and Sort Controls */}
-						<div className="mb-6 bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-white/10">
+						<div className="mb-6 bg-black/20 backdrop-blur-sm rounded-xl p-6 border border-white/10 overflow-visible relative z-50">
 							<div className="flex flex-wrap gap-6">
-								{/* Filter by Status */}
+								{/* Filter by Status - Custom Dropdown */}
 								<div className="flex items-center gap-3">
 									<label className="text-sm font-semibold text-gray-300">
 										Lọc trạng thái:
 									</label>
-									<select
-										value={filterStatus}
-										onChange={(e) => setFilterStatus(e.target.value)}
-										className="px-4 py-2 bg-black/30 border-2 border-white/10 rounded-lg text-white focus:outline-none focus:border-[#137fec] transition-colors"
-									>
-										<option value="All" className="bg-gray-900">
-											Tất cả (
-											{tableStats.Available + tableStats.Occupied + tableStats.Cleaning})
-										</option>
-										<option value="Available" className="bg-gray-900">
-											Trống ({tableStats.Available})
-										</option>
-										<option value="Occupied" className="bg-gray-900">
-											Đang sử dụng ({tableStats.Occupied})
-										</option>
-										<option value="Cleaning" className="bg-gray-900">
-											Đang dọn dẹp ({tableStats.Cleaning})
-										</option>
-									</select>
+									<div className="relative">
+										<button
+											onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
+											className="px-4 py-2.5 bg-black/90 backdrop-blur-md border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:bg-black/40 min-w-[140px] text-left flex items-center justify-between gap-3"
+										>
+											<span>{filterStatus === 'All' ? 'Tất cả' : 'Trống'}</span>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="12"
+												height="12"
+												viewBox="0 0 12 12"
+												className={`transition-transform duration-200 ${
+													filterDropdownOpen ? 'rotate-180' : ''
+												}`}
+											>
+												<path fill="white" d="M6 9L1 4h10z" />
+											</svg>
+										</button>
+										{filterDropdownOpen && (
+											<div className="absolute top-full left-0 mt-2 min-w-full bg-black/90 backdrop-blur-md border border-white/20 rounded-xl overflow-hidden shadow-2xl z-[1000]">
+												<button
+													onClick={() => {
+														setFilterStatus('All')
+														setFilterDropdownOpen(false)
+													}}
+													className={`w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors ${
+														filterStatus === 'All' ? 'bg-white/5' : ''
+													}`}
+												>
+													Tất cả
+												</button>
+												<button
+													onClick={() => {
+														setFilterStatus('AVAILABLE')
+														setFilterDropdownOpen(false)
+													}}
+													className={`w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors ${
+														filterStatus === 'AVAILABLE' ? 'bg-white/5' : ''
+													}`}
+												>
+													Trống
+												</button>
+											</div>
+										)}
+									</div>
 								</div>
 
-								{/* Filter by Location */}
-								<div className="flex items-center gap-3">
-									<label className="text-sm font-semibold text-gray-300">
-										Lọc vị trí:
-									</label>
-									<select
-										value={filterLocation}
-										onChange={(e) => setFilterLocation(e.target.value)}
-										className="px-4 py-2 bg-black/30 border-2 border-white/10 rounded-lg text-white focus:outline-none focus:border-[#137fec] transition-colors"
+								{/* Download Dropdown */}
+								<div className="relative z-[10000]">
+									<button
+										onClick={() => setDownloadDropdownOpen(!downloadDropdownOpen)}
+										className="px-4 py-2 bg-blue-600/20 border-2 border-blue-600/30 text-blue-400 rounded-lg hover:bg-blue-600/40 hover:border-blue-500 transition-colors font-semibold flex items-center gap-2"
 									>
-										<option value="All" className="bg-gray-900">
-											Tất cả
-										</option>
-										<option value="Trong nhà" className="bg-gray-900">
-											Trong nhà
-										</option>
-										<option value="Ngoài trời" className="bg-gray-900">
-											Ngoài trời
-										</option>
-										<option value="Phòng VIP" className="bg-gray-900">
-											Phòng VIP
-										</option>
-										<option value="Khu gia đình" className="bg-gray-900">
-											Khu gia đình
-										</option>
-										<option value="Quầy bar" className="bg-gray-900">
-											Quầy bar
-										</option>
-									</select>
+										📥 Tải QR Code
+										<span className="text-xs">{downloadDropdownOpen ? '▲' : '▼'}</span>
+									</button>
+
+									{downloadDropdownOpen && (
+										<div className="absolute top-full left-0 mt-2 bg-black/90 backdrop-blur-md border-2 border-white/20 rounded-lg shadow-xl z-[99999] min-w-[200px]">
+											<button
+												onClick={async () => {
+													setDownloadDropdownOpen(false)
+													showLoading('Đang tạo file PDF...')
+													try {
+														const tableIds = rawTablesData
+															.filter((t) => t.floor === currentFloor)
+															.map((t) => t.id)
+														const result = await batchDownloadQRCodesAPI(
+															tableIds,
+															null,
+															'combined-pdf',
+														)
+														hideLoading()
+														if (!result.success) showError('Lỗi tải file', result.message)
+													} catch (error) {
+														hideLoading()
+														showError('Lỗi', error.message)
+													}
+												}}
+												className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-2 border-b border-white/10"
+											>
+												📄 Tải Combined PDF
+											</button>
+											<button
+												onClick={async () => {
+													setDownloadDropdownOpen(false)
+													showLoading('Đang tạo file ZIP...')
+													try {
+														const tableIds = rawTablesData
+															.filter((t) => t.floor === currentFloor)
+															.map((t) => t.id)
+														const result = await batchDownloadQRCodesAPI(
+															tableIds,
+															null,
+															'zip-png',
+														)
+														hideLoading()
+														if (!result.success) showError('Lỗi tải file', result.message)
+													} catch (error) {
+														hideLoading()
+														showError('Lỗi', error.message)
+													}
+												}}
+												className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-2 border-b border-white/10"
+											>
+												🗜️ Tải ZIP PNG
+											</button>
+											<button
+												onClick={async () => {
+													setDownloadDropdownOpen(false)
+													showLoading('Đang tạo file ZIP...')
+													try {
+														const tableIds = rawTablesData
+															.filter((t) => t.floor === currentFloor)
+															.map((t) => t.id)
+														const result = await batchDownloadQRCodesAPI(
+															tableIds,
+															null,
+															'zip-pdf',
+														)
+														hideLoading()
+														if (!result.success) showError('Lỗi tải file', result.message)
+													} catch (error) {
+														hideLoading()
+														showError('Lỗi', error.message)
+													}
+												}}
+												className="w-full px-4 py-3 text-left text-base text-white hover:bg-white/10 transition-colors flex items-center gap-2"
+											>
+												📦 Tải ZIP PDF
+											</button>
+										</div>
+									)}
 								</div>
 
-								{/* Sort By */}
-								<div className="flex items-center gap-3">
-									<label className="text-sm font-semibold text-gray-300">
-										Sắp xếp theo:
-									</label>
-									<select
-										value={sortBy}
-										onChange={(e) => setSortBy(e.target.value)}
-										className="px-4 py-2 bg-black/30 border-2 border-white/10 rounded-lg text-white focus:outline-none focus:border-[#137fec] transition-colors"
-									>
-										<option value="id" className="bg-gray-900">
-											Số bàn
-										</option>
-										<option value="capacity" className="bg-gray-900">
-											Sức chứa
-										</option>
-										<option value="createdAt" className="bg-gray-900">
-											Ngày tạo
-										</option>
-									</select>
-								</div>
-
-								{/* Sort Order */}
-								<div className="flex items-center gap-3">
-									<label className="text-sm font-semibold text-gray-300">Thứ tự:</label>
-									<select
-										value={sortOrder}
-										onChange={(e) => setSortOrder(e.target.value)}
-										className="px-4 py-2 bg-black/30 border-2 border-white/10 rounded-lg text-white focus:outline-none focus:border-[#137fec] transition-colors"
-									>
-										<option value="asc" className="bg-gray-900">
-											Tăng dần
-										</option>
-										<option value="desc" className="bg-gray-900">
-											Giảm dần
-										</option>
-									</select>
-								</div>
-
-								{/* Reset Filters */}
+								{/* Regenerate All QR Button */}
 								<button
-									onClick={() => {
-										setFilterStatus('All')
-										setFilterLocation('All')
-										setSortBy('id')
-										setSortOrder('asc')
+									onClick={async () => {
+										const floorTables = rawTablesData.filter(
+											(t) => t.floor === currentFloor,
+										)
+										const confirmed = await showConfirm(
+											'Xác nhận tạo lại tất cả QR Code',
+											`Bạn có chắc muốn tạo lại QR Code cho ${floorTables.length} bàn trên tầng ${currentFloor}?\nTất cả QR cũ sẽ không còn hoạt động.`,
+										)
+										if (confirmed) {
+											showLoading('Đang tạo lại QR Code...')
+											try {
+												const tableIds = floorTables.map((t) => t.id)
+												const result = await bulkRegenerateQRCodesAPI(tableIds, null)
+												hideLoading()
+												if (result.success) {
+													showSuccess(
+														'Tạo QR thành công',
+														`Đã tạo mới ${result.regeneratedCount} QR Code!`,
+													)
+													// Trigger refetch instead of full page reload
+													setRefreshTrigger((prev) => prev + 1)
+												} else {
+													showError('Lỗi tạo QR', result.message)
+												}
+											} catch (error) {
+												hideLoading()
+												showError('Lỗi', error.message)
+											}
+										}
 									}}
-									className="px-4 py-2 bg-red-600/20 border-2 border-red-600/30 text-red-400 rounded-lg hover:bg-red-600/40 hover:border-red-500 transition-colors font-semibold"
+									className="px-4 py-2 bg-orange-600/20 border-2 border-orange-600/30 text-orange-400 rounded-lg hover:bg-orange-600/40 hover:border-orange-500 transition-colors font-semibold"
 								>
-									🔄 Đặt lại
+									🔄 Tạo lại tất cả QR
 								</button>
 							</div>
 						</div>
@@ -1927,7 +1894,24 @@ const RestaurantTableManagement = () => {
 						</div>
 
 						<div className="flex-1 mb-8">
-							{tables.length > 0 || gridSize.rows > 0 ? (
+							{floors.length === 0 ? (
+								<div className="flex flex-col items-center justify-center py-16 bg-black/20 rounded-2xl border-2 border-dashed border-gray-600">
+									<div className="text-6xl mb-4">🏢</div>
+									<h3 className="text-2xl font-bold text-gray-300 mb-2">
+										Chưa có tầng nào
+									</h3>
+									<p className="text-gray-400 mb-6 text-center max-w-md">
+										Hãy tạo tầng đầu tiên để bắt đầu quản lý bàn ăn của nhà hàng
+									</p>
+									<button
+										onClick={handleAddFloor}
+										className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-blue-500/50 hover:scale-105"
+									>
+										<span className="text-xl mr-2">➕</span>
+										Tạo Tầng Đầu Tiên
+									</button>
+								</div>
+							) : tables.length > 0 || gridSize.rows > 0 ? (
 								<div>
 									<div
 										className="grid gap-6"
@@ -1951,52 +1935,84 @@ const RestaurantTableManagement = () => {
 							)}
 						</div>
 
-						{/* Floor Operations - Moved to bottom */}
-						<div className="mt-6 bg-black/20 backdrop-blur-md rounded-xl p-6 border border-white/10">
-							<h3 className="text-lg font-semibold text-gray-300 mb-4 text-center">
-								Floor Operations
-							</h3>
-							<div className="flex flex-wrap gap-4 justify-center">
-								<HeaderButton
-									icon="➕"
-									text="Add Floor"
-									color="blue"
-									onClick={handleAddFloor}
-									title="Add New Floor"
-								/>
-							</div>
-						</div>
+						{/* Pagination section */}
+						{floors.length > 0 && (
+							<div className="mt-6 pt-6 border-t border-white/10">
+								<div className="flex items-center justify-between">
+									<div className="flex items-center gap-4">
+										<div className="text-sm text-gray-400">
+											{floors.find((f) => f.id === currentFloorId)?.name ||
+												`Tầng ${currentPage}`}{' '}
+											({currentPage}/{totalPages})
+										</div>
+										<button
+											onClick={handleAddFloor}
+											className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-purple-800 transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-purple-500/50 flex items-center gap-2"
+											title="Thêm tầng mới"
+										>
+											<span>🏢</span>
+											<span>Thêm Tầng</span>
+										</button>
+										<button
+											onClick={handleDeleteFloor}
+											className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 shadow-lg"
+											title="Xóa tầng hiện tại"
+										>
+											🗑️ Xóa Tầng
+										</button>
+									</div>
 
-						{/* Pagination moved to bottom */}
-						<div className="mt-6 pt-6 border-t border-white/10">
-							<div className="flex items-center justify-between">
-								<div className="text-sm text-gray-400">
-									Floor {currentFloor} of {totalPages}
+									{floors.length > 0 && (
+										<nav className="flex items-center space-x-2">
+											<button
+												onClick={() => {
+													const sortedFloors = [...floors].sort(
+														(a, b) => a.floorNumber - b.floorNumber,
+													)
+													const currentIndex = sortedFloors.findIndex(
+														(f) => f.id === currentFloorId,
+													)
+													if (currentIndex > 0) {
+														const prevFloor = sortedFloors[currentIndex - 1]
+														setCurrentPage(prevFloor.floorNumber)
+														setCurrentFloorId(prevFloor.id)
+													}
+												}}
+												disabled={floors.findIndex((f) => f.id === currentFloorId) === 0}
+												className="flex items-center justify-center w-10 h-10 rounded-lg bg-black/40 backdrop-blur-md text-gray-300 hover:bg-[#137fec] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+												title="Previous Floor"
+											>
+												←
+											</button>
+											{renderPagination()}
+											<button
+												onClick={() => {
+													const sortedFloors = [...floors].sort(
+														(a, b) => a.floorNumber - b.floorNumber,
+													)
+													const currentIndex = sortedFloors.findIndex(
+														(f) => f.id === currentFloorId,
+													)
+													if (currentIndex < sortedFloors.length - 1) {
+														const nextFloor = sortedFloors[currentIndex + 1]
+														setCurrentPage(nextFloor.floorNumber)
+														setCurrentFloorId(nextFloor.id)
+													}
+												}}
+												disabled={
+													floors.findIndex((f) => f.id === currentFloorId) ===
+													floors.length - 1
+												}
+												className="flex items-center justify-center w-10 h-10 rounded-lg bg-black/40 backdrop-blur-md text-gray-300 hover:bg-[#137fec] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+												title="Next Floor"
+											>
+												→
+											</button>
+										</nav>
+									)}
 								</div>
-
-								{totalPages > 1 && (
-									<nav className="flex items-center space-x-2">
-										<button
-											onClick={() => setCurrentPage(currentPage - 1)}
-											disabled={currentPage === 1}
-											className="flex items-center justify-center w-10 h-10 rounded-lg bg-black/40 backdrop-blur-md text-gray-300 hover:bg-[#137fec] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-											title="Previous Floor"
-										>
-											←
-										</button>
-										{renderPagination()}
-										<button
-											onClick={() => setCurrentPage(currentPage + 1)}
-											disabled={currentPage === totalPages}
-											className="flex items-center justify-center w-10 h-10 rounded-lg bg-black/40 backdrop-blur-md text-gray-300 hover:bg-[#137fec] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-											title="Next Floor"
-										>
-											→
-										</button>
-									</nav>
-								)}
 							</div>
-						</div>
+						)}
 					</div>
 				</div>
 			</BasePageLayout>
@@ -2009,17 +2025,29 @@ const RestaurantTableManagement = () => {
 				}}
 				table={selectedTable}
 				onUpdateStatus={handleStatusUpdate}
+				onUpdateInfo={handleUpdateTableInfo}
+				floorId={currentFloorId}
 			/>
 
 			<AddTableModal
 				isOpen={isAddModalOpen}
 				onClose={() => setIsAddModalOpen(false)}
 				onSave={handleSaveTable}
-				existingTables={rawTablesData}
-				floor={currentFloor}
+				currentFloorId={currentFloorId}
+				nextTableId={getNextTableId(currentPage)}
+				existingTables={tables}
+				floorId={currentFloorId}
+				existingFloorNumbers={floors.map((f) => f.floorNumber)}
 			/>
-		</>
-	)
+
+		<AddFloorModal
+			isOpen={isAddFloorModalOpen}
+			onClose={() => setIsAddFloorModalOpen(false)}
+			onConfirm={handleCreateFloor}
+			existingFloorNumbers={floors.map((f) => f.floorNumber)}
+		/>
+	</>
+)
 }
 
 export default RestaurantTableManagement

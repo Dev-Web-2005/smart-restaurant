@@ -38,7 +38,7 @@ const SignUp = () => {
 		setErrorMessage('')
 
 		// ✅ VALIDATION MATCHING BACKEND REQUIREMENTS
-		// Required: username (4-20 chars)
+		// Required: username (4-20 chars, alphanumeric + underscore)
 		if (!formData.username.trim()) {
 			setErrorMessage('Username is required.')
 			return
@@ -47,16 +47,47 @@ const SignUp = () => {
 			setErrorMessage('Username must be between 4 and 20 characters.')
 			return
 		}
+		// Username format: only letters, numbers, and underscore
+		const usernameRegex = /^[a-zA-Z0-9_]+$/
+		if (!usernameRegex.test(formData.username)) {
+			setErrorMessage('Username can only contain letters, numbers, and underscore.')
+			return
+		}
 
 		// Required: email (valid format)
 		if (!formData.email.trim()) {
 			setErrorMessage('Email is required.')
 			return
 		}
-		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+		// Improved email validation
+		const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 		if (!emailRegex.test(formData.email)) {
-			setErrorMessage('Please enter a valid email address.')
+			setErrorMessage('Please enter a valid email address (e.g., user@example.com).')
 			return
+		}
+
+		// Optional: phone number validation (if provided, must be 10 digits)
+		if (formData.phoneNumber.trim()) {
+			// Remove spaces and special characters
+			const cleanPhone = formData.phoneNumber.replace(/[\s\-\(\)]/g, '')
+			// Check if it's 10 digits (Vietnamese format)
+			const phoneRegex = /^(0|\+84)[0-9]{9}$/
+			if (!phoneRegex.test(cleanPhone)) {
+				setErrorMessage(
+					'Phone number must be 10 digits starting with 0 or +84 followed by 9 digits.',
+				)
+				return
+			}
+		}
+
+		// Optional: birth year validation (if provided, must be valid)
+		if (formData.birthYear) {
+			const year = parseInt(formData.birthYear)
+			const currentYear = new Date().getFullYear()
+			if (isNaN(year) || year < 1900 || year > currentYear) {
+				setErrorMessage(`Birth year must be between 1900 and ${currentYear}.`)
+				return
+			}
 		}
 
 		// Required: password (min 8 chars)
@@ -91,12 +122,14 @@ const SignUp = () => {
 		const signupData = {
 			// REQUIRED FIELDS
 			username: formData.username.trim(),
-			email: formData.email.trim(),
+			email: formData.email.trim().toLowerCase(), // Normalize email
 			password: formData.password,
 			// OPTIONAL PROFILE FIELDS
 			fullName: formData.fullName?.trim() || '',
 			yearOfBirth: formData.birthYear ? parseInt(formData.birthYear) : null,
-			phoneNumber: formData.phoneNumber?.trim() || '',
+			phoneNumber: formData.phoneNumber
+				? formData.phoneNumber.replace(/[\s\-\(\)]/g, '')
+				: '', // Clean phone format
 			address: formData.address?.trim() || '',
 		}
 
@@ -160,13 +193,13 @@ const SignUp = () => {
 						)}
 						{/* Username Field (Mới thêm) */}
 						<FloatingInputField
-							label="Username"
+							label="Username (4-20 characters)"
 							type="text"
 							id="username"
 							name="username"
 							value={formData.username}
 							onChange={handleChange}
-							placeholder="johndoe123"
+							placeholder=""
 							disabled={loading}
 							required
 						/>
@@ -182,23 +215,27 @@ const SignUp = () => {
 								disabled={loading}
 							/>
 							<FloatingInputField
-								label="Year of Birth"
-								type="text"
+								label="Year of Birth (1900-2025)"
+								type="number"
 								id="birthYear"
 								name="birthYear"
 								value={formData.birthYear}
 								onChange={handleChange}
+								placeholder="1990"
 								disabled={loading}
+								min="1900"
+								max="2025"
 							/>
 						</div>
 						{/* Phone Number */}
 						<FloatingInputField
-							label="Phone Number"
+							label="Phone Number (10 digits)"
 							type="tel"
 							id="phoneNumber"
 							name="phoneNumber"
 							value={formData.phoneNumber}
 							onChange={handleChange}
+							placeholder="0123456789 or +84123456789"
 							disabled={loading}
 							icon={<span className="material-symbols-outlined">phone</span>}
 							iconPosition="left"
