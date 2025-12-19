@@ -1,0 +1,352 @@
+// services/api/authAPI.js
+// Authentication API Service - Identity Service via API Gateway
+
+import apiClient from '../apiClient'
+import { uploadCCCDImages } from './fileAPI'
+
+/**
+ * Login user with username and password
+ * @param {string} username - Username (4-20 characters)
+ * @param {string} password - Password (min 8 characters)
+ * @returns {Promise} Response with user data and access token
+ */
+export const loginAPI = async (username, password) => {
+	try {
+		const response = await apiClient.post('/identity/auth/login', {
+			username,
+			password,
+		})
+
+		const { code, message, data } = response.data
+
+		if (code === 1000) {
+			const { accessToken, userId, username: userName, email, roles, authorities } = data
+
+			window.accessToken = accessToken
+			const userData = {
+				userId,
+				username: userName,
+				email,
+				roles,
+				authorities,
+			}
+			localStorage.setItem('user', JSON.stringify(userData))
+
+			// Set tenantId for table management (userId = tenantId in this system)
+			window.currentTenantId = userId
+			console.log('✅ Login successful - TenantId set:', userId)
+
+			return {
+				success: true,
+				user: userData,
+				message,
+			}
+		} else {
+			console.warn('⚠️ Unexpected login response:', response.data)
+			return {
+				success: false,
+				message: message || 'Login failed',
+			}
+		}
+	} catch (error) {
+		console.error('❌ Login error:', error)
+
+		const errorCode = error?.code || error?.response?.data?.code
+		const errorMessage = error?.message || error?.response?.data?.message
+		let userMessage = 'Login failed. Please try again.'
+
+		switch (errorCode) {
+			case 1001:
+				userMessage = 'Invalid username or password.'
+				break
+			case 2901:
+				userMessage = 'Invalid input. Please check your credentials.'
+				break
+			case 9002:
+				userMessage = 'Cannot connect to server. Please check your internet connection.'
+				break
+			default:
+				userMessage = errorMessage || userMessage
+		}
+
+		return {
+			success: false,
+			message: userMessage,
+			errorCode,
+		}
+	}
+}
+
+/**
+ * Register new user with full profile data
+ * @param {Object} signupData - User signup data from SignUp page
+ * @param {Object} onboardingData - Restaurant + payment data from RestaurantSetupWizard
+ * @returns {Promise} Response with user data
+ */
+export const registerAPI = async (signupData, onboardingData) => {
+	try {
+		// Check if KYC URLs are provided (new flow) or need to upload files (old flow)
+		let frontImageUrl = ''
+		let backImageUrl = ''
+
+		if (onboardingData.cccdFrontUrl && onboardingData.cccdBackUrl) {
+			frontImageUrl = onboardingData.cccdFrontUrl
+			backImageUrl = onboardingData.cccdBackUrl
+		} else if (onboardingData.cccdFrontFile && onboardingData.cccdBackFile) {
+			// Old flow - upload files manually
+			console.log('📤 Uploading CCCD images...')
+			try {
+				const { frontImageUrl: front, backImageUrl: back } = await uploadCCCDImages(
+					onboardingData.cccdFrontFile,
+					onboardingData.cccdBackFile,
+				)
+				frontImageUrl = front
+				backImageUrl = back
+				console.log('✅ CCCD images uploaded successfully')
+			} catch (uploadError) {
+				console.error('❌ CCCD upload failed:', uploadError)
+				throw new Error(`Failed to upload identity documents: ${uploadError.message}`)
+			}
+		} else {
+			throw new Error('CCCD images are required for registration')
+		}
+
+		// Prepare registration payload
+		const payload = {
+			// Required fields
+			username: signupData.username,
+			email: signupData.email,
+			password: signupData.password,
+			confirmPassword: signupData.password,
+
+			// Optional profile data
+			fullName: signupData.fullName || onboardingData.citizenInfo?.fullName || '',
+			birthDay: signupData.yearOfBirth
+				? new Date(`${signupData.yearOfBirth}-01-01`).toISOString()
+				: onboardingData.citizenInfo?.dateOfBirth
+				? new Date(onboardingData.citizenInfo.dateOfBirth).toISOString()
+				: undefined,
+			phoneNumber: signupData.phoneNumber || '',
+			address: signupData.address || onboardingData.citizenInfo?.address || '',
+
+			// Restaurant information
+			restaurantName: onboardingData.restaurantName || '',
+			businessAddress: onboardingData.address || '',
+			contractNumber: onboardingData.phone || '',
+			contractEmail: onboardingData.email || '',
+
+			// Payment information
+			cardHolderName: onboardingData.cardholderName || '',
+			accountNumber: onboardingData.accountNumber || '',
+			expirationDate: onboardingData.expirationDate || '',
+			cvv: onboardingData.cvv || '',
+
+			// CCCD Images (from KYC or manual upload)
+			frontImage: frontImageUrl,
+			backImage: backImageUrl,
+		}
+
+		// Send registration request
+		const response = await apiClient.post('/identity/users/register', payload)
+
+		const { code, message, data } = response.data
+
+		if (code === 200) {
+			return {
+				success: true,
+				user: data,
+				message,
+			}
+		} else {
+			console.warn('⚠️ Unexpected registration response:', response.data)
+			return {
+				success: false,
+				message: message || 'Registration failed',
+			}
+		}
+	} catch (error) {
+		console.error('❌ Registration error:', error)
+
+		const errorCode = error?.code || error?.response?.data?.code
+		const errorMessage = error?.message || error?.response?.data?.message
+		const validationErrors = error?.errors || error?.response?.data?.errors
+		let userMessage = 'Registration failed. Please try again.'
+
+		switch (errorCode) {
+			case 2002:
+				userMessage = 'Username or email already exists. Please use a different one.'
+				break
+			case 2901:
+				// Validation errors - extract specific field errors
+				if (Array.isArray(validationErrors)) {
+					const errorMessages = validationErrors.map(
+						(err) => `${err.field}: ${err.message}`,
+					)
+					userMessage = errorMessages.join(', ')
+				} else {
+					userMessage = 'Invalid input. Please check your form data.'
+				}
+				break
+			case 2004:
+				userMessage = 'Failed to create user profile. Please try again.'
+				break
+			case 9002:
+				userMessage = 'Cannot connect to server. Please check your internet connection.'
+				break
+			default:
+				userMessage = errorMessage || userMessage
+		}
+
+		return {
+			success: false,
+			message: userMessage,
+			errorCode,
+			validationErrors,
+		}
+	}
+}
+
+// ============================================================================
+// 3. LOGOUT API
+// ============================================================================
+/**
+ * Logout user and invalidate tokens
+ * Requires: accessToken in Authorization header (auto-attached by interceptor)
+ * Backend will blacklist both access and refresh tokens
+ *
+ * Response (200 OK):
+ * {
+ *   code: 1000,
+ *   message: "Logout successful"
+ * }
+ *
+ * Error codes:
+ * - 1004: UNAUTHORIZED (401) - No valid token
+ */
+export const logoutAPI = async () => {
+	try {
+		const response = await apiClient.get('/identity/auth/logout')
+
+		const { code, message } = response.data
+
+		if (code === 1000) {
+			console.log('✅ Logout successful')
+
+			window.accessToken = null
+			localStorage.removeItem('user')
+
+			return {
+				success: true,
+				message,
+			}
+		} else {
+			console.warn('⚠️ Unexpected logout response:', response.data)
+			return {
+				success: false,
+				message: message || 'Logout failed',
+			}
+		}
+	} catch (error) {
+		console.error('❌ Logout error:', error)
+
+		// Clear storage even on error
+		window.accessToken = null
+		localStorage.removeItem('user')
+
+		return {
+			success: false,
+			message: 'Logout completed (with errors)',
+		}
+	}
+}
+
+/**
+ * Get current authenticated user information
+ * @returns {Promise} Response with user data
+ */
+export const getCurrentUserAPI = async () => {
+	try {
+		const response = await apiClient.get('/identity/auth/me')
+
+		const { code, data } = response.data
+
+		if (code === 1000) {
+			console.log('✅ User data fetched:', data.username)
+
+			localStorage.setItem('user', JSON.stringify(data))
+
+			return {
+				success: true,
+				user: data,
+			}
+		} else {
+			console.warn('⚠️ Unexpected user data response:', response.data)
+			return {
+				success: false,
+				message: 'Failed to fetch user data',
+			}
+		}
+	} catch (error) {
+		console.error('❌ Get user error:', error)
+
+		const errorCode = error?.code || error?.response?.data?.code
+
+		// Clear storage if unauthorized
+		if (errorCode === 1004 || errorCode === 1002) {
+			window.accessToken = null
+			localStorage.removeItem('user')
+		}
+
+		return {
+			success: false,
+			message: 'Failed to fetch user data',
+			errorCode,
+		}
+	}
+}
+
+/**
+ * Manually refresh access token
+ * @returns {Promise} Response with new access token
+ */
+export const refreshTokenAPI = async () => {
+	try {
+		const response = await apiClient.get('/identity/auth/refresh')
+
+		const { code, data } = response.data
+
+		if (code === 1000) {
+			// ✅ Token refreshed
+			const { accessToken } = data
+
+			console.log('✅ Token refreshed manually')
+
+			// Update memory storage
+			window.accessToken = accessToken
+
+			return {
+				success: true,
+				accessToken,
+			}
+		} else {
+			// ⚠️ Unexpected response
+			console.warn('⚠️ Unexpected refresh response:', response.data)
+			return {
+				success: false,
+				message: 'Failed to refresh token',
+			}
+		}
+	} catch (error) {
+		// ❌ Handle errors
+		console.error('❌ Token refresh error:', error)
+
+		// Clear storage if refresh fails
+		window.accessToken = null
+		localStorage.removeItem('user')
+
+		return {
+			success: false,
+			message: 'Session expired. Please login again.',
+		}
+	}
+}
