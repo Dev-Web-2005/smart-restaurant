@@ -3,13 +3,10 @@
 
 import axios from 'axios'
 
-const API_KEY =
-	'lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$]4m&;5,8m5JN-,S<h#}'
-
 // Create axios instance
 const apiClient = axios.create({
 	baseURL: '/api/v1',
-	withCredentials: false,
+	withCredentials: true, // Enable cookies for refresh token
 	headers: {
 		'Content-Type': 'application/json',
 	},
@@ -66,7 +63,7 @@ apiClient.interceptors.response.use(
 					console.log('🔄 Attempting manual token refresh...')
 
 					const refreshResponse = await axios.get('/api/v1/identity/auth/refresh', {
-						withCredentials: false,
+						withCredentials: true, // Important: Send httpOnly refresh token cookie
 					})
 
 					if (refreshResponse.data.code === 1000) {
@@ -79,6 +76,12 @@ apiClient.interceptors.response.use(
 						originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
 
 						console.log('✅ Token refreshed, retrying request...')
+
+						// Ensure POST data is properly sent on retry
+						if (originalRequest.data && typeof originalRequest.data === 'string') {
+							originalRequest.data = JSON.parse(originalRequest.data)
+						}
+
 						return apiClient(originalRequest)
 					}
 				} catch (refreshError) {

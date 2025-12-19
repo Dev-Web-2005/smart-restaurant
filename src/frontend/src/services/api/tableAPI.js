@@ -1,11 +1,11 @@
-// services/api/tableAPI.js
+﻿// services/api/tableAPI.js
 // Table Management API Service - Table Service via API Gateway
 // Last Updated: 16/12/2025
 
 /**
  * API STATUS (Updated: 16/12/2025 - All 6 QR APIs Integrated in UI)
  *
- * ✅ WORKING - Backend fully implemented (15 APIs):
+ * ? WORKING - Backend fully implemented (15 APIs):
  *    TABLE MANAGEMENT:
  *    - getTablesAPI: GET /tenants/:tenantId/tables
  *    - createTableAPI: POST /tenants/:tenantId/tables
@@ -17,7 +17,7 @@
  *    - createFloorAPI: POST /tenants/:tenantId/floors
  *    - updateGridConfigAPI: PATCH /tenants/:tenantId/floors/:floorId
  *
- *    QR CODE MANAGEMENT (All 6 APIs ✅ In Use):
+ *    QR CODE MANAGEMENT (All 6 APIs ? In Use):
  *    - getTableQRCodeAPI: GET /tenants/:tenantId/tables/:tableId/qrcode (Modal: View QR)
  *    - regenerateTableQRAPI: POST /tenants/:tenantId/tables/:tableId/qrcode (Modal: Regenerate button)
  *    - downloadTableQRCodeAPI: GET /tenants/:tenantId/tables/:tableId/qrcode/download (Modal: PNG/PDF/SVG buttons)
@@ -25,23 +25,23 @@
  *    - bulkRegenerateQRCodesAPI: POST /tenants/:tenantId/tables/qrcode/bulk-regenerate (Toolbar: Regenerate All button)
  *    - validateQRScanAPI: GET /tenants/:tenantId/tables/scan/:token (public, available for future use)
  *
- * ❌ NOT IMPLEMENTED - Backend needs development (2 APIs):
+ * ? NOT IMPLEMENTED - Backend needs development (2 APIs):
  *    - getTableStatsAPI: GET /tenants/:tenantId/tables/stats
  *    - saveTableLayoutAPI: PUT /tenants/:tenantId/tables/layout
- *    → Workarounds: Client-side stats, individual PATCH calls
+ *    ? Workarounds: Client-side stats, individual PATCH calls
  *
- * 🔄 CLIENT-SIDE HELPERS (4 functions):
+ * ?? CLIENT-SIDE HELPERS (4 functions):
  *    - downloadTableQRCode: Downloads QR from backend URL
  *    - printTableQRCode: Opens browser print dialog
  *    - downloadAllTableQRCodes: Creates ZIP of all QRs
  *    - printAllTableQRCodes: Multi-page print layout
  *
- * 🔐 AUTHENTICATION FIX:
+ * ?? AUTHENTICATION FIX:
  *    - tenantId = userId (each user is their own tenant)
  *    - window.currentTenantId set after login
  *    - All APIs require valid JWT token in Authorization header
  *
- * 📋 FIELD MAPPING:
+ * ?? FIELD MAPPING:
  *    - Backend: UUID strings for id, tenantId, floorId
  *    - CreateTableDto: name, capacity (required), floorId, gridX, gridY, status (optional)
  *    - UpdateTableDto: All fields optional
@@ -66,7 +66,7 @@ const normalizeStatus = (status) => {
 		AVAILABLE: 'Available',
 		OCCUPIED: 'Occupied',
 		RESERVED: 'Reserved',
-		MAINTENANCE: 'Cleaning', // Backend MAINTENANCE → Frontend Cleaning
+		MAINTENANCE: 'Cleaning', // Backend MAINTENANCE ? Frontend Cleaning
 	}
 	return statusMap[status] || status
 }
@@ -81,20 +81,20 @@ const toBackendStatus = (status) => {
 		Available: 'AVAILABLE',
 		Occupied: 'OCCUPIED',
 		Reserved: 'RESERVED',
-		Cleaning: 'MAINTENANCE', // Frontend Cleaning → Backend MAINTENANCE
+		Cleaning: 'MAINTENANCE', // Frontend Cleaning ? Backend MAINTENANCE
 	}
 	return statusMap[status] || status
 }
 
 /**
  * Get table statistics by status (across all floors)
- * ⚠️ Backend endpoint not implemented - returns mock data to prevent 400 errors
+ * ?? Backend endpoint not implemented - returns mock data to prevent 400 errors
  * @returns {Promise} Response with status counts
  */
 export const getTableStatsAPI = async () => {
 	// TODO: Enable when backend implements GET /tenants/:tenantId/tables/stats
 	console.warn(
-		'⚠️ getTableStatsAPI: Backend endpoint not implemented - returning empty stats',
+		'?? getTableStatsAPI: Backend endpoint not implemented - returning empty stats',
 	)
 	return {
 		success: true,
@@ -115,7 +115,7 @@ export const getTableStatsAPI = async () => {
 				message,
 			}
 		} else {
-			console.warn('⚠️ Unexpected response:', response.data)
+			console.warn('?? Unexpected response:', response.data)
 			return {
 				success: false,
 				stats: {},
@@ -123,7 +123,7 @@ export const getTableStatsAPI = async () => {
 			}
 		}
 	} catch (error) {
-		console.error('❌ Error fetching table stats:', error)
+		console.error('? Error fetching table stats:', error)
 		return {
 			success: false,
 			stats: {},
@@ -145,18 +145,30 @@ export const getTableStatsAPI = async () => {
  */
 export const getTablesAPI = async (floor, options = {}) => {
 	try {
-		// ✅ Backend ListTablesDto supports: isActive, status, floorId, includeFloor
-		// ⚠️ NOTE: location, sortBy, sortOrder are NOT supported by backend
+		console.log('?? [getTablesAPI] Called with:', {
+			floor,
+			options,
+			floorIdValue: options.floorId,
+			floorIdType: typeof options.floorId,
+		})
+
+		// ? Backend ListTablesDto supports: isActive, status, floorId, includeFloor
+		// ?? NOTE: location, sortBy, sortOrder are NOT supported by backend
 		const params = new URLSearchParams()
 
 		// Filter by status (backend supports this)
 		if (options.status && options.status !== 'All') {
+			console.log('? Adding status to params:', options.status)
 			params.append('status', options.status)
 		}
 
-		// Filter by floorId (if you have floorId mapping)
-		// For now, we'll skip this since we only have floor number
-		// TODO: Add floorId mapping when floor management is implemented
+		// ? Filter by floorId (backend ListTablesDto supports floorId)
+		if (options.floorId) {
+			console.log('? Adding floorId to params:', options.floorId)
+			params.append('floorId', options.floorId)
+		} else {
+			console.warn('?? floorId is missing from options!', { options })
+		}
 
 		// NOTE: Backend does NOT support:
 		// - location filter (frontend-only field)
@@ -165,16 +177,18 @@ export const getTablesAPI = async (floor, options = {}) => {
 		// Frontend will need to filter/sort locally
 
 		const tenantId = getTenantId()
-		const response = await apiClient.get(
-			`/tenants/${tenantId}/tables?${params.toString()}`,
-		)
+		const url = `/tenants/${tenantId}/tables?${params.toString()}`
+		console.log('?? [REQUEST URL]:', url)
+		console.log('?? [PARAMS STRING]:', params.toString())
+
+		const response = await apiClient.get(url)
 		const { code, message, data } = response.data
 
 		if (code === 1000 || code === 200) {
-			// ⚠️ Backend returns Array<TableDto> directly in data, NOT { tables: [...] }
+			// ?? Backend returns Array<TableDto> directly in data, NOT { tables: [...] }
 			let tables = Array.isArray(data) ? data : []
 
-			// 🔄 Normalize backend status values to frontend format
+			// ?? Normalize backend status values to frontend format
 			tables = tables.map((table) => ({
 				...table,
 				status: normalizeStatus(table.status),
@@ -203,7 +217,7 @@ export const getTablesAPI = async (floor, options = {}) => {
 				message,
 			}
 		} else {
-			console.warn('⚠️ Unexpected response:', response.data)
+			console.warn('?? Unexpected response:', response.data)
 			return {
 				success: false,
 				tables: [],
@@ -213,7 +227,7 @@ export const getTablesAPI = async (floor, options = {}) => {
 			}
 		}
 	} catch (error) {
-		console.error('❌ Error fetching tables:', {
+		console.error('? Error fetching tables:', {
 			message: error.message,
 			response: error?.response?.data,
 			status: error?.response?.status,
@@ -222,7 +236,7 @@ export const getTablesAPI = async (floor, options = {}) => {
 
 		// Check if it's authentication error
 		if (error.response?.status === 401) {
-			console.warn('⚠️ Authentication required - using mock data as fallback')
+			console.warn('?? Authentication required - using mock data as fallback')
 		}
 
 		return {
@@ -244,7 +258,7 @@ export const getTablesAPI = async (floor, options = {}) => {
  * @param {number} tableData.id - Table ID
  * @param {string} tableData.name - Table name (Required, Unique)
  * @param {number} tableData.capacity - Seating capacity (1-20) (Required)
- * @param {string} tableData.location - Location/Zone (e.g., "Trong nhà", "Ngoài trời", "Phòng VIP")
+ * @param {string} tableData.location - Location/Zone (e.g., "Trong nh�", "Ngo�i tr?i", "Ph�ng VIP")
  * @param {string} tableData.description - Description (Optional)
  * @param {number} tableData.floor - Floor number
  * @param {number} tableData.gridX - Grid X position
@@ -256,10 +270,10 @@ export const createTableAPI = async (tableData) => {
 	try {
 		const tenantId = getTenantId()
 
-		// 🔍 Debug: Check authentication
+		// ?? Debug: Check authentication
 		const accessToken = window.accessToken
 		if (!accessToken) {
-			console.error('❌ No access token found! User needs to login first.')
+			console.error('? No access token found! User needs to login first.')
 			return {
 				success: false,
 				message: 'Authentication required. Please login first.',
@@ -279,8 +293,8 @@ export const createTableAPI = async (tableData) => {
 		if (tableData.gridY !== undefined) payload.gridY = tableData.gridY
 		if (tableData.status) payload.status = toBackendStatus(tableData.status) // Convert to backend format
 
-		// 🔍 Debug: Log request details
-		console.log('📤 Creating table:', {
+		// ?? Debug: Log request details
+		console.log('?? Creating table:', {
 			url: `/tenants/${tenantId}/tables`,
 			payload,
 			hasToken: !!accessToken,
@@ -293,11 +307,11 @@ export const createTableAPI = async (tableData) => {
 
 		const response = await apiClient.post(`/tenants/${tenantId}/tables`, payload)
 
-		console.log('📥 Create table response:', response.data)
+		console.log('?? Create table response:', response.data)
 		const { code, message, data } = response.data
 
 		if (code === 1000 || code === 200 || code === 201) {
-			console.log('✅ Table created successfully:', data)
+			console.log('? Table created successfully:', data)
 			// Normalize status in response
 			const normalizedTable = {
 				...data,
@@ -309,14 +323,14 @@ export const createTableAPI = async (tableData) => {
 				message: message || 'Table created successfully',
 			}
 		} else {
-			console.warn('⚠️ Unexpected response code:', code)
+			console.warn('?? Unexpected response code:', code)
 			return {
 				success: false,
 				message: message || 'Failed to create table',
 			}
 		}
 	} catch (error) {
-		console.error('❌ Error creating table:', {
+		console.error('? Error creating table:', {
 			message: error.message,
 			response: error?.response?.data,
 			status: error?.response?.status,
@@ -385,7 +399,7 @@ export const updateTableStatusAPI = async (tableId, status) => {
 			}
 		}
 	} catch (error) {
-		console.error('❌ Error updating table status:', error)
+		console.error('? Error updating table status:', error)
 		return {
 			success: false,
 			message: error?.response?.data?.message || 'Network error',
@@ -425,7 +439,45 @@ export const updateTablePositionAPI = async (tableId, gridX, gridY, floorId) => 
 			}
 		}
 	} catch (error) {
-		console.error('❌ Error updating table position:', error)
+		console.error('? Error updating table position:', error)
+		return {
+			success: false,
+			message: error?.response?.data?.message || 'Network error',
+		}
+	}
+}
+
+/**
+ * Update table information (general update)
+ * Backend: PATCH /tenants/:tenantId/tables/:tableId
+ * @param {string} tableId - Table ID (UUID)
+ * @param {Object} updateData - Data to update (name, capacity, status, floorId, gridX, gridY, isActive)
+ * @returns {Promise} Response with updated table
+ */
+export const updateTableAPI = async (tableId, updateData) => {
+	try {
+		const tenantId = getTenantId()
+		// Using PATCH to update any fields
+		const response = await apiClient.patch(
+			`/tenants/${tenantId}/tables/${tableId}`,
+			updateData,
+		)
+		const { code, message, data } = response.data
+
+		if (code === 1000 || code === 200) {
+			return {
+				success: true,
+				table: data,
+				message: message || 'Table updated successfully',
+			}
+		} else {
+			return {
+				success: false,
+				message: message || 'Failed to update table',
+			}
+		}
+	} catch (error) {
+		console.error('? Error updating table:', error)
 		return {
 			success: false,
 			message: error?.response?.data?.message || 'Network error',
@@ -451,8 +503,8 @@ export const saveTableLayoutAPI = async (floor, tables, gridConfig) => {
 
 		// TODO: Backend needs to implement PUT /tenants/:tenantId/tables/layout
 		// Temporarily disabled - returning mock success
-		console.warn('⚠️ saveTableLayoutAPI: Backend endpoint not implemented yet')
-		console.log('📦 Would save layout:', {
+		console.warn('?? saveTableLayoutAPI: Backend endpoint not implemented yet')
+		console.log('?? Would save layout:', {
 			floor,
 			tableCount: tablePositions.length,
 			gridConfig,
@@ -490,7 +542,7 @@ export const saveTableLayoutAPI = async (floor, tables, gridConfig) => {
 		}
 		*/
 	} catch (error) {
-		console.error('❌ Error saving table layout:', error)
+		console.error('? Error saving table layout:', error)
 		return {
 			success: false,
 			message: error?.response?.data?.message || 'Network error',
@@ -521,7 +573,7 @@ export const deleteTableAPI = async (tableId) => {
 			}
 		}
 	} catch (error) {
-		console.error('❌ Error deleting table:', error)
+		console.error('? Error deleting table:', error)
 		return {
 			success: false,
 			message: error?.response?.data?.message || 'Network error',
@@ -543,11 +595,11 @@ export const createFloorAPI = async (
 		const tenantId = getTenantId()
 		// Backend expects: name, floorNumber, gridWidth, gridHeight, description
 		const response = await apiClient.post(`/tenants/${tenantId}/floors`, {
-			name: floorName || `Tầng ${floorNumber}`,
+			name: floorName || `T?ng ${floorNumber}`,
 			floorNumber,
 			gridWidth: 10, // Default grid width
 			gridHeight: 10, // Default grid height
-			description: description || `Tầng ${floorNumber} của nhà hàng`,
+			description: description || `T?ng ${floorNumber} c?a nh� h�ng`,
 			isActive: true,
 		})
 		const { code, message, data } = response.data
@@ -565,7 +617,7 @@ export const createFloorAPI = async (
 			}
 		}
 	} catch (error) {
-		console.error('❌ Error creating floor:', error)
+		console.error('? Error creating floor:', error)
 		return {
 			success: false,
 			message: error?.response?.data?.message || 'Network error',
@@ -602,7 +654,7 @@ export const updateGridConfigAPI = async (floorId, gridWidth, gridHeight) => {
 			}
 		}
 	} catch (error) {
-		console.error('❌ Error updating grid config:', error)
+		console.error('? Error updating grid config:', error)
 		return {
 			success: false,
 			message: error?.response?.data?.message || 'Network error',
@@ -640,7 +692,7 @@ export const getTableQRCodeAPI = async (tableId) => {
 			}
 		}
 	} catch (error) {
-		console.error('❌ Error getting table QR code:', error)
+		console.error('? Error getting table QR code:', error)
 		return {
 			success: false,
 			message: error?.response?.data?.message || 'Network error',
@@ -678,7 +730,7 @@ export const regenerateTableQRAPI = async (tableId) => {
 			}
 		}
 	} catch (error) {
-		console.error('❌ Error regenerating table QR code:', error)
+		console.error('? Error regenerating table QR code:', error)
 		return {
 			success: false,
 			message: error?.response?.data?.message || 'Network error',
@@ -714,8 +766,17 @@ export const downloadTableQRCodeAPI = async (tableId, format = 'png') => {
 		const contentDisposition = response.headers['content-disposition']
 		let filename = `qr-code-${tableId}.${format}`
 		if (contentDisposition) {
-			const filenameMatch = contentDisposition.match(/filename="?(.+)"?/)
-			if (filenameMatch) filename = filenameMatch[1]
+			// Try RFC 5987 format first: filename*=UTF-8''example.pdf
+			const filenameStarMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)
+			if (filenameStarMatch) {
+				filename = decodeURIComponent(filenameStarMatch[1])
+			} else {
+				// Fallback to standard format: filename="example.pdf" or filename=example.pdf
+				const filenameMatch = contentDisposition.match(/filename=["']?([^"';]+)["']?/i)
+				if (filenameMatch) {
+					filename = filenameMatch[1].trim()
+				}
+			}
 		}
 
 		link.download = filename
@@ -729,7 +790,7 @@ export const downloadTableQRCodeAPI = async (tableId, format = 'png') => {
 			message: 'QR code downloaded successfully',
 		}
 	} catch (error) {
-		console.error('❌ Error downloading QR code:', error)
+		console.error('? Error downloading QR code:', error)
 		return {
 			success: false,
 			message: error?.response?.data?.message || 'Network error',
@@ -774,8 +835,17 @@ export const batchDownloadQRCodesAPI = async (
 		const contentDisposition = response.headers['content-disposition']
 		let filename = `qr-codes-batch.${format.includes('pdf') ? 'pdf' : 'zip'}`
 		if (contentDisposition) {
-			const filenameMatch = contentDisposition.match(/filename="?(.+)"?/)
-			if (filenameMatch) filename = filenameMatch[1]
+			// Try RFC 5987 format first: filename*=UTF-8''example.zip
+			const filenameStarMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)
+			if (filenameStarMatch) {
+				filename = decodeURIComponent(filenameStarMatch[1])
+			} else {
+				// Fallback to standard format: filename="example.zip" or filename=example.zip
+				const filenameMatch = contentDisposition.match(/filename=["']?([^"';]+)["']?/i)
+				if (filenameMatch) {
+					filename = filenameMatch[1].trim()
+				}
+			}
 		}
 
 		link.download = filename
@@ -789,7 +859,7 @@ export const batchDownloadQRCodesAPI = async (
 			message: 'QR codes downloaded successfully',
 		}
 	} catch (error) {
-		console.error('❌ Error batch downloading QR codes:', error)
+		console.error('? Error batch downloading QR codes:', error)
 		return {
 			success: false,
 			message: error?.response?.data?.message || 'Network error',
@@ -807,7 +877,7 @@ export const batchDownloadQRCodesAPI = async (
 export const bulkRegenerateQRCodesAPI = async (tableIds = null, floorId = null) => {
 	try {
 		const tenantId = getTenantId()
-		// ✅ Backend endpoint: POST /tenants/:tenantId/tables/qrcode/bulk-regenerate
+		// ? Backend endpoint: POST /tenants/:tenantId/tables/qrcode/bulk-regenerate
 		const payload = {}
 		if (tableIds && tableIds.length > 0) payload.tableIds = tableIds
 		if (floorId) payload.floorId = floorId
@@ -840,7 +910,7 @@ export const bulkRegenerateQRCodesAPI = async (tableIds = null, floorId = null) 
 			}
 		}
 	} catch (error) {
-		console.error('❌ Error regenerating QR codes:', error)
+		console.error('? Error regenerating QR codes:', error)
 		return {
 			success: false,
 			regeneratedCount: 0,
@@ -870,14 +940,14 @@ export const validateQRScanAPI = async (token) => {
 				message: message || 'QR code validated successfully',
 			}
 		} else {
-			console.warn('⚠️ Unexpected response:', response.data)
+			console.warn('?? Unexpected response:', response.data)
 			return {
 				success: false,
 				message: message || 'Invalid QR code',
 			}
 		}
 	} catch (error) {
-		console.error('❌ Error validating QR scan:', error)
+		console.error('? Error validating QR scan:', error)
 		return {
 			success: false,
 			message: error?.response?.data?.message || 'QR code validation failed',
@@ -909,7 +979,7 @@ export const downloadTableQRCode = async (qrCodeUrl, tableName) => {
 
 		return true
 	} catch (error) {
-		console.error('❌ Error downloading QR code:', error)
+		console.error('? Error downloading QR code:', error)
 		return false
 	}
 }
@@ -925,7 +995,7 @@ export const printTableQRCode = (qrCodeUrl, tableName, tableInfo = {}) => {
 	const printWindow = window.open('', '_blank', 'width=800,height=600')
 
 	if (!printWindow) {
-		alert('Vui lòng cho phép popup để in QR code')
+		alert('Vui l�ng cho ph�p popup d? in QR code')
 		return
 	}
 
@@ -990,17 +1060,17 @@ export const printTableQRCode = (qrCodeUrl, tableName, tableInfo = {}) => {
 				<div class="qr-title">${tableName}</div>
 				${
 					tableInfo.location
-						? `<div class="qr-subtitle">Vị trí: ${tableInfo.location}</div>`
+						? `<div class="qr-subtitle">V? tr�: ${tableInfo.location}</div>`
 						: ''
 				}
 				${
 					tableInfo.capacity
-						? `<div class="qr-subtitle">Sức chứa: ${tableInfo.capacity} người</div>`
+						? `<div class="qr-subtitle">S?c ch?a: ${tableInfo.capacity} ngu?i</div>`
 						: ''
 				}
 				<img src="${qrCodeUrl}" alt="QR Code" class="qr-image" />
 				<div class="qr-info">
-					Quét mã QR để xem thông tin bàn và đặt món
+					Qu�t m� QR d? xem th�ng tin b�n v� d?t m�n
 				</div>
 			</div>
 			<script>
@@ -1077,12 +1147,12 @@ export const downloadAllTableQRCodes = async (tables) => {
 
 		return true
 	} catch (error) {
-		console.error('❌ Error downloading all QR codes:', error)
+		console.error('? Error downloading all QR codes:', error)
 
 		// Fallback: show error and suggest manual download
 		if (error.message?.includes('Cannot find module')) {
 			alert(
-				'Chức năng tải ZIP cần cài đặt thư viện JSZip. Vui lòng liên hệ quản trị viên.',
+				'Ch?c nang t?i ZIP c?n c�i d?t thu vi?n JSZip. Vui l�ng li�n h? qu?n tr? vi�n.',
 			)
 		}
 
@@ -1099,7 +1169,7 @@ export const printAllTableQRCodes = (tables) => {
 	const printWindow = window.open('', '_blank', 'width=800,height=600')
 
 	if (!printWindow) {
-		alert('Vui lòng cho phép popup để in QR code')
+		alert('Vui l�ng cho ph�p popup d? in QR code')
 		return
 	}
 
@@ -1110,17 +1180,17 @@ export const printAllTableQRCodes = (tables) => {
 			(table) => `
 			<div class="qr-container">
 				<div class="qr-title">${table.name}</div>
-				${table.location ? `<div class="qr-subtitle">Vị trí: ${table.location}</div>` : ''}
+				${table.location ? `<div class="qr-subtitle">V? tr�: ${table.location}</div>` : ''}
 				${
 					table.capacity
-						? `<div class="qr-subtitle">Sức chứa: ${table.capacity} người</div>`
+						? `<div class="qr-subtitle">S?c ch?a: ${table.capacity} ngu?i</div>`
 						: ''
 				}
 				<img src="${table.qrCodeUrl}" alt="QR Code ${
 				table.name
 			}" class="qr-image" onerror="this.src='https://via.placeholder.com/400x400?text=QR+Error'" />
 				<div class="qr-info">
-					Quét mã QR để xem thông tin bàn và đặt món
+					Qu�t m� QR d? xem th�ng tin b�n v� d?t m�n
 				</div>
 			</div>
 		`,
@@ -1132,7 +1202,7 @@ export const printAllTableQRCodes = (tables) => {
 		<!DOCTYPE html>
 		<html>
 		<head>
-			<title>In tất cả QR Code - ${tables.length} bàn</title>
+			<title>In t?t c? QR Code - ${tables.length} b�n</title>
 			<style>
 				* {
 					margin: 0;

@@ -129,7 +129,7 @@ const AdminLogin = () => {
 							name="username"
 							value={credentials.username}
 							onChange={handleChange}
-							placeholder="Enter your username or email"
+							placeholder=""
 							disabled={loading}
 							autoComplete="off"
 							icon={<span className="material-symbols-outlined">person</span>}
@@ -145,7 +145,7 @@ const AdminLogin = () => {
 								name="password"
 								value={credentials.password}
 								onChange={handleChange}
-								placeholder="Enter your password"
+								placeholder=""
 								disabled={loading}
 								autoComplete="new-password"
 								icon={<span className="material-symbols-outlined">lock</span>}

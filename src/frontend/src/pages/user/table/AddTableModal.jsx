@@ -1,7 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react'
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react'
 import ReactDOM from 'react-dom'
-
-const LOCATIONS = ['Trong nhà', 'Ngoài trời', 'Phòng VIP', 'Khu gia đình', 'Quầy bar']
 
 // Helper function để debounce
 const useDebounce = (value, delay) => {
@@ -20,11 +18,10 @@ const useDebounce = (value, delay) => {
 	return debouncedValue
 }
 
-const AddTableModal = ({ isOpen, onClose, onSave, existingTables, floor }) => {
+const AddTableModal = ({ isOpen, onClose, onSave, existingTables, floor, floorId }) => {
 	const [formData, setFormData] = useState({
 		name: '',
 		capacity: '',
-		location: 'Trong nhà',
 		description: '',
 	})
 	const [errors, setErrors] = useState({})
@@ -38,7 +35,6 @@ const AddTableModal = ({ isOpen, onClose, onSave, existingTables, floor }) => {
 			setFormData({
 				name: '',
 				capacity: '',
-				location: 'Trong nhà',
 				description: '',
 			})
 			setErrors({})
@@ -55,7 +51,7 @@ const AddTableModal = ({ isOpen, onClose, onSave, existingTables, floor }) => {
 
 	// Validate name với debounce
 	useEffect(() => {
-		if (debouncedName.trim() && existingTables.length > 0) {
+		if (debouncedName.trim() && existingTables && existingTables.length > 0) {
 			const isDuplicate = existingTables.some(
 				(t) => t.name.toLowerCase() === debouncedName.trim().toLowerCase(),
 			)
@@ -122,6 +118,7 @@ const AddTableModal = ({ isOpen, onClose, onSave, existingTables, floor }) => {
 			description: formData.description.trim(),
 			status: 'Available',
 			floor: floor,
+			floorId: floorId, // ✅ Add floorId UUID for backend validation
 		}
 
 		onSave(tableData, null)
@@ -191,23 +188,6 @@ const AddTableModal = ({ isOpen, onClose, onSave, existingTables, floor }) => {
 							{errors.capacity && (
 								<p className="text-red-500 text-sm mt-1">{errors.capacity}</p>
 							)}
-						</div>
-
-						<div className="space-y-2">
-							<label className="text-sm font-semibold text-gray-300">
-								Vị trí / Khu vực
-							</label>
-							<select
-								value={formData.location}
-								onChange={(e) => handleChange('location', e.target.value)}
-								className="w-full px-4 py-3 bg-black/30 border-2 border-white/10 rounded-lg text-white focus:outline-none focus:border-[#137fec] transition-colors"
-							>
-								{LOCATIONS.map((loc) => (
-									<option key={loc} value={loc} className="bg-gray-900">
-										{loc}
-									</option>
-								))}
-							</select>
 						</div>
 
 						<div className="space-y-2">
