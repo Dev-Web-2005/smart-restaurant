@@ -8,11 +8,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 		const response = ctx.getResponse<Response>();
 		const request = ctx.getRequest();
 
-		const status = exception.status || exception.code || HttpStatus.INTERNAL_SERVER_ERROR;
+		// Ensure status is always a valid HTTP status code number
+		let status = HttpStatus.INTERNAL_SERVER_ERROR;
+		if (typeof exception.status === 'number') {
+			status = exception.status;
+		} else if (typeof exception.code === 'number') {
+			status = exception.code;
+		}
+
 		const message = exception.message || 'Internal server error';
 
 		const errorResponse: any = {
-			code: exception.code || status,
+			code: typeof exception.code === 'number' ? exception.code : status,
 			message: message,
 			timestamp: new Date().toISOString(),
 			path: request.url,
