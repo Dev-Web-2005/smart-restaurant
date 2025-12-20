@@ -16,6 +16,10 @@
         {
             "source": "/api/kyc/:path*",
             "destination": "https://verification.didit.me/v2/:path*"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
         }
     ],
     "headers": [
