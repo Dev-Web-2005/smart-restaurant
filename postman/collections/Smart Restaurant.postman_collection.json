@@ -530,7 +530,7 @@
               "raw": ""
             },
             "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/scan/eyJ0YWJsZUlkIjoiNGU0MGUwOGMtNjc1YS00ODI1LWFmNzgtNzAyOGFjODZmZTY5IiwidGVuYW50SWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ0b2tlblZlcnNpb24iOjIsImlzc3VlZEF0IjoxNzY1ODQ5NDAxMDAzfQ.TsRuII9sChZUPthauWY5VUxTdvYokjg0w99oxNRC38I",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/scan/eyJ0YWJsZUlkIjoiZmYwOWM3OWQtZmNlZS00OTg5LWJlMGUtNThkODliYTI1MjQzIiwidGVuYW50SWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ0b2tlblZlcnNpb24iOjMsImlzc3VlZEF0IjoxNzY2MjIxNTc5MzAyfQ.SWQZgcp8FVvC1ZIJwdwQM-ZKINCLAgtf_y-ejO2djqU",
               "host": [
                 "{{baseURL}}"
               ],
@@ -541,7 +541,7 @@
                 "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "tables",
                 "scan",
-                "eyJ0YWJsZUlkIjoiNGU0MGUwOGMtNjc1YS00ODI1LWFmNzgtNzAyOGFjODZmZTY5IiwidGVuYW50SWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ0b2tlblZlcnNpb24iOjIsImlzc3VlZEF0IjoxNzY1ODQ5NDAxMDAzfQ.TsRuII9sChZUPthauWY5VUxTdvYokjg0w99oxNRC38I"
+                "eyJ0YWJsZUlkIjoiZmYwOWM3OWQtZmNlZS00OTg5LWJlMGUtNThkODliYTI1MjQzIiwidGVuYW50SWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ0b2tlblZlcnNpb24iOjMsImlzc3VlZEF0IjoxNzY2MjIxNTc5MzAyfQ.SWQZgcp8FVvC1ZIJwdwQM-ZKINCLAgtf_y-ejO2djqU"
               ]
             }
           },
