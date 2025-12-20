@@ -7,7 +7,7 @@ services:
     branch: release
     dockerfilePath: ./deploy/Dockerfile.all-in-one
     dockerContext: .
-    healthCheckPath: /
+    healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_ENV
         value: production

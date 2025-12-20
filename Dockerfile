@@ -12,21 +12,21 @@ COPY src/backend ./src/backend
 WORKDIR /app/src/backend/shared
 RUN npm install && npm run build
 
-# Build từng service
+# Build từng service với npx để tránh permission issues
 WORKDIR /app/src/backend/api-gateway
-RUN npm install && npm run build
+RUN npm install && chmod -R +x node_modules/.bin && npx nest build
 
 WORKDIR /app/src/backend/identity
-RUN npm install && npm run build
+RUN npm install && chmod -R +x node_modules/.bin && npx nest build
 
 WORKDIR /app/src/backend/profile
-RUN npm install && npm run build
+RUN npm install && chmod -R +x node_modules/.bin && npx nest build
 
 WORKDIR /app/src/backend/product
-RUN npm install && npm run build
+RUN npm install && chmod -R +x node_modules/.bin && npx nest build
 
 WORKDIR /app/src/backend/table
-RUN npm install && npm run build
+RUN npm install && chmod -R +x node_modules/.bin && npx nest build
 
 # Stage 2: Production
 FROM node:20-alpine
