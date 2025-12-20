@@ -12,11 +12,16 @@ export class RpcExceptionFilter implements ExceptionFilter {
 
 		if (typeof error === 'object' && error !== null) {
 			const errorObj = error as any;
-			const statusCode = errorObj.status;
+			// Ensure statusCode is always a valid number
+			const statusCode =
+				typeof errorObj.status === 'number'
+					? errorObj.status
+					: HttpStatus.INTERNAL_SERVER_ERROR;
+			const code = typeof errorObj.code === 'number' ? errorObj.code : statusCode;
 
 			return response.status(statusCode).json({
-				code: errorObj.code,
-				message: errorObj.message,
+				code: code,
+				message: errorObj.message || 'Internal server error',
 				errors: errorObj.errors,
 				timestamp: new Date().toISOString(),
 			});

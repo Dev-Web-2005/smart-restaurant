@@ -101,106 +101,147 @@ export class IdentityController {
 
 	@Post('auth/login')
 	async login(@Body() data: any, @Res() res: Response) {
-		const observableResponse = this.identityClient.send('auth:login', {
-			...data,
-			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
-		});
-		const response = await firstValueFrom(observableResponse);
+		try {
+			const observableResponse = this.identityClient.send('auth:login', {
+				...data,
+				identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+			});
+			const response = await firstValueFrom(observableResponse);
 
-		if (!response || !response.code || response.code !== HttpStatus.OK) {
-			return res.status(response?.code || HttpStatus.UNAUTHORIZED).json(response);
-		}
+			// Check if response is valid and successful
+			if (!response || !response.code || response.code !== HttpStatus.OK) {
+				const statusCode =
+					typeof response?.code === 'number' ? response.code : HttpStatus.UNAUTHORIZED;
+				return res.status(statusCode).json(response);
+			}
 
-		const convertData: {
-			code: number;
-			message: string;
-			data: {
-				userId: string;
-				username: string;
-				email: string;
-				roles: string[];
-				accessToken: string;
-				refreshToken: string;
-			};
-		} = response;
-
-		const refreshTokenExpiry = this.configService.get<number>('REFRESH_TOKEN_EXPIRES_IN');
-
-		res.cookie('refreshToken', convertData.data.refreshToken, {
-			httpOnly: true,
-			maxAge: refreshTokenExpiry,
-			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
-			secure: process.env.MOD === 'production' ? true : false,
-			path: '/',
-		});
-
-		const type = convertData.data.roles.includes('ADMIN') ? 'admin' : 'user';
-		res.cookie('type', type, {
-			httpOnly: false,
-			maxAge: refreshTokenExpiry,
-			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
-			secure: process.env.MOD === 'production' ? true : false,
-			path: '/',
-		});
-
-		return res.status(HttpStatus.OK).json(
-			new ApiResponse<any>({
-				code: 1000,
-				message: response.message,
+			const convertData: {
+				code: number;
+				message: string;
 				data: {
-					userId: convertData.data.userId,
-					username: convertData.data.username,
-					email: convertData.data.email,
-					roles: convertData.data.roles,
-					accessToken: convertData.data.accessToken,
-				},
-			}),
-		);
+					userId: string;
+					username: string;
+					email: string;
+					roles: string[];
+					accessToken: string;
+					refreshToken: string;
+				};
+			} = response;
+
+			const refreshTokenExpiry = this.configService.get<number>(
+				'REFRESH_TOKEN_EXPIRES_IN',
+			);
+
+			res.cookie('refreshToken', convertData.data.refreshToken, {
+				httpOnly: true,
+				maxAge: refreshTokenExpiry,
+				sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
+				secure: process.env.MOD === 'production' ? true : false,
+				path: '/',
+			});
+
+			const type = convertData.data.roles.includes('ADMIN') ? 'admin' : 'user';
+			res.cookie('type', type, {
+				httpOnly: false,
+				maxAge: refreshTokenExpiry,
+				sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
+				secure: process.env.MOD === 'production' ? true : false,
+				path: '/',
+			});
+
+			return res.status(HttpStatus.OK).json(
+				new ApiResponse<any>({
+					code: 1000,
+					message: response.message,
+					data: {
+						userId: convertData.data.userId,
+						username: convertData.data.username,
+						email: convertData.data.email,
+						roles: convertData.data.roles,
+						accessToken: convertData.data.accessToken,
+					},
+				}),
+			);
+		} catch (error) {
+			// Handle RPC or network errors
+			const statusCode =
+				typeof error?.status === 'number'
+					? error.status
+					: HttpStatus.INTERNAL_SERVER_ERROR;
+			return res.status(statusCode).json({
+				code: typeof error?.code === 'number' ? error.code : statusCode,
+				message: error?.message || 'Login failed',
+				timestamp: new Date().toISOString(),
+				path: '/api/v1/identity/auth/login',
+			});
+		}
 	}
 
 	@Get('auth/refresh')
 	async refreshToken(@Req() req: Request, @Res() res: Response) {
-		const refreshToken = req.cookies['refreshToken'];
+		try {
+			const refreshToken = req.cookies['refreshToken'];
 
-		if (!refreshToken) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
+			if (!refreshToken) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
 
-		const observableResponse = this.identityClient.send('auth:refresh-token', {
-			refreshToken,
-			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
-		});
-		const response = await firstValueFrom(observableResponse);
+			const observableResponse = this.identityClient.send('auth:refresh-token', {
+				refreshToken,
+				identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+			});
+			const response = await firstValueFrom(observableResponse);
 
-		if (!response || !response.code || response.code !== 1000) {
-			return res.status(response?.code || HttpStatus.UNAUTHORIZED).json(response);
-		}
+			// Check if response is valid and successful
+			if (!response || !response.code || response.code !== HttpStatus.OK) {
+				const statusCode =
+					typeof response?.code === 'number' ? response.code : HttpStatus.UNAUTHORIZED;
+				return res.status(statusCode).json({
+					code: statusCode,
+					message: response?.message || 'Token refresh failed',
+					timestamp: new Date().toISOString(),
+					path: '/api/v1/identity/auth/refresh',
+				});
+			}
 
-		const convertData: {
-			code: number;
-			message: string;
-			data: {
-				userId: string;
-				username: string;
-				email: string;
-				roles: string[];
-				accessToken: string;
-			};
-		} = response;
-
-		return res.status(HttpStatus.OK).json(
-			new ApiResponse<any>({
-				code: 1000,
-				message: response.message,
+			const convertData: {
+				code: number;
+				message: string;
 				data: {
-					userId: convertData.data.userId,
-					username: convertData.data.username,
-					email: convertData.data.email,
-					roles: convertData.data.roles,
-					accessToken: convertData.data.accessToken,
-				},
-			}),
-		);
+					userId: string;
+					username: string;
+					email: string;
+					roles: string[];
+					accessToken: string;
+				};
+			} = response;
+
+			return res.status(HttpStatus.OK).json(
+				new ApiResponse<any>({
+					code: 1000,
+					message: response.message,
+					data: {
+						userId: convertData.data.userId,
+						username: convertData.data.username,
+						email: convertData.data.email,
+						roles: convertData.data.roles,
+						accessToken: convertData.data.accessToken,
+					},
+				}),
+			);
+		} catch (error) {
+			// Handle RPC or network errors
+			const statusCode =
+				typeof error?.status === 'number'
+					? error.status
+					: HttpStatus.INTERNAL_SERVER_ERROR;
+			return res.status(statusCode).json({
+				code: typeof error?.code === 'number' ? error.code : statusCode,
+				message: error?.message || 'Token refresh failed',
+				timestamp: new Date().toISOString(),
+				path: '/api/v1/identity/auth/refresh',
+			});
+		}
 	}
 
 	@UseGuards(AuthGuard)
