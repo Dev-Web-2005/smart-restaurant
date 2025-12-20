@@ -75,7 +75,7 @@ export class QrCodeService {
 		// Cache token for reuse
 		await this.tablesService.saveQrToken(dto.tableId, dto.tenantId, token);
 
-		const url = `${this.BASE_URL}/tables/scan/${token}`;
+		const url = `${this.BASE_URL}/tenants/${dto.tenantId}/tables/scan/${token}`;
 
 		// Generate QR code image
 		let qrImage: string;
@@ -136,7 +136,8 @@ export class QrCodeService {
 		}
 
 		// Return redirect URL for frontend
-		const redirect = `/menu?tenantId=${table.tenantId}&tableId=${table.id}`;
+		// const redirect = `/menu?tenantId=${table.tenantId}&tableId=${table.id}`;
+		const redirect = `/tenants/${table.tenantId}/login`;
 
 		return new ScanResponseDto({
 			tenantId: table.tenantId,
@@ -177,7 +178,7 @@ export class QrCodeService {
 			await this.tablesService.saveQrToken(dto.tableId, dto.tenantId, token);
 		}
 
-		const url = `${this.BASE_URL}/tables/scan/${token}`;
+		const url = `${this.BASE_URL}/tenants/${dto.tenantId}/tables/scan/${token}`;
 
 		// Generate QR code image from cached token
 		let qrImage: string;
@@ -235,7 +236,7 @@ export class QrCodeService {
 			await this.tablesService.saveQrToken(dto.tableId, dto.tenantId, token);
 		}
 
-		const url = `${this.BASE_URL}/tables/scan/${token}`;
+		const url = `${this.BASE_URL}/tenants/${dto.tenantId}/tables/scan/${token}`;
 
 		let data: string;
 		let mimeType: string;
@@ -554,7 +555,7 @@ export class QrCodeService {
 							await this.tablesService.saveQrToken(table.id, table.tenantId, token);
 						}
 
-						const url = `${this.BASE_URL}/tables/scan/${token}`;
+						const url = `${this.BASE_URL}/tenants/${table.tenantId}/tables/scan/${token}`;
 						let fileData: Buffer;
 						let ext: string;
 
@@ -640,7 +641,7 @@ export class QrCodeService {
 							await this.tablesService.saveQrToken(table.id, table.tenantId, token);
 						}
 
-						const url = `${this.BASE_URL}/tables/scan/${token}`;
+						const url = `${this.BASE_URL}/tenants/${table.tenantId}/tables/scan/${token}`;
 
 						// Generate QR code as buffer
 						const qrBuffer = await QRCode.toBuffer(url, {
