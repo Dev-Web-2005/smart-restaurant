@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Test Create Table API</title>
+		<style>
+			body {
+				font-family: Arial, sans-serif;
+				max-width: 800px;
+				margin: 50px auto;
+				padding: 20px;
+				background: #1a1a1a;
+				color: #fff;
+			}
+			.section {
+				background: #2a2a2a;
+				padding: 20px;
+				margin: 20px 0;
+				border-radius: 8px;
+			}
+			button {
+				background: #137fec;
+				color: white;
+				border: none;
+				padding: 10px 20px;
+				border-radius: 4px;
+				cursor: pointer;
+				margin: 5px;
+			}
+			button:hover {
+				background: #0d5fb3;
+			}
+			pre {
+				background: #1a1a1a;
+				padding: 15px;
+				border-radius: 4px;
+				overflow-x: auto;
+				border: 1px solid #444;
+			}
+			.success {
+				color: #4ade80;
+			}
+			.error {
+				color: #f87171;
+			}
+			input {
+				width: 100%;
+				padding: 8px;
+				margin: 5px 0;
+				background: #1a1a1a;
+				border: 1px solid #444;
+				color: #fff;
+				border-radius: 4px;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>🧪 Test Create Table API</h1>
+
+		<div class="section">
+			<h2>Step 1: Check Authentication</h2>
+			<button onclick="checkAuth()">Check Auth Status</button>
+			<pre id="auth-result">Click button to check...</pre>
+		</div>
+
+		<div class="section">
+			<h2>Step 2: Create Table</h2>
+			<label>Table Name:</label>
+			<input type="text" id="tableName" value="Test Table 1" placeholder="Table name" />
+
+			<label>Capacity:</label>
+			<input type="number" id="tableCapacity" value="4" min="1" max="20" />
+
+			<label>Status:</label>
+			<select
+				id="tableStatus"
+				style="
+					width: 100%;
+					padding: 8px;
+					margin: 5px 0;
+					background: #1a1a1a;
+					border: 1px solid #444;
+					color: #fff;
+					border-radius: 4px;
+				"
+			>
+				<option value="Available">Available</option>
+				<option value="Occupied">Occupied</option>
+				<option value="Cleaning">Cleaning</option>
+			</select>
+
+			<button onclick="createTable()">Create Table</button>
+			<pre id="create-result">Configure table above and click Create...</pre>
+		</div>
+
+		<div class="section">
+			<h2>Step 3: List Tables</h2>
+			<button onclick="listTables()">Get All Tables</button>
+			<pre id="list-result">Click button to fetch...</pre>
+		</div>
+
+		<script>
+			function checkAuth() {
+				const result = document.getElementById('auth-result')
+				const user = localStorage.getItem('user')
+				const token = window.accessToken
+				const tenantId = window.currentTenantId
+
+				if (!token) {
+					result.innerHTML =
+						'<span class="error">❌ No access token found!</span>\n\nPlease login first at /login'
+					return
+				}
+
+				const userData = user ? JSON.parse(user) : null
+
+				result.innerHTML = `<span class="success">✅ Authenticated</span>
+
+<strong>Token:</strong> ${token.substring(0, 30)}...
+<strong>TenantId:</strong> ${tenantId || userData?.userId || 'Not set'}
+<strong>User:</strong> ${userData?.username || 'Unknown'}
+<strong>Email:</strong> ${userData?.email || 'N/A'}
+<strong>Roles:</strong> ${userData?.roles?.join(', ') || 'N/A'}`
+			}
+
+			async function createTable() {
+				const result = document.getElementById('create-result')
+				result.innerHTML = '⏳ Creating table...'
+
+				const token = window.accessToken
+				if (!token) {
+					result.innerHTML =
+						'<span class="error">❌ Not authenticated. Please check auth first.</span>'
+					return
+				}
+
+				const user = JSON.parse(localStorage.getItem('user'))
+				const tenantId = window.currentTenantId || user.userId
+
+				const name = document.getElementById('tableName').value
+				const capacity = parseInt(document.getElementById('tableCapacity').value)
+				const status = document.getElementById('tableStatus').value
+
+				const payload = {
+					name,
+					capacity,
+					status,
+					tenantId,
+				}
+
+				result.innerHTML = `⏳ Creating table...\n\n<strong>Request:</strong>\nPOST /api/v1/tenants/${tenantId}/tables\n\n<strong>Payload:</strong>\n${JSON.stringify(
+					payload,
+					null,
+					2,
+				)}`
+
+				try {
+					const response = await fetch(`/api/v1/tenants/${tenantId}/tables`, {
+						method: 'POST',
+						headers: {
+							Authorization: `Bearer ${token}`,
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify(payload),
+					})
+
+					const data = await response.json()
+
+					if (
+						response.ok &&
+						(data.code === 1000 || data.code === 200 || data.code === 201)
+					) {
+						result.innerHTML = `<span class="success">✅ Table created successfully!</span>
+
+<strong>Response:</strong>
+${JSON.stringify(data, null, 2)}
+
+<strong>Table ID:</strong> ${data.data?.id}
+<strong>Table Name:</strong> ${data.data?.name}
+<strong>Capacity:</strong> ${data.data?.capacity}
+<strong>Status:</strong> ${data.data?.status}`
+					} else {
+						result.innerHTML = `<span class="error">❌ Failed to create table</span>
+
+<strong>Status:</strong> ${response.status} ${response.statusText}
+<strong>Response:</strong>
+${JSON.stringify(data, null, 2)}`
+					}
+				} catch (error) {
+					result.innerHTML = `<span class="error">❌ Network Error</span>
+
+${error.message}
+
+<strong>Possible causes:</strong>
+- Backend not running
+- Network connection issue
+- CORS configuration`
+				}
+			}
+
+			async function listTables() {
+				const result = document.getElementById('list-result')
+				result.innerHTML = '⏳ Fetching tables...'
+
+				const token = window.accessToken
+				if (!token) {
+					result.innerHTML =
+						'<span class="error">❌ Not authenticated. Please check auth first.</span>'
+					return
+				}
+
+				const user = JSON.parse(localStorage.getItem('user'))
+				const tenantId = window.currentTenantId || user.userId
+
+				try {
+					const response = await fetch(`/api/v1/tenants/${tenantId}/tables`, {
+						headers: {
+							Authorization: `Bearer ${token}`,
+						},
+					})
+
+					const data = await response.json()
+
+					if (response.ok && (data.code === 1000 || data.code === 200)) {
+						const tables = data.data || []
+						result.innerHTML = `<span class="success">✅ Found ${
+							tables.length
+						} tables</span>
+
+<strong>Response:</strong>
+${JSON.stringify(data, null, 2)}`
+					} else {
+						result.innerHTML = `<span class="error">❌ Failed to fetch tables</span>
+
+<strong>Status:</strong> ${response.status} ${response.statusText}
+<strong>Response:</strong>
+${JSON.stringify(data, null, 2)}`
+					}
+				} catch (error) {
+					result.innerHTML = `<span class="error">❌ Network Error</span>
+
+${error.message}`
+				}
+			}
+		</script>
+	</body>
+</html>

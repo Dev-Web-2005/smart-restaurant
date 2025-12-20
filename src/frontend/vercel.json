@@ -1,0 +1,63 @@
+{
+    "buildCommand": "npm run build",
+    "outputDirectory": "dist",
+    "devCommand": "npm run dev",
+    "installCommand": "npm install",
+    "framework": "vite",
+    "rewrites": [
+        {
+            "source": "/api/v1/:path*",
+            "destination": "https://smart-restaurant-gateway.onrender.com/api/v1/:path*"
+        },
+        {
+            "source": "/api/file/:path*",
+            "destination": "https://file-service-cdal.onrender.com/api/v1/file/:path*"
+        },
+        {
+            "source": "/api/kyc/:path*",
+            "destination": "https://verification.didit.me/v2/:path*"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ],
+    "headers": [
+        {
+            "source": "/api/v1/:path*",
+            "headers": [
+                {
+                    "key": "x-api-key",
+                    "value": "lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$]4m&;5,8m5JN-,S<h#}"
+                }
+            ]
+        },
+        {
+            "source": "/api/file/:path*",
+            "headers": [
+                {
+                    "key": "x-api-key",
+                    "value": "lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$]4m&;5,8m5JN-,S<h#}"
+                }
+            ]
+        },
+        {
+            "source": "/api/kyc/:path*",
+            "headers": [
+                {
+                    "key": "X-Api-Key",
+                    "value": "7hwmBAe7gzf8RECVEc5oZWQc8Sp9_SDpX9lkLiHUyMs"
+                }
+            ]
+        }
+    ],
+    "env": {
+        "VITE_API_GATEWAY_URL": "https://smart-restaurant-gateway.onrender.com",
+        "VITE_FILE_SERVICE_URL": "https://file-service-cdal.onrender.com",
+        "VITE_DIDIT_API_KEY": "7hwmBAe7gzf8RECVEc5oZWQc8Sp9_SDpX9lkLiHUyMs",
+        "VITE_DIDIT_WORKFLOW_ID": "5f32d046-a7e2-4429-b318-523f3f1b5487"
+    },
+    "regions": [
+        "sin1"
+    ]
+}
