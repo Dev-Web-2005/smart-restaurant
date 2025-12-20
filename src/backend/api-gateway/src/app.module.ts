@@ -10,6 +10,7 @@ import { RateLimitMiddleware } from 'src/common/middleware/rate-limit/rate-limit
 import { TableController } from './services/table/table.controller';
 import { FloorController } from './services/table/floor.controller';
 import { ProductController } from './services/product/product.controller';
+import { PublicUrlMiddleware } from 'src/common/middleware/public-url/public-url.middleware';
 
 @Module({
 	imports: [
@@ -61,6 +62,8 @@ import { ProductController } from './services/product/product.controller';
 })
 export class AppModule implements NestModule {
 	configure(consumer: MiddlewareConsumer) {
-		consumer.apply(LoggerMiddleware, RateLimitMiddleware).forRoutes('*');
+		consumer
+			.apply(LoggerMiddleware, PublicUrlMiddleware, RateLimitMiddleware)
+			.forRoutes('*');
 	}
 }

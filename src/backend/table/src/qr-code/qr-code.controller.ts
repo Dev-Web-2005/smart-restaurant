@@ -14,6 +14,7 @@ import { ScanResponseDto } from 'src/qr-code/dtos/response/scan-response.dto';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
 import { ConfigService } from '@nestjs/config/dist/config.service';
+import { handleRpcCall } from '@shared/utils/rpc-error-handler';
 
 /**
  * Controller for QR code operations
@@ -32,12 +33,14 @@ export class QrCodeController {
 	 */
 	@MessagePattern('qr:generate')
 	async generateQrCode(@Payload() dto: GenerateQrCodeDto): Promise<QrCodeResponseDto> {
-		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
-		if (dto.tableApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+			if (dto.tableApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
 
-		return await this.qrCodeService.generateQrCode(dto);
+			return await this.qrCodeService.generateQrCode(dto);
+		});
 	}
 
 	/**
@@ -46,12 +49,14 @@ export class QrCodeController {
 	 */
 	@MessagePattern('qr:get')
 	async getQrCode(@Payload() dto: GetQrCodeDto): Promise<QrCodeResponseDto> {
-		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
-		if (dto.tableApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+			if (dto.tableApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
 
-		return await this.qrCodeService.getQrCode(dto);
+			return await this.qrCodeService.getQrCode(dto);
+		});
 	}
 
 	/**
@@ -62,12 +67,14 @@ export class QrCodeController {
 	async downloadQrCode(
 		@Payload() dto: DownloadQrCodeDto,
 	): Promise<DownloadQrCodeResponseDto> {
-		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
-		if (dto.tableApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+			if (dto.tableApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
 
-		return await this.qrCodeService.downloadQrCode(dto);
+			return await this.qrCodeService.downloadQrCode(dto);
+		});
 	}
 
 	/**
@@ -78,11 +85,13 @@ export class QrCodeController {
 	async validateScan(
 		@Payload() payload: { token: string; tableApiKey?: string },
 	): Promise<ScanResponseDto> {
-		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
-		if (payload.tableApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
-		return await this.qrCodeService.validateScanToken(payload.token);
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+			if (payload.tableApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			return await this.qrCodeService.validateScanToken(payload.token);
+		});
 	}
 
 	/**
@@ -93,12 +102,14 @@ export class QrCodeController {
 	async batchDownloadQrCode(
 		@Payload() dto: BatchDownloadQrCodeDto,
 	): Promise<BatchDownloadQrCodeResponseDto> {
-		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
-		if (dto.tableApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+			if (dto.tableApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
 
-		return await this.qrCodeService.batchDownloadQrCode(dto);
+			return await this.qrCodeService.batchDownloadQrCode(dto);
+		});
 	}
 
 	/**
@@ -109,11 +120,13 @@ export class QrCodeController {
 	async bulkRegenerateQrCode(
 		@Payload() dto: BulkRegenerateQrCodeDto,
 	): Promise<BulkRegenerateQrCodeResponseDto> {
-		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
-		if (dto.tableApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+			if (dto.tableApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
 
-		return await this.qrCodeService.bulkRegenerateQrCode(dto);
+			return await this.qrCodeService.bulkRegenerateQrCode(dto);
+		});
 	}
 }
