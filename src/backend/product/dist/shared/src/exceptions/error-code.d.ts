@@ -21,6 +21,13 @@ export default class ErrorCode {
     static readonly MODIFIER_NOT_FOUND: ErrorCode;
     static readonly ERROR_VALIDATION: ErrorCode;
     static readonly INVALID_TIME_FORMAT: ErrorCode;
+    static readonly TABLE_NOT_FOUND: ErrorCode;
+    static readonly TABLE_ALREADY_EXISTS: ErrorCode;
+    static readonly INVALID_QR_TOKEN: ErrorCode;
+    static readonly TABLE_OCCUPIED: ErrorCode;
+    static readonly QR_GENERATION_FAILED: ErrorCode;
+    static readonly FLOOR_NOT_FOUND: ErrorCode;
+    static readonly FLOOR_ALREADY_EXISTS: ErrorCode;
     static readonly INTERNAL_SERVER_ERROR: ErrorCode;
     static readonly SERVICE_UNAVAILABLE: ErrorCode;
     static readonly DATABASE_ERROR: ErrorCode;

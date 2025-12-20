@@ -17,9 +17,14 @@ const logger_middleware_1 = require("./common/middleware/logger/logger.middlewar
 const profile_controller_1 = require("./services/profile/profile.controller");
 const rate_limit_middleware_1 = require("./common/middleware/rate-limit/rate-limit.middleware");
 const table_controller_1 = require("./services/table/table.controller");
+const floor_controller_1 = require("./services/table/floor.controller");
+const product_controller_1 = require("./services/product/product.controller");
+const public_url_middleware_1 = require("./common/middleware/public-url/public-url.middleware");
 let AppModule = class AppModule {
     configure(consumer) {
-        consumer.apply(logger_middleware_1.LoggerMiddleware, rate_limit_middleware_1.RateLimitMiddleware).forRoutes('*');
+        consumer
+            .apply(logger_middleware_1.LoggerMiddleware, public_url_middleware_1.PublicUrlMiddleware, rate_limit_middleware_1.RateLimitMiddleware)
+            .forRoutes('*');
     }
 };
 exports.AppModule = AppModule;
@@ -62,7 +67,14 @@ exports.AppModule = AppModule = __decorate([
                 },
             ]),
         ],
-        controllers: [app_controller_1.AppController, identity_controller_1.IdentityController, profile_controller_1.ProfileController, table_controller_1.TableController],
+        controllers: [
+            app_controller_1.AppController,
+            identity_controller_1.IdentityController,
+            profile_controller_1.ProfileController,
+            table_controller_1.TableController,
+            floor_controller_1.FloorController,
+            product_controller_1.ProductController,
+        ],
         providers: [app_service_1.AppService],
     })
 ], AppModule);

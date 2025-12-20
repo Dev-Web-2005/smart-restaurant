@@ -95,17 +95,6 @@ let RolesService = class RolesService {
         const nameInt = enum_1.RoleEnum[name];
         await this.roleRepository.delete({ name: nameInt });
     }
-    async getRoleByName(name) {
-        const nameInt = enum_1.RoleEnum[name];
-        const role = await this.roleRepository.findOne({
-            where: { name: nameInt },
-            relations: ['authorities'],
-        });
-        if (!role) {
-            return null;
-        }
-        return role;
-    }
 };
 exports.RolesService = RolesService;
 exports.RolesService = RolesService = __decorate([

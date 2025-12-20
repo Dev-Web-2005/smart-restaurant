@@ -25,6 +25,30 @@ let LoggerMiddleware = class LoggerMiddleware {
         res.on('finish', () => {
             const duration = Date.now() - startTime;
             const statusCode = res.statusCode;
+            let parsedBody = null;
+            const contentType = res.getHeader('content-type');
+            if (responseBody) {
+                if (contentType &&
+                    (contentType.includes('image/') ||
+                        contentType.includes('application/pdf') ||
+                        contentType.includes('application/octet-stream'))) {
+                    parsedBody = Buffer.isBuffer(responseBody)
+                        ? `<Binary data: ${responseBody.length} bytes>`
+                        : '<Binary data>';
+                }
+                else {
+                    try {
+                        parsedBody =
+                            typeof responseBody === 'string' ? JSON.parse(responseBody) : responseBody;
+                    }
+                    catch {
+                        parsedBody =
+                            typeof responseBody === 'string'
+                                ? responseBody.substring(0, 200)
+                                : '<Non-JSON response>';
+                    }
+                }
+            }
             const logData = {
                 timestamp: new Date().toISOString(),
                 request: {
@@ -38,7 +62,8 @@ let LoggerMiddleware = class LoggerMiddleware {
                 },
                 response: {
                     statusCode: statusCode,
-                    body: responseBody ? JSON.parse(responseBody) : null,
+                    contentType: contentType || 'unknown',
+                    body: parsedBody,
                 },
                 duration: `${duration}ms`,
             };

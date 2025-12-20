@@ -24,6 +24,7 @@ const app_exception_1 = __importDefault(require("../../../shared/src/exceptions/
 const error_code_1 = __importDefault(require("../../../shared/src/exceptions/error-code"));
 const auth_me_request_dto_1 = require("./dtos/request/auth-me-request.dto");
 const validate_token_request_dto_1 = require("./dtos/request/validate-token-request.dto");
+const rpc_error_handler_1 = require("../../../shared/src/utils/rpc-error-handler");
 let AuthController = class AuthController {
     authService;
     config;
@@ -32,58 +33,68 @@ let AuthController = class AuthController {
         this.config = config;
     }
     async login(data) {
-        const expectedApiKey = this.config.get('IDENTITY_API_KEY');
-        if (data.identityApiKey !== expectedApiKey) {
-            throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
-        }
-        const result = await this.authService.login(data);
-        return new http_response_1.default(200, 'Login successful', result);
-    }
-    async validateToken(data) {
-        const expectedApiKey = this.config.get('IDENTITY_API_KEY');
-        if (data.identityApiKey !== expectedApiKey) {
-            throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
-        }
-        const result = await this.authService.validateToken(data);
-        if (!result.valid) {
-            return new http_response_1.default(401, 'Token invalid', null);
-        }
-        return new http_response_1.default(200, 'Token valid', result);
-    }
-    async refreshToken(data) {
-        const expectedApiKey = this.config.get('IDENTITY_API_KEY');
-        if (data.identityApiKey !== expectedApiKey) {
-            throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
-        }
-        try {
-            const result = await this.authService.getUserFromRefreshToken(data.refreshToken);
-            return new http_response_1.default(200, 'Token refreshed', result);
-        }
-        catch (error) {
-            console.error('Error refreshing token:', error);
-            return new http_response_1.default(401, 'Invalid refresh token', null);
-        }
-    }
-    async me(data) {
-        const expectedApiKey = this.config.get('IDENTITY_API_KEY');
-        if (data.identityApiKey !== expectedApiKey) {
-            throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
-        }
-        const result = await this.authService.me(data.userId);
-        if (result === null) {
-            return new http_response_1.default(404, 'User not found', null);
-        }
-        return new http_response_1.default(200, 'User fetched successfully', result);
-    }
-    async logout(data) {
-        if (data.identityApiKey) {
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
             const expectedApiKey = this.config.get('IDENTITY_API_KEY');
             if (data.identityApiKey !== expectedApiKey) {
                 throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
             }
-        }
-        await this.authService.logout(data);
-        return new http_response_1.default(200, 'Logout successful', null);
+            const result = await this.authService.login(data);
+            return new http_response_1.default(200, 'Login successful', result);
+        });
+    }
+    async validateToken(data) {
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const expectedApiKey = this.config.get('IDENTITY_API_KEY');
+            if (data.identityApiKey !== expectedApiKey) {
+                throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
+            }
+            const result = await this.authService.validateToken(data);
+            if (!result.valid) {
+                return new http_response_1.default(401, 'Token invalid', null);
+            }
+            return new http_response_1.default(200, 'Token valid', result);
+        });
+    }
+    async refreshToken(data) {
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const expectedApiKey = this.config.get('IDENTITY_API_KEY');
+            if (data.identityApiKey !== expectedApiKey) {
+                throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
+            }
+            try {
+                const result = await this.authService.getUserFromRefreshToken(data.refreshToken);
+                return new http_response_1.default(200, 'Token refreshed', result);
+            }
+            catch (error) {
+                console.error('Error refreshing token:', error);
+                return new http_response_1.default(401, 'Invalid refresh token', null);
+            }
+        });
+    }
+    async me(data) {
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const expectedApiKey = this.config.get('IDENTITY_API_KEY');
+            if (data.identityApiKey !== expectedApiKey) {
+                throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
+            }
+            const result = await this.authService.me(data.userId);
+            if (result === null) {
+                return new http_response_1.default(404, 'User not found', null);
+            }
+            return new http_response_1.default(200, 'User fetched successfully', result);
+        });
+    }
+    async logout(data) {
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            if (data.identityApiKey) {
+                const expectedApiKey = this.config.get('IDENTITY_API_KEY');
+                if (data.identityApiKey !== expectedApiKey) {
+                    throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
+                }
+            }
+            await this.authService.logout(data);
+            return new http_response_1.default(200, 'Logout successful', null);
+        });
     }
 };
 exports.AuthController = AuthController;

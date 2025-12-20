@@ -12,5 +12,4 @@ export declare class RolesService {
     getRoleById(name: number): Promise<Role | null>;
     createRole(createDto: CreateRoleRequestDto): Promise<CreateRoleResponseDto>;
     deleteRole(name: string): Promise<void>;
-    getRoleByName(name: string): Promise<Role | null>;
 }

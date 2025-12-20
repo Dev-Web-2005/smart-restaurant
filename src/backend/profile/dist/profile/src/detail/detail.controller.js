@@ -23,6 +23,7 @@ const app_exception_1 = __importDefault(require("../../../shared/src/exceptions/
 const error_code_1 = __importDefault(require("../../../shared/src/exceptions/error-code"));
 const detail_service_1 = require("./detail.service");
 const get_verified_state_request_dto_1 = require("./dtos/request/get-verified-state-request.dto");
+const rpc_error_handler_1 = require("../../../shared/src/utils/rpc-error-handler");
 let DetailController = class DetailController {
     detailService;
     config;
@@ -31,25 +32,31 @@ let DetailController = class DetailController {
         this.config = config;
     }
     async modifyProfile(data) {
-        const expectedApiKey = this.config.get('PROFILE_API_KEY');
-        if (data.profileApiKey !== expectedApiKey) {
-            throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
-        }
-        return this.detailService.modifyProfileServiceStatus((0, class_transformer_1.plainToInstance)(modify_profile_request_dto_1.ModifyProfileRequestDto, data));
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const expectedApiKey = this.config.get('PROFILE_API_KEY');
+            if (data.profileApiKey !== expectedApiKey) {
+                throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
+            }
+            return this.detailService.modifyProfileServiceStatus((0, class_transformer_1.plainToInstance)(modify_profile_request_dto_1.ModifyProfileRequestDto, data));
+        });
     }
     async getProfile(data) {
-        const expectedApiKey = this.config.get('PROFILE_API_KEY');
-        if (data.profileApiKey !== expectedApiKey) {
-            throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
-        }
-        return this.detailService.getProfileServiceStatus(data.userId);
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const expectedApiKey = this.config.get('PROFILE_API_KEY');
+            if (data.profileApiKey !== expectedApiKey) {
+                throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
+            }
+            return this.detailService.getProfileServiceStatus(data.userId);
+        });
     }
     async getVerifiedState(data) {
-        const expectedApiKey = this.config.get('PROFILE_API_KEY');
-        if (data.profileApiKey !== expectedApiKey) {
-            throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
-        }
-        return (await this.detailService.getProfileServiceStatus(data.userId)).verified;
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const expectedApiKey = this.config.get('PROFILE_API_KEY');
+            if (data.profileApiKey !== expectedApiKey) {
+                throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
+            }
+            return (await this.detailService.getProfileServiceStatus(data.userId)).verified;
+        });
     }
 };
 exports.DetailController = DetailController;

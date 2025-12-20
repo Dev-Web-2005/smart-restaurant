@@ -1,34 +1,32 @@
-import { Catch, ArgumentsHost } from '@nestjs/common';
-import { RpcException, BaseRpcExceptionFilter } from '@nestjs/microservices';
-import { Observable } from 'rxjs';
+import { Catch, ArgumentsHost, ExceptionFilter } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
 import AppException from '@shared/exceptions/app-exception';
 
 @Catch()
-export class GlobalExceptionFilter extends BaseRpcExceptionFilter {
-	catch(exception: any, host: ArgumentsHost): Observable<any> {
+export class GlobalExceptionFilter implements ExceptionFilter {
+	catch(exception: any, host: ArgumentsHost) {
+		// Handle AppException
 		if (exception instanceof AppException) {
 			const errorCode = exception.getErrorCode();
-			return super.catch(
-				new RpcException({
-					code: errorCode.code,
-					message: errorCode.message,
-					status: errorCode.httpStatus,
-				}),
-				host,
-			);
+			throw new RpcException({
+				code: errorCode.code,
+				message: errorCode.message,
+				status: errorCode.httpStatus,
+			});
 		}
 
+		// Handle RpcException
 		if (exception instanceof RpcException) {
-			return super.catch(exception, host);
+			throw exception;
 		}
 
-		console.error('Unhandled exception:', exception);
-		const response = {
+		// Handle all other exceptions
+		console.error('Unhandled exception in Identity service:', exception);
+		throw new RpcException({
 			code: 9999,
 			message: 'Internal server error',
 			status: 500,
 			error: exception?.message || null,
-		};
-		return super.catch(new RpcException(response), host);
+		});
 	}
 }

@@ -11,7 +11,6 @@ export default class ErrorCode {
     static readonly USER_ALREADY_EXISTS: ErrorCode;
     static readonly PROFILE_NOT_FOUND: ErrorCode;
     static readonly PROFILE_SERVICE_ERROR: ErrorCode;
-    static readonly CHEF_ACCOUNT_CREATION_FAILED: ErrorCode;
     static readonly ROLE_NOT_FOUND: ErrorCode;
     static readonly ROLE_CREATION_FAILED: ErrorCode;
     static readonly AUTHORITY_NOT_FOUND: ErrorCode;
@@ -27,6 +26,8 @@ export default class ErrorCode {
     static readonly INVALID_QR_TOKEN: ErrorCode;
     static readonly TABLE_OCCUPIED: ErrorCode;
     static readonly QR_GENERATION_FAILED: ErrorCode;
+    static readonly FLOOR_NOT_FOUND: ErrorCode;
+    static readonly FLOOR_ALREADY_EXISTS: ErrorCode;
     static readonly INTERNAL_SERVER_ERROR: ErrorCode;
     static readonly SERVICE_UNAVAILABLE: ErrorCode;
     static readonly DATABASE_ERROR: ErrorCode;

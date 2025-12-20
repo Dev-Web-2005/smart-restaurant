@@ -23,7 +23,9 @@ async function bootstrap() {
     }));
     app.useGlobalFilters(new filters_1.GlobalExceptionFilter(), new filters_1.CatchAppExceptionFilter());
     await app.startAllMicroservices();
-    console.log(`🚀 Product Service is running on TCP port ${port}`);
+    console.log(`Product Service is running on TCP port ${port}`);
+    await app.listen(port, '127.0.0.1');
+    console.log(`HTTP Health endpoint listening on 127.0.0.1:${port}`);
     process.on('SIGINT', () => {
         console.log('SIGINT received. Shutting down gracefully...');
         app.close().then(() => process.exit(0));

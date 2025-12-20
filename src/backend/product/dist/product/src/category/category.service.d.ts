@@ -7,7 +7,6 @@ export declare class CategoryService {
     private readonly categoryRepository;
     private readonly configService;
     constructor(categoryRepository: Repository<MenuCategory>, configService: ConfigService);
-    private validateApiKey;
     createCategory(dto: CreateCategoryRequestDto): Promise<CategoryResponseDto>;
     getCategories(dto: GetCategoriesRequestDto): Promise<CategoryResponseDto[]>;
     updateCategory(dto: UpdateCategoryRequestDto): Promise<CategoryResponseDto>;

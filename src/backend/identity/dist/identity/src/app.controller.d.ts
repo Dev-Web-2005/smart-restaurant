@@ -3,4 +3,9 @@ export declare class AppController {
     private readonly appService;
     constructor(appService: AppService);
     healthCheck(): string;
+    httpHealthCheck(): {
+        status: string;
+        service: string;
+        timestamp: string;
+    };
 }

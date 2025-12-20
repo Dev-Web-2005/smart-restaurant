@@ -30,14 +30,7 @@ let CategoryService = class CategoryService {
         this.categoryRepository = categoryRepository;
         this.configService = configService;
     }
-    validateApiKey(providedKey) {
-        const validKey = this.configService.get('PRODUCT_API_KEY');
-        if (providedKey !== validKey) {
-            throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
-        }
-    }
     async createCategory(dto) {
-        this.validateApiKey(dto.productApiKey);
         const category = this.categoryRepository.create({
             tenantId: dto.tenantId,
             name: dto.name,
@@ -49,7 +42,6 @@ let CategoryService = class CategoryService {
         return this.toResponseDto(saved);
     }
     async getCategories(dto) {
-        this.validateApiKey(dto.productApiKey);
         const categories = await this.categoryRepository.find({
             where: { tenantId: dto.tenantId },
             order: { displayOrder: 'ASC', createdAt: 'ASC' },
@@ -57,7 +49,6 @@ let CategoryService = class CategoryService {
         return categories.map((cat) => this.toResponseDto(cat));
     }
     async updateCategory(dto) {
-        this.validateApiKey(dto.productApiKey);
         const category = await this.categoryRepository.findOne({
             where: { id: dto.categoryId, tenantId: dto.tenantId },
         });
@@ -72,7 +63,6 @@ let CategoryService = class CategoryService {
         return this.toResponseDto(updated);
     }
     async publishCategory(dto) {
-        this.validateApiKey(dto.productApiKey);
         const category = await this.categoryRepository.findOne({
             where: { id: dto.categoryId, tenantId: dto.tenantId },
         });
@@ -84,7 +74,6 @@ let CategoryService = class CategoryService {
         return this.toResponseDto(updated);
     }
     async deleteCategory(dto) {
-        this.validateApiKey(dto.productApiKey);
         const category = await this.categoryRepository.findOne({
             where: { id: dto.categoryId, tenantId: dto.tenantId },
         });

@@ -17,31 +17,59 @@ const common_1 = require("@nestjs/common");
 const microservices_1 = require("@nestjs/microservices");
 const category_service_1 = require("./category.service");
 const http_response_1 = __importDefault(require("../../../shared/src/utils/http-response"));
+const rpc_error_handler_1 = require("../../../shared/src/utils/rpc-error-handler");
 const request_1 = require("./dtos/request");
+const config_1 = require("@nestjs/config");
+const app_exception_1 = __importDefault(require("../../../shared/src/exceptions/app-exception"));
+const error_code_1 = __importDefault(require("../../../shared/src/exceptions/error-code"));
 let CategoryController = class CategoryController {
     categoryService;
-    constructor(categoryService) {
+    config;
+    constructor(categoryService, config) {
         this.categoryService = categoryService;
+        this.config = config;
+    }
+    validateApiKey(providedKey) {
+        const expectedApiKey = this.config.get('PRODUCT_API_KEY');
+        if (providedKey !== expectedApiKey) {
+            throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
+        }
     }
     async createCategory(dto) {
-        const category = await this.categoryService.createCategory(dto);
-        return new http_response_1.default(1000, 'Category created successfully', category);
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            this.validateApiKey(dto.productApiKey);
+            console.log('Data received:', dto);
+            const category = await this.categoryService.createCategory(dto);
+            return new http_response_1.default(1000, 'Category created successfully', category);
+        });
     }
     async getCategories(dto) {
-        const categories = await this.categoryService.getCategories(dto);
-        return new http_response_1.default(1000, 'Categories retrieved successfully', categories);
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            this.validateApiKey(dto.productApiKey);
+            const categories = await this.categoryService.getCategories(dto);
+            return new http_response_1.default(1000, 'Categories retrieved successfully', categories);
+        });
     }
     async updateCategory(dto) {
-        const category = await this.categoryService.updateCategory(dto);
-        return new http_response_1.default(1000, 'Category updated successfully', category);
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            this.validateApiKey(dto.productApiKey);
+            const category = await this.categoryService.updateCategory(dto);
+            return new http_response_1.default(1000, 'Category updated successfully', category);
+        });
     }
     async publishCategory(dto) {
-        const category = await this.categoryService.publishCategory(dto);
-        return new http_response_1.default(1000, 'Category publish status updated', category);
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            this.validateApiKey(dto.productApiKey);
+            const category = await this.categoryService.publishCategory(dto);
+            return new http_response_1.default(1000, 'Category publish status updated', category);
+        });
     }
     async deleteCategory(dto) {
-        await this.categoryService.deleteCategory(dto);
-        return new http_response_1.default(1000, 'Category deleted successfully');
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            this.validateApiKey(dto.productApiKey);
+            await this.categoryService.deleteCategory(dto);
+            return new http_response_1.default(1000, 'Category deleted successfully');
+        });
     }
 };
 exports.CategoryController = CategoryController;
@@ -77,6 +105,7 @@ __decorate([
 ], CategoryController.prototype, "deleteCategory", null);
 exports.CategoryController = CategoryController = __decorate([
     (0, common_1.Controller)(),
-    __metadata("design:paramtypes", [category_service_1.CategoryService])
+    __metadata("design:paramtypes", [category_service_1.CategoryService,
+        config_1.ConfigService])
 ], CategoryController);
 //# sourceMappingURL=category.controller.js.map

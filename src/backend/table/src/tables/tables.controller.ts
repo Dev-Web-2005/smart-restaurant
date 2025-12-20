@@ -9,6 +9,7 @@ import { TableDto } from 'src/tables/dtos/response/table.dto';
 import { ConfigService } from '@nestjs/config/dist/config.service';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
+import { handleRpcCall } from '@shared/utils/rpc-error-handler';
 
 /**
  * Controller for table management operations
@@ -27,12 +28,14 @@ export class TablesController {
 	 */
 	@MessagePattern('tables:create')
 	async createTable(@Payload() dto: CreateTableDto): Promise<TableDto> {
-		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
-		if (dto.tableApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+			if (dto.tableApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
 
-		return await this.tablesService.createTable(dto);
+			return await this.tablesService.createTable(dto);
+		});
 	}
 
 	/**
@@ -41,12 +44,14 @@ export class TablesController {
 	 */
 	@MessagePattern('tables:get-by-id')
 	async getTableById(@Payload() dto: GetTableDto): Promise<TableDto> {
-		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
-		if (dto.tableApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+			if (dto.tableApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
 
-		return await this.tablesService.getTableById(dto);
+			return await this.tablesService.getTableById(dto);
+		});
 	}
 
 	/**
@@ -55,12 +60,14 @@ export class TablesController {
 	 */
 	@MessagePattern('tables:list')
 	async listTables(@Payload() dto: ListTablesDto): Promise<TableDto[]> {
-		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
-		if (dto.tableApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+			if (dto.tableApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
 
-		return await this.tablesService.listTables(dto);
+			return await this.tablesService.listTables(dto);
+		});
 	}
 
 	/**
@@ -71,16 +78,18 @@ export class TablesController {
 	async updateTable(
 		@Payload() payload: { tableId: string; tenantId: string; data: UpdateTableDto },
 	): Promise<TableDto> {
-		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
-		if (payload.data.tableApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+			if (payload.data.tableApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
 
-		return await this.tablesService.updateTable(
-			payload.tableId,
-			payload.tenantId,
-			payload.data,
-		);
+			return await this.tablesService.updateTable(
+				payload.tableId,
+				payload.tenantId,
+				payload.data,
+			);
+		});
 	}
 
 	/**
@@ -89,13 +98,15 @@ export class TablesController {
 	 */
 	@MessagePattern('tables:delete')
 	async deleteTable(@Payload() dto: GetTableDto): Promise<{ success: boolean }> {
-		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
-		if (dto.tableApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+			if (dto.tableApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
 
-		await this.tablesService.deleteTable(dto);
-		return { success: true };
+			await this.tablesService.deleteTable(dto);
+			return { success: true };
+		});
 	}
 
 	/**
@@ -106,12 +117,14 @@ export class TablesController {
 	async deleteTablePermanently(
 		@Payload() dto: GetTableDto,
 	): Promise<{ success: boolean }> {
-		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
-		if (dto.tableApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+			if (dto.tableApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
 
-		await this.tablesService.deleteTablePermanently(dto);
-		return { success: true };
+			await this.tablesService.deleteTablePermanently(dto);
+			return { success: true };
+		});
 	}
 }

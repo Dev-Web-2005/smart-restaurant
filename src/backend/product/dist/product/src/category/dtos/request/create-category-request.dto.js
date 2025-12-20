@@ -19,23 +19,23 @@ class CreateCategoryRequestDto {
 }
 exports.CreateCategoryRequestDto = CreateCategoryRequestDto;
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsUUID)(),
+    (0, class_validator_1.IsNotEmpty)({ message: 'Tenant ID must not be empty' }),
+    (0, class_validator_1.IsUUID)('4', { message: 'Tenant ID must be a valid UUID' }),
     __metadata("design:type", String)
 ], CreateCategoryRequestDto.prototype, "tenantId", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsString)({ message: 'Name of the category must be a string' }),
+    (0, class_validator_1.IsNotEmpty)({ message: 'Name of the category must not be empty' }),
     __metadata("design:type", String)
 ], CreateCategoryRequestDto.prototype, "name", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsString)({ message: 'Description must be a string' }),
     __metadata("design:type", String)
 ], CreateCategoryRequestDto.prototype, "description", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)({ message: 'Product API key must not be empty' }),
+    (0, class_validator_1.IsString)({ message: 'Product API key must be a string' }),
     __metadata("design:type", String)
 ], CreateCategoryRequestDto.prototype, "productApiKey", void 0);
 //# sourceMappingURL=create-category-request.dto.js.map

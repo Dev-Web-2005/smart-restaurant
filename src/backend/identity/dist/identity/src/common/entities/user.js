@@ -16,7 +16,6 @@ let User = class User {
     userId;
     username;
     email;
-    ownerId;
     password;
     roles;
 };
@@ -33,10 +32,6 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], User.prototype, "email", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], User.prototype, "ownerId", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: false }),
     __metadata("design:type", String)

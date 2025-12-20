@@ -30,8 +30,8 @@ let ProductController = class ProductController {
     }
     createCategory(tenantId, data) {
         return this.productClient.send('categories:create', {
-            tenantId,
             ...data,
+            tenantId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
@@ -43,29 +43,29 @@ let ProductController = class ProductController {
     }
     updateCategory(categoryId, data) {
         return this.productClient.send('categories:update', {
-            categoryId,
             ...data,
+            categoryId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
     publishCategory(categoryId, data) {
         return this.productClient.send('categories:publish', {
-            categoryId,
             ...data,
+            categoryId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
     deleteCategory(categoryId, data) {
         return this.productClient.send('categories:delete', {
-            categoryId,
             ...data,
+            categoryId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
     createItem(tenantId, data) {
         return this.productClient.send('items:create', {
-            tenantId,
             ...data,
+            tenantId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
@@ -78,29 +78,29 @@ let ProductController = class ProductController {
     }
     updateItem(itemId, data) {
         return this.productClient.send('items:update', {
-            itemId,
             ...data,
+            itemId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
     publishItem(itemId, data) {
         return this.productClient.send('items:publish', {
-            itemId,
             ...data,
+            itemId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
     deleteItem(itemId, data) {
         return this.productClient.send('items:delete', {
-            itemId,
             ...data,
+            itemId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
     addModifiers(itemId, data) {
         return this.productClient.send('items:add-modifiers', {
-            itemId,
             ...data,
+            itemId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
@@ -217,7 +217,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "getPublicMenu", null);
 exports.ProductController = ProductController = __decorate([
-    (0, common_1.Controller)('products'),
+    (0, common_1.Controller)(),
     __param(0, (0, common_1.Inject)('PRODUCT_SERVICE')),
     __metadata("design:paramtypes", [microservices_1.ClientProxy,
         config_1.ConfigService])

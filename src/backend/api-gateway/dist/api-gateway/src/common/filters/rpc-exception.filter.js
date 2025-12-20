@@ -13,21 +13,27 @@ let RpcExceptionFilter = class RpcExceptionFilter {
     catch(exception, host) {
         const ctx = host.switchToHttp();
         const response = ctx.getResponse();
+        const request = ctx.getRequest();
         const error = exception.getError();
         if (typeof error === 'object' && error !== null) {
             const errorObj = error;
-            const statusCode = errorObj.status;
+            const statusCode = typeof errorObj.status === 'number'
+                ? errorObj.status
+                : common_1.HttpStatus.INTERNAL_SERVER_ERROR;
+            const code = typeof errorObj.code === 'number' ? errorObj.code : statusCode;
             return response.status(statusCode).json({
-                code: errorObj.code,
-                message: errorObj.message,
+                code: code,
+                message: errorObj.message || 'Internal server error',
                 errors: errorObj.errors,
                 timestamp: new Date().toISOString(),
+                path: request.url,
             });
         }
         return response.status(common_1.HttpStatus.INTERNAL_SERVER_ERROR).json({
             code: 9999,
             message: typeof error === 'string' ? error : 'Internal server error',
             timestamp: new Date().toISOString(),
+            path: request.url,
         });
     }
 };

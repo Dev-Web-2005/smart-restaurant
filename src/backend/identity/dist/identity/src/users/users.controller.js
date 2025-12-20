@@ -23,6 +23,7 @@ const error_code_1 = __importDefault(require("../../../shared/src/exceptions/err
 const register_user_with_profile_request_dto_1 = __importDefault(require("./dtos/request/register-user-with-profile-request.dto"));
 const get_all_users_request_dto_1 = require("./dtos/request/get-all-users-request.dto");
 const get_user_by_id_request_dto_1 = require("./dtos/request/get-user-by-id-request.dto");
+const rpc_error_handler_1 = require("../../../shared/src/utils/rpc-error-handler");
 let UsersController = class UsersController {
     usersService;
     config;
@@ -31,25 +32,31 @@ let UsersController = class UsersController {
         this.config = config;
     }
     async registerUser(data) {
-        const expectedApiKey = this.config.get('IDENTITY_API_KEY');
-        if (data.identityApiKey !== expectedApiKey) {
-            throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
-        }
-        return new http_response_1.default(200, 'Register successful', await this.usersService.Register(data));
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const expectedApiKey = this.config.get('IDENTITY_API_KEY');
+            if (data.identityApiKey !== expectedApiKey) {
+                throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
+            }
+            return new http_response_1.default(200, 'Register successful', await this.usersService.Register(data));
+        });
     }
     async getAllUsers(data) {
-        const expectedApiKey = this.config.get('IDENTITY_API_KEY');
-        if (data.identityApiKey !== expectedApiKey) {
-            throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
-        }
-        return new http_response_1.default(200, 'Get all users successful', await this.usersService.getAllUsers());
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const expectedApiKey = this.config.get('IDENTITY_API_KEY');
+            if (data.identityApiKey !== expectedApiKey) {
+                throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
+            }
+            return new http_response_1.default(200, 'Get all users successful', await this.usersService.getAllUsers());
+        });
     }
     async getUserById(data) {
-        const expectedApiKey = this.config.get('IDENTITY_API_KEY');
-        if (data.identityApiKey !== expectedApiKey) {
-            throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
-        }
-        return new http_response_1.default(200, 'Get user by id successful', await this.usersService.getUserById(data.userId));
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const expectedApiKey = this.config.get('IDENTITY_API_KEY');
+            if (data.identityApiKey !== expectedApiKey) {
+                throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
+            }
+            return new http_response_1.default(200, 'Get user by id successful', await this.usersService.getUserById(data.userId));
+        });
     }
 };
 exports.UsersController = UsersController;

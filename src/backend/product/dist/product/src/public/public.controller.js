@@ -18,14 +18,17 @@ const microservices_1 = require("@nestjs/microservices");
 const public_service_1 = require("./public.service");
 const get_public_menu_request_dto_1 = require("./dtos/request/get-public-menu-request.dto");
 const http_response_1 = __importDefault(require("../../../shared/src/utils/http-response"));
+const rpc_error_handler_1 = require("../../../shared/src/utils/rpc-error-handler");
 let PublicController = class PublicController {
     publicService;
     constructor(publicService) {
         this.publicService = publicService;
     }
     async getPublicMenu(dto) {
-        const menu = await this.publicService.getPublicMenu(dto);
-        return new http_response_1.default(1000, 'Public menu retrieved successfully', menu);
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const menu = await this.publicService.getPublicMenu(dto);
+            return new http_response_1.default(1000, 'Public menu retrieved successfully', menu);
+        });
     }
 };
 exports.PublicController = PublicController;

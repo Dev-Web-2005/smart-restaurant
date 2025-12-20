@@ -30,7 +30,6 @@ class RegisterUserWithProfileRequestDto extends register_user_request_dto_1.defa
     cvv;
     frontImage;
     backImage;
-    isCustomer = false;
 }
 exports.default = RegisterUserWithProfileRequestDto;
 __decorate([
@@ -93,8 +92,4 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], RegisterUserWithProfileRequestDto.prototype, "backImage", void 0);
-__decorate([
-    (0, class_validator_1.IsBoolean)({ message: 'isCustomer must be a boolean value' }),
-    __metadata("design:type", Boolean)
-], RegisterUserWithProfileRequestDto.prototype, "isCustomer", void 0);
 //# sourceMappingURL=register-user-with-profile-request.dto.js.map

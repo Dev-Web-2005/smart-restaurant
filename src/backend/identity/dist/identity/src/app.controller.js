@@ -21,6 +21,13 @@ let AppController = class AppController {
     healthCheck() {
         return this.appService.healthCheck();
     }
+    httpHealthCheck() {
+        return {
+            status: 'ok',
+            service: 'identity-service',
+            timestamp: new Date().toISOString(),
+        };
+    }
 };
 exports.AppController = AppController;
 __decorate([
@@ -29,6 +36,13 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", String)
 ], AppController.prototype, "healthCheck", null);
+__decorate([
+    (0, common_1.Get)(),
+    (0, common_1.Head)(),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Object)
+], AppController.prototype, "httpHealthCheck", null);
 exports.AppController = AppController = __decorate([
     (0, common_1.Controller)(),
     __metadata("design:paramtypes", [app_service_1.AppService])

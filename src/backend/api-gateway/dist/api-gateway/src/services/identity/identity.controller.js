@@ -88,7 +88,8 @@ let IdentityController = class IdentityController {
         });
         const response = await (0, rxjs_1.firstValueFrom)(observableResponse);
         if (!response || !response.code || response.code !== common_1.HttpStatus.OK) {
-            return res.status(response?.code || common_1.HttpStatus.UNAUTHORIZED).json(response);
+            const statusCode = typeof response?.code === 'number' ? response.code : common_1.HttpStatus.UNAUTHORIZED;
+            return res.status(statusCode).json(response);
         }
         const convertData = response;
         const refreshTokenExpiry = this.configService.get('REFRESH_TOKEN_EXPIRES_IN');
@@ -129,8 +130,14 @@ let IdentityController = class IdentityController {
             identityApiKey: this.configService.get('IDENTITY_API_KEY'),
         });
         const response = await (0, rxjs_1.firstValueFrom)(observableResponse);
-        if (!response || !response.code || response.code !== 1000) {
-            return res.status(response?.code || common_1.HttpStatus.UNAUTHORIZED).json(response);
+        if (!response || !response.code || response.code !== common_1.HttpStatus.OK) {
+            const statusCode = typeof response?.code === 'number' ? response.code : common_1.HttpStatus.UNAUTHORIZED;
+            return res.status(statusCode).json({
+                code: statusCode,
+                message: response?.message || 'Token refresh failed',
+                timestamp: new Date().toISOString(),
+                path: '/api/v1/identity/auth/refresh',
+            });
         }
         const convertData = response;
         return res.status(common_1.HttpStatus.OK).json(new types_1.ApiResponse({

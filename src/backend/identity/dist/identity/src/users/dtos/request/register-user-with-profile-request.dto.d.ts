@@ -15,5 +15,4 @@ export default class RegisterUserWithProfileRequestDto extends RegisterUserReque
     cvv?: string;
     frontImage?: string;
     backImage?: string;
-    isCustomer: boolean;
 }

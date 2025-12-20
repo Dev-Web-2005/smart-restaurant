@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { Request, Response, NextFunction } from 'express';
 export declare class RateLimitMiddleware implements NestMiddleware {
     private readonly configService;
-    private readonly PUBLIC_URLS;
     private readonly rateLimitStore;
     private readonly RATE_LIMIT_MAX_REQUESTS;
     private readonly RATE_LIMIT_WINDOW_MS;

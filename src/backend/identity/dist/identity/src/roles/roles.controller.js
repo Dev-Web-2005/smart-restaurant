@@ -22,6 +22,7 @@ const config_1 = require("@nestjs/config");
 const app_exception_1 = __importDefault(require("../../../shared/src/exceptions/app-exception"));
 const error_code_1 = __importDefault(require("../../../shared/src/exceptions/error-code"));
 const get_all_roles_request_dto_1 = require("./dtos/request/get-all-roles-request.dto");
+const rpc_error_handler_1 = require("../../../shared/src/utils/rpc-error-handler");
 let RolesController = class RolesController {
     rolesService;
     config;
@@ -30,18 +31,22 @@ let RolesController = class RolesController {
         this.config = config;
     }
     async getAllRoles(data) {
-        const expectedApiKey = this.config.get('IDENTITY_API_KEY');
-        if (data.identityApiKey !== expectedApiKey) {
-            throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
-        }
-        return new http_response_1.default(200, 'Get all roles successful', await this.rolesService.getAllRoles());
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const expectedApiKey = this.config.get('IDENTITY_API_KEY');
+            if (data.identityApiKey !== expectedApiKey) {
+                throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
+            }
+            return new http_response_1.default(200, 'Get all roles successful', await this.rolesService.getAllRoles());
+        });
     }
     async createRole(data) {
-        const expectedApiKey = this.config.get('IDENTITY_API_KEY');
-        if (data.identityApiKey !== expectedApiKey) {
-            throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
-        }
-        return new http_response_1.default(200, 'Create role successful', await this.rolesService.createRole(data));
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const expectedApiKey = this.config.get('IDENTITY_API_KEY');
+            if (data.identityApiKey !== expectedApiKey) {
+                throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
+            }
+            return new http_response_1.default(200, 'Create role successful', await this.rolesService.createRole(data));
+        });
     }
 };
 exports.RolesController = RolesController;

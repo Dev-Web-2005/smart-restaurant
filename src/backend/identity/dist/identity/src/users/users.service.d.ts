@@ -5,7 +5,6 @@ import { GetUserResponseDto } from 'src/users/dtos/response/get-user-response.dt
 import RegisterUserResponseDto from 'src/users/dtos/response/register-user-response.dto';
 import { ClientProxy } from '@nestjs/microservices';
 import RegisterUserWithProfileRequestDto from 'src/users/dtos/request/register-user-with-profile-request.dto';
-import ChefAccountResponseDto from 'src/users/dtos/response/chef-account-response.dto';
 export declare class UsersService {
     private readonly userRepository;
     private readonly rolesService;
@@ -15,5 +14,4 @@ export declare class UsersService {
     Register(data: RegisterUserWithProfileRequestDto): Promise<RegisterUserResponseDto>;
     getAllUsers(): Promise<GetUserResponseDto[]>;
     getUserById(userId: string): Promise<GetUserResponseDto | null>;
-    generateChefAccount(userId: string): Promise<ChefAccountResponseDto>;
 }

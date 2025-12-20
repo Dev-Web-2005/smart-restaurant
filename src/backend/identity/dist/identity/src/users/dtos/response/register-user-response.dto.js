@@ -5,7 +5,6 @@ class RegisterUserResponseDto {
     username;
     email;
     fullName;
-    chefAccount;
     roles;
 }
 exports.default = RegisterUserResponseDto;

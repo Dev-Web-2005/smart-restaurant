@@ -13,27 +13,26 @@ exports.GlobalExceptionFilter = void 0;
 const common_1 = require("@nestjs/common");
 const microservices_1 = require("@nestjs/microservices");
 const app_exception_1 = __importDefault(require("../../../../../shared/src/exceptions/app-exception"));
-let GlobalExceptionFilter = class GlobalExceptionFilter extends microservices_1.BaseRpcExceptionFilter {
+let GlobalExceptionFilter = class GlobalExceptionFilter {
     catch(exception, host) {
         if (exception instanceof app_exception_1.default) {
             const errorCode = exception.getErrorCode();
-            return super.catch(new microservices_1.RpcException({
+            throw new microservices_1.RpcException({
                 code: errorCode.code,
                 message: errorCode.message,
                 status: errorCode.httpStatus,
-            }), host);
+            });
         }
         if (exception instanceof microservices_1.RpcException) {
-            return super.catch(exception, host);
+            throw exception;
         }
-        console.error('Unhandled exception:', exception);
-        const response = {
+        console.error('Unhandled exception in Identity service:', exception);
+        throw new microservices_1.RpcException({
             code: 9999,
             message: 'Internal server error',
             status: 500,
             error: exception?.message || null,
-        };
-        return super.catch(new microservices_1.RpcException(response), host);
+        });
     }
 };
 exports.GlobalExceptionFilter = GlobalExceptionFilter;

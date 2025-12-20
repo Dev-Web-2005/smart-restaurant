@@ -8,12 +8,13 @@ const app_module_1 = require("./app.module");
 const microservices_1 = require("@nestjs/microservices");
 const common_1 = require("@nestjs/common");
 const error_code_1 = __importDefault(require("../../shared/src/exceptions/error-code"));
-const global_exception_filter_1 = require("./common/filters/global-exception/global-exception.filter");
 async function bootstrap() {
-    const app = await core_1.NestFactory.createMicroservice(app_module_1.AppModule, {
+    const app = await core_1.NestFactory.create(app_module_1.AppModule);
+    const port = parseInt(process.env.PORT, 10);
+    app.connectMicroservice({
         transport: microservices_1.Transport.TCP,
         options: {
-            port: parseInt(process.env.PORT, 10),
+            port: port,
         },
     });
     app.useGlobalPipes(new common_1.ValidationPipe({
@@ -34,8 +35,10 @@ async function bootstrap() {
             });
         },
     }));
-    app.useGlobalFilters(new global_exception_filter_1.GlobalExceptionFilter());
-    await app.listen();
+    await app.startAllMicroservices();
+    console.log(`Identity Service is running on TCP port ${port}`);
+    await app.listen(port, '127.0.0.1');
+    console.log(`HTTP Health endpoint listening on 127.0.0.1:${port}`);
     process.on('SIGINT', () => {
         console.log('SIGINT received. Shutting down gracefully...');
         app.close().then(() => process.exit(0));

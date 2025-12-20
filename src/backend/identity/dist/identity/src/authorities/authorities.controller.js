@@ -22,6 +22,7 @@ const config_1 = require("@nestjs/config");
 const app_exception_1 = __importDefault(require("../../../shared/src/exceptions/app-exception"));
 const error_code_1 = __importDefault(require("../../../shared/src/exceptions/error-code"));
 const get_all_authorities_request_dto_1 = require("./dtos/request/get-all-authorities-request.dto");
+const rpc_error_handler_1 = require("../../../shared/src/utils/rpc-error-handler");
 let AuthoritiesController = class AuthoritiesController {
     authoritiesService;
     config;
@@ -30,18 +31,22 @@ let AuthoritiesController = class AuthoritiesController {
         this.config = config;
     }
     async getAllAuthorities(data) {
-        const expectedApiKey = this.config.get('IDENTITY_API_KEY');
-        if (data.identityApiKey !== expectedApiKey) {
-            throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
-        }
-        return new http_response_1.default(200, 'Get all authorities successful', await this.authoritiesService.getAllAuthorities());
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const expectedApiKey = this.config.get('IDENTITY_API_KEY');
+            if (data.identityApiKey !== expectedApiKey) {
+                throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
+            }
+            return new http_response_1.default(200, 'Get all authorities successful', await this.authoritiesService.getAllAuthorities());
+        });
     }
     async createAuthority(data) {
-        const expectedApiKey = this.config.get('IDENTITY_API_KEY');
-        if (data.identityApiKey !== expectedApiKey) {
-            throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
-        }
-        return new http_response_1.default(200, 'Create authority successful', await this.authoritiesService.createAuthority(data));
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const expectedApiKey = this.config.get('IDENTITY_API_KEY');
+            if (data.identityApiKey !== expectedApiKey) {
+                throw new app_exception_1.default(error_code_1.default.UNAUTHORIZED);
+            }
+            return new http_response_1.default(200, 'Create authority successful', await this.authoritiesService.createAuthority(data));
+        });
     }
 };
 exports.AuthoritiesController = AuthoritiesController;

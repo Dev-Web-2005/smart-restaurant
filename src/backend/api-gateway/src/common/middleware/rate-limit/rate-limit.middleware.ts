@@ -9,14 +9,6 @@ interface RateLimitEntry {
 
 @Injectable()
 export class RateLimitMiddleware implements NestMiddleware {
-	// Public URLs không cần API key
-	private readonly PUBLIC_URLS = [
-		'/api/v1/identity/auth/login',
-		'/api/v1/identity/auth/register',
-		'/api/v1/identity/auth/refresh',
-		'/api/v1/product/public/menu',
-	];
-
 	private readonly rateLimitStore = new Map<string, RateLimitEntry>();
 
 	private readonly RATE_LIMIT_MAX_REQUESTS = 5;
@@ -27,23 +19,7 @@ export class RateLimitMiddleware implements NestMiddleware {
 	}
 
 	use(req: Request, res: Response, next: NextFunction) {
-		const url = req.originalUrl || req.url;
 		const ip = this.getClientIp(req);
-
-		const isPublicUrl = this.PUBLIC_URLS.some((publicUrl) => url.startsWith(publicUrl));
-
-		if (!isPublicUrl) {
-			const apiKey = req.headers['x-api-key'] as string;
-			const expectedApiKey = this.configService.get<string>('X_API_KEY');
-
-			if (!apiKey || apiKey !== expectedApiKey) {
-				return res.status(HttpStatus.UNAUTHORIZED).json({
-					code: HttpStatus.UNAUTHORIZED,
-					message: 'Unauthorized: Invalid or missing API key',
-					data: null,
-				});
-			}
-		}
 
 		if (!this.checkRateLimit(ip)) {
 			return res.status(HttpStatus.TOO_MANY_REQUESTS).json({

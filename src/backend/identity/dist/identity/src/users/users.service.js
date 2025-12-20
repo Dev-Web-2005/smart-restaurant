@@ -66,8 +66,6 @@ const microservices_1 = require("@nestjs/microservices");
 const common_2 = require("@nestjs/common");
 const rxjs_1 = require("rxjs");
 const utils_1 = require("../../../shared/src/utils/utils");
-const chef_account_response_dto_1 = __importDefault(require("./dtos/response/chef-account-response.dto"));
-const class_transformer_1 = require("class-transformer");
 let UsersService = class UsersService {
     userRepository;
     rolesService;
@@ -93,9 +91,10 @@ let UsersService = class UsersService {
         this.profileClient = profileClient;
     }
     async Register(data) {
-        const isCustomer = data.isCustomer || false;
-        const rolesString = data.roles ||
-            (isCustomer ? [enum_1.RoleEnum[enum_1.RoleEnum.CUSTOMER]] : [enum_1.RoleEnum[enum_1.RoleEnum.USER]]);
+        const rolesString = data.roles || ['USER'];
+        if (!rolesString.includes('USER')) {
+            rolesString.push('USER');
+        }
         const roles = [];
         for (const role of rolesString) {
             const roleInt = enum_1.RoleEnum[role];
@@ -129,29 +128,25 @@ let UsersService = class UsersService {
                 });
                 return dto;
             });
-            if (rolesString.includes(enum_1.RoleEnum[enum_1.RoleEnum.USER])) {
-                try {
-                    const profileData = {
-                        userId: savedUser.userId,
-                        profileApiKey: process.env.PROFILE_API_KEY,
-                        ...(0, utils_1.extractFields)(data, this.PROFILE_FIELDS),
-                    };
-                    const profile = await (0, rxjs_1.firstValueFrom)(this.profileClient.send('profiles:modify-profile', profileData));
-                    if (!profile || !profile.userId) {
-                        await this.userRepository.delete({ userId: savedUser.userId });
-                        throw new app_exception_1.default(error_code_1.default.PROFILE_SERVICE_ERROR);
-                    }
-                }
-                catch (err) {
+            try {
+                const profileData = {
+                    userId: savedUser.userId,
+                    profileApiKey: process.env.PROFILE_API_KEY,
+                    ...(0, utils_1.extractFields)(data, this.PROFILE_FIELDS),
+                };
+                const profile = await (0, rxjs_1.firstValueFrom)(this.profileClient.send('profiles:modify-profile', profileData));
+                if (!profile || !profile.userId) {
                     await this.userRepository.delete({ userId: savedUser.userId });
-                    if (err instanceof app_exception_1.default) {
-                        throw err;
-                    }
-                    console.error('Error calling profile service:', err);
                     throw new app_exception_1.default(error_code_1.default.PROFILE_SERVICE_ERROR);
                 }
-                const chefAccount = await this.generateChefAccount(savedUser.userId);
-                response.chefAccount = chefAccount;
+            }
+            catch (err) {
+                await this.userRepository.delete({ userId: savedUser.userId });
+                if (err instanceof app_exception_1.default) {
+                    throw err;
+                }
+                console.error('Error calling profile service:', err);
+                throw new app_exception_1.default(error_code_1.default.PROFILE_SERVICE_ERROR);
             }
             return response;
         }
@@ -209,44 +204,6 @@ let UsersService = class UsersService {
             return roleDto;
         });
         return dto;
-    }
-    async generateChefAccount(userId) {
-        const username = `chef_${Math.random().toString(36).substring(2, 10)}`;
-        const password = `${Math.random().toString(36).substring(2, 10)}`;
-        const email = `${username}@created-by-ltc.com`;
-        try {
-            const chefRole = await this.rolesService.getRoleByName(enum_1.RoleEnum[enum_1.RoleEnum.CHEF]);
-            if (!chefRole) {
-                throw new app_exception_1.default(error_code_1.default.ROLE_NOT_FOUND);
-            }
-            const user = this.userRepository.create({
-                username: username,
-                email: email,
-                ownerId: userId,
-                password: await bcrypt.hash(password, 10),
-                roles: [chefRole],
-            });
-            try {
-                const createdUser = await this.userRepository.save(user);
-                return (0, class_transformer_1.plainToInstance)(chef_account_response_dto_1.default, {
-                    username: createdUser.username,
-                    email: createdUser.email,
-                    password: password,
-                    ownerId: createdUser.ownerId,
-                });
-            }
-            catch (err) {
-                console.error('Error saving chef user:', err);
-                throw new app_exception_1.default(error_code_1.default.CHEF_ACCOUNT_CREATION_FAILED);
-            }
-        }
-        catch (err) {
-            if (err instanceof app_exception_1.default) {
-                throw err;
-            }
-            console.error('Error generating chef account:', err);
-            throw new app_exception_1.default(error_code_1.default.CHEF_ACCOUNT_CREATION_FAILED);
-        }
     }
 };
 exports.UsersService = UsersService;

@@ -14,12 +14,6 @@ const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 let RateLimitMiddleware = class RateLimitMiddleware {
     configService;
-    PUBLIC_URLS = [
-        '/api/v1/identity/auth/login',
-        '/api/v1/identity/auth/register',
-        '/api/v1/identity/auth/refresh',
-        '/api/v1/product/public/menu',
-    ];
     rateLimitStore = new Map();
     RATE_LIMIT_MAX_REQUESTS = 5;
     RATE_LIMIT_WINDOW_MS = 1000;
@@ -28,20 +22,7 @@ let RateLimitMiddleware = class RateLimitMiddleware {
         setInterval(() => this.cleanupExpiredEntries(), 10000);
     }
     use(req, res, next) {
-        const url = req.originalUrl || req.url;
         const ip = this.getClientIp(req);
-        const isPublicUrl = this.PUBLIC_URLS.some((publicUrl) => url.startsWith(publicUrl));
-        if (!isPublicUrl) {
-            const apiKey = req.headers['x-api-key'];
-            const expectedApiKey = this.configService.get('X_API_KEY');
-            if (!apiKey || apiKey !== expectedApiKey) {
-                return res.status(common_1.HttpStatus.UNAUTHORIZED).json({
-                    code: common_1.HttpStatus.UNAUTHORIZED,
-                    message: 'Unauthorized: Invalid or missing API key',
-                    data: null,
-                });
-            }
-        }
         if (!this.checkRateLimit(ip)) {
             return res.status(common_1.HttpStatus.TOO_MANY_REQUESTS).json({
                 code: common_1.HttpStatus.TOO_MANY_REQUESTS,

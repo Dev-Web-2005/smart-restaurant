@@ -5,10 +5,8 @@ var RoleEnum;
 (function (RoleEnum) {
     RoleEnum[RoleEnum["ADMIN"] = 1] = "ADMIN";
     RoleEnum[RoleEnum["USER"] = 2] = "USER";
-    RoleEnum[RoleEnum["CHEF"] = 3] = "CHEF";
-    RoleEnum[RoleEnum["STAFF"] = 4] = "STAFF";
-    RoleEnum[RoleEnum["MANAGER"] = 5] = "MANAGER";
-    RoleEnum[RoleEnum["CUSTOMER"] = 6] = "CUSTOMER";
+    RoleEnum[RoleEnum["STAFF"] = 3] = "STAFF";
+    RoleEnum[RoleEnum["MANAGER"] = 4] = "MANAGER";
 })(RoleEnum || (exports.RoleEnum = RoleEnum = {}));
 var AuthorityEnum;
 (function (AuthorityEnum) {
@@ -17,10 +15,6 @@ var AuthorityEnum;
     AuthorityEnum[AuthorityEnum["DELETE"] = 3] = "DELETE";
     AuthorityEnum[AuthorityEnum["UPDATE"] = 4] = "UPDATE";
     AuthorityEnum[AuthorityEnum["EXECUTE"] = 5] = "EXECUTE";
-    AuthorityEnum[AuthorityEnum["CREATE"] = 6] = "CREATE";
-    AuthorityEnum[AuthorityEnum["VIEW"] = 7] = "VIEW";
-    AuthorityEnum[AuthorityEnum["MANAGE"] = 8] = "MANAGE";
-    AuthorityEnum[AuthorityEnum["MODIFY_STATE"] = 9] = "MODIFY_STATE";
 })(AuthorityEnum || (exports.AuthorityEnum = AuthorityEnum = {}));
 var TokenTypeEnum;
 (function (TokenTypeEnum) {

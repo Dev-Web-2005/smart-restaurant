@@ -17,6 +17,7 @@ const common_1 = require("@nestjs/common");
 const microservices_1 = require("@nestjs/microservices");
 const item_service_1 = require("./item.service");
 const http_response_1 = __importDefault(require("../../../shared/src/utils/http-response"));
+const rpc_error_handler_1 = require("../../../shared/src/utils/rpc-error-handler");
 const request_1 = require("./dtos/request");
 let ItemController = class ItemController {
     itemService;
@@ -24,28 +25,40 @@ let ItemController = class ItemController {
         this.itemService = itemService;
     }
     async createItem(dto) {
-        const item = await this.itemService.createItem(dto);
-        return new http_response_1.default(1000, 'Menu item created successfully', item);
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const item = await this.itemService.createItem(dto);
+            return new http_response_1.default(1000, 'Menu item created successfully', item);
+        });
     }
     async getItems(dto) {
-        const items = await this.itemService.getItems(dto);
-        return new http_response_1.default(1000, 'Menu items retrieved successfully', items);
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const items = await this.itemService.getItems(dto);
+            return new http_response_1.default(1000, 'Menu items retrieved successfully', items);
+        });
     }
     async updateItem(dto) {
-        const item = await this.itemService.updateItem(dto);
-        return new http_response_1.default(1000, 'Menu item updated successfully', item);
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const item = await this.itemService.updateItem(dto);
+            return new http_response_1.default(1000, 'Menu item updated successfully', item);
+        });
     }
     async publishItem(dto) {
-        const item = await this.itemService.publishItem(dto);
-        return new http_response_1.default(1000, 'Menu item publish status updated', item);
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const item = await this.itemService.publishItem(dto);
+            return new http_response_1.default(1000, 'Menu item publish status updated', item);
+        });
     }
     async deleteItem(dto) {
-        await this.itemService.deleteItem(dto);
-        return new http_response_1.default(1000, 'Menu item deleted successfully');
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            await this.itemService.deleteItem(dto);
+            return new http_response_1.default(1000, 'Menu item deleted successfully');
+        });
     }
     async addModifiers(dto) {
-        const item = await this.itemService.addModifiers(dto);
-        return new http_response_1.default(1000, 'Modifiers added successfully', item);
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const item = await this.itemService.addModifiers(dto);
+            return new http_response_1.default(1000, 'Modifiers added successfully', item);
+        });
     }
 };
 exports.ItemController = ItemController;
