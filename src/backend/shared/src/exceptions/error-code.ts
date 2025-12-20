@@ -19,7 +19,7 @@ export default class ErrorCode {
   static readonly LOGIN_FAILED: ErrorCode = new ErrorCode(
     1001,
     "Username or password is incorrect",
-    401
+    400
   );
 
   /** Access token or refresh token has expired */

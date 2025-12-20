@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
 import { GetAllAuthoritiesRequestDto } from 'src/authorities/dtos/request/get-all-authorities-request.dto';
+import { handleRpcCall } from '@shared/utils/rpc-error-handler';
 
 @Controller('authorities')
 export class AuthoritiesController {
@@ -17,27 +18,31 @@ export class AuthoritiesController {
 
 	@MessagePattern('authorities:get-all-authorities')
 	async getAllAuthorities(data: GetAllAuthoritiesRequestDto): Promise<HttpResponse> {
-		const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
-		if (data.identityApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
-		return new HttpResponse(
-			200,
-			'Get all authorities successful',
-			await this.authoritiesService.getAllAuthorities(),
-		);
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			return new HttpResponse(
+				200,
+				'Get all authorities successful',
+				await this.authoritiesService.getAllAuthorities(),
+			);
+		});
 	}
 
 	@MessagePattern('authorities:create-authority')
 	async createAuthority(data: CreateAuthorityRequestDto): Promise<HttpResponse> {
-		const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
-		if (data.identityApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
-		return new HttpResponse(
-			200,
-			'Create authority successful',
-			await this.authoritiesService.createAuthority(data),
-		);
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			return new HttpResponse(
+				200,
+				'Create authority successful',
+				await this.authoritiesService.createAuthority(data),
+			);
+		});
 	}
 }

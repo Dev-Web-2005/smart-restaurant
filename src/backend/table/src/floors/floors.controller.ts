@@ -9,6 +9,7 @@ import { FloorDto } from 'src/floors/dtos/response/floor.dto';
 import { ConfigService } from '@nestjs/config/dist/config.service';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
+import { handleRpcCall } from '@shared/utils/rpc-error-handler';
 
 /**
  * Controller for floor management operations
@@ -27,12 +28,14 @@ export class FloorsController {
 	 */
 	@MessagePattern('floors:create')
 	async createFloor(@Payload() dto: CreateFloorDto): Promise<FloorDto> {
-		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
-		if (dto.tableApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+			if (dto.tableApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
 
-		return await this.floorsService.createFloor(dto);
+			return await this.floorsService.createFloor(dto);
+		});
 	}
 
 	/**
@@ -41,12 +44,14 @@ export class FloorsController {
 	 */
 	@MessagePattern('floors:get-by-id')
 	async getFloorById(@Payload() dto: GetFloorDto): Promise<FloorDto> {
-		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
-		if (dto.tableApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+			if (dto.tableApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
 
-		return await this.floorsService.getFloorById(dto);
+			return await this.floorsService.getFloorById(dto);
+		});
 	}
 
 	/**
@@ -55,12 +60,14 @@ export class FloorsController {
 	 */
 	@MessagePattern('floors:list')
 	async listFloors(@Payload() dto: ListFloorsDto): Promise<FloorDto[]> {
-		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
-		if (dto.tableApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+			if (dto.tableApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
 
-		return await this.floorsService.listFloors(dto);
+			return await this.floorsService.listFloors(dto);
+		});
 	}
 
 	/**
@@ -71,16 +78,18 @@ export class FloorsController {
 	async updateFloor(
 		@Payload() payload: { floorId: string; tenantId: string; data: UpdateFloorDto },
 	): Promise<FloorDto> {
-		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
-		if (payload.data.tableApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+			if (payload.data.tableApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
 
-		return await this.floorsService.updateFloor(
-			payload.floorId,
-			payload.tenantId,
-			payload.data,
-		);
+			return await this.floorsService.updateFloor(
+				payload.floorId,
+				payload.tenantId,
+				payload.data,
+			);
+		});
 	}
 
 	/**
@@ -89,13 +98,15 @@ export class FloorsController {
 	 */
 	@MessagePattern('floors:delete')
 	async deleteFloor(@Payload() dto: GetFloorDto): Promise<{ success: boolean }> {
-		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
-		if (dto.tableApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+			if (dto.tableApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
 
-		await this.floorsService.deleteFloor(dto);
-		return { success: true };
+			await this.floorsService.deleteFloor(dto);
+			return { success: true };
+		});
 	}
 
 	/**
@@ -106,12 +117,14 @@ export class FloorsController {
 	async deleteFloorPermanently(
 		@Payload() dto: GetFloorDto,
 	): Promise<{ success: boolean }> {
-		const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
-		if (dto.tableApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
+			if (dto.tableApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
 
-		await this.floorsService.deleteFloorPermanently(dto);
-		return { success: true };
+			await this.floorsService.deleteFloorPermanently(dto);
+			return { success: true };
+		});
 	}
 }

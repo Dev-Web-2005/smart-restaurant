@@ -3,6 +3,7 @@ import { MessagePattern } from '@nestjs/microservices';
 import { CategoryService } from './category.service';
 
 import HttpResponse from '@shared/utils/http-response';
+import { handleRpcCall } from '@shared/utils/rpc-error-handler';
 import {
 	CreateCategoryRequestDto,
 	GetCategoriesRequestDto,
@@ -30,43 +31,53 @@ export class CategoryController {
 
 	@MessagePattern('categories:create')
 	async createCategory(dto: CreateCategoryRequestDto) {
-		this.validateApiKey(dto.productApiKey);
+		return handleRpcCall(async () => {
+			this.validateApiKey(dto.productApiKey);
 
-		console.log('Data received:', dto);
+			console.log('Data received:', dto);
 
-		const category = await this.categoryService.createCategory(dto);
-		return new HttpResponse(1000, 'Category created successfully', category);
+			const category = await this.categoryService.createCategory(dto);
+			return new HttpResponse(1000, 'Category created successfully', category);
+		});
 	}
 
 	@MessagePattern('categories:get-all')
 	async getCategories(dto: GetCategoriesRequestDto) {
-		this.validateApiKey(dto.productApiKey);
+		return handleRpcCall(async () => {
+			this.validateApiKey(dto.productApiKey);
 
-		const categories = await this.categoryService.getCategories(dto);
-		return new HttpResponse(1000, 'Categories retrieved successfully', categories);
+			const categories = await this.categoryService.getCategories(dto);
+			return new HttpResponse(1000, 'Categories retrieved successfully', categories);
+		});
 	}
 
 	@MessagePattern('categories:update')
 	async updateCategory(dto: UpdateCategoryRequestDto) {
-		this.validateApiKey(dto.productApiKey);
+		return handleRpcCall(async () => {
+			this.validateApiKey(dto.productApiKey);
 
-		const category = await this.categoryService.updateCategory(dto);
-		return new HttpResponse(1000, 'Category updated successfully', category);
+			const category = await this.categoryService.updateCategory(dto);
+			return new HttpResponse(1000, 'Category updated successfully', category);
+		});
 	}
 
 	@MessagePattern('categories:publish')
 	async publishCategory(dto: PublishCategoryRequestDto) {
-		this.validateApiKey(dto.productApiKey);
+		return handleRpcCall(async () => {
+			this.validateApiKey(dto.productApiKey);
 
-		const category = await this.categoryService.publishCategory(dto);
-		return new HttpResponse(1000, 'Category publish status updated', category);
+			const category = await this.categoryService.publishCategory(dto);
+			return new HttpResponse(1000, 'Category publish status updated', category);
+		});
 	}
 
 	@MessagePattern('categories:delete')
 	async deleteCategory(dto: DeleteCategoryRequestDto) {
-		this.validateApiKey(dto.productApiKey);
+		return handleRpcCall(async () => {
+			this.validateApiKey(dto.productApiKey);
 
-		await this.categoryService.deleteCategory(dto);
-		return new HttpResponse(1000, 'Category deleted successfully');
+			await this.categoryService.deleteCategory(dto);
+			return new HttpResponse(1000, 'Category deleted successfully');
+		});
 	}
 }

@@ -3,7 +3,6 @@ import { AppModule } from './app.module';
 import { MicroserviceOptions, Transport, RpcException } from '@nestjs/microservices';
 import { ValidationPipe } from '@nestjs/common';
 import ErrorCode from '@shared/exceptions/error-code';
-import { GlobalExceptionFilter } from 'src/common/filters/global-exception/global-exception.filter';
 
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
@@ -35,8 +34,6 @@ async function bootstrap() {
 			},
 		}),
 	);
-
-	app.useGlobalFilters(new GlobalExceptionFilter());
 
 	await app.startAllMicroservices();
 	console.log(`Identity Service is running on TCP port ${port}`);

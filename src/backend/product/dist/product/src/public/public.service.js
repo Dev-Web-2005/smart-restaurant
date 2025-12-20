@@ -1,0 +1,98 @@
+"use strict";
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PublicService = void 0;
+const common_1 = require("@nestjs/common");
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
+const entities_1 = require("../common/entities");
+let PublicService = class PublicService {
+    categoryRepository;
+    itemRepository;
+    modifierRepository;
+    constructor(categoryRepository, itemRepository, modifierRepository) {
+        this.categoryRepository = categoryRepository;
+        this.itemRepository = itemRepository;
+        this.modifierRepository = modifierRepository;
+    }
+    async getPublicMenu(dto) {
+        const categories = await this.categoryRepository.find({
+            where: { tenantId: dto.tenantId, published: true },
+            order: { displayOrder: 'ASC', createdAt: 'ASC' },
+        });
+        if (categories.length === 0) {
+            return {
+                tenantId: dto.tenantId,
+                categories: [],
+            };
+        }
+        const categoryIds = categories.map((cat) => cat.id);
+        const items = await this.itemRepository.find({
+            where: categoryIds.map((catId) => ({
+                categoryId: catId,
+                published: true,
+                available: true,
+            })),
+            relations: ['modifiers'],
+            order: { createdAt: 'ASC' },
+        });
+        const categoriesWithItems = categories.map((category) => {
+            const categoryItems = items.filter((item) => item.categoryId === category.id);
+            return {
+                id: category.id,
+                name: category.name,
+                description: category.description,
+                items: categoryItems.map((item) => this.toPublicItemDto(item)),
+            };
+        });
+        const filteredCategories = categoriesWithItems.filter((cat) => cat.items.length > 0);
+        return {
+            tenantId: dto.tenantId,
+            categories: filteredCategories,
+        };
+    }
+    toPublicItemDto(item) {
+        return {
+            id: item.id,
+            categoryId: item.categoryId,
+            name: item.name,
+            description: item.description,
+            imageUrl: item.imageUrl,
+            price: Number(item.price),
+            currency: item.currency,
+            available: item.available,
+            modifiers: (item.modifiers || []).map((mod) => this.toPublicModifierDto(mod)),
+        };
+    }
+    toPublicModifierDto(modifier) {
+        return {
+            id: modifier.id,
+            groupName: modifier.groupName,
+            label: modifier.label,
+            priceDelta: Number(modifier.priceDelta),
+            type: modifier.type,
+        };
+    }
+};
+exports.PublicService = PublicService;
+exports.PublicService = PublicService = __decorate([
+    (0, common_1.Injectable)(),
+    __param(0, (0, typeorm_1.InjectRepository)(entities_1.MenuCategory)),
+    __param(1, (0, typeorm_1.InjectRepository)(entities_1.MenuItem)),
+    __param(2, (0, typeorm_1.InjectRepository)(entities_1.ModifierOption)),
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository])
+], PublicService);
+//# sourceMappingURL=public.service.js.map

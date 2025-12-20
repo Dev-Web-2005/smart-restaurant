@@ -93,3 +93,4 @@ repomix-output.txt
 !README.md
 !**/README.md
 
+src/backend/api-gateway/logs/

@@ -9,6 +9,7 @@ import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
 import { DetailService } from 'src/detail/detail.service';
 import { GetVerifiedStateRequestDto } from 'src/detail/dtos/request/get-verified-state-request.dto';
+import { handleRpcCall } from '@shared/utils/rpc-error-handler';
 
 @Controller()
 export class DetailController {
@@ -19,30 +20,36 @@ export class DetailController {
 
 	@MessagePattern('profiles:modify-profile')
 	async modifyProfile(data: ModifyProfileRequestDto): Promise<GetProfileResponseDto> {
-		const expectedApiKey = this.config.get<string>('PROFILE_API_KEY');
-		if (data.profileApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
-		return this.detailService.modifyProfileServiceStatus(
-			plainToInstance(ModifyProfileRequestDto, data),
-		);
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('PROFILE_API_KEY');
+			if (data.profileApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			return this.detailService.modifyProfileServiceStatus(
+				plainToInstance(ModifyProfileRequestDto, data),
+			);
+		});
 	}
 
 	@MessagePattern('profiles:get-profile')
 	async getProfile(data: GetProfileRequestDto): Promise<GetProfileResponseDto> {
-		const expectedApiKey = this.config.get<string>('PROFILE_API_KEY');
-		if (data.profileApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
-		return this.detailService.getProfileServiceStatus(data.userId);
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('PROFILE_API_KEY');
+			if (data.profileApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			return this.detailService.getProfileServiceStatus(data.userId);
+		});
 	}
 
 	@MessagePattern('profiles:get-verified-state')
 	async getVerifiedState(data: GetVerifiedStateRequestDto): Promise<boolean> {
-		const expectedApiKey = this.config.get<string>('PROFILE_API_KEY');
-		if (data.profileApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED);
-		}
-		return (await this.detailService.getProfileServiceStatus(data.userId)).verified;
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('PROFILE_API_KEY');
+			if (data.profileApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			return (await this.detailService.getProfileServiceStatus(data.userId)).verified;
+		});
 	}
 }
