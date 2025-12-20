@@ -1,12 +1,19 @@
 # Dependencies
 node_modules/
 **/node_modules/
+package-lock.json
+**/package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # Build outputs
 dist/
+**/dist/
 build/
+**/build/
 out/
 *.tsbuildinfo
+*.js.map
 
 # Environment variables
 .env
@@ -14,12 +21,16 @@ out/
 .env.*.local
 .env.development
 .env.production
+**/.env
+**/.env.local
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*.sublime-*
+.history/
 
 # Logs
 logs/
@@ -28,19 +39,57 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
+**/*.log
+
+# PM2
+.pm2/
+*.pid
+pids/
 
 # Testing
 coverage/
+**/coverage/
 .cache/
+.nyc_output/
+*.lcov
 
 # Next.js
 .next/
+
+# Docker
+docker-compose.override.yml
+.docker/
+*.sql
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
 
 # OS
 .DS_Store
 thumbs.db
 desktop.ini
+Thumbs.db
 
+# Output files
+repomix-output.xml
+repomix-output.txt
+*.output.xml
+
+# Migrations (nếu được generate)
+# migrations/*.js (uncomment nếu cần)
+
+# Documentation ngoại trừ README
 *.md
 !README.md
+!**/README.md
 
