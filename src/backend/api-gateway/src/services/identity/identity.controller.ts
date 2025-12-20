@@ -164,13 +164,19 @@ export class IdentityController {
 			);
 		} catch (error) {
 			// Handle RPC or network errors
+			console.error('Login error caught:', error);
+
+			// RpcException wraps the error in an 'error' property
+			const errorData = error?.error || error;
+
 			const statusCode =
-				typeof error?.status === 'number'
-					? error.status
+				typeof errorData?.status === 'number'
+					? errorData.status
 					: HttpStatus.INTERNAL_SERVER_ERROR;
+
 			return res.status(statusCode).json({
-				code: typeof error?.code === 'number' ? error.code : statusCode,
-				message: error?.message || 'Login failed',
+				code: typeof errorData?.code === 'number' ? errorData.code : statusCode,
+				message: errorData?.message || error?.message || 'Login failed',
 				timestamp: new Date().toISOString(),
 				path: '/api/v1/identity/auth/login',
 			});
