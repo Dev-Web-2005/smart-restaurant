@@ -26,10 +26,7 @@ export default defineConfig({
 				configure: (proxy, options) => {
 					proxy.on('proxyReq', (proxyReq, req, res) => {
 						// Add x-api-key header to proxied request
-						proxyReq.setHeader(
-							'x-api-key',
-							'lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$]4m&;5,8m5JN-,S<h#}',
-						)
+						proxyReq.setHeader('x-api-key', 'smart-restaurant-2025-secret-key')
 					})
 				},
 			},
@@ -41,10 +38,7 @@ export default defineConfig({
 				configure: (proxy, options) => {
 					proxy.on('proxyReq', (proxyReq, req, res) => {
 						// Add x-api-key header to proxied request
-						proxyReq.setHeader(
-							'x-api-key',
-							'lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$]4m&;5,8m5JN-,S<h#}',
-						)
+						proxyReq.setHeader('x-api-key', 'smart-restaurant-2025-secret-key')
 					})
 				},
 			},
