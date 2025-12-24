@@ -8,7 +8,10 @@ import CookieParser from 'cookie-parser';
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
 
-	app.setGlobalPrefix('api/v1');
+	// Set global prefix nhưng exclude health routes để Render có thể health check
+	app.setGlobalPrefix('api/v1', {
+		exclude: ['/', 'health'],
+	});
 	app.use(express.json({ limit: '10mb' }));
 	app.use(express.urlencoded({ limit: '10mb', extended: true }));
 

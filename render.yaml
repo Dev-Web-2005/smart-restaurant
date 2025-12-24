@@ -74,4 +74,4 @@ services:
       - key: PORT_TABLE_SERVICE
         value: 8083
       - key: X_API_KEY
-        value: lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$]4m&;5,8m5JN-,S<h#}
+        value: smart-restaurant-2025-secret-key

@@ -28,7 +28,7 @@
             "headers": [
                 {
                     "key": "x-api-key",
-                    "value": "lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$]4m&;5,8m5JN-,S<h#}"
+                    "value": "smart-restaurant-2025-secret-key"
                 }
             ]
         },
@@ -37,7 +37,7 @@
             "headers": [
                 {
                     "key": "x-api-key",
-                    "value": "lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$]4m&;5,8m5JN-,S<h#}"
+                    "value": "smart-restaurant-2025-secret-key"
                 }
             ]
         },
@@ -52,6 +52,7 @@
         }
     ],
     "env": {
+        "VITE_API_KEY": "smart-restaurant-2025-secret-key",
         "VITE_API_GATEWAY_URL": "https://smart-restaurant-gateway.onrender.com",
         "VITE_FILE_SERVICE_URL": "https://file-service-cdal.onrender.com",
         "VITE_DIDIT_API_KEY": "7hwmBAe7gzf8RECVEc5oZWQc8Sp9_SDpX9lkLiHUyMs",

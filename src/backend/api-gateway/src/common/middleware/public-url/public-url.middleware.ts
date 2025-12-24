@@ -7,6 +7,8 @@ import { Injectable } from '@nestjs/common';
 export class PublicUrlMiddleware implements NestMiddleware {
 	// Public URLs không cần API key
 	private readonly PUBLIC_URLS = [
+		'/',
+		'/health',
 		'/api/v1/identity/auth/login',
 		'/api/v1/identity/auth/register',
 		'/api/v1/identity/auth/refresh',

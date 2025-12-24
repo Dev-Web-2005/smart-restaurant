@@ -9,6 +9,7 @@ const apiClient = axios.create({
 	withCredentials: true, // Enable cookies for refresh token
 	headers: {
 		'Content-Type': 'application/json',
+		'x-api-key': import.meta.env.VITE_API_KEY || 'smart-restaurant-2025-secret-key',
 	},
 	timeout: 30000,
 })

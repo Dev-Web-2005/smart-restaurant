@@ -11,6 +11,7 @@ import { TableController } from './services/table/table.controller';
 import { FloorController } from './services/table/floor.controller';
 import { ProductController } from './services/product/product.controller';
 import { PublicUrlMiddleware } from 'src/common/middleware/public-url/public-url.middleware';
+import { HealthController } from './health.controller';
 
 @Module({
 	imports: [
@@ -51,6 +52,7 @@ import { PublicUrlMiddleware } from 'src/common/middleware/public-url/public-url
 		]),
 	],
 	controllers: [
+		HealthController,
 		AppController,
 		IdentityController,
 		ProfileController,
