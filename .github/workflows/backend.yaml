@@ -41,7 +41,7 @@ jobs:
           npm ci
           npm run build
           npm prune --production
-          rm -rf src test
+          rm -rf test
           mkdir -p ../../../result/shared
           cp -r . ../../../result/shared/
 
