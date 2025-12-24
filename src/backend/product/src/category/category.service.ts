@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { MenuCategory, MenuItem } from 'src/common/entities';
-import { CategoryStatus, categoryStatusToString } from 'src/common/enums';
+import { CategoryStatus, categoryStatusToString, MenuItemStatus } from 'src/common/enums';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
 import { CategoryResponseDto } from './dtos/response/category-response.dto';
@@ -154,13 +154,12 @@ export class CategoryService {
 		}
 
 		// Check if category has active items
-		// Note: MenuItem currently uses 'available' and 'published' booleans
-		// This should be updated when MenuItem is migrated to status enum
 		const activeItemsCount = await this.menuItemRepository.count({
 			where: {
 				categoryId: dto.categoryId,
-				available: true,
-				published: true,
+				tenantId: dto.tenantId,
+				status: MenuItemStatus.AVAILABLE,
+				deletedAt: IsNull(),
 			},
 		});
 

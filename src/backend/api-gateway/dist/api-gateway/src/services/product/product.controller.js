@@ -35,9 +35,13 @@ let ProductController = class ProductController {
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
-    getCategories(tenantId) {
+    getCategories(tenantId, status, search, sortBy, sortOrder) {
         return this.productClient.send('categories:get-all', {
             tenantId,
+            status,
+            search,
+            sortBy,
+            sortOrder,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
@@ -49,8 +53,8 @@ let ProductController = class ProductController {
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
-    publishCategory(tenantId, categoryId, data) {
-        return this.productClient.send('categories:publish', {
+    updateCategoryStatus(tenantId, categoryId, data) {
+        return this.productClient.send('categories:update-status', {
             ...data,
             tenantId,
             categoryId,
@@ -131,8 +135,12 @@ __decorate([
     (0, common_1.Get)('tenants/:tenantId/categories'),
     (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
     __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Query)('status')),
+    __param(2, (0, common_1.Query)('search')),
+    __param(3, (0, common_1.Query)('sortBy')),
+    __param(4, (0, common_1.Query)('sortOrder')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String, String, String, String]),
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "getCategories", null);
 __decorate([
@@ -146,7 +154,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "updateCategory", null);
 __decorate([
-    (0, common_1.Post)('tenants/:tenantId/categories/:categoryId/publish'),
+    (0, common_1.Patch)('tenants/:tenantId/categories/:categoryId/status'),
     (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
     __param(0, (0, common_1.Param)('tenantId')),
     __param(1, (0, common_1.Param)('categoryId')),
@@ -154,7 +162,7 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", void 0)
-], ProductController.prototype, "publishCategory", null);
+], ProductController.prototype, "updateCategoryStatus", null);
 __decorate([
     (0, common_1.Delete)('tenants/:tenantId/categories/:categoryId'),
     (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),

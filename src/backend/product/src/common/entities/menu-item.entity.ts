@@ -1,6 +1,8 @@
 import {
 	Column,
 	CreateDateColumn,
+	UpdateDateColumn,
+	DeleteDateColumn,
 	Entity,
 	JoinColumn,
 	ManyToOne,
@@ -9,6 +11,7 @@ import {
 } from 'typeorm';
 import { MenuCategory } from './menu-category.entity';
 import { ModifierOption } from './modifier-option.entity';
+import { MenuItemStatus } from '../enums';
 
 @Entity()
 export class MenuItem {
@@ -21,29 +24,38 @@ export class MenuItem {
 	@Column()
 	categoryId: string;
 
-	@Column()
+	@Column({ nullable: false, length: 80 })
 	name: string;
 
-	@Column({ nullable: true })
+	@Column({ nullable: true, type: 'text' })
 	description: string;
 
 	@Column({ nullable: true })
 	imageUrl: string;
 
-	@Column('decimal')
+	@Column('decimal', { precision: 12, scale: 2 })
 	price: number;
 
-	@Column({ default: 'VND' })
+	@Column({ default: 'VND', length: 10 })
 	currency: string;
 
-	@Column({ default: true })
-	available: boolean;
+	@Column({ type: 'int', nullable: true })
+	prepTimeMinutes: number;
 
-	@Column({ default: false })
-	published: boolean;
+	@Column({ type: 'int', default: MenuItemStatus.AVAILABLE })
+	status: MenuItemStatus;
+
+	@Column({ type: 'boolean', default: false })
+	isChefRecommended: boolean;
 
 	@CreateDateColumn()
 	createdAt: Date;
+
+	@UpdateDateColumn()
+	updatedAt: Date;
+
+	@DeleteDateColumn()
+	deletedAt: Date;
 
 	@ManyToOne(() => MenuCategory, (category) => category.items, { onDelete: 'CASCADE' })
 	@JoinColumn({ name: 'categoryId' })
