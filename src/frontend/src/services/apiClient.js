@@ -3,9 +3,14 @@
 
 import axios from 'axios'
 
+// Get API Gateway URL from environment variable or use relative path for development
+const API_BASE_URL = import.meta.env.VITE_API_GATEWAY_URL
+	? `${import.meta.env.VITE_API_GATEWAY_URL}/api/v1`
+	: '/api/v1'
+
 // Create axios instance
 const apiClient = axios.create({
-	baseURL: '/api/v1',
+	baseURL: API_BASE_URL,
 	withCredentials: true, // Enable cookies for refresh token
 	headers: {
 		'Content-Type': 'application/json',

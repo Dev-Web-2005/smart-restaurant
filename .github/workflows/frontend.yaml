@@ -4,8 +4,14 @@ on:
     branches: ["master", "release", "develop"]
     tags:
       - "v*"
+    paths:
+      - "src/frontend/**"
+      - ".github/workflows/frontend.yaml"
   pull_request:
     branches: ["master", "release", "develop"]
+    paths:
+      - "src/frontend/**"
+      - ".github/workflows/frontend.yaml"
   workflow_dispatch:
 
 env:
