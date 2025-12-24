@@ -38,8 +38,9 @@ jobs:
       - name: Shared services
         run: |
           cd src/backend/shared
-          npm ci --only=production
+          npm ci
           npm run build
+          npm prune --production
           mkdir -p ../../../result/shared
           cp -r dist/* ../../../result/shared/
           cp package*.json ../../../result/shared/
@@ -70,8 +71,9 @@ jobs:
           FRONTEND_URL: ${{ vars.FRONTEND_URL }}
         run: |
           cd src/backend/api-gateway
-          npm ci --only=production
+          npm ci
           npm run build
+          npm prune --production
           mkdir -p ../../../result/api-gateway
           cp -r dist/* ../../../result/api-gateway/
           cp package*.json ../../../result/api-gateway/
@@ -89,8 +91,9 @@ jobs:
 
         run: |
           cd src/backend/identity
-          npm ci --only=production
+          npm ci
           npm run build
+          npm prune --production
           mkdir -p ../../../result/identity
           cp -r dist/* ../../../result/identity/
           cp package*.json ../../../result/identity/
@@ -102,8 +105,9 @@ jobs:
 
         run: |
           cd src/backend/product
-          npm ci --only=production
+          npm ci
           npm run build
+          npm prune --production
           mkdir -p ../../../result/product
           cp -r dist/* ../../../result/product/
           cp package*.json ../../../result/product/
@@ -115,8 +119,9 @@ jobs:
 
         run: |
           cd src/backend/profile
-          npm ci --only=production
+          npm ci
           npm run build
+          npm prune --production
           mkdir -p ../../../result/profile
           cp -r dist/* ../../../result/profile/
           cp package*.json ../../../result/profile/
@@ -130,8 +135,9 @@ jobs:
 
         run: |
           cd src/backend/table
-          npm ci --only=production
+          npm ci
           npm run build
+          npm prune --production
           mkdir -p ../../../result/table
           cp -r dist/* ../../../result/table/
           cp package*.json ../../../result/table/
