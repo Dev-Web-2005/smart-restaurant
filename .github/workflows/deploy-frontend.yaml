@@ -6,15 +6,15 @@ on:
     types:
       - completed
 env:
-  # General Env Variables
-  VITE_API_GATEWAY_URL: ${{ variables.VITE_API_GATEWAY_URL }}
-  VITE_FILE_SERVICE_URL: ${{ variables.VITE_FILE_SERVICE_URL }}
-  VITE_API_KEY: ${{ variables.VITE_API_KEY }}
+  # General Env vars
+  VITE_API_GATEWAY_URL: ${{ vars.VITE_API_GATEWAY_URL }}
+  VITE_FILE_SERVICE_URL: ${{ vars.VITE_FILE_SERVICE_URL }}
+  VITE_API_KEY: ${{ vars.VITE_API_KEY }}
 
-  # DIDIT Specific Env Variables
-  VITE_DIDIT_API_KEY: ${{ variables.VITE_DIDIT_API_KEY }}
-  VITE_DIDIT_WORKFLOW_ID: ${{ variables.VITE_DIDIT_WORKFLOW_ID }}
-  VITE_DIDIT_CALLBACK_URL: ${{ variables.VITE_DIDIT_CALLBACK_URL }}
+  # DIDIT Specific Env vars
+  VITE_DIDIT_API_KEY: ${{ vars.VITE_DIDIT_API_KEY }}
+  VITE_DIDIT_WORKFLOW_ID: ${{ vars.VITE_DIDIT_WORKFLOW_ID }}
+  VITE_DIDIT_CALLBACK_URL: ${{ vars.VITE_DIDIT_CALLBACK_URL }}
 
 jobs:
   deploy:
