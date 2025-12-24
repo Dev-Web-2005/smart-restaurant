@@ -41,10 +41,9 @@ jobs:
           npm ci
           npm run build
           npm prune --production
+          rm -rf src test
           mkdir -p ../../../result/shared
-          cp -r dist/* ../../../result/shared/
-          cp package*.json ../../../result/shared/
-          cp -r node_modules ../../../result/shared/
+          cp -r . ../../../result/shared/
 
       - name: Api gateway services
         env: # Api gateway environment variables
@@ -74,10 +73,9 @@ jobs:
           npm ci
           npm run build
           npm prune --production
+          rm -rf src test
           mkdir -p ../../../result/api-gateway
-          cp -r dist/* ../../../result/api-gateway/
-          cp package*.json ../../../result/api-gateway/
-          cp -r node_modules ../../../result/api-gateway/
+          cp -r . ../../../result/api-gateway/
 
       - name: Identity services
         env: # Identity service environment variables
@@ -94,10 +92,9 @@ jobs:
           npm ci
           npm run build
           npm prune --production
+          rm -rf src test
           mkdir -p ../../../result/identity
-          cp -r dist/* ../../../result/identity/
-          cp package*.json ../../../result/identity/
-          cp -r node_modules ../../../result/identity/
+          cp -r . ../../../result/identity/
 
       - name: Product services
         env: # Product service environment variables
@@ -108,10 +105,9 @@ jobs:
           npm ci
           npm run build
           npm prune --production
+          rm -rf src test
           mkdir -p ../../../result/product
-          cp -r dist/* ../../../result/product/
-          cp package*.json ../../../result/product/
-          cp -r node_modules ../../../result/product/
+          cp -r . ../../../result/product/
 
       - name: Profile services
         env: # Profile service environment variables
@@ -122,10 +118,9 @@ jobs:
           npm ci
           npm run build
           npm prune --production
+          rm -rf src test
           mkdir -p ../../../result/profile
-          cp -r dist/* ../../../result/profile/
-          cp package*.json ../../../result/profile/
-          cp -r node_modules ../../../result/profile/
+          cp -r . ../../../result/profile/
 
       - name: Table services
         env: # Table service environment variables
@@ -138,10 +133,9 @@ jobs:
           npm ci
           npm run build
           npm prune --production
+          rm -rf src test
           mkdir -p ../../../result/table
-          cp -r dist/* ../../../result/table/
-          cp package*.json ../../../result/table/
-          cp -r node_modules ../../../result/table/
+          cp -r . ../../../result/table/
 
       - uses: actions/upload-artifact@v4
         with:
@@ -180,10 +174,10 @@ jobs:
           script: |
             cd /home/${{ secrets.VPS_USER }}/projects/result
             pm2 delete all || true
-            cd api-gateway && pm2 start api-gateway/src/main.js --name api-gateway && cd ..
-            cd identity && pm2 start identity/src/main.js --name identity && cd ..
-            cd product && pm2 start product/src/main.js --name product && cd ..
-            cd profile && pm2 start profile/src/main.js --name profile && cd ..
-            cd table && pm2 start table/src/main.js --name table && cd ..
+            cd api-gateway && pm2 start dist/api-gateway/src/main.js --name api-gateway && cd ..
+            cd identity && pm2 start dist/identity/src/main.js --name identity && cd ..
+            cd product && pm2 start dist/product/src/main.js --name product && cd ..
+            cd profile && pm2 start dist/profile/src/main.js --name profile && cd ..
+            cd table && pm2 start dist/table/src/main.js --name table && cd ..
             pm2 save
             pm2 list
