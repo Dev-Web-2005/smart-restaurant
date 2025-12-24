@@ -180,10 +180,10 @@ jobs:
           script: |
             cd /home/${{ secrets.VPS_USER }}/projects/result
             pm2 delete all || true
-            pm2 start api-gateway/api-gateway/src/main.js --name api-gateway --cwd /home/${{ secrets.VPS_USER }}/projects/result
-            pm2 start identity/identity/src/main.js --name identity --cwd /home/${{ secrets.VPS_USER }}/projects/result
-            pm2 start product/product/src/main.js --name product --cwd /home/${{ secrets.VPS_USER }}/projects/result
-            pm2 start profile/profile/src/main.js --name profile --cwd /home/${{ secrets.VPS_USER }}/projects/result
-            pm2 start table/table/src/main.js --name table --cwd /home/${{ secrets.VPS_USER }}/projects/result
+            cd api-gateway && pm2 start api-gateway/src/main.js --name api-gateway && cd ..
+            cd identity && pm2 start identity/src/main.js --name identity && cd ..
+            cd product && pm2 start product/src/main.js --name product && cd ..
+            cd profile && pm2 start profile/src/main.js --name profile && cd ..
+            cd table && pm2 start table/src/main.js --name table && cd ..
             pm2 save
             pm2 list
