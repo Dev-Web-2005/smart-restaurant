@@ -11,243 +11,257 @@
  * - 9000-9999: System & Infrastructure
  */
 export default class ErrorCode {
-  // code 1000 is successful api
+	// code 1000 is successful api
 
-  // ==================== AUTHENTICATION & AUTHORIZATION (1001-1999) ====================
+	// ==================== AUTHENTICATION & AUTHORIZATION (1001-1999) ====================
 
-  /** Invalid credentials provided during login */
-  static readonly LOGIN_FAILED: ErrorCode = new ErrorCode(
-    1001,
-    "Username or password is incorrect",
-    400
-  );
+	/** Invalid credentials provided during login */
+	static readonly LOGIN_FAILED: ErrorCode = new ErrorCode(
+		1001,
+		"Username or password is incorrect",
+		400
+	);
 
-  /** Access token or refresh token has expired */
-  static readonly TOKEN_EXPIRED: ErrorCode = new ErrorCode(
-    1002,
-    "Token has expired",
-    401
-  );
+	/** Access token or refresh token has expired */
+	static readonly TOKEN_EXPIRED: ErrorCode = new ErrorCode(
+		1002,
+		"Token has expired",
+		401
+	);
 
-  /** Token has been blacklisted (usually after logout) */
-  static readonly TOKEN_ALREADY_REMOVED: ErrorCode = new ErrorCode(
-    1003,
-    "Token has already been removed",
-    400
-  );
+	/** Token has been blacklisted (usually after logout) */
+	static readonly TOKEN_ALREADY_REMOVED: ErrorCode = new ErrorCode(
+		1003,
+		"Token has already been removed",
+		400
+	);
 
-  /** User is not authenticated */
-  static readonly UNAUTHORIZED: ErrorCode = new ErrorCode(
-    1004,
-    "Unauthorized access",
-    401
-  );
+	/** User is not authenticated */
+	static readonly UNAUTHORIZED: ErrorCode = new ErrorCode(
+		1004,
+		"Unauthorized access",
+		401
+	);
 
-  /** User lacks required permissions for the action */
-  static readonly FORBIDDEN: ErrorCode = new ErrorCode(
-    1005,
-    "Forbidden - Insufficient permissions",
-    403
-  );
+	/** User lacks required permissions for the action */
+	static readonly FORBIDDEN: ErrorCode = new ErrorCode(
+		1005,
+		"Forbidden - Insufficient permissions",
+		403
+	);
 
-  // ==================== USER & PROFILE (2000-2999) ====================
+	// ==================== USER & PROFILE (2000-2999) ====================
 
-  /** User not found in database */
-  static readonly USER_NOT_FOUND: ErrorCode = new ErrorCode(
-    2001,
-    "User not found",
-    404
-  );
+	/** User not found in database */
+	static readonly USER_NOT_FOUND: ErrorCode = new ErrorCode(
+		2001,
+		"User not found",
+		404
+	);
 
-  /** Attempting to create user with existing username/email */
-  static readonly USER_ALREADY_EXISTS: ErrorCode = new ErrorCode(
-    2002,
-    "User with given username or email already exists",
-    409
-  );
+	/** Attempting to create user with existing username/email */
+	static readonly USER_ALREADY_EXISTS: ErrorCode = new ErrorCode(
+		2002,
+		"User with given username or email already exists",
+		409
+	);
 
-  /** User profile not found */
-  static readonly PROFILE_NOT_FOUND: ErrorCode = new ErrorCode(
-    2003,
-    "Profile not found",
-    404
-  );
+	/** User profile not found */
+	static readonly PROFILE_NOT_FOUND: ErrorCode = new ErrorCode(
+		2003,
+		"Profile not found",
+		404
+	);
 
-  /** Error communicating with profile service */
-  static readonly PROFILE_SERVICE_ERROR: ErrorCode = new ErrorCode(
-    2004,
-    "Profile service error",
-    500
-  );
+	/** Error communicating with profile service */
+	static readonly PROFILE_SERVICE_ERROR: ErrorCode = new ErrorCode(
+		2004,
+		"Profile service error",
+		500
+	);
 
-  // ==================== ROLE & AUTHORITY (2100-2199) ====================
+	// ==================== ROLE & AUTHORITY (2100-2199) ====================
 
-  /** Role not found in system */
-  static readonly ROLE_NOT_FOUND: ErrorCode = new ErrorCode(
-    2101,
-    "Role not found",
-    404
-  );
+	/** Role not found in system */
+	static readonly ROLE_NOT_FOUND: ErrorCode = new ErrorCode(
+		2101,
+		"Role not found",
+		404
+	);
 
-  /** Failed to create new role */
-  static readonly ROLE_CREATION_FAILED: ErrorCode = new ErrorCode(
-    2102,
-    "Role creation failed",
-    500
-  );
+	/** Failed to create new role */
+	static readonly ROLE_CREATION_FAILED: ErrorCode = new ErrorCode(
+		2102,
+		"Role creation failed",
+		500
+	);
 
-  /** Authority/Permission not found */
-  static readonly AUTHORITY_NOT_FOUND: ErrorCode = new ErrorCode(
-    2103,
-    "Authority not found",
-    404
-  );
+	/** Authority/Permission not found */
+	static readonly AUTHORITY_NOT_FOUND: ErrorCode = new ErrorCode(
+		2103,
+		"Authority not found",
+		404
+	);
 
-  /** Failed to create new authority */
-  static readonly AUTHORITY_CREATION_FAILED: ErrorCode = new ErrorCode(
-    2104,
-    "Authority creation failed",
-    500
-  );
+	/** Failed to create new authority */
+	static readonly AUTHORITY_CREATION_FAILED: ErrorCode = new ErrorCode(
+		2104,
+		"Authority creation failed",
+		500
+	);
 
-  // ==================== VALIDATION (2900-2999) ====================
+	// ==================== VALIDATION (2900-2999) ====================
 
-  /** General validation error for request data */
-  static readonly VALIDATION_FAILED: ErrorCode = new ErrorCode(
-    2901,
-    "Validation failed",
-    400
-  );
+	/** General validation error for request data */
+	static readonly VALIDATION_FAILED: ErrorCode = new ErrorCode(
+		2901,
+		"Validation failed",
+		400
+	);
 
-  // ==================== PRODUCT & MENU (3000-3999) ====================
+	// ==================== PRODUCT & MENU (3000-3999) ====================
 
-  /** Menu category not found */
-  static readonly CATEGORY_NOT_FOUND: ErrorCode = new ErrorCode(
-    3001,
-    "Category not found",
-    404
-  );
+	/** Menu category not found */
+	static readonly CATEGORY_NOT_FOUND: ErrorCode = new ErrorCode(
+		3001,
+		"Category not found",
+		404
+	);
 
-  /** Menu item not found */
-  static readonly ITEM_NOT_FOUND: ErrorCode = new ErrorCode(
-    3002,
-    "Menu item not found",
-    404
-  );
+	/** Category name already exists */
+	static readonly CATEGORY_NAME_ALREADY_EXISTS: ErrorCode = new ErrorCode(
+		3004,
+		"Category name already exists in this restaurant",
+		409
+	);
 
-  /** Modifier not found */
-  static readonly MODIFIER_NOT_FOUND: ErrorCode = new ErrorCode(
-    3003,
-    "Modifier not found",
-    404
-  );
+	/** Category has active items and cannot be deleted */
+	static readonly CATEGORY_HAS_ACTIVE_ITEMS: ErrorCode = new ErrorCode(
+		3005,
+		"Category has active items and cannot be deleted",
+		400
+	);
 
-  /** Deprecated: Use VALIDATION_FAILED instead */
-  static readonly ERROR_VALIDATION: ErrorCode = new ErrorCode(
-    2902,
-    "Validation error",
-    400
-  );
+	/** Menu item not found */
+	static readonly ITEM_NOT_FOUND: ErrorCode = new ErrorCode(
+		3002,
+		"Menu item not found",
+		404
+	);
 
-  /** Invalid time/date format provided */
-  static readonly INVALID_TIME_FORMAT: ErrorCode = new ErrorCode(
-    2903,
-    "Invalid time format",
-    400
-  );
+	/** Modifier not found */
+	static readonly MODIFIER_NOT_FOUND: ErrorCode = new ErrorCode(
+		3003,
+		"Modifier not found",
+		404
+	);
 
-  // ==================== PRODUCT & MENU (3000-3999) ====================
-  // Reserved for product service
+	/** Deprecated: Use VALIDATION_FAILED instead */
+	static readonly ERROR_VALIDATION: ErrorCode = new ErrorCode(
+		2902,
+		"Validation error",
+		400
+	);
 
-  // ==================== ORDER & TABLE (4000-4999) ====================
+	/** Invalid time/date format provided */
+	static readonly INVALID_TIME_FORMAT: ErrorCode = new ErrorCode(
+		2903,
+		"Invalid time format",
+		400
+	);
 
-  /** Table not found */
-  static readonly TABLE_NOT_FOUND: ErrorCode = new ErrorCode(
-    4001,
-    "Table not found",
-    404
-  );
+	// ==================== PRODUCT & MENU (3000-3999) ====================
+	// Reserved for product service
 
-  /** Attempting to create table with existing name for same tenant */
-  static readonly TABLE_ALREADY_EXISTS: ErrorCode = new ErrorCode(
-    4002,
-    "Table with this name already exists",
-    409
-  );
+	// ==================== ORDER & TABLE (4000-4999) ====================
 
-  /** Invalid QR token (expired, malformed, or invalidated) */
-  static readonly INVALID_QR_TOKEN: ErrorCode = new ErrorCode(
-    4003,
-    "QR code token is invalid or expired",
-    410
-  );
+	/** Table not found */
+	static readonly TABLE_NOT_FOUND: ErrorCode = new ErrorCode(
+		4001,
+		"Table not found",
+		404
+	);
 
-  /** Table is currently occupied/reserved */
-  static readonly TABLE_OCCUPIED: ErrorCode = new ErrorCode(
-    4004,
-    "Table is currently occupied",
-    409
-  );
+	/** Attempting to create table with existing name for same tenant */
+	static readonly TABLE_ALREADY_EXISTS: ErrorCode = new ErrorCode(
+		4002,
+		"Table with this name already exists",
+		409
+	);
 
-  /** QR code generation failed */
-  static readonly QR_GENERATION_FAILED: ErrorCode = new ErrorCode(
-    4005,
-    "Failed to generate QR code",
-    500
-  );
+	/** Invalid QR token (expired, malformed, or invalidated) */
+	static readonly INVALID_QR_TOKEN: ErrorCode = new ErrorCode(
+		4003,
+		"QR code token is invalid or expired",
+		410
+	);
 
-  /** Floor not found */
-  static readonly FLOOR_NOT_FOUND: ErrorCode = new ErrorCode(
-    4006,
-    "Floor not found",
-    404
-  );
+	/** Table is currently occupied/reserved */
+	static readonly TABLE_OCCUPIED: ErrorCode = new ErrorCode(
+		4004,
+		"Table is currently occupied",
+		409
+	);
 
-  /** Attempting to create floor with existing name for same tenant */
-  static readonly FLOOR_ALREADY_EXISTS: ErrorCode = new ErrorCode(
-    4007,
-    "Floor with this name already exists",
-    409
-  );
+	/** QR code generation failed */
+	static readonly QR_GENERATION_FAILED: ErrorCode = new ErrorCode(
+		4005,
+		"Failed to generate QR code",
+		500
+	);
 
-  // ==================== PAYMENT (5000-5999) ====================
-  // Reserved for payment service
+	/** Floor not found */
+	static readonly FLOOR_NOT_FOUND: ErrorCode = new ErrorCode(
+		4006,
+		"Floor not found",
+		404
+	);
 
-  // ==================== NOTIFICATION (6000-6999) ====================
-  // Reserved for notification service
+	/** Attempting to create floor with existing name for same tenant */
+	static readonly FLOOR_ALREADY_EXISTS: ErrorCode = new ErrorCode(
+		4007,
+		"Floor with this name already exists",
+		409
+	);
 
-  // ==================== SYSTEM & INFRASTRUCTURE (9000-9999) ====================
+	// ==================== PAYMENT (5000-5999) ====================
+	// Reserved for payment service
 
-  /** Unexpected server error */
-  static readonly INTERNAL_SERVER_ERROR: ErrorCode = new ErrorCode(
-    9001,
-    "Internal server error",
-    500
-  );
+	// ==================== NOTIFICATION (6000-6999) ====================
+	// Reserved for notification service
 
-  /** Service unavailable or degraded */
-  static readonly SERVICE_UNAVAILABLE: ErrorCode = new ErrorCode(
-    9002,
-    "Service temporarily unavailable",
-    503
-  );
+	// ==================== SYSTEM & INFRASTRUCTURE (9000-9999) ====================
 
-  /** Database connection or query error */
-  static readonly DATABASE_ERROR: ErrorCode = new ErrorCode(
-    9003,
-    "Database error occurred",
-    500
-  );
+	/** Unexpected server error */
+	static readonly INTERNAL_SERVER_ERROR: ErrorCode = new ErrorCode(
+		9001,
+		"Internal server error",
+		500
+	);
 
-  // ==================== CONSTRUCTOR ====================
+	/** Service unavailable or degraded */
+	static readonly SERVICE_UNAVAILABLE: ErrorCode = new ErrorCode(
+		9002,
+		"Service temporarily unavailable",
+		503
+	);
 
-  constructor(
-    public readonly code: number,
-    public readonly message: string,
-    public readonly httpStatus?: number
-  ) {
-    this.code = code;
-    this.message = message;
-    this.httpStatus = httpStatus;
-  }
+	/** Database connection or query error */
+	static readonly DATABASE_ERROR: ErrorCode = new ErrorCode(
+		9003,
+		"Database error occurred",
+		500
+	);
+
+	// ==================== CONSTRUCTOR ====================
+
+	constructor(
+		public readonly code: number,
+		public readonly message: string,
+		public readonly httpStatus?: number
+	) {
+		this.code = code;
+		this.message = message;
+		this.httpStatus = httpStatus;
+	}
 }

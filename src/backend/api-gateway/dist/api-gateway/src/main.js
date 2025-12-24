@@ -12,7 +12,9 @@ const transform_response_interceptor_1 = require("./common/interceptors/transfor
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
-    app.setGlobalPrefix('api/v1');
+    app.setGlobalPrefix('api/v1', {
+        exclude: ['/', 'health'],
+    });
     app.use(express_1.default.json({ limit: '10mb' }));
     app.use(express_1.default.urlencoded({ limit: '10mb', extended: true }));
     app.useGlobalFilters(new rpc_exception_filter_1.RpcExceptionFilter(), new global_exception_filter_1.GlobalExceptionFilter());
