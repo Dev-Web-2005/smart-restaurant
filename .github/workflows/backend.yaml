@@ -56,13 +56,18 @@ jobs:
           PROFILE_SERVICE_URL: ${{ vars.PROFILE_SERVICE_URL }}
           HOST_PROFILE_SERVICE: ${{ vars.HOST_PROFILE_SERVICE }}
           PORT_PROFILE_SERVICE: ${{ vars.PORT_PROFILE_SERVICE }}
-          PRODUCT_SERVICE_URL: ${{ vars.PRODUCT_SERVICE_URL }}
 
+          PRODUCT_SERVICE_URL: ${{ vars.PRODUCT_SERVICE_URL }}
           HOST_PRODUCT_SERVICE: ${{ vars.HOST_PRODUCT_SERVICE }}
           PORT_PRODUCT_SERVICE: ${{ vars.PORT_PRODUCT_SERVICE }}
+
           TABLE_SERVICE_URL: ${{ vars.TABLE_SERVICE_URL }}
           HOST_TABLE_SERVICE: ${{ vars.HOST_TABLE_SERVICE }}
           PORT_TABLE_SERVICE: ${{ vars.PORT_TABLE_SERVICE }}
+
+          REFRESH_TOKEN_EXPIRES_IN: ${{ vars.REFRESH_TOKEN_EXPIRES_IN }}
+
+          FRONTEND_URL: ${{ vars.FRONTEND_URL }}
         run: |
           cd src/backend/api-gateway
           npm ci --only=production
