@@ -102,3 +102,6 @@ repomix-output.txt
 !**/README.md
 
 src/backend/api-gateway/logs/
+/deploy
+deploy/
+deploy/*
