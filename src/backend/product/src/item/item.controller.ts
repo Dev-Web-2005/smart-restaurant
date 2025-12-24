@@ -9,12 +9,17 @@ import {
 	UpdateMenuItemRequestDto,
 	UpdateMenuItemStatusRequestDto,
 	DeleteMenuItemRequestDto,
+	AddMenuItemPhotoRequestDto,
+	UpdateMenuItemPhotoRequestDto,
+	SetPrimaryPhotoRequestDto,
+	DeleteMenuItemPhotoRequestDto,
+	GetMenuItemPhotosRequestDto,
 } from 'src/item/dtos/request';
 
 /**
  * ItemController
  *
- * Handles RPC messages for menu item management
+ * Handles RPC messages for menu item management and photo operations
  * Implements CRUD operations with filtering, sorting, and pagination
  */
 @Controller()
@@ -78,6 +83,68 @@ export class ItemController {
 		return handleRpcCall(async () => {
 			await this.itemService.deleteMenuItem(dto);
 			return new HttpResponse(1000, 'Menu item deleted successfully');
+		});
+	}
+
+	// ==================== PHOTO MANAGEMENT ====================
+
+	/**
+	 * Add a photo to a menu item
+	 * RPC Pattern: 'menu-item-photos:add'
+	 */
+	@MessagePattern('menu-item-photos:add')
+	async addMenuItemPhoto(dto: AddMenuItemPhotoRequestDto) {
+		return handleRpcCall(async () => {
+			const photo = await this.itemService.addMenuItemPhoto(dto);
+			return new HttpResponse(1000, 'Photo added successfully', photo);
+		});
+	}
+
+	/**
+	 * Get all photos for a menu item
+	 * RPC Pattern: 'menu-item-photos:get-all'
+	 */
+	@MessagePattern('menu-item-photos:get-all')
+	async getMenuItemPhotos(dto: GetMenuItemPhotosRequestDto) {
+		return handleRpcCall(async () => {
+			const result = await this.itemService.getMenuItemPhotos(dto);
+			return new HttpResponse(1000, 'Photos retrieved successfully', result);
+		});
+	}
+
+	/**
+	 * Update photo details (order, primary status)
+	 * RPC Pattern: 'menu-item-photos:update'
+	 */
+	@MessagePattern('menu-item-photos:update')
+	async updateMenuItemPhoto(dto: UpdateMenuItemPhotoRequestDto) {
+		return handleRpcCall(async () => {
+			const photo = await this.itemService.updateMenuItemPhoto(dto);
+			return new HttpResponse(1000, 'Photo updated successfully', photo);
+		});
+	}
+
+	/**
+	 * Set a photo as primary
+	 * RPC Pattern: 'menu-item-photos:set-primary'
+	 */
+	@MessagePattern('menu-item-photos:set-primary')
+	async setPrimaryPhoto(dto: SetPrimaryPhotoRequestDto) {
+		return handleRpcCall(async () => {
+			const photo = await this.itemService.setPrimaryPhoto(dto);
+			return new HttpResponse(1000, 'Primary photo set successfully', photo);
+		});
+	}
+
+	/**
+	 * Delete a photo from a menu item
+	 * RPC Pattern: 'menu-item-photos:delete'
+	 */
+	@MessagePattern('menu-item-photos:delete')
+	async deleteMenuItemPhoto(dto: DeleteMenuItemPhotoRequestDto) {
+		return handleRpcCall(async () => {
+			await this.itemService.deleteMenuItemPhoto(dto);
+			return new HttpResponse(1000, 'Photo deleted successfully');
 		});
 	}
 }

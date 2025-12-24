@@ -168,6 +168,83 @@ export class ProductController {
 		});
 	}
 
+	// ============ MENU ITEM PHOTOS ============
+
+	@Post('tenants/:tenantId/items/:itemId/photos')
+	@UseGuards(AuthGuard, Role('USER'))
+	addMenuItemPhoto(
+		@Param('tenantId') tenantId: string,
+		@Param('itemId') itemId: string,
+		@Body() data: any,
+	) {
+		return this.productClient.send('menu-item-photos:add', {
+			...data,
+			tenantId,
+			menuItemId: itemId,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	@Get('tenants/:tenantId/items/:itemId/photos')
+	@UseGuards(AuthGuard, Role('USER'))
+	getMenuItemPhotos(
+		@Param('tenantId') tenantId: string,
+		@Param('itemId') itemId: string,
+	) {
+		return this.productClient.send('menu-item-photos:get-all', {
+			tenantId,
+			menuItemId: itemId,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	@Patch('tenants/:tenantId/items/:itemId/photos/:photoId')
+	@UseGuards(AuthGuard, Role('USER'))
+	updateMenuItemPhoto(
+		@Param('tenantId') tenantId: string,
+		@Param('itemId') itemId: string,
+		@Param('photoId') photoId: string,
+		@Body() data: any,
+	) {
+		return this.productClient.send('menu-item-photos:update', {
+			...data,
+			tenantId,
+			menuItemId: itemId,
+			photoId,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	@Patch('tenants/:tenantId/items/:itemId/photos/:photoId/primary')
+	@UseGuards(AuthGuard, Role('USER'))
+	setPrimaryPhoto(
+		@Param('tenantId') tenantId: string,
+		@Param('itemId') itemId: string,
+		@Param('photoId') photoId: string,
+	) {
+		return this.productClient.send('menu-item-photos:set-primary', {
+			tenantId,
+			menuItemId: itemId,
+			photoId,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	@Delete('tenants/:tenantId/items/:itemId/photos/:photoId')
+	@UseGuards(AuthGuard, Role('USER'))
+	deleteMenuItemPhoto(
+		@Param('tenantId') tenantId: string,
+		@Param('itemId') itemId: string,
+		@Param('photoId') photoId: string,
+	) {
+		return this.productClient.send('menu-item-photos:delete', {
+			tenantId,
+			menuItemId: itemId,
+			photoId,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
 	@Post('tenants/:tenantId/items/:itemId/modifiers')
 	@UseGuards(AuthGuard, Role('USER'))
 	addModifiers(
