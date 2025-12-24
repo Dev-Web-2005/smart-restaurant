@@ -22,10 +22,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: dawidd6/action-download-artifact@v3
         with:
+          workflow: test-frontend.yaml
           name: frontend-build
           path: folder-contain-dist
+          run_id: ${{ github.event.workflow_run.id }}
 
       - name: Copy folder dist to server
         uses: appleboy/scp-action@v0.1.6
