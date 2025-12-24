@@ -41,23 +41,26 @@ let ProductController = class ProductController {
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
-    updateCategory(categoryId, data) {
+    updateCategory(tenantId, categoryId, data) {
         return this.productClient.send('categories:update', {
             ...data,
+            tenantId,
             categoryId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
-    publishCategory(categoryId, data) {
+    publishCategory(tenantId, categoryId, data) {
         return this.productClient.send('categories:publish', {
             ...data,
+            tenantId,
             categoryId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
-    deleteCategory(categoryId, data) {
+    deleteCategory(tenantId, categoryId, data) {
         return this.productClient.send('categories:delete', {
             ...data,
+            tenantId,
             categoryId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
@@ -76,30 +79,34 @@ let ProductController = class ProductController {
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
-    updateItem(itemId, data) {
+    updateItem(tenantId, itemId, data) {
         return this.productClient.send('items:update', {
             ...data,
+            tenantId,
             itemId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
-    publishItem(itemId, data) {
+    publishItem(tenantId, itemId, data) {
         return this.productClient.send('items:publish', {
             ...data,
+            tenantId,
             itemId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
-    deleteItem(itemId, data) {
+    deleteItem(tenantId, itemId, data) {
         return this.productClient.send('items:delete', {
             ...data,
+            tenantId,
             itemId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
-    addModifiers(itemId, data) {
+    addModifiers(tenantId, itemId, data) {
         return this.productClient.send('items:add-modifiers', {
             ...data,
+            tenantId,
             itemId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
@@ -113,7 +120,7 @@ let ProductController = class ProductController {
 exports.ProductController = ProductController;
 __decorate([
     (0, common_1.Post)('tenants/:tenantId/categories'),
-    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('ADMIN')),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
     __param(0, (0, common_1.Param)('tenantId')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -122,42 +129,45 @@ __decorate([
 ], ProductController.prototype, "createCategory", null);
 __decorate([
     (0, common_1.Get)('tenants/:tenantId/categories'),
-    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('ADMIN')),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
     __param(0, (0, common_1.Param)('tenantId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "getCategories", null);
 __decorate([
-    (0, common_1.Patch)('categories/:categoryId'),
-    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('ADMIN')),
-    __param(0, (0, common_1.Param)('categoryId')),
-    __param(1, (0, common_1.Body)()),
+    (0, common_1.Patch)('tenants/:tenantId/categories/:categoryId'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('categoryId')),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "updateCategory", null);
 __decorate([
-    (0, common_1.Post)('categories/:categoryId/publish'),
-    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('ADMIN')),
-    __param(0, (0, common_1.Param)('categoryId')),
-    __param(1, (0, common_1.Body)()),
+    (0, common_1.Post)('tenants/:tenantId/categories/:categoryId/publish'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('categoryId')),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "publishCategory", null);
 __decorate([
-    (0, common_1.Delete)('categories/:categoryId'),
-    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('ADMIN')),
-    __param(0, (0, common_1.Param)('categoryId')),
-    __param(1, (0, common_1.Body)()),
+    (0, common_1.Delete)('tenants/:tenantId/categories/:categoryId'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('categoryId')),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "deleteCategory", null);
 __decorate([
     (0, common_1.Post)('tenants/:tenantId/items'),
-    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('ADMIN')),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
     __param(0, (0, common_1.Param)('tenantId')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -166,7 +176,7 @@ __decorate([
 ], ProductController.prototype, "createItem", null);
 __decorate([
     (0, common_1.Get)('tenants/:tenantId/items'),
-    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('ADMIN')),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
     __param(0, (0, common_1.Param)('tenantId')),
     __param(1, (0, common_1.Query)('categoryId')),
     __metadata("design:type", Function),
@@ -174,39 +184,43 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "getItems", null);
 __decorate([
-    (0, common_1.Patch)('items/:itemId'),
-    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('ADMIN')),
-    __param(0, (0, common_1.Param)('itemId')),
-    __param(1, (0, common_1.Body)()),
+    (0, common_1.Patch)('tenants/:tenantId/items/:itemId'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('itemId')),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "updateItem", null);
 __decorate([
-    (0, common_1.Post)('items/:itemId/publish'),
-    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('ADMIN')),
-    __param(0, (0, common_1.Param)('itemId')),
-    __param(1, (0, common_1.Body)()),
+    (0, common_1.Post)('tenants/:tenantId/items/:itemId/publish'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('itemId')),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "publishItem", null);
 __decorate([
-    (0, common_1.Delete)('items/:itemId'),
-    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('ADMIN')),
-    __param(0, (0, common_1.Param)('itemId')),
-    __param(1, (0, common_1.Body)()),
+    (0, common_1.Delete)('tenants/:tenantId/items/:itemId'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('itemId')),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "deleteItem", null);
 __decorate([
-    (0, common_1.Post)('items/:itemId/modifiers'),
-    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('ADMIN')),
-    __param(0, (0, common_1.Param)('itemId')),
-    __param(1, (0, common_1.Body)()),
+    (0, common_1.Post)('tenants/:tenantId/items/:itemId/modifiers'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('itemId')),
+    __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "addModifiers", null);
 __decorate([

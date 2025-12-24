@@ -3,7 +3,9 @@ export class CategoryResponseDto {
 	tenantId: string;
 	name: string;
 	description?: string;
-	published: boolean;
+	status: string; // Returns "ACTIVE" or "INACTIVE"
 	displayOrder: number;
+	itemCount?: number;
 	createdAt: Date;
+	updatedAt: Date;
 }

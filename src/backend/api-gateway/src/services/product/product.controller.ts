@@ -25,7 +25,7 @@ export class ProductController {
 	// ============ CATEGORIES ============
 
 	@Post('tenants/:tenantId/categories')
-	@UseGuards(AuthGuard, Role('ADMIN'))
+	@UseGuards(AuthGuard, Role('USER'))
 	createCategory(@Param('tenantId') tenantId: string, @Body() data: any) {
 		return this.productClient.send('categories:create', {
 			...data,
@@ -35,39 +35,64 @@ export class ProductController {
 	}
 
 	@Get('tenants/:tenantId/categories')
-	@UseGuards(AuthGuard, Role('ADMIN'))
-	getCategories(@Param('tenantId') tenantId: string) {
+	@UseGuards(AuthGuard, Role('USER'))
+	getCategories(
+		@Param('tenantId') tenantId: string,
+		@Query('status') status?: string,
+		@Query('search') search?: string,
+		@Query('sortBy') sortBy?: string,
+		@Query('sortOrder') sortOrder?: string,
+	) {
 		return this.productClient.send('categories:get-all', {
 			tenantId,
+			status, // Pass as string, will be transformed in DTO
+			search,
+			sortBy,
+			sortOrder,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
 
-	@Patch('categories/:categoryId')
-	@UseGuards(AuthGuard, Role('ADMIN'))
-	updateCategory(@Param('categoryId') categoryId: string, @Body() data: any) {
+	@Patch('tenants/:tenantId/categories/:categoryId')
+	@UseGuards(AuthGuard, Role('USER'))
+	updateCategory(
+		@Param('tenantId') tenantId: string,
+		@Param('categoryId') categoryId: string,
+		@Body() data: any,
+	) {
 		return this.productClient.send('categories:update', {
 			...data,
+			tenantId,
 			categoryId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
 
-	@Post('categories/:categoryId/publish')
-	@UseGuards(AuthGuard, Role('ADMIN'))
-	publishCategory(@Param('categoryId') categoryId: string, @Body() data: any) {
-		return this.productClient.send('categories:publish', {
+	@Patch('tenants/:tenantId/categories/:categoryId/status')
+	@UseGuards(AuthGuard, Role('USER'))
+	updateCategoryStatus(
+		@Param('tenantId') tenantId: string,
+		@Param('categoryId') categoryId: string,
+		@Body() data: any,
+	) {
+		return this.productClient.send('categories:update-status', {
 			...data,
+			tenantId,
 			categoryId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
 
-	@Delete('categories/:categoryId')
-	@UseGuards(AuthGuard, Role('ADMIN'))
-	deleteCategory(@Param('categoryId') categoryId: string, @Body() data: any) {
+	@Delete('tenants/:tenantId/categories/:categoryId')
+	@UseGuards(AuthGuard, Role('USER'))
+	deleteCategory(
+		@Param('tenantId') tenantId: string,
+		@Param('categoryId') categoryId: string,
+		@Body() data: any,
+	) {
 		return this.productClient.send('categories:delete', {
 			...data,
+			tenantId,
 			categoryId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
@@ -76,7 +101,7 @@ export class ProductController {
 	// ============ MENU ITEMS ============
 
 	@Post('tenants/:tenantId/items')
-	@UseGuards(AuthGuard, Role('ADMIN'))
+	@UseGuards(AuthGuard, Role('USER'))
 	createItem(@Param('tenantId') tenantId: string, @Body() data: any) {
 		return this.productClient.send('items:create', {
 			...data,
@@ -86,7 +111,7 @@ export class ProductController {
 	}
 
 	@Get('tenants/:tenantId/items')
-	@UseGuards(AuthGuard, Role('ADMIN'))
+	@UseGuards(AuthGuard, Role('USER'))
 	getItems(
 		@Param('tenantId') tenantId: string,
 		@Query('categoryId') categoryId?: string,
@@ -98,41 +123,61 @@ export class ProductController {
 		});
 	}
 
-	@Patch('items/:itemId')
-	@UseGuards(AuthGuard, Role('ADMIN'))
-	updateItem(@Param('itemId') itemId: string, @Body() data: any) {
+	@Patch('tenants/:tenantId/items/:itemId')
+	@UseGuards(AuthGuard, Role('USER'))
+	updateItem(
+		@Param('tenantId') tenantId: string,
+		@Param('itemId') itemId: string,
+		@Body() data: any,
+	) {
 		return this.productClient.send('items:update', {
 			...data,
+			tenantId,
 			itemId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
 
-	@Post('items/:itemId/publish')
-	@UseGuards(AuthGuard, Role('ADMIN'))
-	publishItem(@Param('itemId') itemId: string, @Body() data: any) {
+	@Post('tenants/:tenantId/items/:itemId/publish')
+	@UseGuards(AuthGuard, Role('USER'))
+	publishItem(
+		@Param('tenantId') tenantId: string,
+		@Param('itemId') itemId: string,
+		@Body() data: any,
+	) {
 		return this.productClient.send('items:publish', {
 			...data,
+			tenantId,
 			itemId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
 
-	@Delete('items/:itemId')
-	@UseGuards(AuthGuard, Role('ADMIN'))
-	deleteItem(@Param('itemId') itemId: string, @Body() data: any) {
+	@Delete('tenants/:tenantId/items/:itemId')
+	@UseGuards(AuthGuard, Role('USER'))
+	deleteItem(
+		@Param('tenantId') tenantId: string,
+		@Param('itemId') itemId: string,
+		@Body() data: any,
+	) {
 		return this.productClient.send('items:delete', {
 			...data,
+			tenantId,
 			itemId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
 
-	@Post('items/:itemId/modifiers')
-	@UseGuards(AuthGuard, Role('ADMIN'))
-	addModifiers(@Param('itemId') itemId: string, @Body() data: any) {
+	@Post('tenants/:tenantId/items/:itemId/modifiers')
+	@UseGuards(AuthGuard, Role('USER'))
+	addModifiers(
+		@Param('tenantId') tenantId: string,
+		@Param('itemId') itemId: string,
+		@Body() data: any,
+	) {
 		return this.productClient.send('items:add-modifiers', {
 			...data,
+			tenantId,
 			itemId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
