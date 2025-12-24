@@ -1,5 +1,9 @@
 name: "deploy-frontend"
 on:
+  push:
+    branches: ["main", "release", "develop"]
+    paths:
+      - ".github/workflows/deploy-frontend.yaml"
   workflow_run:
     workflows: ["test-frontend"]
     types:
@@ -19,16 +23,34 @@ env:
 
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
       - uses: dawidd6/action-download-artifact@v3
+        if: github.event_name == 'workflow_run'
         with:
           workflow: test-frontend.yaml
           name: frontend-build
           path: folder-contain-dist
           run_id: ${{ github.event.workflow_run.id }}
+
+      - uses: actions/checkout@v4
+        if: github.event_name == 'workflow_dispatch'
+
+      - uses: actions/setup-node@v4
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          node-version: 25
+
+      - name: Build frontend
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          cd src/frontend
+          npm install
+          npm run build
+          mkdir -p ../../folder-contain-dist
+          cp -r dist ../../folder-contain-dist/
 
       - name: Copy folder dist to server
         uses: appleboy/scp-action@v0.1.6
