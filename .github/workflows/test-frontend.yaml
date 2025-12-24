@@ -1,11 +1,11 @@
 name: test-frontend
 on:
   push:
-    branches: ["main", "release"]
+    branches: ["main", "release", "develop"]
     tags:
       - "v*"
   pull_request:
-    branches: ["main", "release"]
+    branches: ["main", "release", "develop"]
   workflow_dispatch:
 
 env:
