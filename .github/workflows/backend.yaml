@@ -40,8 +40,7 @@ jobs:
           cd src/backend/shared
           npm ci
           npm run build
-          rm -rf test node_modules
-          npm ci --omit=dev
+          rm -rf test
           mkdir -p ../../../result/shared
           cp -r . ../../../result/shared/
 
@@ -72,8 +71,7 @@ jobs:
           cd src/backend/api-gateway
           npm ci
           npm run build
-          rm -rf src test node_modules
-          npm ci --omit=dev
+          rm -rf src test
           mkdir -p ../../../result/api-gateway
           cp -r . ../../../result/api-gateway/
 
@@ -91,8 +89,7 @@ jobs:
           cd src/backend/identity
           npm ci
           npm run build
-          rm -rf src test node_modules
-          npm ci --omit=dev
+          rm -rf src test
           mkdir -p ../../../result/identity
           cp -r . ../../../result/identity/
 
@@ -104,8 +101,7 @@ jobs:
           cd src/backend/product
           npm ci
           npm run build
-          rm -rf src test node_modules
-          npm ci --omit=dev
+          rm -rf src test
           mkdir -p ../../../result/product
           cp -r . ../../../result/product/
 
@@ -117,8 +113,7 @@ jobs:
           cd src/backend/profile
           npm ci
           npm run build
-          rm -rf src test node_modules
-          npm ci --omit=dev
+          rm -rf src test
           mkdir -p ../../../result/profile
           cp -r . ../../../result/profile/
 
@@ -132,8 +127,7 @@ jobs:
           cd src/backend/table
           npm ci
           npm run build
-          rm -rf src test node_modules
-          npm ci --omit=dev
+          rm -rf src test
           mkdir -p ../../../result/table
           cp -r . ../../../result/table/
 

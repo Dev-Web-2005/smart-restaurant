@@ -57,6 +57,8 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           source: "folder-contain-dist/dist"
           target: "/home/${{ secrets.VPS_USER }}/projects/frontend/"
+          timeout: 5m
+          command_timeout: 10m
 
       - uses: appleboy/ssh-action@v1.0.3
         with:
