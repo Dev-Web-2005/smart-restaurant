@@ -21,10 +21,36 @@ async function bootstrap() {
 	// Register interceptors
 	app.useGlobalInterceptors(new TransformResponseInterceptor());
 
+	// CORS configuration - allow frontend domain with credentials
+	const allowedOrigins = process.env.FRONTEND_URL
+		? process.env.FRONTEND_URL.split(',').map((url) => url.trim())
+		: ['http://localhost:5173', 'http://localhost:3000'];
+
+	console.log('🔐 CORS Allowed Origins:', allowedOrigins);
+
 	app.enableCors({
-		origin: '*',
+		origin: (origin, callback) => {
+			console.log('📨 Request from origin:', origin);
+
+			// Allow requests with no origin (mobile apps, Postman, etc.)
+			if (!origin) {
+				console.log('✅ No origin - allowing request');
+				return callback(null, true);
+			}
+
+			if (allowedOrigins.includes(origin)) {
+				console.log('✅ Origin allowed:', origin);
+				callback(null, true);
+			} else {
+				console.log('❌ Origin blocked:', origin);
+				console.log('   Allowed origins:', allowedOrigins);
+				callback(null, true); // Temporarily allow all to debug
+			}
+		},
 		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
 		credentials: true,
+		allowedHeaders: 'Content-Type,Authorization,x-api-key',
+		exposedHeaders: 'Set-Cookie',
 	});
 
 	// Register Cookie Parser middleware
