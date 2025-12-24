@@ -168,7 +168,7 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           source: "folder-contain-backend/result/*"
           target: "/home/${{ secrets.VPS_USER }}/projects/"
-          strip_components: 2
+          strip_components: 1
 
       - name: Connect to server and restart backend service
         uses: appleboy/ssh-action@v1.0.3
