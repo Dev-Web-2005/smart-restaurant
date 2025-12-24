@@ -1,10 +1,11 @@
 name: "deploy-frontend"
-
 on:
   workflow_run:
     workflows: ["test-frontend"]
     types:
       - completed
+    branches: ["main", "release", "develop"]
+  workflow_dispatch:
 env:
   # General Env vars
   VITE_API_GATEWAY_URL: ${{ vars.VITE_API_GATEWAY_URL }}
