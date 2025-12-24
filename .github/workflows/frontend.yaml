@@ -1,11 +1,11 @@
 name: "deploy-frontend"
 on:
   push:
-    branches: ["main", "release", "develop"]
+    branches: ["master", "release", "develop"]
     tags:
       - "v*"
   pull_request:
-    branches: ["main", "release", "develop"]
+    branches: ["master", "release", "develop"]
   workflow_dispatch:
 
 env:
