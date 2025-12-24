@@ -1,6 +1,7 @@
-export declare class PublishCategoryRequestDto {
+import { CategoryStatus } from 'src/common/enums';
+export declare class UpdateCategoryStatusRequestDto {
     categoryId: string;
     tenantId: string;
-    published: boolean;
+    status: CategoryStatus;
     productApiKey: string;
 }

@@ -1,67 +1,83 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import { ItemService } from './item.service';
-
 import HttpResponse from '@shared/utils/http-response';
 import { handleRpcCall } from '@shared/utils/rpc-error-handler';
 import {
-	CreateItemRequestDto,
-	GetItemsRequestDto,
-	UpdateItemRequestDto,
-	PublishItemRequestDto,
-	DeleteItemRequestDto,
-	AddModifiersRequestDto,
+	CreateMenuItemRequestDto,
+	GetMenuItemsRequestDto,
+	UpdateMenuItemRequestDto,
+	UpdateMenuItemStatusRequestDto,
+	DeleteMenuItemRequestDto,
 } from 'src/item/dtos/request';
 
+/**
+ * ItemController
+ *
+ * Handles RPC messages for menu item management
+ * Implements CRUD operations with filtering, sorting, and pagination
+ */
 @Controller()
 export class ItemController {
 	constructor(private readonly itemService: ItemService) {}
 
-	@MessagePattern('items:create')
-	async createItem(dto: CreateItemRequestDto) {
+	/**
+	 * Create a new menu item
+	 * RPC Pattern: 'menu-items:create'
+	 */
+	@MessagePattern('menu-items:create')
+	async createMenuItem(dto: CreateMenuItemRequestDto) {
 		return handleRpcCall(async () => {
-			const item = await this.itemService.createItem(dto);
+			const item = await this.itemService.createMenuItem(dto);
 			return new HttpResponse(1000, 'Menu item created successfully', item);
 		});
 	}
 
-	@MessagePattern('items:get-all')
-	async getItems(dto: GetItemsRequestDto) {
+	/**
+	 * Get all menu items with filtering, sorting, and pagination
+	 * RPC Pattern: 'menu-items:get-all'
+	 */
+	@MessagePattern('menu-items:get-all')
+	async getMenuItems(dto: GetMenuItemsRequestDto) {
 		return handleRpcCall(async () => {
-			const items = await this.itemService.getItems(dto);
-			return new HttpResponse(1000, 'Menu items retrieved successfully', items);
+			const result = await this.itemService.getMenuItems(dto);
+			return new HttpResponse(1000, 'Menu items retrieved successfully', result);
 		});
 	}
 
-	@MessagePattern('items:update')
-	async updateItem(dto: UpdateItemRequestDto) {
+	/**
+	 * Update an existing menu item
+	 * RPC Pattern: 'menu-items:update'
+	 */
+	@MessagePattern('menu-items:update')
+	async updateMenuItem(dto: UpdateMenuItemRequestDto) {
 		return handleRpcCall(async () => {
-			const item = await this.itemService.updateItem(dto);
+			const item = await this.itemService.updateMenuItem(dto);
 			return new HttpResponse(1000, 'Menu item updated successfully', item);
 		});
 	}
 
-	@MessagePattern('items:publish')
-	async publishItem(dto: PublishItemRequestDto) {
+	/**
+	 * Update menu item status (AVAILABLE, UNAVAILABLE, SOLD_OUT)
+	 * RPC Pattern: 'menu-items:update-status'
+	 */
+	@MessagePattern('menu-items:update-status')
+	async updateMenuItemStatus(dto: UpdateMenuItemStatusRequestDto) {
 		return handleRpcCall(async () => {
-			const item = await this.itemService.publishItem(dto);
-			return new HttpResponse(1000, 'Menu item publish status updated', item);
+			const item = await this.itemService.updateMenuItemStatus(dto);
+			return new HttpResponse(1000, 'Menu item status updated successfully', item);
 		});
 	}
 
-	@MessagePattern('items:delete')
-	async deleteItem(dto: DeleteItemRequestDto) {
+	/**
+	 * Soft delete a menu item
+	 * RPC Pattern: 'menu-items:delete'
+	 */
+	@MessagePattern('menu-items:delete')
+	async deleteMenuItem(dto: DeleteMenuItemRequestDto) {
 		return handleRpcCall(async () => {
-			await this.itemService.deleteItem(dto);
+			await this.itemService.deleteMenuItem(dto);
 			return new HttpResponse(1000, 'Menu item deleted successfully');
-		});
-	}
-
-	@MessagePattern('items:add-modifiers')
-	async addModifiers(dto: AddModifiersRequestDto) {
-		return handleRpcCall(async () => {
-			const item = await this.itemService.addModifiers(dto);
-			return new HttpResponse(1000, 'Modifiers added successfully', item);
 		});
 	}
 }

@@ -38,7 +38,6 @@ let CategoryController = class CategoryController {
     async createCategory(dto) {
         return (0, rpc_error_handler_1.handleRpcCall)(async () => {
             this.validateApiKey(dto.productApiKey);
-            console.log('Data received:', dto);
             const category = await this.categoryService.createCategory(dto);
             return new http_response_1.default(1000, 'Category created successfully', category);
         });
@@ -57,11 +56,11 @@ let CategoryController = class CategoryController {
             return new http_response_1.default(1000, 'Category updated successfully', category);
         });
     }
-    async publishCategory(dto) {
+    async updateCategoryStatus(dto) {
         return (0, rpc_error_handler_1.handleRpcCall)(async () => {
             this.validateApiKey(dto.productApiKey);
-            const category = await this.categoryService.publishCategory(dto);
-            return new http_response_1.default(1000, 'Category publish status updated', category);
+            const category = await this.categoryService.updateCategoryStatus(dto);
+            return new http_response_1.default(1000, 'Category status updated successfully', category);
         });
     }
     async deleteCategory(dto) {
@@ -92,11 +91,11 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], CategoryController.prototype, "updateCategory", null);
 __decorate([
-    (0, microservices_1.MessagePattern)('categories:publish'),
+    (0, microservices_1.MessagePattern)('categories:update-status'),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [request_1.PublishCategoryRequestDto]),
+    __metadata("design:paramtypes", [request_1.UpdateCategoryStatusRequestDto]),
     __metadata("design:returntype", Promise)
-], CategoryController.prototype, "publishCategory", null);
+], CategoryController.prototype, "updateCategoryStatus", null);
 __decorate([
     (0, microservices_1.MessagePattern)('categories:delete'),
     __metadata("design:type", Function),
