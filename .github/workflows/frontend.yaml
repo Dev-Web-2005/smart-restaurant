@@ -27,7 +27,16 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 25
-      - run: |
+
+      - name: Build frontend
+        env:
+          VITE_API_GATEWAY_URL: ${{ vars.VITE_API_GATEWAY_URL }}
+          VITE_FILE_SERVICE_URL: ${{ vars.VITE_FILE_SERVICE_URL }}
+          VITE_API_KEY: ${{ vars.VITE_API_KEY }}
+          VITE_DIDIT_API_KEY: ${{ secrets.VITE_DIDIT_API_KEY }}
+          VITE_DIDIT_WORKFLOW_ID: ${{ secrets.VITE_DIDIT_WORKFLOW_ID }}
+          VITE_DIDIT_CALLBACK_URL: ${{ secrets.VITE_DIDIT_CALLBACK_URL }}
+        run: |
           cd src/frontend
           npm install
           npm run build
