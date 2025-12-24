@@ -1,9 +1,5 @@
 name: "deploy-frontend"
 on:
-  push:
-    branches: ["main", "release", "develop"]
-    paths:
-      - ".github/workflows/deploy-frontend.yaml"
   workflow_run:
     workflows: ["test-frontend"]
     types:
