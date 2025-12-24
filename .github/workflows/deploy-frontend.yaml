@@ -1,0 +1,51 @@
+name: "deploy-frontend"
+
+on:
+  workflow_run:
+    workflows: ["test-frontend"]
+    types:
+      - completed
+env:
+  # General Env Variables
+  VITE_API_GATEWAY_URL: ${{ variables.VITE_API_GATEWAY_URL }}
+  VITE_FILE_SERVICE_URL: ${{ variables.VITE_FILE_SERVICE_URL }}
+  VITE_API_KEY: ${{ variables.VITE_API_KEY }}
+
+  # DIDIT Specific Env Variables
+  VITE_DIDIT_API_KEY: ${{ variables.VITE_DIDIT_API_KEY }}
+  VITE_DIDIT_WORKFLOW_ID: ${{ variables.VITE_DIDIT_WORKFLOW_ID }}
+  VITE_DIDIT_CALLBACK_URL: ${{ variables.VITE_DIDIT_CALLBACK_URL }}
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: folder-contain-dist
+
+      - name: Copy folder dist to server
+        uses: appleboy/scp-action@v0.1.6
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          source: "folder-contain-dist/dist"
+          target: "/home/${{ secrets.VPS_USER }}/projects/frontend/"
+
+      - uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          key: ${{ secrets.VPS_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          username: ${{ secrets.VPS_USER }}
+          script: |
+            cd /home/${{ secrets.VPS_USER }}/projects/frontend/
+            sudo rm -rf /var/www/html/web-dev.lethanhcong.site/*
+            sudo cp -r dist/* /var/www/html/web-dev.lethanhcong.site/
+            sudo rm -rf dist
+            sudo systemctl restart nginx
