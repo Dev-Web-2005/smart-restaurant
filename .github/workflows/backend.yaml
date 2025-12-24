@@ -5,8 +5,16 @@ on:
     branches: ["master", "release", "develop"]
     tags:
       - "v*"
+    paths:
+      - "src/backend/**"
+      - ".github/workflows/backend.yaml"
+      - "package*.json"
   pull_request:
     branches: ["master", "release", "develop"]
+    paths:
+      - "src/backend/**"
+      - ".github/workflows/backend.yaml"
+      - "package*.json"
 
   workflow_dispatch:
 
