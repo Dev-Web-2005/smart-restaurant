@@ -27,17 +27,23 @@ env: # Global environment variables shared across services
 jobs:
   test:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 25
 
+      - run: mkdir result
+
       - name: Shared services
         run: |
           cd src/backend/shared
-          npm i
+          npm ci --only=production
+          npm run build
+          mkdir -p ../../../result/shared
+          cp -r dist/* ../../../result/shared/
+          cp package*.json ../../../result/shared/
+          cp -r node_modules ../../../result/shared/
 
       - name: Api gateway services
         env: # Api gateway environment variables
@@ -59,8 +65,12 @@ jobs:
           PORT_TABLE_SERVICE: ${{ vars.PORT_TABLE_SERVICE }}
         run: |
           cd src/backend/api-gateway
-          npm i
+          npm ci --only=production
           npm run build
+          mkdir -p ../../../result/api-gateway
+          cp -r dist/* ../../../result/api-gateway/
+          cp package*.json ../../../result/api-gateway/
+          cp -r node_modules ../../../result/api-gateway/
 
       - name: Identity services
         env: # Identity service environment variables
@@ -74,8 +84,12 @@ jobs:
 
         run: |
           cd src/backend/identity
-          npm i
+          npm ci --only=production
           npm run build
+          mkdir -p ../../../result/identity
+          cp -r dist/* ../../../result/identity/
+          cp package*.json ../../../result/identity/
+          cp -r node_modules ../../../result/identity/
 
       - name: Product services
         env: # Product service environment variables
@@ -83,8 +97,12 @@ jobs:
 
         run: |
           cd src/backend/product
-          npm i
+          npm ci --only=production
           npm run build
+          mkdir -p ../../../result/product
+          cp -r dist/* ../../../result/product/
+          cp package*.json ../../../result/product/
+          cp -r node_modules ../../../result/product/
 
       - name: Profile services
         env: # Profile service environment variables
@@ -92,8 +110,12 @@ jobs:
 
         run: |
           cd src/backend/profile
-          npm i
+          npm ci --only=production
           npm run build
+          mkdir -p ../../../result/profile
+          cp -r dist/* ../../../result/profile/
+          cp package*.json ../../../result/profile/
+          cp -r node_modules ../../../result/profile/
 
       - name: Table services
         env: # Table service environment variables
@@ -103,13 +125,17 @@ jobs:
 
         run: |
           cd src/backend/table
-          npm i
+          npm ci --only=production
           npm run build
+          mkdir -p ../../../result/table
+          cp -r dist/* ../../../result/table/
+          cp package*.json ../../../result/table/
+          cp -r node_modules ../../../result/table/
 
       - uses: actions/upload-artifact@v4
         with:
           name: backend-build
-          path: src/backend
+          path: result
 
   deploy:
     needs: test
@@ -120,7 +146,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: backend-build
-          path: folder-contain-backend/backend
+          path: folder-contain-backend/result
 
       - name: Copy backend folder to server
         uses: appleboy/scp-action@v0.1.6
@@ -129,8 +155,9 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
           port: ${{ secrets.VPS_PORT }}
-          source: "folder-contain-backend/backend/*"
-          target: "/home/${{ secrets.VPS_USER }}/projects/backend/"
+          source: "folder-contain-backend/result/*"
+          target: "/home/${{ secrets.VPS_USER }}/projects/"
+          strip_components: 2
 
       - name: Connect to server and restart backend service
         uses: appleboy/ssh-action@v1.0.3
@@ -140,17 +167,12 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           username: ${{ secrets.VPS_USER }}
           script: |
-            cd /home/${{ secrets.VPS_USER }}/projects/backend
+            cd /home/${{ secrets.VPS_USER }}/projects/result
             pm2 delete all || true
-            cd /home/${{ secrets.VPS_USER }}/projects/backend/api-gateway
-            pm2 start dist/api-gateway/main.js --name api-gateway
-            cd /home/${{ secrets.VPS_USER }}/projects/backend/identity
-            pm2 start dist/identity/main.js --name identity
-            cd /home/${{ secrets.VPS_USER }}/projects/backend/product
-            pm2 start dist/product/main.js --name product
-            cd /home/${{ secrets.VPS_USER }}/projects/backend/profile
-            pm2 start dist/profile/main.js --name profile
-            cd /home/${{ secrets.VPS_USER }}/projects/backend/table
-            pm2 start dist/table/main.js --name table
+            pm2 start api-gateway/api-gateway/src/main.js --name api-gateway --cwd /home/${{ secrets.VPS_USER }}/projects/result/api-gateway
+            pm2 start identity/identity/src/main.js --name identity --cwd /home/${{ secrets.VPS_USER }}/projects/result/identity
+            pm2 start product/product/src/main.js --name product --cwd /home/${{ secrets.VPS_USER }}/projects/result/product
+            pm2 start profile/profile/src/main.js --name profile --cwd /home/${{ secrets.VPS_USER }}/projects/result/profile
+            pm2 start table/table/src/main.js --name table --cwd /home/${{ secrets.VPS_USER }}/projects/result/table
             pm2 save
             pm2 list
