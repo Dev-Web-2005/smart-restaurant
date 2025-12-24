@@ -1,0 +1,156 @@
+name: "deploy-backend"
+
+on:
+  push:
+    branches: ["main", "release", "develop"]
+    tags:
+      - "v*"
+  pull_request:
+    branches: ["main", "release", "develop"]
+
+  workflow_dispatch:
+
+env: # Global environment variables shared across services
+  HOST_DB: ${{ secrets.HOST_DB }}
+  PORT_DB: ${{ secrets.PORT_DB }}
+  USERNAME_DB: ${{ secrets.USERNAME_DB }}
+  PASSWORD_DB: ${{ secrets.PASSWORD_DB }}
+  DATABASE_DB: ${{ secrets.DATABASE_DB }}
+
+  X_API_KEY: ${{ secrets.X_API_KEY }}
+
+  IDENTITY_API_KEY: ${{ secrets.IDENTITY_API_KEY }}
+  PROFILE_API_KEY: ${{ secrets.PROFILE_API_KEY }}
+  PRODUCT_API_KEY: ${{ secrets.PRODUCT_API_KEY }}
+  TABLE_API_KEY: ${{ secrets.TABLE_API_KEY }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 25
+
+      - name: Shared services
+        run: |
+          cd src/backend/shared
+          npm i
+
+      - name: Api gateway services
+        env: # Api gateway environment variables
+          PORT: 8888
+          MOD: development
+          IDENTITY_SERVICE_URL: ${{ vars.IDENTITY_SERVICE_URL }}
+          HOST_IDENTITY_SERVICE: ${{ vars.HOST_IDENTITY_SERVICE }}
+          PORT_IDENTITY_SERVICE: ${{ vars.PORT_IDENTITY_SERVICE }}
+
+          PROFILE_SERVICE_URL: ${{ vars.PROFILE_SERVICE_URL }}
+          HOST_PROFILE_SERVICE: ${{ vars.HOST_PROFILE_SERVICE }}
+          PORT_PROFILE_SERVICE: ${{ vars.PORT_PROFILE_SERVICE }}
+          PRODUCT_SERVICE_URL: ${{ vars.PRODUCT_SERVICE_URL }}
+
+          HOST_PRODUCT_SERVICE: ${{ vars.HOST_PRODUCT_SERVICE }}
+          PORT_PRODUCT_SERVICE: ${{ vars.PORT_PRODUCT_SERVICE }}
+          TABLE_SERVICE_URL: ${{ vars.TABLE_SERVICE_URL }}
+          HOST_TABLE_SERVICE: ${{ vars.HOST_TABLE_SERVICE }}
+          PORT_TABLE_SERVICE: ${{ vars.PORT_TABLE_SERVICE }}
+        run: |
+          cd src/backend/api-gateway
+          npm i
+          npm run build
+
+      - name: Identity services
+        env: # Identity service environment variables
+          PORT: 8080
+          HOST_PROFILE_SERVICE: ${{ vars.HOST_PROFILE_SERVICE }}
+          PORT_PROFILE_SERVICE: ${{ vars.PORT_PROFILE_SERVICE }}
+          ACCESS_TOKEN_EXPIRY: 5m
+          REFRESH_TOKEN_EXPIRY: 7d
+          JWT_SECRET_KEY_ACCESS: ${{ secrets.JWT_SECRET_KEY_ACCESS }}
+          JWT_SECRET_KEY_REFRESH: ${{ secrets.JWT_SECRET_KEY_REFRESH }}
+
+        run: |
+          cd src/backend/identity
+          npm i
+          npm run build
+
+      - name: Product services
+        env: # Product service environment variables
+          PORT: 8082
+
+        run: |
+          cd src/backend/product
+          npm i
+          npm run build
+
+      - name: Profile services
+        env: # Profile service environment variables
+          PORT: 8081
+
+        run: |
+          cd src/backend/profile
+          npm i
+          npm run build
+
+      - name: Table services
+        env: # Table service environment variables
+          PORT: 8083
+          QR_SECRET_KEY: ${{ secrets.QR_SECRET_KEY }}
+          QR_BASE_URL: ${{ vars.QR_BASE_URL }}
+
+        run: |
+          cd src/backend/table
+          npm i
+          npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-build
+          path: src/backend
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-build
+          path: folder-contain-backend/backend
+
+      - name: Copy backend folder to server
+        uses: appleboy/scp-action@v0.1.6
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          source: "folder-contain-backend/backend/*"
+          target: "/home/${{ secrets.VPS_USER }}/projects/backend/"
+
+      - name: Connect to server and restart backend service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          key: ${{ secrets.VPS_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          username: ${{ secrets.VPS_USER }}
+          script: |
+            cd /home/${{ secrets.VPS_USER }}/projects/backend
+            pm2 delete all || true
+            cd /home/${{ secrets.VPS_USER }}/projects/backend/api-gateway
+            pm2 start dist/api-gateway/main.js --name api-gateway
+            cd /home/${{ secrets.VPS_USER }}/projects/backend/identity
+            pm2 start dist/identity/main.js --name identity
+            cd /home/${{ secrets.VPS_USER }}/projects/backend/product
+            pm2 start dist/product/main.js --name product
+            cd /home/${{ secrets.VPS_USER }}/projects/backend/profile
+            pm2 start dist/profile/main.js --name profile
+            cd /home/${{ secrets.VPS_USER }}/projects/backend/table
+            pm2 start dist/table/main.js --name table
+            pm2 save
+            pm2 list
