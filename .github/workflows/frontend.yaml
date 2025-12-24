@@ -1,11 +1,13 @@
-name: "deploy-frontend"
+name: test-frontend
 on:
-  workflow_run:
-    workflows: ["test-frontend"]
-    types:
-      - completed
+  push:
+    branches: ["main", "release", "develop"]
+    tags:
+      - "v*"
+  pull_request:
     branches: ["main", "release", "develop"]
   workflow_dispatch:
+
 env:
   # General Env vars
   VITE_API_GATEWAY_URL: ${{ vars.VITE_API_GATEWAY_URL }}
@@ -13,40 +15,38 @@ env:
   VITE_API_KEY: ${{ vars.VITE_API_KEY }}
 
   # DIDIT Specific Env vars
-  VITE_DIDIT_API_KEY: ${{ vars.VITE_DIDIT_API_KEY }}
-  VITE_DIDIT_WORKFLOW_ID: ${{ vars.VITE_DIDIT_WORKFLOW_ID }}
-  VITE_DIDIT_CALLBACK_URL: ${{ vars.VITE_DIDIT_CALLBACK_URL }}
+  VITE_DIDIT_API_KEY: ${{ secrets.VITE_DIDIT_API_KEY }}
+  VITE_DIDIT_WORKFLOW_ID: ${{ secrets.VITE_DIDIT_WORKFLOW_ID }}
+  VITE_DIDIT_CALLBACK_URL: ${{ secrets.VITE_DIDIT_CALLBACK_URL }}
 
 jobs:
-  deploy:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+  test:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: dawidd6/action-download-artifact@v3
-        if: github.event_name == 'workflow_run'
-        with:
-          workflow: test-frontend.yaml
-          name: frontend-build
-          path: folder-contain-dist
-          run_id: ${{ github.event.workflow_run.id }}
-
       - uses: actions/checkout@v4
-        if: github.event_name == 'workflow_dispatch'
-
       - uses: actions/setup-node@v4
-        if: github.event_name == 'workflow_dispatch'
         with:
           node-version: 25
-
-      - name: Build frontend
-        if: github.event_name == 'workflow_dispatch'
-        run: |
+      - run: |
           cd src/frontend
           npm install
           npm run build
-          mkdir -p ../../folder-contain-dist
-          cp -r dist ../../folder-contain-dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: src/frontend/dist
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: folder-contain-dist/dist
 
       - name: Copy folder dist to server
         uses: appleboy/scp-action@v0.1.6
@@ -67,6 +67,6 @@ jobs:
           script: |
             cd /home/${{ secrets.VPS_USER }}/projects/frontend/
             sudo rm -rf /var/www/html/web-dev.lethanhcong.site/*
-            sudo cp -r dist/* /var/www/html/web-dev.lethanhcong.site/
-            sudo rm -rf dist
+            sudo cp -r folder-contain-dist/dist/* /var/www/html/web-dev.lethanhcong.site/
+            sudo rm -rf folder-contain-dist
             sudo systemctl restart nginx
