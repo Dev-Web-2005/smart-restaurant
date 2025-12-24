@@ -4,14 +4,18 @@ on:
     branches: ["main", "release"]
   pull_request:
     branches: ["main", "release"]
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
 
 env:
-  # General Env Variables
-  VITE_API_GATEWAY_URL: ${{ variables.VITE_API_GATEWAY_URL }}
-  VITE_FILE_SERVICE_URL: ${{ variables.VITE_FILE_SERVICE_URL }}
-  VITE_API_KEY: ${{ variables.VITE_API_KEY }}
+  # General Env vars
+  VITE_API_GATEWAY_URL: ${{ vars.VITE_API_GATEWAY_URL }}
+  VITE_FILE_SERVICE_URL: ${{ vars.VITE_FILE_SERVICE_URL }}
+  VITE_API_KEY: ${{ vars.VITE_API_KEY }}
 
-  # DIDIT Specific Env Variables
+  # DIDIT Specific Env vars
   VITE_DIDIT_API_KEY: ${{ secrets.VITE_DIDIT_API_KEY }}
   VITE_DIDIT_WORKFLOW_ID: ${{ secrets.VITE_DIDIT_WORKFLOW_ID }}
   VITE_DIDIT_CALLBACK_URL: ${{ secrets.VITE_DIDIT_CALLBACK_URL }}
