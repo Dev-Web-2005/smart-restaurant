@@ -3,7 +3,12 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { MenuCategory, MenuItem } from 'src/common/entities';
-import { CategoryStatus, categoryStatusToString, MenuItemStatus } from 'src/common/enums';
+import {
+	CategoryStatus,
+	categoryStatusToString,
+	categoryStatusFromString,
+	MenuItemStatus,
+} from 'src/common/enums';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
 import { CategoryResponseDto } from './dtos/response/category-response.dto';
@@ -41,11 +46,21 @@ export class CategoryService {
 			throw new AppException(ErrorCode.CATEGORY_NAME_ALREADY_EXISTS);
 		}
 
+		// Convert string status to enum if needed
+		let statusValue = CategoryStatus.ACTIVE; // Default
+		if (dto.status !== undefined) {
+			// If status is already a number (enum), use it; otherwise convert from string
+			statusValue =
+				typeof dto.status === 'number'
+					? dto.status
+					: categoryStatusFromString(dto.status as unknown as string);
+		}
+
 		const category = this.categoryRepository.create({
 			tenantId: dto.tenantId,
 			name: dto.name,
 			description: dto.description,
-			status: dto.status ?? CategoryStatus.ACTIVE,
+			status: statusValue,
 			displayOrder: dto.displayOrder ?? 0,
 		});
 
@@ -62,7 +77,12 @@ export class CategoryService {
 
 		// Apply filters
 		if (dto.status !== undefined) {
-			queryBuilder.andWhere('category.status = :status', { status: dto.status });
+			// Convert string status to enum if needed
+			const statusValue =
+				typeof dto.status === 'number'
+					? dto.status
+					: categoryStatusFromString(dto.status as unknown as string);
+			queryBuilder.andWhere('category.status = :status', { status: statusValue });
 		}
 
 		if (dto.search) {
@@ -120,7 +140,13 @@ export class CategoryService {
 
 		if (dto.name !== undefined) category.name = dto.name;
 		if (dto.description !== undefined) category.description = dto.description;
-		if (dto.status !== undefined) category.status = dto.status;
+		if (dto.status !== undefined) {
+			// Convert string status to enum if needed
+			category.status =
+				typeof dto.status === 'number'
+					? dto.status
+					: categoryStatusFromString(dto.status as unknown as string);
+		}
 		if (dto.displayOrder !== undefined) category.displayOrder = dto.displayOrder;
 
 		const updated = await this.categoryRepository.save(category);
@@ -138,7 +164,12 @@ export class CategoryService {
 			throw new AppException(ErrorCode.CATEGORY_NOT_FOUND);
 		}
 
-		category.status = dto.status;
+		// Convert string status to enum if needed
+		category.status =
+			typeof dto.status === 'number'
+				? dto.status
+				: categoryStatusFromString(dto.status as unknown as string);
+
 		const updated = await this.categoryRepository.save(category);
 		return this.toResponseDto(updated);
 	}

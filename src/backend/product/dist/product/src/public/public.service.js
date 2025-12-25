@@ -21,11 +21,9 @@ const enums_1 = require("../common/enums");
 let PublicService = class PublicService {
     categoryRepository;
     itemRepository;
-    modifierRepository;
-    constructor(categoryRepository, itemRepository, modifierRepository) {
+    constructor(categoryRepository, itemRepository) {
         this.categoryRepository = categoryRepository;
         this.itemRepository = itemRepository;
-        this.modifierRepository = modifierRepository;
     }
     async getPublicMenu(dto) {
         const categories = await this.categoryRepository.find({
@@ -49,7 +47,12 @@ let PublicService = class PublicService {
                 status: enums_1.MenuItemStatus.AVAILABLE,
                 deletedAt: (0, typeorm_2.IsNull)(),
             })),
-            relations: ['modifiers', 'photos'],
+            relations: [
+                'photos',
+                'modifierGroups',
+                'modifierGroups.modifierGroup',
+                'modifierGroups.modifierGroup.options',
+            ],
             order: { createdAt: 'ASC' },
         });
         const categoriesWithItems = categories.map((category) => {
@@ -76,6 +79,26 @@ let PublicService = class PublicService {
             return a.displayOrder - b.displayOrder;
         });
         const primaryPhoto = sortedPhotos?.[0];
+        const modifierGroups = item.modifierGroups
+            ?.filter((itemGroup) => itemGroup.modifierGroup?.isActive)
+            .sort((a, b) => a.displayOrder - b.displayOrder)
+            .map((itemGroup) => ({
+            id: itemGroup.modifierGroup.id,
+            name: itemGroup.modifierGroup.name,
+            displayOrder: itemGroup.displayOrder,
+            isRequired: itemGroup.isRequired,
+            minSelections: itemGroup.minSelections,
+            maxSelections: itemGroup.maxSelections,
+            options: itemGroup.modifierGroup.options
+                ?.filter((opt) => opt.isActive)
+                .sort((a, b) => a.displayOrder - b.displayOrder)
+                .map((opt) => ({
+                id: opt.id,
+                label: opt.label,
+                priceDelta: Number(opt.priceDelta),
+                displayOrder: opt.displayOrder,
+            })),
+        })) || [];
         return {
             id: item.id,
             categoryId: item.categoryId,
@@ -92,17 +115,8 @@ let PublicService = class PublicService {
             currency: item.currency,
             prepTimeMinutes: item.prepTimeMinutes,
             isChefRecommended: item.isChefRecommended,
-            status: (0, enums_1.menuItemStatusToString)(item.status),
-            modifiers: (item.modifiers || []).map((mod) => this.toPublicModifierDto(mod)),
-        };
-    }
-    toPublicModifierDto(modifier) {
-        return {
-            id: modifier.id,
-            groupName: modifier.groupName,
-            label: modifier.label,
-            priceDelta: Number(modifier.priceDelta),
-            type: modifier.type,
+            status: item.status === enums_1.MenuItemStatus.AVAILABLE ? 'AVAILABLE' : 'UNAVAILABLE',
+            modifierGroups,
         };
     }
 };
@@ -111,9 +125,7 @@ exports.PublicService = PublicService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(entities_1.MenuCategory)),
     __param(1, (0, typeorm_1.InjectRepository)(entities_1.MenuItem)),
-    __param(2, (0, typeorm_1.InjectRepository)(entities_1.ModifierOption)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
-        typeorm_2.Repository,
         typeorm_2.Repository])
 ], PublicService);
 //# sourceMappingURL=public.service.js.map

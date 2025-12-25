@@ -26,7 +26,6 @@ export class MenuItemPhoto {
 	id: string;
 
 	@Column({ name: 'menu_item_id' })
-	@Index()
 	menuItemId: string;
 
 	@Column({ type: 'text' })

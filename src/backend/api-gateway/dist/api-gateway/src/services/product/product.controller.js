@@ -70,48 +70,172 @@ let ProductController = class ProductController {
         });
     }
     createItem(tenantId, data) {
-        return this.productClient.send('items:create', {
+        return this.productClient.send('menu-items:create', {
             ...data,
             tenantId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
-    getItems(tenantId, categoryId) {
-        return this.productClient.send('items:get-all', {
+    getItems(tenantId, categoryId, status, isChefRecommended, search, sortBy, sortOrder, page, limit) {
+        return this.productClient.send('menu-items:get-all', {
             tenantId,
             categoryId,
+            status,
+            isChefRecommended,
+            search,
+            sortBy,
+            sortOrder,
+            page,
+            limit,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
     updateItem(tenantId, itemId, data) {
-        return this.productClient.send('items:update', {
+        return this.productClient.send('menu-items:update', {
             ...data,
             tenantId,
-            itemId,
+            menuItemId: itemId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
-    publishItem(tenantId, itemId, data) {
-        return this.productClient.send('items:publish', {
+    updateItemStatus(tenantId, itemId, data) {
+        return this.productClient.send('menu-items:update-status', {
             ...data,
             tenantId,
-            itemId,
+            menuItemId: itemId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
-    deleteItem(tenantId, itemId, data) {
-        return this.productClient.send('items:delete', {
-            ...data,
+    deleteItem(tenantId, itemId) {
+        return this.productClient.send('menu-items:delete', {
             tenantId,
-            itemId,
+            menuItemId: itemId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
-    addModifiers(tenantId, itemId, data) {
-        return this.productClient.send('items:add-modifiers', {
+    addMenuItemPhoto(tenantId, itemId, data) {
+        return this.productClient.send('menu-item-photos:add', {
             ...data,
             tenantId,
-            itemId,
+            menuItemId: itemId,
+            productApiKey: this.configService.get('PRODUCT_API_KEY'),
+        });
+    }
+    getMenuItemPhotos(tenantId, itemId) {
+        return this.productClient.send('menu-item-photos:get-all', {
+            tenantId,
+            menuItemId: itemId,
+            productApiKey: this.configService.get('PRODUCT_API_KEY'),
+        });
+    }
+    updateMenuItemPhoto(tenantId, itemId, photoId, data) {
+        return this.productClient.send('menu-item-photos:update', {
+            ...data,
+            tenantId,
+            menuItemId: itemId,
+            photoId,
+            productApiKey: this.configService.get('PRODUCT_API_KEY'),
+        });
+    }
+    setPrimaryPhoto(tenantId, itemId, photoId) {
+        return this.productClient.send('menu-item-photos:set-primary', {
+            tenantId,
+            menuItemId: itemId,
+            photoId,
+            productApiKey: this.configService.get('PRODUCT_API_KEY'),
+        });
+    }
+    deleteMenuItemPhoto(tenantId, itemId, photoId) {
+        return this.productClient.send('menu-item-photos:delete', {
+            tenantId,
+            menuItemId: itemId,
+            photoId,
+            productApiKey: this.configService.get('PRODUCT_API_KEY'),
+        });
+    }
+    createModifierGroup(tenantId, data) {
+        return this.productClient.send('modifier-groups:create', {
+            ...data,
+            tenantId,
+            productApiKey: this.configService.get('PRODUCT_API_KEY'),
+        });
+    }
+    getModifierGroups(tenantId, isActive, search) {
+        return this.productClient.send('modifier-groups:get-all', {
+            tenantId,
+            isActive,
+            search,
+            productApiKey: this.configService.get('PRODUCT_API_KEY'),
+        });
+    }
+    updateModifierGroup(tenantId, groupId, data) {
+        return this.productClient.send('modifier-groups:update', {
+            ...data,
+            tenantId,
+            modifierGroupId: groupId,
+            productApiKey: this.configService.get('PRODUCT_API_KEY'),
+        });
+    }
+    deleteModifierGroup(tenantId, groupId) {
+        return this.productClient.send('modifier-groups:delete', {
+            tenantId,
+            modifierGroupId: groupId,
+            productApiKey: this.configService.get('PRODUCT_API_KEY'),
+        });
+    }
+    createModifierOption(tenantId, groupId, data) {
+        return this.productClient.send('modifier-options:create', {
+            ...data,
+            tenantId,
+            modifierGroupId: groupId,
+            productApiKey: this.configService.get('PRODUCT_API_KEY'),
+        });
+    }
+    getModifierOptions(tenantId, groupId, isActive) {
+        return this.productClient.send('modifier-options:get-all', {
+            tenantId,
+            modifierGroupId: groupId,
+            isActive,
+            productApiKey: this.configService.get('PRODUCT_API_KEY'),
+        });
+    }
+    updateModifierOption(tenantId, groupId, optionId, data) {
+        return this.productClient.send('modifier-options:update', {
+            ...data,
+            tenantId,
+            modifierGroupId: groupId,
+            optionId,
+            productApiKey: this.configService.get('PRODUCT_API_KEY'),
+        });
+    }
+    deleteModifierOption(tenantId, groupId, optionId) {
+        return this.productClient.send('modifier-options:delete', {
+            tenantId,
+            modifierGroupId: groupId,
+            optionId,
+            productApiKey: this.configService.get('PRODUCT_API_KEY'),
+        });
+    }
+    attachModifierGroups(tenantId, itemId, data) {
+        return this.productClient.send('menu-item-modifiers:attach', {
+            ...data,
+            tenantId,
+            menuItemId: itemId,
+            productApiKey: this.configService.get('PRODUCT_API_KEY'),
+        });
+    }
+    getMenuItemModifierGroups(tenantId, itemId) {
+        return this.productClient.send('menu-item-modifiers:get-all', {
+            tenantId,
+            menuItemId: itemId,
+            productApiKey: this.configService.get('PRODUCT_API_KEY'),
+        });
+    }
+    detachModifierGroup(tenantId, itemId, groupId) {
+        return this.productClient.send('menu-item-modifiers:detach', {
+            tenantId,
+            menuItemId: itemId,
+            modifierGroupId: groupId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
@@ -133,7 +257,6 @@ __decorate([
 ], ProductController.prototype, "createCategory", null);
 __decorate([
     (0, common_1.Get)('tenants/:tenantId/categories'),
-    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
     __param(0, (0, common_1.Param)('tenantId')),
     __param(1, (0, common_1.Query)('status')),
     __param(2, (0, common_1.Query)('search')),
@@ -184,11 +307,17 @@ __decorate([
 ], ProductController.prototype, "createItem", null);
 __decorate([
     (0, common_1.Get)('tenants/:tenantId/items'),
-    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
     __param(0, (0, common_1.Param)('tenantId')),
     __param(1, (0, common_1.Query)('categoryId')),
+    __param(2, (0, common_1.Query)('status')),
+    __param(3, (0, common_1.Query)('isChefRecommended')),
+    __param(4, (0, common_1.Query)('search')),
+    __param(5, (0, common_1.Query)('sortBy')),
+    __param(6, (0, common_1.Query)('sortOrder')),
+    __param(7, (0, common_1.Query)('page')),
+    __param(8, (0, common_1.Query)('limit')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [String, String, String, Boolean, String, String, String, Number, Number]),
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "getItems", null);
 __decorate([
@@ -202,7 +331,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "updateItem", null);
 __decorate([
-    (0, common_1.Post)('tenants/:tenantId/items/:itemId/publish'),
+    (0, common_1.Patch)('tenants/:tenantId/items/:itemId/status'),
     (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
     __param(0, (0, common_1.Param)('tenantId')),
     __param(1, (0, common_1.Param)('itemId')),
@@ -210,17 +339,144 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", void 0)
-], ProductController.prototype, "publishItem", null);
+], ProductController.prototype, "updateItemStatus", null);
 __decorate([
     (0, common_1.Delete)('tenants/:tenantId/items/:itemId'),
     (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
     __param(0, (0, common_1.Param)('tenantId')),
     __param(1, (0, common_1.Param)('itemId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "deleteItem", null);
+__decorate([
+    (0, common_1.Post)('tenants/:tenantId/items/:itemId/photos'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('itemId')),
     __param(2, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", void 0)
-], ProductController.prototype, "deleteItem", null);
+], ProductController.prototype, "addMenuItemPhoto", null);
+__decorate([
+    (0, common_1.Get)('tenants/:tenantId/items/:itemId/photos'),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('itemId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "getMenuItemPhotos", null);
+__decorate([
+    (0, common_1.Patch)('tenants/:tenantId/items/:itemId/photos/:photoId'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('itemId')),
+    __param(2, (0, common_1.Param)('photoId')),
+    __param(3, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, Object]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "updateMenuItemPhoto", null);
+__decorate([
+    (0, common_1.Patch)('tenants/:tenantId/items/:itemId/photos/:photoId/primary'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('itemId')),
+    __param(2, (0, common_1.Param)('photoId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "setPrimaryPhoto", null);
+__decorate([
+    (0, common_1.Delete)('tenants/:tenantId/items/:itemId/photos/:photoId'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('itemId')),
+    __param(2, (0, common_1.Param)('photoId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "deleteMenuItemPhoto", null);
+__decorate([
+    (0, common_1.Post)('tenants/:tenantId/modifier-groups'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "createModifierGroup", null);
+__decorate([
+    (0, common_1.Get)('tenants/:tenantId/modifier-groups'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Query)('isActive')),
+    __param(2, (0, common_1.Query)('search')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Boolean, String]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "getModifierGroups", null);
+__decorate([
+    (0, common_1.Patch)('tenants/:tenantId/modifier-groups/:groupId'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('groupId')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "updateModifierGroup", null);
+__decorate([
+    (0, common_1.Delete)('tenants/:tenantId/modifier-groups/:groupId'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('groupId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "deleteModifierGroup", null);
+__decorate([
+    (0, common_1.Post)('tenants/:tenantId/modifier-groups/:groupId/options'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('groupId')),
+    __param(2, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Object]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "createModifierOption", null);
+__decorate([
+    (0, common_1.Get)('tenants/:tenantId/modifier-groups/:groupId/options'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('groupId')),
+    __param(2, (0, common_1.Query)('isActive')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, Boolean]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "getModifierOptions", null);
+__decorate([
+    (0, common_1.Patch)('tenants/:tenantId/modifier-groups/:groupId/options/:optionId'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('groupId')),
+    __param(2, (0, common_1.Param)('optionId')),
+    __param(3, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, Object]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "updateModifierOption", null);
+__decorate([
+    (0, common_1.Delete)('tenants/:tenantId/modifier-groups/:groupId/options/:optionId'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('groupId')),
+    __param(2, (0, common_1.Param)('optionId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "deleteModifierOption", null);
 __decorate([
     (0, common_1.Post)('tenants/:tenantId/items/:itemId/modifiers'),
     (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
@@ -230,7 +486,25 @@ __decorate([
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, String, Object]),
     __metadata("design:returntype", void 0)
-], ProductController.prototype, "addModifiers", null);
+], ProductController.prototype, "attachModifierGroups", null);
+__decorate([
+    (0, common_1.Get)('tenants/:tenantId/items/:itemId/modifiers'),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('itemId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "getMenuItemModifierGroups", null);
+__decorate([
+    (0, common_1.Delete)('tenants/:tenantId/items/:itemId/modifiers/:groupId'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('itemId')),
+    __param(2, (0, common_1.Param)('groupId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "detachModifierGroup", null);
 __decorate([
     (0, common_1.Get)('public/menu/:tenantId'),
     __param(0, (0, common_1.Param)('tenantId')),

@@ -45,11 +45,18 @@ let CategoryService = class CategoryService {
         if (existingCategory) {
             throw new app_exception_1.default(error_code_1.default.CATEGORY_NAME_ALREADY_EXISTS);
         }
+        let statusValue = enums_1.CategoryStatus.ACTIVE;
+        if (dto.status !== undefined) {
+            statusValue =
+                typeof dto.status === 'number'
+                    ? dto.status
+                    : (0, enums_1.categoryStatusFromString)(dto.status);
+        }
         const category = this.categoryRepository.create({
             tenantId: dto.tenantId,
             name: dto.name,
             description: dto.description,
-            status: dto.status ?? enums_1.CategoryStatus.ACTIVE,
+            status: statusValue,
             displayOrder: dto.displayOrder ?? 0,
         });
         const saved = await this.categoryRepository.save(category);
@@ -62,7 +69,10 @@ let CategoryService = class CategoryService {
             .where('category.tenantId = :tenantId', { tenantId: dto.tenantId })
             .andWhere('category.deletedAt IS NULL');
         if (dto.status !== undefined) {
-            queryBuilder.andWhere('category.status = :status', { status: dto.status });
+            const statusValue = typeof dto.status === 'number'
+                ? dto.status
+                : (0, enums_1.categoryStatusFromString)(dto.status);
+            queryBuilder.andWhere('category.status = :status', { status: statusValue });
         }
         if (dto.search) {
             queryBuilder.andWhere('category.name ILIKE :search', {
@@ -110,8 +120,12 @@ let CategoryService = class CategoryService {
             category.name = dto.name;
         if (dto.description !== undefined)
             category.description = dto.description;
-        if (dto.status !== undefined)
-            category.status = dto.status;
+        if (dto.status !== undefined) {
+            category.status =
+                typeof dto.status === 'number'
+                    ? dto.status
+                    : (0, enums_1.categoryStatusFromString)(dto.status);
+        }
         if (dto.displayOrder !== undefined)
             category.displayOrder = dto.displayOrder;
         const updated = await this.categoryRepository.save(category);
@@ -124,7 +138,10 @@ let CategoryService = class CategoryService {
         if (!category) {
             throw new app_exception_1.default(error_code_1.default.CATEGORY_NOT_FOUND);
         }
-        category.status = dto.status;
+        category.status =
+            typeof dto.status === 'number'
+                ? dto.status
+                : (0, enums_1.categoryStatusFromString)(dto.status);
         const updated = await this.categoryRepository.save(category);
         return this.toResponseDto(updated);
     }

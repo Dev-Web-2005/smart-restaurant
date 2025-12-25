@@ -3,7 +3,7 @@ export declare class CreateCategoryRequestDto {
     tenantId: string;
     name: string;
     description?: string;
-    status?: CategoryStatus;
+    status?: CategoryStatus | string;
     displayOrder?: number;
     productApiKey: string;
 }

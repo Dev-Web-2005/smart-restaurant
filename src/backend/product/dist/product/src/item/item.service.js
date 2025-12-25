@@ -54,6 +54,13 @@ let ItemService = class ItemService {
         if (!category) {
             throw new app_exception_1.default(error_code_1.default.CATEGORY_NOT_FOUND);
         }
+        let statusValue = enums_1.MenuItemStatus.AVAILABLE;
+        if (dto.status !== undefined) {
+            statusValue =
+                typeof dto.status === 'number'
+                    ? dto.status
+                    : (0, enums_1.menuItemStatusFromString)(dto.status);
+        }
         const menuItem = this.menuItemRepository.create({
             tenantId: dto.tenantId,
             categoryId: dto.categoryId,
@@ -62,7 +69,7 @@ let ItemService = class ItemService {
             price: dto.price,
             currency: dto.currency || 'VND',
             prepTimeMinutes: dto.prepTimeMinutes,
-            status: dto.status ?? enums_1.MenuItemStatus.AVAILABLE,
+            status: statusValue,
             isChefRecommended: dto.isChefRecommended ?? false,
         });
         const saved = await this.menuItemRepository.save(menuItem);
@@ -81,7 +88,10 @@ let ItemService = class ItemService {
             });
         }
         if (dto.status !== undefined) {
-            queryBuilder.andWhere('item.status = :status', { status: dto.status });
+            const statusValue = typeof dto.status === 'number'
+                ? dto.status
+                : (0, enums_1.menuItemStatusFromString)(dto.status);
+            queryBuilder.andWhere('item.status = :status', { status: statusValue });
         }
         if (dto.isChefRecommended !== undefined) {
             queryBuilder.andWhere('item.isChefRecommended = :isChefRecommended', {
@@ -160,8 +170,12 @@ let ItemService = class ItemService {
             menuItem.currency = dto.currency;
         if (dto.prepTimeMinutes !== undefined)
             menuItem.prepTimeMinutes = dto.prepTimeMinutes;
-        if (dto.status !== undefined)
-            menuItem.status = dto.status;
+        if (dto.status !== undefined) {
+            menuItem.status =
+                typeof dto.status === 'number'
+                    ? dto.status
+                    : (0, enums_1.menuItemStatusFromString)(dto.status);
+        }
         if (dto.isChefRecommended !== undefined)
             menuItem.isChefRecommended = dto.isChefRecommended;
         const updated = await this.menuItemRepository.save(menuItem);
@@ -180,7 +194,10 @@ let ItemService = class ItemService {
         if (!menuItem) {
             throw new app_exception_1.default(error_code_1.default.ITEM_NOT_FOUND);
         }
-        menuItem.status = dto.status;
+        menuItem.status =
+            typeof dto.status === 'number'
+                ? dto.status
+                : (0, enums_1.menuItemStatusFromString)(dto.status);
         const updated = await this.menuItemRepository.save(menuItem);
         return this.toResponseDto(updated, menuItem.category?.name);
     }

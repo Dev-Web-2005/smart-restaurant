@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GetPublicMenuResponseDto = exports.PublicModifierDto = exports.PublicPhotoDto = exports.PublicMenuItemDto = exports.PublicMenuCategoryDto = void 0;
+exports.GetPublicMenuResponseDto = exports.PublicMenuItemDto = exports.PublicModifierGroupDto = exports.PublicModifierOptionDto = exports.PublicPhotoDto = exports.PublicMenuCategoryDto = void 0;
 class PublicMenuCategoryDto {
     id;
     name;
@@ -8,6 +8,30 @@ class PublicMenuCategoryDto {
     items;
 }
 exports.PublicMenuCategoryDto = PublicMenuCategoryDto;
+class PublicPhotoDto {
+    id;
+    url;
+    isPrimary;
+    displayOrder;
+}
+exports.PublicPhotoDto = PublicPhotoDto;
+class PublicModifierOptionDto {
+    id;
+    label;
+    priceDelta;
+    displayOrder;
+}
+exports.PublicModifierOptionDto = PublicModifierOptionDto;
+class PublicModifierGroupDto {
+    id;
+    name;
+    displayOrder;
+    isRequired;
+    minSelections;
+    maxSelections;
+    options;
+}
+exports.PublicModifierGroupDto = PublicModifierGroupDto;
 class PublicMenuItemDto {
     id;
     categoryId;
@@ -20,24 +44,9 @@ class PublicMenuItemDto {
     prepTimeMinutes;
     isChefRecommended;
     status;
-    modifiers;
+    modifierGroups;
 }
 exports.PublicMenuItemDto = PublicMenuItemDto;
-class PublicPhotoDto {
-    id;
-    url;
-    isPrimary;
-    displayOrder;
-}
-exports.PublicPhotoDto = PublicPhotoDto;
-class PublicModifierDto {
-    id;
-    groupName;
-    label;
-    priceDelta;
-    type;
-}
-exports.PublicModifierDto = PublicModifierDto;
 class GetPublicMenuResponseDto {
     tenantId;
     categories;
