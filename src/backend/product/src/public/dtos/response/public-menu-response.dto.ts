@@ -10,11 +10,21 @@ export class PublicMenuItemDto {
 	categoryId: string;
 	name: string;
 	description?: string;
-	imageUrl?: string; // Derived from primary photo
+	imageUrl?: string; // Primary photo URL
+	photos?: PublicPhotoDto[]; // All photos for gallery view
 	price: number;
 	currency: string;
-	available: boolean;
+	prepTimeMinutes?: number;
+	isChefRecommended: boolean;
+	status: string; // "AVAILABLE", "UNAVAILABLE", or "SOLD_OUT"
 	modifiers: PublicModifierDto[];
+}
+
+export class PublicPhotoDto {
+	id: string;
+	url: string;
+	isPrimary: boolean;
+	displayOrder: number;
 }
 
 export class PublicModifierDto {

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import { MenuCategory, MenuItem, ModifierOption } from 'src/common/entities';
-import { CategoryStatus, MenuItemStatus } from 'src/common/enums';
+import { CategoryStatus, MenuItemStatus, menuItemStatusToString } from 'src/common/enums';
 import { GetPublicMenuRequestDto } from './dtos/request/get-public-menu-request.dto';
 import {
 	GetPublicMenuResponseDto,
@@ -76,9 +76,15 @@ export class PublicService {
 
 	private toPublicItemDto(item: MenuItem): PublicMenuItemDto {
 		// Get primary photo URL (first look for isPrimary=true, otherwise first photo by displayOrder)
-		const primaryPhoto =
-			item.photos?.find((photo) => photo.isPrimary) ||
-			item.photos?.sort((a, b) => a.displayOrder - b.displayOrder)[0];
+		const sortedPhotos = item.photos?.sort((a, b) => {
+			// Primary photos come first
+			if (a.isPrimary && !b.isPrimary) return -1;
+			if (!a.isPrimary && b.isPrimary) return 1;
+			// Then sort by display order
+			return a.displayOrder - b.displayOrder;
+		});
+
+		const primaryPhoto = sortedPhotos?.[0];
 
 		return {
 			id: item.id,
@@ -86,9 +92,17 @@ export class PublicService {
 			name: item.name,
 			description: item.description,
 			imageUrl: primaryPhoto?.url,
+			photos: sortedPhotos?.map((photo) => ({
+				id: photo.id,
+				url: photo.url,
+				isPrimary: photo.isPrimary,
+				displayOrder: photo.displayOrder,
+			})),
 			price: Number(item.price),
 			currency: item.currency,
-			available: item.status === MenuItemStatus.AVAILABLE,
+			prepTimeMinutes: item.prepTimeMinutes,
+			isChefRecommended: item.isChefRecommended,
+			status: menuItemStatusToString(item.status),
 			modifiers: (item.modifiers || []).map((mod) => this.toPublicModifierDto(mod)),
 		};
 	}
