@@ -1,14 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
-import { MenuCategory, MenuItem, ModifierOption } from 'src/common/entities';
-import { CategoryStatus, MenuItemStatus, menuItemStatusToString } from 'src/common/enums';
+import { MenuCategory, MenuItem } from 'src/common/entities';
+import { CategoryStatus, MenuItemStatus } from 'src/common/enums';
 import { GetPublicMenuRequestDto } from './dtos/request/get-public-menu-request.dto';
 import {
 	GetPublicMenuResponseDto,
 	PublicMenuCategoryDto,
 	PublicMenuItemDto,
-	PublicModifierDto,
 } from './dtos/response/public-menu-response.dto';
 
 @Injectable()
@@ -18,8 +17,6 @@ export class PublicService {
 		private readonly categoryRepository: Repository<MenuCategory>,
 		@InjectRepository(MenuItem)
 		private readonly itemRepository: Repository<MenuItem>,
-		@InjectRepository(ModifierOption)
-		private readonly modifierRepository: Repository<ModifierOption>,
 	) {}
 
 	async getPublicMenu(dto: GetPublicMenuRequestDto): Promise<GetPublicMenuResponseDto> {
@@ -49,7 +46,12 @@ export class PublicService {
 				status: MenuItemStatus.AVAILABLE,
 				deletedAt: IsNull(),
 			})),
-			relations: ['modifiers', 'photos'],
+			relations: [
+				'photos',
+				'modifierGroups',
+				'modifierGroups.modifierGroup',
+				'modifierGroups.modifierGroup.options',
+			],
 			order: { createdAt: 'ASC' },
 		});
 
@@ -86,6 +88,28 @@ export class PublicService {
 
 		const primaryPhoto = sortedPhotos?.[0];
 
+		// Transform modifier groups
+		const modifierGroups =
+			item.modifierGroups
+				?.filter((itemGroup) => itemGroup.modifierGroup?.isActive)
+				.sort((a, b) => a.displayOrder - b.displayOrder)
+				.map((itemGroup) => ({
+					id: itemGroup.modifierGroup.id,
+					name: itemGroup.modifierGroup.name,
+					displayOrder: itemGroup.displayOrder,
+					isRequired: itemGroup.isRequired,
+					minSelections: itemGroup.minSelections,
+					maxSelections: itemGroup.maxSelections,
+					options: itemGroup.modifierGroup.options
+						?.filter((opt) => opt.isActive)
+						.sort((a, b) => a.displayOrder - b.displayOrder)
+						.map((opt) => ({
+							id: opt.id,
+							label: opt.label,
+							priceDelta: Number(opt.priceDelta),
+							displayOrder: opt.displayOrder,
+						})),
+				})) || [];
 		return {
 			id: item.id,
 			categoryId: item.categoryId,
@@ -102,18 +126,8 @@ export class PublicService {
 			currency: item.currency,
 			prepTimeMinutes: item.prepTimeMinutes,
 			isChefRecommended: item.isChefRecommended,
-			status: menuItemStatusToString(item.status),
-			modifiers: (item.modifiers || []).map((mod) => this.toPublicModifierDto(mod)),
-		};
-	}
-
-	private toPublicModifierDto(modifier: ModifierOption): PublicModifierDto {
-		return {
-			id: modifier.id,
-			groupName: modifier.groupName,
-			label: modifier.label,
-			priceDelta: Number(modifier.priceDelta),
-			type: modifier.type,
+			status: item.status === MenuItemStatus.AVAILABLE ? 'AVAILABLE' : 'UNAVAILABLE',
+			modifierGroups,
 		};
 	}
 }

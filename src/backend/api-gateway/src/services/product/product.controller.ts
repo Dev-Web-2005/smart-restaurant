@@ -245,17 +245,166 @@ export class ProductController {
 		});
 	}
 
+	// ============ MODIFIER GROUPS ============
+
+	@Post('tenants/:tenantId/modifier-groups')
+	@UseGuards(AuthGuard, Role('USER'))
+	createModifierGroup(@Param('tenantId') tenantId: string, @Body() data: any) {
+		return this.productClient.send('modifier-groups:create', {
+			...data,
+			tenantId,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	@Get('tenants/:tenantId/modifier-groups')
+	@UseGuards(AuthGuard, Role('USER'))
+	getModifierGroups(
+		@Param('tenantId') tenantId: string,
+		@Query('isActive') isActive?: boolean,
+		@Query('search') search?: string,
+	) {
+		return this.productClient.send('modifier-groups:get-all', {
+			tenantId,
+			isActive,
+			search,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	@Patch('tenants/:tenantId/modifier-groups/:groupId')
+	@UseGuards(AuthGuard, Role('USER'))
+	updateModifierGroup(
+		@Param('tenantId') tenantId: string,
+		@Param('groupId') groupId: string,
+		@Body() data: any,
+	) {
+		return this.productClient.send('modifier-groups:update', {
+			...data,
+			tenantId,
+			modifierGroupId: groupId,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	@Delete('tenants/:tenantId/modifier-groups/:groupId')
+	@UseGuards(AuthGuard, Role('USER'))
+	deleteModifierGroup(
+		@Param('tenantId') tenantId: string,
+		@Param('groupId') groupId: string,
+	) {
+		return this.productClient.send('modifier-groups:delete', {
+			tenantId,
+			modifierGroupId: groupId,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	// ============ MODIFIER OPTIONS ============
+
+	@Post('tenants/:tenantId/modifier-groups/:groupId/options')
+	@UseGuards(AuthGuard, Role('USER'))
+	createModifierOption(
+		@Param('tenantId') tenantId: string,
+		@Param('groupId') groupId: string,
+		@Body() data: any,
+	) {
+		return this.productClient.send('modifier-options:create', {
+			...data,
+			tenantId,
+			modifierGroupId: groupId,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	@Get('tenants/:tenantId/modifier-groups/:groupId/options')
+	@UseGuards(AuthGuard, Role('USER'))
+	getModifierOptions(
+		@Param('tenantId') tenantId: string,
+		@Param('groupId') groupId: string,
+		@Query('isActive') isActive?: boolean,
+	) {
+		return this.productClient.send('modifier-options:get-all', {
+			tenantId,
+			modifierGroupId: groupId,
+			isActive,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	@Patch('tenants/:tenantId/modifier-groups/:groupId/options/:optionId')
+	@UseGuards(AuthGuard, Role('USER'))
+	updateModifierOption(
+		@Param('tenantId') tenantId: string,
+		@Param('groupId') groupId: string,
+		@Param('optionId') optionId: string,
+		@Body() data: any,
+	) {
+		return this.productClient.send('modifier-options:update', {
+			...data,
+			tenantId,
+			modifierGroupId: groupId,
+			optionId,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	@Delete('tenants/:tenantId/modifier-groups/:groupId/options/:optionId')
+	@UseGuards(AuthGuard, Role('USER'))
+	deleteModifierOption(
+		@Param('tenantId') tenantId: string,
+		@Param('groupId') groupId: string,
+		@Param('optionId') optionId: string,
+	) {
+		return this.productClient.send('modifier-options:delete', {
+			tenantId,
+			modifierGroupId: groupId,
+			optionId,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	// ============ MENU ITEM MODIFIERS ============
+
 	@Post('tenants/:tenantId/items/:itemId/modifiers')
 	@UseGuards(AuthGuard, Role('USER'))
-	addModifiers(
+	attachModifierGroups(
 		@Param('tenantId') tenantId: string,
 		@Param('itemId') itemId: string,
 		@Body() data: any,
 	) {
-		return this.productClient.send('items:add-modifiers', {
+		return this.productClient.send('menu-item-modifiers:attach', {
 			...data,
 			tenantId,
-			itemId,
+			menuItemId: itemId,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	@Get('tenants/:tenantId/items/:itemId/modifiers')
+	@UseGuards(AuthGuard, Role('USER'))
+	getMenuItemModifierGroups(
+		@Param('tenantId') tenantId: string,
+		@Param('itemId') itemId: string,
+	) {
+		return this.productClient.send('menu-item-modifiers:get-all', {
+			tenantId,
+			menuItemId: itemId,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	@Delete('tenants/:tenantId/items/:itemId/modifiers/:groupId')
+	@UseGuards(AuthGuard, Role('USER'))
+	detachModifierGroup(
+		@Param('tenantId') tenantId: string,
+		@Param('itemId') itemId: string,
+		@Param('groupId') groupId: string,
+	) {
+		return this.productClient.send('menu-item-modifiers:detach', {
+			tenantId,
+			menuItemId: itemId,
+			modifierGroupId: groupId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
