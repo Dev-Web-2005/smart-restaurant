@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository, IsNull, In } from 'typeorm';
 import { MenuCategory, MenuItem } from 'src/common/entities';
 import { CategoryStatus, MenuItemStatus } from 'src/common/enums';
 import { GetPublicMenuRequestDto } from './dtos/request/get-public-menu-request.dto';
@@ -41,11 +41,11 @@ export class PublicService {
 
 		// Get all available items in these categories
 		const items = await this.itemRepository.find({
-			where: categoryIds.map((catId) => ({
-				categoryId: catId,
+			where: {
+				categoryId: In(categoryIds),
 				status: MenuItemStatus.AVAILABLE,
 				deletedAt: IsNull(),
-			})),
+			},
 			relations: [
 				'photos',
 				'modifierGroups',
