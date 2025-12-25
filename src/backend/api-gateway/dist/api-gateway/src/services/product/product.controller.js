@@ -239,9 +239,16 @@ let ProductController = class ProductController {
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
-    getPublicMenu(tenantId) {
+    getPublicMenu(tenantId, categoryId, search, isChefRecommended, sortBy, sortOrder, page, limit) {
         return this.productClient.send('public:get-menu', {
             tenantId,
+            categoryId,
+            search,
+            isChefRecommended,
+            sortBy,
+            sortOrder,
+            page,
+            limit,
         });
     }
 };
@@ -508,8 +515,15 @@ __decorate([
 __decorate([
     (0, common_1.Get)('public/menu/:tenantId'),
     __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Query)('categoryId')),
+    __param(2, (0, common_1.Query)('search')),
+    __param(3, (0, common_1.Query)('isChefRecommended')),
+    __param(4, (0, common_1.Query)('sortBy')),
+    __param(5, (0, common_1.Query)('sortOrder')),
+    __param(6, (0, common_1.Query)('page')),
+    __param(7, (0, common_1.Query)('limit')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, String, String, Boolean, String, String, Number, Number]),
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "getPublicMenu", null);
 exports.ProductController = ProductController = __decorate([

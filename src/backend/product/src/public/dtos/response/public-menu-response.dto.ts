@@ -48,3 +48,16 @@ export class GetPublicMenuResponseDto {
 	tenantId: string;
 	categories: PublicMenuCategoryDto[];
 }
+
+/**
+ * Paginated response for public menu items
+ * Used when filtering/pagination is applied
+ */
+export class PaginatedPublicMenuResponseDto {
+	tenantId: string;
+	items: PublicMenuItemDto[];
+	total: number;
+	page: number;
+	limit: number;
+	totalPages: number;
+}
