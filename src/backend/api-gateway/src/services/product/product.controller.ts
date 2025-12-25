@@ -103,7 +103,7 @@ export class ProductController {
 	@Post('tenants/:tenantId/items')
 	@UseGuards(AuthGuard, Role('USER'))
 	createItem(@Param('tenantId') tenantId: string, @Body() data: any) {
-		return this.productClient.send('items:create', {
+		return this.productClient.send('menu-items:create', {
 			...data,
 			tenantId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
@@ -115,10 +115,24 @@ export class ProductController {
 	getItems(
 		@Param('tenantId') tenantId: string,
 		@Query('categoryId') categoryId?: string,
+		@Query('status') status?: string,
+		@Query('isChefRecommended') isChefRecommended?: boolean,
+		@Query('search') search?: string,
+		@Query('sortBy') sortBy?: string,
+		@Query('sortOrder') sortOrder?: string,
+		@Query('page') page?: number,
+		@Query('limit') limit?: number,
 	) {
-		return this.productClient.send('items:get-all', {
+		return this.productClient.send('menu-items:get-all', {
 			tenantId,
 			categoryId,
+			status,
+			isChefRecommended,
+			search,
+			sortBy,
+			sortOrder,
+			page,
+			limit,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
@@ -130,40 +144,35 @@ export class ProductController {
 		@Param('itemId') itemId: string,
 		@Body() data: any,
 	) {
-		return this.productClient.send('items:update', {
+		return this.productClient.send('menu-items:update', {
 			...data,
 			tenantId,
-			itemId,
+			menuItemId: itemId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
 
-	@Post('tenants/:tenantId/items/:itemId/publish')
+	@Patch('tenants/:tenantId/items/:itemId/status')
 	@UseGuards(AuthGuard, Role('USER'))
-	publishItem(
+	updateItemStatus(
 		@Param('tenantId') tenantId: string,
 		@Param('itemId') itemId: string,
 		@Body() data: any,
 	) {
-		return this.productClient.send('items:publish', {
+		return this.productClient.send('menu-items:update-status', {
 			...data,
 			tenantId,
-			itemId,
+			menuItemId: itemId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
 
 	@Delete('tenants/:tenantId/items/:itemId')
 	@UseGuards(AuthGuard, Role('USER'))
-	deleteItem(
-		@Param('tenantId') tenantId: string,
-		@Param('itemId') itemId: string,
-		@Body() data: any,
-	) {
-		return this.productClient.send('items:delete', {
-			...data,
+	deleteItem(@Param('tenantId') tenantId: string, @Param('itemId') itemId: string) {
+		return this.productClient.send('menu-items:delete', {
 			tenantId,
-			itemId,
+			menuItemId: itemId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
