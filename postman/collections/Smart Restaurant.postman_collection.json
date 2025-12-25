@@ -777,11 +777,13 @@
                   }
                 },
                 "url": {
-                  "raw": "{{baseURL}}/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/categories",
+                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/categories",
                   "host": [
                     "{{baseURL}}"
                   ],
                   "path": [
+                    "api",
+                    "v1",
                     "tenants",
                     "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                     "categories"

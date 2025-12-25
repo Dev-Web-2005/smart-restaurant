@@ -1,6 +1,5 @@
 import { IsString, IsNotEmpty, IsIn } from 'class-validator';
-import { Transform } from 'class-transformer';
-import { menuItemStatusFromString, MenuItemStatus } from 'src/common/enums';
+import { MenuItemStatus } from 'src/common/enums';
 
 /**
  * DTO for updating menu item status
@@ -25,6 +24,5 @@ export class UpdateMenuItemStatusRequestDto {
 
 	@IsNotEmpty()
 	@IsIn(['AVAILABLE', 'UNAVAILABLE', 'SOLD_OUT', 'available', 'unavailable', 'sold_out'])
-	@Transform(({ value }) => menuItemStatusFromString(value))
-	status: MenuItemStatus;
+	status: MenuItemStatus | string;
 }
