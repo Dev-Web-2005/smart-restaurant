@@ -12,8 +12,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MenuItem = void 0;
 const typeorm_1 = require("typeorm");
 const menu_category_entity_1 = require("./menu-category.entity");
-const modifier_option_entity_1 = require("./modifier-option.entity");
 const menu_item_photo_entity_1 = require("./menu-item-photo.entity");
+const menu_item_modifier_group_entity_1 = require("./menu-item-modifier-group.entity");
 const enums_1 = require("../enums");
 let MenuItem = class MenuItem {
     id;
@@ -30,7 +30,7 @@ let MenuItem = class MenuItem {
     updatedAt;
     deletedAt;
     category;
-    modifiers;
+    modifierGroups;
     photos;
 };
 exports.MenuItem = MenuItem;
@@ -92,9 +92,11 @@ __decorate([
     __metadata("design:type", menu_category_entity_1.MenuCategory)
 ], MenuItem.prototype, "category", void 0);
 __decorate([
-    (0, typeorm_1.OneToMany)(() => modifier_option_entity_1.ModifierOption, (modifier) => modifier.item),
+    (0, typeorm_1.OneToMany)(() => menu_item_modifier_group_entity_1.MenuItemModifierGroup, (modifierGroup) => modifierGroup.menuItem, {
+        cascade: true,
+    }),
     __metadata("design:type", Array)
-], MenuItem.prototype, "modifiers", void 0);
+], MenuItem.prototype, "modifierGroups", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => menu_item_photo_entity_1.MenuItemPhoto, (photo) => photo.menuItem, { cascade: true }),
     __metadata("design:type", Array)

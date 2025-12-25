@@ -15,6 +15,7 @@ const app_service_1 = require("./app.service");
 const category_module_1 = require("./category/category.module");
 const item_module_1 = require("./item/item.module");
 const public_module_1 = require("./public/public.module");
+const modifier_module_1 = require("./modifier/modifier.module");
 const entities_1 = require("./common/entities");
 let AppModule = class AppModule {
 };
@@ -35,7 +36,14 @@ exports.AppModule = AppModule = __decorate([
                     username: configService.get('USERNAME_DB'),
                     password: configService.get('PASSWORD_DB'),
                     database: configService.get('DATABASE_DB'),
-                    entities: [entities_1.MenuCategory, entities_1.MenuItem, entities_1.ModifierOption],
+                    entities: [
+                        entities_1.MenuCategory,
+                        entities_1.MenuItem,
+                        entities_1.MenuItemPhoto,
+                        entities_1.ModifierGroup,
+                        entities_1.ModifierOption,
+                        entities_1.MenuItemModifierGroup,
+                    ],
                     synchronize: true,
                     logging: false,
                 }),
@@ -44,6 +52,7 @@ exports.AppModule = AppModule = __decorate([
             category_module_1.CategoryModule,
             item_module_1.ItemModule,
             public_module_1.PublicModule,
+            modifier_module_1.ModifierModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],
