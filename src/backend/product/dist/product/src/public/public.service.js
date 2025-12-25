@@ -18,6 +18,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const entities_1 = require("../common/entities");
 const enums_1 = require("../common/enums");
+const get_public_menu_request_dto_1 = require("./dtos/request/get-public-menu-request.dto");
 let PublicService = class PublicService {
     categoryRepository;
     itemRepository;
@@ -26,6 +27,17 @@ let PublicService = class PublicService {
         this.itemRepository = itemRepository;
     }
     async getPublicMenu(dto) {
+        if (dto.page ||
+            dto.limit ||
+            dto.categoryId ||
+            dto.search ||
+            dto.isChefRecommended !== undefined ||
+            dto.sortBy) {
+            return this.getPaginatedPublicMenu(dto);
+        }
+        return this.getGroupedPublicMenu(dto);
+    }
+    async getGroupedPublicMenu(dto) {
         const categories = await this.categoryRepository.find({
             where: {
                 tenantId: dto.tenantId,
@@ -68,6 +80,106 @@ let PublicService = class PublicService {
         return {
             tenantId: dto.tenantId,
             categories: filteredCategories,
+        };
+    }
+    async getPaginatedPublicMenu(dto) {
+        const queryBuilder = this.itemRepository
+            .createQueryBuilder('item')
+            .leftJoinAndSelect('item.photos', 'photos')
+            .leftJoinAndSelect('item.modifierGroups', 'modifierGroups')
+            .leftJoinAndSelect('modifierGroups.modifierGroup', 'modifierGroup')
+            .leftJoinAndSelect('modifierGroup.options', 'options')
+            .where('item.tenantId = :tenantId', { tenantId: dto.tenantId })
+            .andWhere('item.status = :status', { status: enums_1.MenuItemStatus.AVAILABLE })
+            .andWhere('item.deletedAt IS NULL');
+        if (dto.categoryId) {
+            const category = await this.categoryRepository.findOne({
+                where: {
+                    id: dto.categoryId,
+                    tenantId: dto.tenantId,
+                    status: enums_1.CategoryStatus.ACTIVE,
+                    deletedAt: (0, typeorm_2.IsNull)(),
+                },
+            });
+            if (category) {
+                queryBuilder.andWhere('item.categoryId = :categoryId', {
+                    categoryId: dto.categoryId,
+                });
+            }
+            else {
+                return {
+                    tenantId: dto.tenantId,
+                    items: [],
+                    total: 0,
+                    page: dto.page || 1,
+                    limit: dto.limit || 20,
+                    totalPages: 0,
+                };
+            }
+        }
+        else {
+            const activeCategories = await this.categoryRepository.find({
+                where: {
+                    tenantId: dto.tenantId,
+                    status: enums_1.CategoryStatus.ACTIVE,
+                    deletedAt: (0, typeorm_2.IsNull)(),
+                },
+                select: ['id'],
+            });
+            if (activeCategories.length === 0) {
+                return {
+                    tenantId: dto.tenantId,
+                    items: [],
+                    total: 0,
+                    page: dto.page || 1,
+                    limit: dto.limit || 20,
+                    totalPages: 0,
+                };
+            }
+            const activeCategoryIds = activeCategories.map((cat) => cat.id);
+            queryBuilder.andWhere('item.categoryId IN (:...categoryIds)', {
+                categoryIds: activeCategoryIds,
+            });
+        }
+        if (dto.isChefRecommended !== undefined) {
+            queryBuilder.andWhere('item.isChefRecommended = :isChefRecommended', {
+                isChefRecommended: dto.isChefRecommended,
+            });
+        }
+        if (dto.search) {
+            queryBuilder.andWhere('LOWER(item.name) LIKE LOWER(:search)', {
+                search: `%${dto.search}%`,
+            });
+        }
+        const sortBy = dto.sortBy || get_public_menu_request_dto_1.PublicMenuSortBy.CREATED_AT;
+        const sortOrder = dto.sortOrder || get_public_menu_request_dto_1.SortOrder.ASC;
+        switch (sortBy) {
+            case get_public_menu_request_dto_1.PublicMenuSortBy.PRICE:
+                queryBuilder.orderBy('item.price', sortOrder);
+                break;
+            case get_public_menu_request_dto_1.PublicMenuSortBy.NAME:
+                queryBuilder.orderBy('item.name', sortOrder);
+                break;
+            case get_public_menu_request_dto_1.PublicMenuSortBy.POPULARITY:
+                queryBuilder.orderBy('item.createdAt', sortOrder);
+                break;
+            case get_public_menu_request_dto_1.PublicMenuSortBy.CREATED_AT:
+            default:
+                queryBuilder.orderBy('item.createdAt', sortOrder);
+                break;
+        }
+        const page = dto.page && dto.page > 0 ? dto.page : 1;
+        const limit = dto.limit && dto.limit > 0 ? Math.min(dto.limit, 100) : 20;
+        const skip = (page - 1) * limit;
+        queryBuilder.skip(skip).take(limit);
+        const [items, total] = await queryBuilder.getManyAndCount();
+        return {
+            tenantId: dto.tenantId,
+            items: items.map((item) => this.toPublicItemDto(item)),
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
         };
     }
     toPublicItemDto(item) {

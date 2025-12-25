@@ -43,3 +43,11 @@ export declare class GetPublicMenuResponseDto {
     tenantId: string;
     categories: PublicMenuCategoryDto[];
 }
+export declare class PaginatedPublicMenuResponseDto {
+    tenantId: string;
+    items: PublicMenuItemDto[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+}

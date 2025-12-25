@@ -2023,7 +2023,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseURL}}/api/v1/public/menu/d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                  "raw": "{{baseURL}}/api/v1/public/menu/d95e73fb-b861-40eb-ba09-eff4b79084ef?search=salad&page=1&limit=10",
                   "host": [
                     "{{baseURL}}"
                   ],
@@ -2033,6 +2033,51 @@
                     "public",
                     "menu",
                     "d95e73fb-b861-40eb-ba09-eff4b79084ef"
+                  ],
+                  "query": [
+                    {
+                      "key": "categoryId",
+                      "value": null,
+                      "type": "text",
+                      "uuid": "337b98ff-f6de-4f6f-b337-eb0c6dd564dc",
+                      "disabled": true
+                    },
+                    {
+                      "key": "search",
+                      "value": "salad",
+                      "uuid": "9cd87ce9-05dc-4184-9f69-3e5c26153491"
+                    },
+                    {
+                      "key": "isChefRecommended",
+                      "value": null,
+                      "type": "text",
+                      "uuid": "b790cddd-3882-481a-90b6-84e46750d359",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": null,
+                      "type": "text",
+                      "uuid": "cef7bd57-935c-40bd-8160-3934f5b002ab",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": null,
+                      "type": "text",
+                      "uuid": "e03bd29a-611b-4831-8812-3e14f1a2edeb",
+                      "disabled": true
+                    },
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "uuid": "735ea369-ae3b-41d1-9638-e8bf7a54e1b2"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "uuid": "30b2333c-4872-49e0-a962-b3088150bafb"
+                    }
                   ]
                 }
               },

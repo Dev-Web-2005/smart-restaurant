@@ -30,5 +30,5 @@ export declare class ProductController {
     attachModifierGroups(tenantId: string, itemId: string, data: any): import("rxjs").Observable<any>;
     getMenuItemModifierGroups(tenantId: string, itemId: string): import("rxjs").Observable<any>;
     detachModifierGroup(tenantId: string, itemId: string, groupId: string): import("rxjs").Observable<any>;
-    getPublicMenu(tenantId: string): import("rxjs").Observable<any>;
+    getPublicMenu(tenantId: string, categoryId?: string, search?: string, isChefRecommended?: boolean, sortBy?: string, sortOrder?: string, page?: number, limit?: number): import("rxjs").Observable<any>;
 }
