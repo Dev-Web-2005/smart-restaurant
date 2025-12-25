@@ -19,10 +19,31 @@ async function bootstrap() {
     app.use(express_1.default.urlencoded({ limit: '10mb', extended: true }));
     app.useGlobalFilters(new rpc_exception_filter_1.RpcExceptionFilter(), new global_exception_filter_1.GlobalExceptionFilter());
     app.useGlobalInterceptors(new transform_response_interceptor_1.TransformResponseInterceptor());
+    const allowedOrigins = process.env.FRONTEND_URL
+        ? process.env.FRONTEND_URL.split(',').map((url) => url.trim())
+        : ['http://localhost:5173', 'http://localhost:3000'];
+    console.log('🔐 CORS Allowed Origins:', allowedOrigins);
     app.enableCors({
-        origin: '*',
+        origin: (origin, callback) => {
+            console.log('📨 Request from origin:', origin);
+            if (!origin) {
+                console.log('✅ No origin - allowing request');
+                return callback(null, true);
+            }
+            if (allowedOrigins.includes(origin)) {
+                console.log('✅ Origin allowed:', origin);
+                callback(null, true);
+            }
+            else {
+                console.log('❌ Origin blocked:', origin);
+                console.log('   Allowed origins:', allowedOrigins);
+                callback(null, true);
+            }
+        },
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
         credentials: true,
+        allowedHeaders: 'Content-Type,Authorization,x-api-key',
+        exposedHeaders: 'Set-Cookie',
     });
     app.use((0, cookie_parser_1.default)());
     await app.listen(parseInt(process.env.PORT, 10) ?? 8888);

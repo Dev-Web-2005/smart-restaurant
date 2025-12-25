@@ -19,7 +19,14 @@ class ErrorCode {
     static AUTHORITY_CREATION_FAILED = new ErrorCode(2104, "Authority creation failed", 500);
     static VALIDATION_FAILED = new ErrorCode(2901, "Validation failed", 400);
     static CATEGORY_NOT_FOUND = new ErrorCode(3001, "Category not found", 404);
+    static CATEGORY_NAME_ALREADY_EXISTS = new ErrorCode(3004, "Category name already exists in this restaurant", 409);
+    static CATEGORY_HAS_ACTIVE_ITEMS = new ErrorCode(3005, "Category has active items and cannot be deleted", 400);
     static ITEM_NOT_FOUND = new ErrorCode(3002, "Menu item not found", 404);
+    static MODIFIER_GROUP_NOT_FOUND = new ErrorCode(3006, "Modifier group not found", 404);
+    static DUPLICATE_MODIFIER_GROUP_NAME = new ErrorCode(3007, "Modifier group with this name already exists", 409);
+    static MODIFIER_OPTION_NOT_FOUND = new ErrorCode(3008, "Modifier option not found", 404);
+    static MODIFIER_GROUP_NOT_ATTACHED = new ErrorCode(3009, "Modifier group is not attached to this menu item", 404);
+    static MENU_ITEM_NOT_FOUND = new ErrorCode(3010, "Menu item not found", 404);
     static MODIFIER_NOT_FOUND = new ErrorCode(3003, "Modifier not found", 404);
     static ERROR_VALIDATION = new ErrorCode(2902, "Validation error", 400);
     static INVALID_TIME_FORMAT = new ErrorCode(2903, "Invalid time format", 400);

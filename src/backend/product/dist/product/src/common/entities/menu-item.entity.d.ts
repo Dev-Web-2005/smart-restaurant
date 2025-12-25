@@ -1,6 +1,6 @@
 import { MenuCategory } from './menu-category.entity';
-import { ModifierOption } from './modifier-option.entity';
 import { MenuItemPhoto } from './menu-item-photo.entity';
+import { MenuItemModifierGroup } from './menu-item-modifier-group.entity';
 import { MenuItemStatus } from '../enums';
 export declare class MenuItem {
     id: string;
@@ -17,6 +17,6 @@ export declare class MenuItem {
     updatedAt: Date;
     deletedAt: Date;
     category: MenuCategory;
-    modifiers: ModifierOption[];
+    modifierGroups: MenuItemModifierGroup[];
     photos: MenuItemPhoto[];
 }

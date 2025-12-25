@@ -1,0 +1,16 @@
+{
+	"name": "smart-restaurant",
+	"version": "1.0.0",
+	"description": "Smart Restaurant Microservices",
+	"scripts": {
+		"dev": "concurrently -n \"identity,profile,product,table,gateway\" -c \"cyan,magenta,green,yellow,blue\" \"npm run dev:identity\" \"npm run dev:profile\" \"npm run dev:product\" \"npm run dev:table\" \"npm run dev:gateway\"",
+		"dev:identity": "cd src/backend/identity && npm run start:dev",
+		"dev:profile": "cd src/backend/profile && npm run start:dev",
+		"dev:product": "cd src/backend/product && npm run start:dev",
+		"dev:table": "cd src/backend/table && npm run start:dev",
+		"dev:gateway": "cd src/backend/api-gateway && npm run start:dev"
+	},
+	"devDependencies": {
+		"concurrently": "^8.2.2"
+	}
+}

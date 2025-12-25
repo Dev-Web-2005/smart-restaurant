@@ -11,15 +11,18 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ModifierOption = void 0;
 const typeorm_1 = require("typeorm");
-const menu_item_entity_1 = require("./menu-item.entity");
+const modifier_group_entity_1 = require("./modifier-group.entity");
 let ModifierOption = class ModifierOption {
     id;
-    itemId;
-    groupName;
+    modifierGroupId;
     label;
     priceDelta;
-    type;
-    item;
+    displayOrder;
+    isActive;
+    createdAt;
+    updatedAt;
+    deletedAt;
+    group;
 };
 exports.ModifierOption = ModifierOption;
 __decorate([
@@ -29,29 +32,41 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)(),
     __metadata("design:type", String)
-], ModifierOption.prototype, "itemId", void 0);
+], ModifierOption.prototype, "modifierGroupId", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
-    __metadata("design:type", String)
-], ModifierOption.prototype, "groupName", void 0);
-__decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: false, length: 100 }),
     __metadata("design:type", String)
 ], ModifierOption.prototype, "label", void 0);
 __decorate([
-    (0, typeorm_1.Column)('decimal', { default: 0 }),
+    (0, typeorm_1.Column)('decimal', { precision: 10, scale: 2, default: 0 }),
     __metadata("design:type", Number)
 ], ModifierOption.prototype, "priceDelta", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: 'single' }),
-    __metadata("design:type", String)
-], ModifierOption.prototype, "type", void 0);
+    (0, typeorm_1.Column)({ type: 'int', default: 0 }),
+    __metadata("design:type", Number)
+], ModifierOption.prototype, "displayOrder", void 0);
 __decorate([
-    (0, typeorm_1.ManyToOne)(() => menu_item_entity_1.MenuItem, (item) => item.modifiers, { onDelete: 'CASCADE' }),
-    (0, typeorm_1.JoinColumn)({ name: 'itemId' }),
-    __metadata("design:type", menu_item_entity_1.MenuItem)
-], ModifierOption.prototype, "item", void 0);
+    (0, typeorm_1.Column)({ type: 'boolean', default: true }),
+    __metadata("design:type", Boolean)
+], ModifierOption.prototype, "isActive", void 0);
+__decorate([
+    (0, typeorm_1.CreateDateColumn)(),
+    __metadata("design:type", Date)
+], ModifierOption.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)(),
+    __metadata("design:type", Date)
+], ModifierOption.prototype, "updatedAt", void 0);
+__decorate([
+    (0, typeorm_1.DeleteDateColumn)(),
+    __metadata("design:type", Date)
+], ModifierOption.prototype, "deletedAt", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => modifier_group_entity_1.ModifierGroup, (group) => group.options, { onDelete: 'CASCADE' }),
+    (0, typeorm_1.JoinColumn)({ name: 'modifierGroupId' }),
+    __metadata("design:type", modifier_group_entity_1.ModifierGroup)
+], ModifierOption.prototype, "group", void 0);
 exports.ModifierOption = ModifierOption = __decorate([
-    (0, typeorm_1.Entity)()
+    (0, typeorm_1.Entity)('modifier_options')
 ], ModifierOption);
 //# sourceMappingURL=modifier-option.entity.js.map
