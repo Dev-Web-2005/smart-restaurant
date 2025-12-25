@@ -35,7 +35,7 @@ export class ProductController {
 	}
 
 	@Get('tenants/:tenantId/categories')
-	@UseGuards(AuthGuard, Role('USER'))
+	// @UseGuards(AuthGuard, Role('USER'))
 	getCategories(
 		@Param('tenantId') tenantId: string,
 		@Query('status') status?: string,
@@ -111,7 +111,7 @@ export class ProductController {
 	}
 
 	@Get('tenants/:tenantId/items')
-	@UseGuards(AuthGuard, Role('USER'))
+	// @UseGuards(AuthGuard, Role('USER'))
 	getItems(
 		@Param('tenantId') tenantId: string,
 		@Query('categoryId') categoryId?: string,
@@ -195,7 +195,7 @@ export class ProductController {
 	}
 
 	@Get('tenants/:tenantId/items/:itemId/photos')
-	@UseGuards(AuthGuard, Role('USER'))
+	// @UseGuards(AuthGuard, Role('USER'))
 	getMenuItemPhotos(
 		@Param('tenantId') tenantId: string,
 		@Param('itemId') itemId: string,
@@ -391,7 +391,7 @@ export class ProductController {
 	}
 
 	@Get('tenants/:tenantId/items/:itemId/modifiers')
-	@UseGuards(AuthGuard, Role('USER'))
+	// @UseGuards(AuthGuard, Role('USER'))
 	getMenuItemModifierGroups(
 		@Param('tenantId') tenantId: string,
 		@Param('itemId') itemId: string,
