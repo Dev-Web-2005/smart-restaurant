@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GetPublicMenuResponseDto = exports.PublicModifierDto = exports.PublicMenuItemDto = exports.PublicMenuCategoryDto = void 0;
+exports.GetPublicMenuResponseDto = exports.PublicModifierDto = exports.PublicPhotoDto = exports.PublicMenuItemDto = exports.PublicMenuCategoryDto = void 0;
 class PublicMenuCategoryDto {
     id;
     name;
@@ -14,12 +14,22 @@ class PublicMenuItemDto {
     name;
     description;
     imageUrl;
+    photos;
     price;
     currency;
-    available;
+    prepTimeMinutes;
+    isChefRecommended;
+    status;
     modifiers;
 }
 exports.PublicMenuItemDto = PublicMenuItemDto;
+class PublicPhotoDto {
+    id;
+    url;
+    isPrimary;
+    displayOrder;
+}
+exports.PublicPhotoDto = PublicPhotoDto;
 class PublicModifierDto {
     id;
     groupName;

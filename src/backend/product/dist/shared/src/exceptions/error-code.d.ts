@@ -17,6 +17,8 @@ export default class ErrorCode {
     static readonly AUTHORITY_CREATION_FAILED: ErrorCode;
     static readonly VALIDATION_FAILED: ErrorCode;
     static readonly CATEGORY_NOT_FOUND: ErrorCode;
+    static readonly CATEGORY_NAME_ALREADY_EXISTS: ErrorCode;
+    static readonly CATEGORY_HAS_ACTIVE_ITEMS: ErrorCode;
     static readonly ITEM_NOT_FOUND: ErrorCode;
     static readonly MODIFIER_NOT_FOUND: ErrorCode;
     static readonly ERROR_VALIDATION: ErrorCode;

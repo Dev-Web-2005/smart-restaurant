@@ -13,20 +13,25 @@ exports.MenuItem = void 0;
 const typeorm_1 = require("typeorm");
 const menu_category_entity_1 = require("./menu-category.entity");
 const modifier_option_entity_1 = require("./modifier-option.entity");
+const menu_item_photo_entity_1 = require("./menu-item-photo.entity");
+const enums_1 = require("../enums");
 let MenuItem = class MenuItem {
     id;
     tenantId;
     categoryId;
     name;
     description;
-    imageUrl;
     price;
     currency;
-    available;
-    published;
+    prepTimeMinutes;
+    status;
+    isChefRecommended;
     createdAt;
+    updatedAt;
+    deletedAt;
     category;
     modifiers;
+    photos;
 };
 exports.MenuItem = MenuItem;
 __decorate([
@@ -42,37 +47,45 @@ __decorate([
     __metadata("design:type", String)
 ], MenuItem.prototype, "categoryId", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: false, length: 80 }),
     __metadata("design:type", String)
 ], MenuItem.prototype, "name", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
+    (0, typeorm_1.Column)({ nullable: true, type: 'text' }),
     __metadata("design:type", String)
 ], MenuItem.prototype, "description", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
-], MenuItem.prototype, "imageUrl", void 0);
-__decorate([
-    (0, typeorm_1.Column)('decimal'),
+    (0, typeorm_1.Column)('decimal', { precision: 12, scale: 2 }),
     __metadata("design:type", Number)
 ], MenuItem.prototype, "price", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: 'VND' }),
+    (0, typeorm_1.Column)({ default: 'VND', length: 10 }),
     __metadata("design:type", String)
 ], MenuItem.prototype, "currency", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: true }),
-    __metadata("design:type", Boolean)
-], MenuItem.prototype, "available", void 0);
+    (0, typeorm_1.Column)({ type: 'int', nullable: true }),
+    __metadata("design:type", Number)
+], MenuItem.prototype, "prepTimeMinutes", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: false }),
+    (0, typeorm_1.Column)({ type: 'int', default: enums_1.MenuItemStatus.AVAILABLE }),
+    __metadata("design:type", Number)
+], MenuItem.prototype, "status", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'boolean', default: false }),
     __metadata("design:type", Boolean)
-], MenuItem.prototype, "published", void 0);
+], MenuItem.prototype, "isChefRecommended", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
 ], MenuItem.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)(),
+    __metadata("design:type", Date)
+], MenuItem.prototype, "updatedAt", void 0);
+__decorate([
+    (0, typeorm_1.DeleteDateColumn)(),
+    __metadata("design:type", Date)
+], MenuItem.prototype, "deletedAt", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => menu_category_entity_1.MenuCategory, (category) => category.items, { onDelete: 'CASCADE' }),
     (0, typeorm_1.JoinColumn)({ name: 'categoryId' }),
@@ -82,6 +95,10 @@ __decorate([
     (0, typeorm_1.OneToMany)(() => modifier_option_entity_1.ModifierOption, (modifier) => modifier.item),
     __metadata("design:type", Array)
 ], MenuItem.prototype, "modifiers", void 0);
+__decorate([
+    (0, typeorm_1.OneToMany)(() => menu_item_photo_entity_1.MenuItemPhoto, (photo) => photo.menuItem, { cascade: true }),
+    __metadata("design:type", Array)
+], MenuItem.prototype, "photos", void 0);
 exports.MenuItem = MenuItem = __decorate([
     (0, typeorm_1.Entity)()
 ], MenuItem);

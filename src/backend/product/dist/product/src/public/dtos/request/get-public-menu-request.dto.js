@@ -18,6 +18,7 @@ exports.GetPublicMenuRequestDto = GetPublicMenuRequestDto;
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsUUID)(),
+    (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], GetPublicMenuRequestDto.prototype, "tenantId", void 0);
 //# sourceMappingURL=get-public-menu-request.dto.js.map
