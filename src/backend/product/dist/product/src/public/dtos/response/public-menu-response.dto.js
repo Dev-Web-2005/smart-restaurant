@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GetPublicMenuResponseDto = exports.PublicMenuItemDto = exports.PublicModifierGroupDto = exports.PublicModifierOptionDto = exports.PublicPhotoDto = exports.PublicMenuCategoryDto = void 0;
+exports.PaginatedPublicMenuResponseDto = exports.GetPublicMenuResponseDto = exports.PublicMenuItemDto = exports.PublicModifierGroupDto = exports.PublicModifierOptionDto = exports.PublicPhotoDto = exports.PublicMenuCategoryDto = void 0;
 class PublicMenuCategoryDto {
     id;
     name;
@@ -52,4 +52,13 @@ class GetPublicMenuResponseDto {
     categories;
 }
 exports.GetPublicMenuResponseDto = GetPublicMenuResponseDto;
+class PaginatedPublicMenuResponseDto {
+    tenantId;
+    items;
+    total;
+    page;
+    limit;
+    totalPages;
+}
+exports.PaginatedPublicMenuResponseDto = PaginatedPublicMenuResponseDto;
 //# sourceMappingURL=public-menu-response.dto.js.map
