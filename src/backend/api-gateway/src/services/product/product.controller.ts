@@ -421,9 +421,25 @@ export class ProductController {
 	// ============ PUBLIC MENU ============
 
 	@Get('public/menu/:tenantId')
-	getPublicMenu(@Param('tenantId') tenantId: string) {
+	getPublicMenu(
+		@Param('tenantId') tenantId: string,
+		@Query('categoryId') categoryId?: string,
+		@Query('search') search?: string,
+		@Query('isChefRecommended') isChefRecommended?: boolean,
+		@Query('sortBy') sortBy?: string,
+		@Query('sortOrder') sortOrder?: string,
+		@Query('page') page?: number,
+		@Query('limit') limit?: number,
+	) {
 		return this.productClient.send('public:get-menu', {
 			tenantId,
+			categoryId,
+			search,
+			isChefRecommended,
+			sortBy,
+			sortOrder,
+			page,
+			limit,
 		});
 	}
 }
