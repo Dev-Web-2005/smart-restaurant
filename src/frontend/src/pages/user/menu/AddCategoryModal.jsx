@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import ReactDOM from 'react-dom'
+import { uploadFile } from '../../../services/api/fileAPI'
 
 const AddCategoryModal = ({ isOpen, onClose, onSave }) => {
 	const modalRef = useRef(null)
+	const categoryNameInputRef = useRef(null)
+	const lastFocusedField = useRef(null)
 	const [formData, setFormData] = useState({
 		categoryName: '',
 		imageFile: null,
@@ -17,6 +20,10 @@ const AddCategoryModal = ({ isOpen, onClose, onSave }) => {
 			document.body.style.overflow = 'hidden'
 			requestAnimationFrame(() => {
 				setIsVisible(true)
+				// Focus first field only on initial open
+				if (!lastFocusedField.current && categoryNameInputRef.current) {
+					categoryNameInputRef.current.focus()
+				}
 			})
 		} else {
 			document.body.style.overflow = 'auto'
@@ -24,12 +31,24 @@ const AddCategoryModal = ({ isOpen, onClose, onSave }) => {
 			// Reset form khi đóng modal
 			setFormData({ categoryName: '', imageFile: null })
 			setPreviewImage(null)
+			lastFocusedField.current = null
 		}
 
 		return () => {
 			document.body.style.overflow = 'auto'
 		}
 	}, [isOpen])
+
+	// Restore focus after re-render
+	useEffect(() => {
+		if (
+			isOpen &&
+			lastFocusedField.current === 'categoryName' &&
+			categoryNameInputRef.current
+		) {
+			categoryNameInputRef.current.focus()
+		}
+	})
 
 	// Close on outside click và ESC
 	useEffect(() => {
@@ -58,6 +77,7 @@ const AddCategoryModal = ({ isOpen, onClose, onSave }) => {
 
 	const handleChange = (e) => {
 		const { name, value } = e.target
+		lastFocusedField.current = name
 		setFormData((prev) => ({ ...prev, [name]: value }))
 	}
 
@@ -77,22 +97,41 @@ const AddCategoryModal = ({ isOpen, onClose, onSave }) => {
 		e.preventDefault()
 		setLoading(true)
 
-		console.log('Submitting new category:', formData)
+		try {
+			let imageUrl = null
 
-		// Simulate API call
-		setTimeout(() => {
-			if (onSave) {
-				onSave({
-					id: Date.now(),
-					name: formData.categoryName,
-					image: previewImage || 'default_image_url',
-				})
+			// Upload image to server if file is selected
+			if (formData.imageFile) {
+				console.log('📤 Uploading image to server...')
+				imageUrl = await uploadFile(formData.imageFile, 'image')
+				console.log('✅ Image uploaded successfully!')
+				console.log('🖼️ Image URL:', imageUrl)
 			}
-			setLoading(false)
-			onClose()
+
+			// Prepare category data (for future API call)
+			const categoryData = {
+				id: Date.now(),
+				name: formData.categoryName,
+				image: imageUrl || 'default_image_url',
+			}
+
+			console.log('📦 Category data ready:', categoryData)
+
+			// Call onSave callback with category data
+			if (onSave) {
+				onSave(categoryData)
+			}
+
+			// Reset form and close modal
 			setFormData({ categoryName: '', imageFile: null })
 			setPreviewImage(null)
-		}, 1000)
+			onClose()
+		} catch (error) {
+			console.error('❌ Error submitting category:', error)
+			alert(error.message || 'Failed to upload image. Please try again.')
+		} finally {
+			setLoading(false)
+		}
 	}
 
 	if (!isOpen) return null
@@ -133,6 +172,7 @@ const AddCategoryModal = ({ isOpen, onClose, onSave }) => {
 							Category Name
 						</label>
 						<input
+							ref={categoryNameInputRef}
 							type="text"
 							id="categoryName"
 							name="categoryName"

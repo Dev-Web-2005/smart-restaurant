@@ -42,43 +42,6 @@ const mockDishesData = {
 			published: true,
 			modifiers: [],
 		},
-		{
-			id: 'D5',
-			name: 'Chicken Noodle Soup',
-			description: 'Hearty chicken soup with vegetables.',
-			price: 9.5,
-			imageUrl:
-				'https://images.unsplash.com/photo-1588566565463-180a5b2090d2?auto=format&fit=crop&w=500&q=80',
-			available: true,
-			published: true,
-			modifiers: [
-				{
-					id: '7',
-					groupName: 'Spice Level',
-					label: 'Mild',
-					priceDelta: 0,
-					type: 'single',
-				},
-				{
-					id: '8',
-					groupName: 'Spice Level',
-					label: 'Spicy',
-					priceDelta: 0,
-					type: 'single',
-				},
-			],
-		},
-		{
-			id: 'D6',
-			name: 'Miso Soup',
-			description: 'Traditional Japanese soup.',
-			price: 6.0,
-			imageUrl:
-				'https://images.unsplash.com/photo-1606844724698-d4a8f3c2a1e7?auto=format&fit=crop&w=500&q=80',
-			available: false,
-			published: true,
-			modifiers: [],
-		},
 	],
 	'noodle-dishes': [
 		{
@@ -146,50 +109,6 @@ const mockDishesData = {
 			published: true,
 			modifiers: [],
 		},
-		{
-			id: 3,
-			name: 'Beef Pho',
-			description: 'Vietnamese beef noodle soup with herbs.',
-			price: 13.5,
-			imageUrl:
-				'https://images.unsplash.com/photo-1555126634-323283e090fa?auto=format&fit=crop&w=500&q=80',
-			available: true,
-			published: true,
-			modifiers: [
-				{
-					id: '9',
-					groupName: 'Meat Choice',
-					label: 'Rare Beef',
-					priceDelta: 0,
-					type: 'single',
-				},
-				{
-					id: '10',
-					groupName: 'Meat Choice',
-					label: 'Well Done',
-					priceDelta: 0,
-					type: 'single',
-				},
-				{
-					id: '11',
-					groupName: 'Meat Choice',
-					label: 'Brisket',
-					priceDelta: 1.5,
-					type: 'single',
-				},
-			],
-		},
-		{
-			id: 4,
-			name: 'Dan Dan Noodles',
-			description: 'Spicy Sichuan noodles with minced pork.',
-			price: 12.0,
-			imageUrl:
-				'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=500&q=80',
-			available: false,
-			published: true,
-			modifiers: [],
-		},
 	],
 	vegetarian: [
 		{
@@ -199,43 +118,6 @@ const mockDishesData = {
 			price: 12.0,
 			imageUrl:
 				'https://media.istockphoto.com/id/1416818056/photo/colourful-vegan-bowl-with-quinoa-and-sweet-potato.jpg?s=612x612&w=0&k=20&c=t1I58CqucV6bLRaa4iDy7PIVjnV8D9eWDjEsX9X-87k=',
-			available: false,
-			published: true,
-			modifiers: [],
-		},
-		{
-			id: 'V2',
-			name: 'Veggie Burger',
-			description: 'Plant-based burger with avocado and fries.',
-			price: 11.5,
-			imageUrl:
-				'https://images.unsplash.com/photo-1520072959219-c595dc870360?auto=format&fit=crop&w=500&q=80',
-			available: true,
-			published: true,
-			modifiers: [
-				{
-					id: '12',
-					groupName: 'Extras',
-					label: 'Cheese',
-					priceDelta: 1,
-					type: 'multiple',
-				},
-				{
-					id: '13',
-					groupName: 'Extras',
-					label: 'Bacon',
-					priceDelta: 2,
-					type: 'multiple',
-				},
-			],
-		},
-		{
-			id: 'V3',
-			name: 'Greek Salad',
-			description: 'Fresh salad with feta and olives.',
-			price: 9.0,
-			imageUrl:
-				'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=500&q=80',
 			available: true,
 			published: true,
 			modifiers: [],
@@ -258,26 +140,18 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 	const modalRef = useRef(null)
 	const [isVisible, setIsVisible] = useState(false)
 
-	// Group modifiers by groupName for display
-	const modifierGroups = useMemo(() => {
-		if (!dish?.modifiers || dish.modifiers.length === 0) return []
-
-		const groups = {}
-		dish.modifiers.forEach((mod) => {
-			if (!groups[mod.groupName]) {
-				groups[mod.groupName] = {
-					name: mod.groupName,
-					type: mod.type, // 'single' or 'multiple'
-					options: [],
-				}
-			}
-			groups[mod.groupName].options.push(mod)
-		})
-
-		return Object.values(groups)
+	// Initialize modifiers based on dish (use useMemo to avoid recreating on every render)
+	const initialModifiers = useMemo(() => {
+		return dish?.modifiers
+			? dish.modifiers.map((mod) => ({
+					modifierId: mod.id,
+					modifierName: mod.name,
+					selectedOptions: [],
+			  }))
+			: []
 	}, [dish])
 
-	const [selectedModifiers, setSelectedModifiers] = useState([]) // Array of modifier IDs
+	const [selectedModifiers, setSelectedModifiers] = useState(initialModifiers)
 	const [quantity, setQuantity] = useState(1)
 	const [specialNotes, setSpecialNotes] = useState('')
 
@@ -293,61 +167,70 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 
 	if (!dish) return null
 
-	const handleOptionSelect = (modifierId, groupName, type) => {
+	const handleOptionSelect = (modifierId, option, modifier) => {
 		setSelectedModifiers((prev) => {
-			if (type === 'single') {
-				// Remove all other selections from same group, add this one
-				const filteredPrev = prev.filter((id) => {
-					const mod = dish.modifiers.find((m) => m.id === id)
-					return mod && mod.groupName !== groupName
-				})
-				return [...filteredPrev, modifierId]
+			const updated = [...prev]
+			const modIndex = updated.findIndex((m) => m.modifierId === modifierId)
+
+			if (modIndex === -1) return prev
+
+			if (modifier.type === 'SINGLE') {
+				// Single selection - replace
+				updated[modIndex].selectedOptions = [option]
 			} else {
-				// Multiple selection - toggle
-				const index = prev.indexOf(modifierId)
-				if (index === -1) {
-					return [...prev, modifierId]
+				// Multiple selection
+				const optIndex = updated[modIndex].selectedOptions.findIndex(
+					(o) => o.id === option.id,
+				)
+				if (optIndex === -1) {
+					// Add if not exists and within limit
+					if (updated[modIndex].selectedOptions.length < modifier.maxSelection) {
+						updated[modIndex].selectedOptions.push(option)
+					}
 				} else {
-					return prev.filter((id) => id !== modifierId)
+					// Remove if exists
+					updated[modIndex].selectedOptions.splice(optIndex, 1)
 				}
 			}
+
+			return updated
 		})
 	}
 
 	const calculateTotalPrice = () => {
 		let total = dish.price * quantity
-
-		// Add selected modifiers' price deltas
-		selectedModifiers.forEach((modId) => {
-			const modifier = dish.modifiers.find((m) => m.id === modId)
-			if (modifier) {
-				total += modifier.priceDelta * quantity
-			}
+		selectedModifiers.forEach((mod) => {
+			mod.selectedOptions.forEach((opt) => {
+				total += opt.priceAdjustment * quantity
+			})
 		})
-
 		return total
 	}
 
-	const handleAddToCart = () => {
-		// Get selected modifier details
-		const modifierDetails = selectedModifiers.map((modId) => {
-			const mod = dish.modifiers.find((m) => m.id === modId)
-			return {
-				id: mod.id,
-				groupName: mod.groupName,
-				label: mod.label,
-				priceDelta: mod.priceDelta,
-			}
+	const canAddToCart = () => {
+		if (!dish.modifiers) return true
+
+		// Check all required modifiers are selected
+		return dish.modifiers.every((modifier) => {
+			if (!modifier.required) return true
+			const selected = selectedModifiers.find((m) => m.modifierId === modifier.id)
+			return selected && selected.selectedOptions.length >= modifier.minSelection
 		})
+	}
+
+	const handleAddToCart = () => {
+		if (!canAddToCart()) {
+			alert('Please select all required options')
+			return
+		}
 
 		const cartItem = {
 			id: dish.id,
 			name: dish.name,
 			price: dish.price,
 			qty: quantity,
-			imageUrl: dish.imageUrl,
-			description: dish.description,
-			modifiers: modifierDetails,
+			image: dish.image,
+			modifiers: selectedModifiers.filter((m) => m.selectedOptions.length > 0),
 			specialNotes,
 			totalPrice: calculateTotalPrice(),
 		}
@@ -386,55 +269,80 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 					<div className="flex gap-4">
 						<div className="w-32 h-32 rounded-lg overflow-hidden flex-shrink-0">
 							<img
-								src={dish.imageUrl}
+								src={dish.image}
 								alt={dish.name}
 								className="w-full h-full object-cover"
 							/>
 						</div>
 						<div className="flex-1">
 							<p className="text-white leading-relaxed text-sm">{dish.description}</p>
+							{dish.preparationTime && (
+								<p className="text-[#9dabb9] text-xs mt-2">
+									⏱️ Preparation time: {dish.preparationTime} mins
+								</p>
+							)}
+							{dish.spicyLevel > 0 && (
+								<p className="text-red-400 text-xs mt-1">
+									🌶️ Spicy Level: {'🔥'.repeat(dish.spicyLevel)}
+								</p>
+							)}
 						</div>
 					</div>
 
 					{/* Modifiers */}
-					{modifierGroups.length > 0 && (
+					{dish.modifiers && dish.modifiers.length > 0 && (
 						<div className="space-y-4">
 							<h3 className="text-lg font-bold text-white">Customize Your Order</h3>
-							{modifierGroups.map((group) => {
+							{dish.modifiers.map((modifier) => {
+								const selected = selectedModifiers.find(
+									(m) => m.modifierId === modifier.id,
+								)
 								return (
-									<div key={group.name} className="bg-[#2D3748] rounded-lg p-4">
+									<div key={modifier.id} className="bg-[#2D3748] rounded-lg p-4">
 										<div className="flex items-center gap-2 mb-3">
-											<h4 className="text-white font-semibold m-0">{group.name}</h4>
+											<h4 className="text-white font-semibold m-0">{modifier.name}</h4>
+											{modifier.required && (
+												<span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400">
+													Required
+												</span>
+											)}
 											<span className="text-xs text-[#9dabb9]">
-												({group.type === 'single' ? 'Choose 1' : 'Choose multiple'})
+												(
+												{modifier.type === 'SINGLE'
+													? 'Choose 1'
+													: `Choose up to ${modifier.maxSelection}`}
+												)
 											</span>
 										</div>
 
 										<div className="grid grid-cols-2 gap-2">
-											{group.options.map((option) => {
-												const isSelected = selectedModifiers.includes(option.id)
-												return (
-													<button
-														key={option.id}
-														onClick={() =>
-															handleOptionSelect(option.id, group.name, group.type)
-														}
-														className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-															isSelected
-																? 'bg-[#137fec] text-white'
-																: 'bg-[#1A202C] text-white hover:bg-[#4A5568]'
-														}`}
-													>
-														<span>{option.label}</span>
-														{option.priceDelta !== 0 && (
-															<span className="ml-1 text-xs text-green-400">
-																{option.priceDelta > 0 ? '+' : ''}$
-																{option.priceDelta.toFixed(2)}
-															</span>
-														)}
-													</button>
-												)
-											})}
+											{modifier.options
+												.filter((opt) => opt.isActive)
+												.map((option) => {
+													const isSelected = selected?.selectedOptions.some(
+														(o) => o.id === option.id,
+													)
+													return (
+														<button
+															key={option.id}
+															onClick={() =>
+																handleOptionSelect(modifier.id, option, modifier)
+															}
+															className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+																isSelected
+																	? 'bg-[#137fec] text-white'
+																	: 'bg-[#1A202C] text-white hover:bg-[#4A5568]'
+															}`}
+														>
+															<span>{option.name}</span>
+															{option.priceAdjustment !== 0 && (
+																<span className="ml-1 text-xs text-green-400">
+																	+${option.priceAdjustment.toFixed(2)}
+																</span>
+															)}
+														</button>
+													)
+												})}
 										</div>
 									</div>
 								)
@@ -489,7 +397,8 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 					</div>
 					<button
 						onClick={handleAddToCart}
-						className="px-6 py-3 bg-[#137fec] text-white font-bold rounded-lg hover:bg-blue-600 transition-colors"
+						disabled={!canAddToCart()}
+						className="px-6 py-3 bg-[#137fec] text-white font-bold rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
 					>
 						Add to Cart
 					</button>
@@ -542,27 +451,46 @@ const DishCard = ({ dish, onViewDetails }) => {
 	const hasModifiers = dish.modifiers && dish.modifiers.length > 0
 
 	return (
-		<div className="group relative overflow-hidden rounded-xl bg-[#1A202C] shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl border border-white/10 flex flex-col h-full">
+		<div className="group relative overflow-hidden rounded-xl bg-[#1A202C] shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl border border-white/10">
 			{/* Image Section */}
-			<div className="aspect-video relative overflow-hidden flex-shrink-0">
+			<div className="aspect-video relative overflow-hidden">
 				<img
-					src={dish.imageUrl}
+					src={dish.image}
 					alt={dish.name}
 					className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
 				/>
 
-				{/* Availability Badge */}
-				{!dish.available && (
-					<div className="absolute top-3 right-3">
+				{/* Status Badge */}
+				<div className="absolute top-3 right-3 flex gap-2">
+					{dish.isChefRecommendation && (
+						<span className="px-2 py-1 bg-yellow-500/90 text-white text-xs font-bold rounded-full flex items-center gap-1">
+							<span className="material-symbols-outlined text-sm">star</span>
+							Chef's Pick
+						</span>
+					)}
+					<span
+						className={`px-2 py-1 text-xs font-bold rounded-full ${
+							dish.status === 'READY'
+								? 'bg-green-500/90 text-white'
+								: 'bg-gray-500/90 text-white'
+						}`}
+					>
+						{dish.status}
+					</span>
+				</div>
+
+				{/* Spicy Level */}
+				{dish.spicyLevel > 0 && (
+					<div className="absolute top-3 left-3">
 						<span className="px-2 py-1 bg-red-500/90 text-white text-xs font-bold rounded-full">
-							Not Available
+							{'🌶️'.repeat(dish.spicyLevel)}
 						</span>
 					</div>
 				)}
 			</div>
 
 			{/* Content Section */}
-			<div className="p-4 flex flex-col flex-grow">
+			<div className="p-4">
 				<div className="flex items-start justify-between mb-2">
 					<h3 className="text-lg font-bold text-white flex-1">{dish.name}</h3>
 					<span className="text-xl font-bold text-[#4ade80] ml-2">
@@ -573,29 +501,32 @@ const DishCard = ({ dish, onViewDetails }) => {
 				<p className="text-sm text-[#9dabb9] mb-3 line-clamp-2">{dish.description}</p>
 
 				{/* Meta Info */}
-				{hasModifiers && (
-					<div className="flex items-center gap-3 mb-3 text-xs text-[#9dabb9]">
+				<div className="flex items-center gap-3 mb-3 text-xs text-[#9dabb9]">
+					{dish.preparationTime && (
+						<span className="flex items-center gap-1">
+							<span className="material-symbols-outlined text-sm">schedule</span>
+							{dish.preparationTime} mins
+						</span>
+					)}
+					{hasModifiers && (
 						<span className="flex items-center gap-1">
 							<span className="material-symbols-outlined text-sm">tune</span>
 							Customizable
 						</span>
-					</div>
-				)}
-
-				{/* Spacer to push button to bottom */}
-				<div className="flex-grow"></div>
+					)}
+				</div>
 
 				{/* Action Button */}
 				<button
 					onClick={() => onViewDetails(dish)}
-					disabled={!dish.available}
-					className={`w-full py-2 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2 mt-3 ${
-						dish.available
+					disabled={dish.status !== 'READY'}
+					className={`w-full py-2 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2 ${
+						dish.status === 'READY'
 							? 'bg-[#137fec] text-white hover:bg-blue-600'
 							: 'bg-gray-600/50 text-gray-400 cursor-not-allowed'
 					}`}
 				>
-					{dish.available ? (
+					{dish.status === 'READY' ? (
 						<>
 							<span className="material-symbols-outlined text-sm">add_shopping_cart</span>
 							{hasModifiers ? 'Customize & Add' : 'Add to Cart'}
@@ -605,78 +536,6 @@ const DishCard = ({ dish, onViewDetails }) => {
 					)}
 				</button>
 			</div>
-		</div>
-	)
-}
-
-// =========================================================
-// 🚨 COMPONENT: DishListItem (Horizontal Layout)
-// =========================================================
-const DishListItem = ({ dish, onViewDetails }) => {
-	const hasModifiers = dish.modifiers && dish.modifiers.length > 0
-
-	return (
-		<div className="group relative overflow-hidden rounded-xl bg-[#1A202C] shadow-lg transition-all duration-300 hover:shadow-2xl border border-white/10 flex items-center gap-4 p-4">
-			{/* Image Section */}
-			<div className="w-32 h-32 rounded-lg overflow-hidden flex-shrink-0 relative">
-				<img
-					src={dish.imageUrl}
-					alt={dish.name}
-					className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-				/>
-
-				{/* Availability Badge */}
-				{!dish.available && (
-					<div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-						<span className="px-2 py-1 bg-red-500/90 text-white text-xs font-bold rounded-full">
-							Not Available
-						</span>
-					</div>
-				)}
-			</div>
-
-			{/* Info Section */}
-			<div className="flex-grow min-w-0">
-				<h3 className="text-lg font-bold text-white mb-2">{dish.name}</h3>
-				<p className="text-sm text-[#9dabb9] line-clamp-2">{dish.description}</p>
-
-				{/* Meta Info */}
-				{hasModifiers && (
-					<div className="flex items-center gap-3 mt-2 text-xs text-[#9dabb9]">
-						<span className="flex items-center gap-1">
-							<span className="material-symbols-outlined text-sm">tune</span>
-							Customizable
-						</span>
-					</div>
-				)}
-			</div>
-
-			{/* Price Section - Fixed Width */}
-			<div className="w-24 flex-shrink-0 text-right">
-				<span className="text-xl font-bold text-[#4ade80] whitespace-nowrap">
-					${dish.price.toFixed(2)}
-				</span>
-			</div>
-
-			{/* Action Button - Fixed Width */}
-			<button
-				onClick={() => onViewDetails(dish)}
-				disabled={!dish.available}
-				className={`w-48 py-2 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-shrink-0 ${
-					dish.available
-						? 'bg-[#137fec] text-white hover:bg-blue-600'
-						: 'bg-gray-600/50 text-gray-400 cursor-not-allowed'
-				}`}
-			>
-				{dish.available ? (
-					<>
-						<span className="material-symbols-outlined text-sm">add_shopping_cart</span>
-						{hasModifiers ? 'Customize & Add' : 'Add to Cart'}
-					</>
-				) : (
-					<span>Not Available</span>
-				)}
-			</button>
 		</div>
 	)
 }
@@ -823,17 +682,19 @@ const CartModal = ({ isOpen, onClose, cartItems, onClearCart }) => {
 												<div className="space-y-1 mt-2">
 													{item.modifiers.map((mod, modIndex) => (
 														<div key={modIndex} className="text-xs text-[#9dabb9]">
-															<span className="font-medium">{mod.groupName}:</span>{' '}
-															<span>
-																{mod.label}
-																{mod.priceDelta !== 0 && (
-																	<span className="text-green-400">
-																		{' '}
-																		({mod.priceDelta > 0 ? '+' : ''}$
-																		{mod.priceDelta.toFixed(2)})
-																	</span>
-																)}
-															</span>
+															<span className="font-medium">{mod.modifierName}:</span>{' '}
+															{mod.selectedOptions.map((opt, optIndex) => (
+																<span key={optIndex}>
+																	{opt.name}
+																	{opt.priceAdjustment !== 0 && (
+																		<span className="text-green-400">
+																			{' '}
+																			(+${opt.priceAdjustment.toFixed(2)})
+																		</span>
+																	)}
+																	{optIndex < mod.selectedOptions.length - 1 && ', '}
+																</span>
+															))}
 														</div>
 													))}
 												</div>
@@ -924,51 +785,10 @@ const OrderManagementInterface = ({ categorySlug = 'noodle-dishes' }) => {
 	const [cartItems, setCartItems] = useState([]) // { id, name, price, qty, totalPrice, modifiers, specialNotes, image }
 	const [isCartOpen, setIsCartOpen] = useState(false)
 	const [view, setView] = useState('CATEGORIES') // CATEGORIES | DISHES
-	const [layoutView, setLayoutView] = useState('grid') // grid | list
-
-	// --- Search, Filter, Sort States ---
-	const [categorySearch, setCategorySearch] = useState('')
-	const [dishSearch, setDishSearch] = useState('')
-	const [availableFilter, setAvailableFilter] = useState('all') // 'all' | 'active'
-	const [sortBy, setSortBy] = useState('none') // 'none' | 'price-asc' | 'price-desc'
 
 	// --- State for Customization Modal ---
 	const [selectedDish, setSelectedDish] = useState(null)
 	const [isCustomizationOpen, setIsCustomizationOpen] = useState(false)
-
-	// --- Filter categories by search ---
-	const filteredCategories = useMemo(() => {
-		if (!categorySearch.trim()) return mockCategories
-		return mockCategories.filter((cat) =>
-			cat.name.toLowerCase().includes(categorySearch.toLowerCase()),
-		)
-	}, [categorySearch])
-
-	// --- Filter and Sort Dishes ---
-	const filteredAndSortedDishes = useMemo(() => {
-		let result = [...dishes]
-
-		// Filter by search
-		if (dishSearch.trim()) {
-			result = result.filter((dish) =>
-				dish.name.toLowerCase().includes(dishSearch.toLowerCase()),
-			)
-		}
-
-		// Filter by availability
-		if (availableFilter === 'active') {
-			result = result.filter((dish) => dish.available)
-		}
-
-		// Sort by price
-		if (sortBy === 'price-asc') {
-			result.sort((a, b) => a.price - b.price)
-		} else if (sortBy === 'price-desc') {
-			result.sort((a, b) => b.price - a.price)
-		}
-
-		return result
-	}, [dishes, dishSearch, availableFilter, sortBy])
 
 	// --- Tính toán tổng Cart ---
 	const totalItemsInCart = cartItems.reduce((acc, item) => acc + item.qty, 0)
@@ -1061,184 +881,36 @@ const OrderManagementInterface = ({ categorySlug = 'noodle-dishes' }) => {
 				// CATEGORY VIEW
 				<div className="p-4 float-start flex flex-col items-center justify-center">
 					<h2 className="text-2xl font-bold text-white mb-6">Select a Category</h2>
-
-					{/* Category Search Bar */}
-					<div className="w-full max-w-md mb-6">
-						<div className="relative">
-							<input
-								type="text"
-								value={categorySearch}
-								onChange={(e) => setCategorySearch(e.target.value)}
-								placeholder="Search categories..."
-								className="w-full px-4 py-3 pl-12 rounded-lg bg-[#2D3748] text-white border border-white/10 focus:border-[#137fec] focus:outline-none placeholder-[#9dabb9]"
-							/>
-							<span className="material-symbols-outlined absolute left-4 top-1/2 transform -translate-y-1/2 text-[#9dabb9]">
-								search
-							</span>
-							{categorySearch && (
-								<button
-									onClick={() => setCategorySearch('')}
-									className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#9dabb9] hover:text-white"
-								>
-									<span className="material-symbols-outlined">close</span>
-								</button>
-							)}
-						</div>
-					</div>
-
 					<div className="grid gap-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
-						{filteredCategories.length > 0 ? (
-							filteredCategories.map((cat) => (
-								<CustomerCategoryCard
-									key={cat.id}
-									category={cat}
-									onClick={handleCategorySelect}
-								/>
-							))
-						) : (
-							<div className="col-span-full text-center py-12">
-								<p className="text-[#9dabb9] text-lg">No categories found</p>
-							</div>
-						)}
+						{mockCategories.map((cat) => (
+							<CustomerCategoryCard
+								key={cat.id}
+								category={cat}
+								onClick={handleCategorySelect}
+							/>
+						))}
 					</div>
 				</div>
 			) : (
 				// DISHES VIEW
 				<div className="p-4">
-					<div className="flex items-center justify-between mb-6">
-						<div className="flex items-center gap-3">
-							<button
-								onClick={handleBack}
-								className="p-2 rounded-full bg-[#2D3748] text-white hover:bg-[#4A5568] flex justify-center"
-							>
-								<span className="material-symbols-outlined">arrow_back</span>
-							</button>
-							<h2 className="text-2xl font-bold text-white">
-								{formatCategoryName(categorySlug)}
-							</h2>
-						</div>
-
-						{/* Layout Toggle Buttons */}
-						<div className="flex items-center gap-2 bg-[#2D3748] rounded-lg p-1">
-							<button
-								onClick={() => setLayoutView('grid')}
-								className={`p-2 rounded-md transition-colors ${
-									layoutView === 'grid'
-										? 'bg-[#137fec] text-white'
-										: 'text-[#9dabb9] hover:text-white'
-								}`}
-								title="Grid View"
-							>
-								<span className="material-symbols-outlined">grid_view</span>
-							</button>
-							<button
-								onClick={() => setLayoutView('list')}
-								className={`p-2 rounded-md transition-colors ${
-									layoutView === 'list'
-										? 'bg-[#137fec] text-white'
-										: 'text-[#9dabb9] hover:text-white'
-								}`}
-								title="List View"
-							>
-								<span className="material-symbols-outlined">view_list</span>
-							</button>
-						</div>
+					<div className="flex items-center gap-3 mb-6">
+						<button
+							onClick={handleBack}
+							className="p-2 rounded-full bg-[#2D3748] text-white hover:bg-[#4A5568] flex justify-center"
+						>
+							<span className="material-symbols-outlined">arrow_back</span>
+						</button>
+						<h2 className="text-2xl font-bold text-white">
+							{formatCategoryName(categorySlug)}
+						</h2>
 					</div>
 
-					{/* Search, Filter, Sort Controls */}
-					<div className="mb-6 space-y-4">
-						{/* Search Bar */}
-						<div className="relative">
-							<input
-								type="text"
-								value={dishSearch}
-								onChange={(e) => setDishSearch(e.target.value)}
-								placeholder="Search dishes by name..."
-								className="w-full px-4 py-3 pl-12 rounded-lg bg-[#2D3748] text-white border border-white/10 focus:border-[#137fec] focus:outline-none placeholder-[#9dabb9]"
-							/>
-							<span className="material-symbols-outlined absolute left-4 top-1/2 transform -translate-y-1/2 text-[#9dabb9]">
-								search
-							</span>
-							{dishSearch && (
-								<button
-									onClick={() => setDishSearch('')}
-									className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#9dabb9] hover:text-white"
-								>
-									<span className="material-symbols-outlined">close</span>
-								</button>
-							)}
-						</div>
-
-						{/* Filter and Sort Controls */}
-						<div className="flex flex-wrap gap-3 items-center">
-							{/* Availability Filter */}
-							<div className="flex items-center gap-2">
-								<span className="text-[#9dabb9] text-sm font-medium">Status:</span>
-								<select
-									value={availableFilter}
-									onChange={(e) => setAvailableFilter(e.target.value)}
-									className="px-4 py-2 rounded-lg bg-[#2D3748] text-white border border-white/10 focus:border-[#137fec] focus:outline-none cursor-pointer"
-								>
-									<option value="all">All</option>
-									<option value="active">Active Only</option>
-								</select>
-							</div>
-
-							{/* Sort Dropdown */}
-							<div className="flex items-center gap-2">
-								<span className="text-[#9dabb9] text-sm font-medium">Sort by:</span>
-								<select
-									value={sortBy}
-									onChange={(e) => setSortBy(e.target.value)}
-									className="px-4 py-2 rounded-lg bg-[#2D3748] text-white border border-white/10 focus:border-[#137fec] focus:outline-none cursor-pointer"
-								>
-									<option value="none">Default</option>
-									<option value="price-asc">Price: Low to High</option>
-									<option value="price-desc">Price: High to Low</option>
-								</select>
-							</div>
-
-							{/* Results Count */}
-							<div className="flex items-center gap-2 px-4 py-2 bg-[#2D3748] rounded-lg text-[#9dabb9] text-sm ml-auto">
-								<span className="material-symbols-outlined text-sm">restaurant</span>
-								<span>
-									{filteredAndSortedDishes.length}{' '}
-									{filteredAndSortedDishes.length === 1 ? 'dish' : 'dishes'}
-								</span>
-							</div>
-						</div>
+					<div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+						{dishes.map((dish) => (
+							<DishCard key={dish.id} dish={dish} onViewDetails={handleViewDetails} />
+						))}
 					</div>
-
-					{/* Dishes Grid or List */}
-					{filteredAndSortedDishes.length > 0 ? (
-						layoutView === 'grid' ? (
-							<div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-								{filteredAndSortedDishes.map((dish) => (
-									<DishCard key={dish.id} dish={dish} onViewDetails={handleViewDetails} />
-								))}
-							</div>
-						) : (
-							<div className="space-y-4">
-								{filteredAndSortedDishes.map((dish) => (
-									<DishListItem
-										key={dish.id}
-										dish={dish}
-										onViewDetails={handleViewDetails}
-									/>
-								))}
-							</div>
-						)
-					) : (
-						<div className="text-center py-12">
-							<span className="material-symbols-outlined text-6xl text-[#9dabb9] mb-4 block">
-								restaurant_menu
-							</span>
-							<p className="text-[#9dabb9] text-lg">No dishes found</p>
-							<p className="text-[#9dabb9] text-sm mt-2">
-								Try adjusting your search or filters
-							</p>
-						</div>
-					)}
 				</div>
 			)}
 

@@ -5,16 +5,9 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
 	plugins: [react(), tailwindcss()],
 	build: {
-		rollupOptions: {
-			external: [
-				'node:path',
-				'node:fs',
-				'node:url',
-				'node:crypto',
-				'node:stream',
-				'node:util',
-			],
-		},
+		// No need to externalize Node modules for browser build
+		// This was causing build errors on Vercel
+		rollupOptions: {},
 	},
 	server: {
 		proxy: {
