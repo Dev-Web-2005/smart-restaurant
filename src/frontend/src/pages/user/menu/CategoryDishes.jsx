@@ -2,9 +2,57 @@ import React, { useState, useEffect, useRef } from 'react'
 import ReactDOM from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import AddDishModal from './AddDishModal'
+import { useUser } from '../../../contexts/UserContext'
+import {
+	createMenuItemAPI,
+	addMenuItemPhotoAPI,
+	getMenuItemsAPI,
+	getMenuItemPhotosAPI,
+	deleteMenuItemPhotoAPI,
+	setPrimaryPhotoAPI,
+	deleteMenuItemAPI,
+	updateMenuItemAPI,
+	updateMenuItemStatusAPI,
+} from '../../../services/api/itemAPI'
+import { uploadFile } from '../../../services/api/fileAPI'
+import {
+	createModifierGroupAPI,
+	getModifierGroupsAPI,
+	updateModifierGroupAPI,
+	deleteModifierGroupAPI,
+	createModifierOptionAPI,
+	getModifierOptionsAPI,
+	updateModifierOptionAPI,
+	deleteModifierOptionAPI,
+	attachModifierGroupsAPI,
+	getMenuItemModifierGroupsAPI,
+	detachModifierGroupAPI,
+} from '../../../services/api/modifierAPI'
 
-// Mock user context
-const useUser = () => ({ user: { name: 'Admin' }, loading: false })
+// --- Helper functions for status display ---
+const getStatusColor = (status) => {
+	switch (status) {
+		case 'AVAILABLE':
+			return 'bg-green-500/20 text-green-400'
+		case 'SOLD_OUT':
+			return 'bg-orange-500/20 text-orange-400'
+		case 'UNAVAILABLE':
+		default:
+			return 'bg-gray-500/20 text-gray-400'
+	}
+}
+
+const getStatusLabel = (status) => {
+	switch (status) {
+		case 'AVAILABLE':
+			return 'Có sẵn'
+		case 'SOLD_OUT':
+			return 'Hết hàng'
+		case 'UNAVAILABLE':
+		default:
+			return 'Không có sẵn'
+	}
+}
 
 // --- Dữ liệu Mock ---
 const mockDishesData = {
@@ -112,16 +160,92 @@ const formatCategoryName = (slug) => {
 // 🆕 MODAL QUẢN LÝ MODIFIERS
 const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 	const modalRef = useRef(null)
+	const { user } = useUser()
 	const [isVisible, setIsVisible] = useState(false)
-	const [modifiers, setModifiers] = useState([])
-	const [editingModifier, setEditingModifier] = useState(null)
+	const [modifierGroups, setModifierGroups] = useState([]) // All available modifier groups
+	const [attachedGroups, setAttachedGroups] = useState([]) // Groups attached to this item
+	const [editingGroup, setEditingGroup] = useState(null)
 	const [isAddingNew, setIsAddingNew] = useState(false)
+	const [loading, setLoading] = useState(false)
+	const [saving, setSaving] = useState(false)
 
+	// Fetch modifier groups and attached groups when modal opens
 	useEffect(() => {
-		if (dish?.modifiers) {
-			setModifiers(JSON.parse(JSON.stringify(dish.modifiers)))
+		console.log(
+			'🔄 [ModifiersModal] useEffect triggered. isOpen:',
+			isOpen,
+			'dish:',
+			dish?.id,
+			'tenantId:',
+			user?.userId,
+		)
+		if (isOpen && dish && user?.userId) {
+			console.log('✅ [ModifiersModal] All conditions met, calling fetchModifierData...')
+			fetchModifierData()
+		} else {
+			console.log('❌ [ModifiersModal] Conditions not met:', {
+				isOpen,
+				hasDish: !!dish,
+				hasTenant: !!user?.userId,
+			})
 		}
-	}, [dish])
+	}, [isOpen, dish, user])
+
+	const fetchModifierData = async () => {
+		console.log('📥 [ModifiersModal] Fetching modifier data for tenant:', user.userId)
+		setLoading(true)
+		try {
+			// Fetch all modifier groups for tenant
+			const groupsResponse = await getModifierGroupsAPI(user.userId, {
+				isActive: true,
+			})
+			console.log('✅ [ModifiersModal] Groups response:', groupsResponse)
+
+			// Fetch groups with options
+			const groupsWithOptions = await Promise.all(
+				(groupsResponse.data || []).map(async (group) => {
+					try {
+						const optionsResponse = await getModifierOptionsAPI(user.userId, group.id, {
+							isActive: true,
+						})
+						return { ...group, options: optionsResponse.data || [] }
+					} catch (error) {
+						console.error('Error fetching options for group:', group.id, error)
+						return { ...group, options: [] }
+					}
+				}),
+			)
+			console.log('✅ [ModifiersModal] Groups with options:', groupsWithOptions)
+			setModifierGroups(groupsWithOptions)
+
+			// Fetch attached groups for this menu item
+			try {
+				const attachedResponse = await getMenuItemModifierGroupsAPI(user.userId, dish.id)
+				console.log('✅ [ModifiersModal] Attached groups:', attachedResponse)
+				setAttachedGroups(attachedResponse.data || [])
+			} catch (attachError) {
+				console.warn(
+					'⚠️ [ModifiersModal] Failed to fetch attached groups (API may not be implemented):',
+					attachError.response?.status,
+					attachError.message,
+				)
+				// Don't crash - just set empty attached groups
+				setAttachedGroups([])
+			}
+		} catch (error) {
+			console.error('❌ [ModifiersModal] Error fetching modifier data:', error)
+			console.error('❌ [ModifiersModal] Error response:', error.response)
+			console.error('❌ [ModifiersModal] Error data:', error.response?.data)
+			console.error('❌ [ModifiersModal] Error status:', error.response?.status)
+			alert(
+				'Failed to load modifier data: ' +
+					(error.response?.data?.message || error.message),
+			)
+		} finally {
+			console.log('✅ [ModifiersModal] Fetch complete. Loading:', false)
+			setLoading(false)
+		}
+	}
 
 	useEffect(() => {
 		if (isOpen) {
@@ -130,7 +254,7 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 		} else {
 			document.body.style.overflow = 'auto'
 			setIsVisible(false)
-			setEditingModifier(null)
+			setEditingGroup(null)
 			setIsAddingNew(false)
 		}
 		return () => {
@@ -140,94 +264,177 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 
 	if (!isOpen || !dish) return null
 
-	const handleAddModifier = () => {
-		const newModifier = {
-			id: Date.now(),
+	const handleAddGroup = () => {
+		console.log(
+			'➕ [ModifiersModal] Adding new group. Current groups:',
+			modifierGroups.length,
+		)
+		const newGroup = {
+			id: null, // null means it's a new group
 			name: '',
-			type: 'SINGLE',
-			required: false,
-			minSelection: 0,
-			maxSelection: 1,
-			displayOrder: modifiers.length + 1,
+			description: '',
+			displayOrder: modifierGroups.length,
+			isActive: true,
 			options: [],
 		}
-		setEditingModifier(newModifier)
+		console.log('➕ [ModifiersModal] New group template:', newGroup)
+		setEditingGroup(newGroup)
 		setIsAddingNew(true)
 	}
 
-	const handleSaveModifier = (modifier) => {
-		if (!modifier.name.trim()) {
-			alert('Please enter modifier name')
+	const handleSaveGroup = async (group) => {
+		console.log('💾 [ModifiersModal] Saving group:', group)
+		console.log('💾 [ModifiersModal] Is adding new:', isAddingNew)
+		if (!group.name.trim()) {
+			console.error('❌ [ModifiersModal] Group name is empty')
+			alert('Please enter group name')
 			return
 		}
 
-		if (isAddingNew) {
-			setModifiers([...modifiers, modifier])
-		} else {
-			setModifiers(modifiers.map((m) => (m.id === modifier.id ? modifier : m)))
-		}
-		setEditingModifier(null)
-		setIsAddingNew(false)
-	}
-
-	const handleDeleteModifier = (modifierId) => {
-		if (confirm('Are you sure you want to delete this modifier group?')) {
-			setModifiers(modifiers.filter((m) => m.id !== modifierId))
-		}
-	}
-
-	const handleAddOption = (modifierId) => {
-		const modifier = modifiers.find((m) => m.id === modifierId)
-		const newOption = {
-			id: Date.now(),
-			name: '',
-			priceAdjustment: 0,
-			isActive: true,
-		}
-		const updatedModifier = {
-			...modifier,
-			options: [...modifier.options, newOption],
-		}
-		setModifiers(modifiers.map((m) => (m.id === modifierId ? updatedModifier : m)))
-	}
-
-	const handleUpdateOption = (modifierId, optionId, field, value) => {
-		setModifiers(
-			modifiers.map((m) => {
-				if (m.id === modifierId) {
-					return {
-						...m,
-						options: m.options.map((opt) =>
-							opt.id === optionId ? { ...opt, [field]: value } : opt,
-						),
-					}
-				}
-				return m
-			}),
-		)
-	}
-
-	const handleDeleteOption = (modifierId, optionId) => {
-		setModifiers(
-			modifiers.map((m) => {
-				if (m.id === modifierId) {
-					return {
-						...m,
-						options: m.options.filter((opt) => opt.id !== optionId),
-					}
-				}
-				return m
-			}),
-		)
-	}
-
-	const handleSaveAll = async () => {
+		console.log('💾 [ModifiersModal] Starting save process...')
+		setSaving(true)
 		try {
-			await new Promise((resolve) => setTimeout(resolve, 500))
-			onSave({ ...dish, modifiers })
-			onClose()
+			if (isAddingNew) {
+				console.log('➕ [ModifiersModal] Creating new group via API...')
+				// Create new group
+				const response = await createModifierGroupAPI(user.userId, {
+					name: group.name,
+					description: group.description,
+					displayOrder: group.displayOrder,
+					isActive: group.isActive,
+				})
+
+				console.log('🔍 Create group response:', response)
+
+				// Backend returns { status, message, data: { id, ... } }
+				const newGroupId = response.data?.id || response.id
+
+				if (!newGroupId) {
+					console.error('❌ No group ID in response:', response)
+					throw new Error('Failed to get group ID from server response')
+				}
+
+				// Create options for the new group
+				for (const option of group.options) {
+					if (option.label?.trim()) {
+						await createModifierOptionAPI(user.userId, newGroupId, {
+							label: option.label || option.name,
+							priceDelta: option.priceDelta || option.priceAdjustment || 0,
+							displayOrder: option.displayOrder,
+							isActive: option.isActive,
+						})
+					}
+				}
+			} else {
+				// Update existing group
+				await updateModifierGroupAPI(user.userId, group.id, {
+					name: group.name,
+					description: group.description,
+					displayOrder: group.displayOrder,
+					isActive: group.isActive,
+				})
+
+				// Update options
+				for (const option of group.options) {
+					if (option.id && typeof option.id === 'string' && option.id.length > 10) {
+						// Existing option - update
+						await updateModifierOptionAPI(user.userId, group.id, option.id, {
+							label: option.label || option.name,
+							priceDelta: option.priceDelta || option.priceAdjustment || 0,
+							displayOrder: option.displayOrder,
+							isActive: option.isActive,
+						})
+					} else {
+						// New option - create
+						await createModifierOptionAPI(user.userId, group.id, {
+							label: option.label || option.name,
+							priceDelta: option.priceDelta || option.priceAdjustment || 0,
+							displayOrder: option.displayOrder,
+							isActive: option.isActive,
+						})
+					}
+				}
+			}
+
+			// Refresh data
+			await fetchModifierData()
+			setEditingGroup(null)
+			setIsAddingNew(false)
 		} catch (error) {
-			alert('Failed to save modifiers')
+			console.error('Error saving group:', error)
+			alert('Failed to save group: ' + (error.response?.data?.message || error.message))
+		} finally {
+			setSaving(false)
+		}
+	}
+
+	const handleDeleteGroup = async (groupId) => {
+		if (!confirm('Bạn có chắc muốn xóa nhóm modifier này?')) return
+
+		setSaving(true)
+		try {
+			await deleteModifierGroupAPI(user.userId, groupId)
+			await fetchModifierData()
+		} catch (error) {
+			console.error('Error deleting group:', error)
+			alert('Failed to delete group: ' + (error.response?.data?.message || error.message))
+		} finally {
+			setSaving(false)
+		}
+	}
+
+	const handleAttachGroup = async (groupId, config = {}) => {
+		setSaving(true)
+		try {
+			await attachModifierGroupsAPI(user.userId, dish.id, {
+				modifierGroups: [
+					{
+						modifierGroupId: groupId,
+						displayOrder: config.displayOrder || 0,
+						isRequired: config.isRequired || false,
+						minSelections: config.minSelections || 0,
+						maxSelections: config.maxSelections || 1,
+					},
+				],
+			})
+			await fetchModifierData()
+		} catch (error) {
+			console.error('Error attaching group:', error)
+			alert('Failed to attach group: ' + (error.response?.data?.message || error.message))
+		} finally {
+			setSaving(false)
+		}
+	}
+
+	const handleDetachGroup = async (groupId) => {
+		if (!confirm('Bạn có chắc muốn gỡ nhóm modifier này khỏi món ăn?')) return
+
+		setSaving(true)
+		try {
+			await detachModifierGroupAPI(user.userId, dish.id, groupId)
+			await fetchModifierData()
+		} catch (error) {
+			console.error('Error detaching group:', error)
+			alert('Failed to detach group: ' + (error.response?.data?.message || error.message))
+		} finally {
+			setSaving(false)
+		}
+	}
+
+	const handleDeleteOption = async (groupId, optionId) => {
+		if (!confirm('Bạn có chắc muốn xóa option này?')) return
+
+		setSaving(true)
+		try {
+			await deleteModifierOptionAPI(user.userId, groupId, optionId)
+			await fetchModifierData()
+		} catch (error) {
+			console.error('Error deleting option:', error)
+			alert(
+				'Failed to delete option: ' + (error.response?.data?.message || error.message),
+			)
+		} finally {
+			setSaving(false)
 		}
 	}
 
@@ -259,155 +466,257 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 
 				{/* Content */}
 				<div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-					{editingModifier ? (
-						<ModifierEditor
-							modifier={editingModifier}
-							onSave={handleSaveModifier}
+					{loading ? (
+						<div className="text-center py-12">
+							<div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#137fec] mb-4"></div>
+							<p className="text-[#9dabb9]">Loading modifiers...</p>
+						</div>
+					) : editingGroup ? (
+						<ModifierGroupEditor
+							group={editingGroup}
+							onSave={handleSaveGroup}
 							onCancel={() => {
-								setEditingModifier(null)
+								setEditingGroup(null)
 								setIsAddingNew(false)
 							}}
+							saving={saving}
 						/>
 					) : (
 						<>
-							{modifiers.length === 0 ? (
-								<div className="text-center py-12">
-									<span className="material-symbols-outlined text-6xl text-[#9dabb9] mb-4">
-										tune
-									</span>
-									<p className="text-[#9dabb9] mb-4">No modifiers added yet</p>
-									<button
-										onClick={handleAddModifier}
-										className="px-4 py-2 bg-[#137fec] text-white rounded-lg hover:bg-[#0d6ecc] font-semibold"
-									>
-										Add First Modifier
-									</button>
-								</div>
-							) : (
-								<div className="space-y-4">
-									{modifiers.map((modifier, index) => (
-										<div
-											key={modifier.id}
-											className="bg-[#2D3748] rounded-lg p-4 border border-white/10"
-										>
-											<div className="flex items-start justify-between mb-3">
-												<div className="flex-1">
-													<div className="flex items-center gap-2 mb-1">
-														<h3 className="text-lg font-bold text-white m-0">
-															{modifier.name}
-														</h3>
-														<span
-															className={`text-xs px-2 py-1 rounded ${
-																modifier.type === 'SINGLE'
-																	? 'bg-blue-500/20 text-blue-400'
-																	: 'bg-purple-500/20 text-purple-400'
-															}`}
-														>
-															{modifier.type === 'SINGLE'
-																? 'Single Choice'
-																: 'Multiple Choice'}
-														</span>
-														{modifier.required && (
-															<span className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-400">
-																Required
-															</span>
-														)}
-													</div>
-													<p className="text-sm text-[#9dabb9] m-0">
-														{modifier.type === 'SINGLE'
-															? `Select exactly ${modifier.maxSelection}`
-															: `Select ${modifier.minSelection}-${modifier.maxSelection} options`}
-													</p>
-												</div>
-												<div className="flex gap-2">
-													<button
-														onClick={() => setEditingModifier(modifier)}
-														className="p-2 text-[#9dabb9] hover:text-white hover:bg-[#1A202C] rounded transition-colors"
-													>
-														<span className="material-symbols-outlined text-lg">
-															edit
-														</span>
-													</button>
-													<button
-														onClick={() => handleDeleteModifier(modifier.id)}
-														className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
-													>
-														<span className="material-symbols-outlined text-lg">
-															delete
-														</span>
-													</button>
-												</div>
-											</div>
-
-											{/* Options List */}
-											<div className="space-y-2 ml-4">
-												{modifier.options.map((option) => (
-													<div
-														key={option.id}
-														className="flex items-center justify-between p-2 bg-[#1A202C] rounded"
-													>
-														<div className="flex items-center gap-3">
-															<span className="text-white">{option.name}</span>
-															{option.priceAdjustment !== 0 && (
-																<span
-																	className={`text-sm font-semibold ${
-																		option.priceAdjustment > 0
-																			? 'text-green-400'
-																			: 'text-red-400'
-																	}`}
-																>
-																	{option.priceAdjustment > 0 ? '+' : ''}$
-																	{option.priceAdjustment.toFixed(2)}
+							{/* Attached Groups Section */}
+							<div className="mb-6">
+								<h3 className="text-lg font-bold text-white mb-4">
+									Các nhóm modifier đã gắn ({attachedGroups.length})
+								</h3>
+								{attachedGroups.length === 0 ? (
+									<div className="text-center py-8 bg-[#2D3748] rounded-lg border border-white/10">
+										<p className="text-[#9dabb9]">Chưa có nhóm modifier nào được gắn</p>
+									</div>
+								) : (
+									<div className="space-y-3">
+										{attachedGroups.map((attached) => {
+											const group = attached.modifierGroup
+											return (
+												<div
+													key={attached.id}
+													className="bg-[#2D3748] rounded-lg p-4 border border-green-500/30"
+												>
+													<div className="flex items-start justify-between mb-3">
+														<div className="flex-1">
+															<div className="flex items-center gap-2 mb-1">
+																<h4 className="text-base font-bold text-white m-0">
+																	{group.name}
+																</h4>
+																<span className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-400">
+																	Đã gắn
 																</span>
+																{attached.isRequired && (
+																	<span className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-400">
+																		Bắt buộc
+																	</span>
+																)}
+															</div>
+															{group.description && (
+																<p className="text-sm text-[#9dabb9] m-0">
+																	{group.description}
+																</p>
 															)}
+															<p className="text-xs text-[#9dabb9] mt-1">
+																Chọn: {attached.minSelections} - {attached.maxSelections}
+															</p>
 														</div>
-														<span
-															className={`text-xs px-2 py-1 rounded ${
-																option.isActive
-																	? 'bg-green-500/20 text-green-400'
-																	: 'bg-gray-500/20 text-gray-400'
-															}`}
+														<button
+															onClick={() => handleDetachGroup(group.id)}
+															disabled={saving}
+															className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
 														>
-															{option.isActive ? 'Active' : 'Inactive'}
-														</span>
+															<span className="material-symbols-outlined text-lg">
+																link_off
+															</span>
+														</button>
 													</div>
-												))}
-												{modifier.options.length === 0 && (
-													<p className="text-sm text-[#9dabb9] italic">
-														No options added
-													</p>
-												)}
-											</div>
-										</div>
-									))}
 
+													{/* Options */}
+													<div className="space-y-2 ml-4">
+														{(group.options || []).map((option) => (
+															<div
+																key={option.id}
+																className="flex items-center justify-between p-2 bg-[#1A202C] rounded"
+															>
+																<span className="text-white text-sm">{option.label}</span>
+																{option.priceDelta !== 0 && (
+																	<span
+																		className={`text-sm font-semibold ${
+																			option.priceDelta > 0
+																				? 'text-green-400'
+																				: 'text-red-400'
+																		}`}
+																	>
+																		{option.priceDelta > 0 ? '+' : ''}$
+																		{option.priceDelta.toFixed(2)}
+																	</span>
+																)}
+															</div>
+														))}
+													</div>
+												</div>
+											)
+										})}
+									</div>
+								)}
+							</div>
+
+							{/* Available Groups Section */}
+							<div>
+								<div className="flex items-center justify-between mb-4">
+									<h3 className="text-lg font-bold text-white m-0">
+										Tất cả nhóm modifier ({modifierGroups.length})
+									</h3>
 									<button
-										onClick={handleAddModifier}
-										className="w-full py-3 border-2 border-dashed border-white/20 rounded-lg text-[#9dabb9] hover:text-white hover:border-[#137fec] transition-colors flex items-center justify-center gap-2"
+										onClick={handleAddGroup}
+										disabled={saving}
+										className="px-3 py-1.5 bg-[#137fec] text-white rounded text-sm hover:bg-[#0d6ecc] flex items-center gap-1 disabled:opacity-50"
 									>
-										<span className="material-symbols-outlined">add</span>
-										Add Modifier Group
+										<span className="material-symbols-outlined text-sm">add</span>
+										Tạo nhóm mới
 									</button>
 								</div>
-							)}
+
+								{modifierGroups.length === 0 ? (
+									<div className="text-center py-8 bg-[#2D3748] rounded-lg border border-white/10">
+										<span className="material-symbols-outlined text-5xl text-[#9dabb9] mb-4">
+											tune
+										</span>
+										<p className="text-[#9dabb9] mb-4">Chưa có nhóm modifier nào</p>
+										<button
+											onClick={handleAddGroup}
+											disabled={saving}
+											className="px-4 py-2 bg-[#137fec] text-white rounded-lg hover:bg-[#0d6ecc] font-semibold disabled:opacity-50"
+										>
+											Tạo nhóm đầu tiên
+										</button>
+									</div>
+								) : (
+									<div className="space-y-3">
+										{modifierGroups.map((group) => {
+											const isAttached = attachedGroups.some(
+												(a) => a.modifierGroup.id === group.id,
+											)
+											return (
+												<div
+													key={group.id}
+													className="bg-[#2D3748] rounded-lg p-4 border border-white/10"
+												>
+													<div className="flex items-start justify-between mb-3">
+														<div className="flex-1">
+															<div className="flex items-center gap-2 mb-1">
+																<h4 className="text-base font-bold text-white m-0">
+																	{group.name}
+																</h4>
+																{isAttached && (
+																	<span className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-400">
+																		Đã gắn
+																	</span>
+																)}
+															</div>
+															{group.description && (
+																<p className="text-sm text-[#9dabb9] m-0">
+																	{group.description}
+																</p>
+															)}
+															<p className="text-xs text-[#9dabb9] mt-1">
+																{(group.options || []).length} options
+															</p>
+														</div>
+														<div className="flex gap-2">
+															{!isAttached && (
+																<button
+																	onClick={() => handleAttachGroup(group.id)}
+																	disabled={saving}
+																	className="p-2 text-green-400 hover:text-green-300 hover:bg-green-500/10 rounded transition-colors disabled:opacity-50"
+																	title="Gắn vào món ăn"
+																>
+																	<span className="material-symbols-outlined text-lg">
+																		add_link
+																	</span>
+																</button>
+															)}
+															<button
+																onClick={() => setEditingGroup(group)}
+																disabled={saving}
+																className="p-2 text-[#9dabb9] hover:text-white hover:bg-[#1A202C] rounded transition-colors disabled:opacity-50"
+															>
+																<span className="material-symbols-outlined text-lg">
+																	edit
+																</span>
+															</button>
+															<button
+																onClick={() => handleDeleteGroup(group.id)}
+																disabled={saving}
+																className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors disabled:opacity-50"
+															>
+																<span className="material-symbols-outlined text-lg">
+																	delete
+																</span>
+															</button>
+														</div>
+													</div>
+
+													{/* Options */}
+													{(group.options || []).length > 0 && (
+														<div className="space-y-2 ml-4">
+															{group.options.map((option) => (
+																<div
+																	key={option.id}
+																	className="flex items-center justify-between p-2 bg-[#1A202C] rounded text-sm"
+																>
+																	<span className="text-white">{option.label}</span>
+																	<div className="flex items-center gap-2">
+																		{option.priceDelta !== 0 && (
+																			<span
+																				className={`font-semibold ${
+																					option.priceDelta > 0
+																						? 'text-green-400'
+																						: 'text-red-400'
+																				}`}
+																			>
+																				{option.priceDelta > 0 ? '+' : ''}$
+																				{option.priceDelta.toFixed(2)}
+																			</span>
+																		)}
+																		<span
+																			className={`text-xs px-2 py-1 rounded ${
+																				option.isActive
+																					? 'bg-green-500/20 text-green-400'
+																					: 'bg-gray-500/20 text-gray-400'
+																			}`}
+																		>
+																			{option.isActive ? 'Active' : 'Inactive'}
+																		</span>
+																	</div>
+																</div>
+															))}
+														</div>
+													)}
+												</div>
+											)
+										})}
+									</div>
+								)}
+							</div>
 						</>
 					)}
 				</div>
 
 				{/* Footer */}
-				{!editingModifier && (
+				{!editingGroup && (
 					<div className="flex justify-end gap-3 p-6 border-t border-white/10">
 						<button
 							onClick={onClose}
-							className="px-4 py-2 rounded-lg bg-[#2D3748] text-white hover:bg-[#4A5568] transition-colors"
+							disabled={saving}
+							className="px-4 py-2 rounded-lg bg-[#2D3748] text-white hover:bg-[#4A5568] transition-colors disabled:opacity-50"
 						>
-							Cancel
-						</button>
-						<button
-							onClick={handleSaveAll}
-							className="px-4 py-2 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors"
-						>
-							Save All Changes
+							Đóng
 						</button>
 					</div>
 				)}
@@ -418,9 +727,9 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 	return ReactDOM.createPortal(<ModalContent />, document.body)
 }
 
-// 🆕 MODIFIER EDITOR COMPONENT
-const ModifierEditor = ({ modifier, onSave, onCancel }) => {
-	const [formData, setFormData] = useState(modifier)
+// 🆕 MODIFIER GROUP EDITOR COMPONENT
+const ModifierGroupEditor = ({ group, onSave, onCancel, saving }) => {
+	const [formData, setFormData] = useState(group)
 
 	const handleChange = (field, value) => {
 		setFormData((prev) => ({ ...prev, [field]: value }))
@@ -428,9 +737,10 @@ const ModifierEditor = ({ modifier, onSave, onCancel }) => {
 
 	const handleAddOption = () => {
 		const newOption = {
-			id: Date.now(),
-			name: '',
-			priceAdjustment: 0,
+			id: Date.now(), // Temporary ID for new options
+			label: '',
+			priceDelta: 0,
+			displayOrder: formData.options.length,
 			isActive: true,
 		}
 		setFormData((prev) => ({
@@ -458,80 +768,60 @@ const ModifierEditor = ({ modifier, onSave, onCancel }) => {
 	return (
 		<div className="space-y-4">
 			<div className="bg-[#2D3748] rounded-lg p-4 border border-white/10">
-				<h3 className="text-lg font-bold text-white mb-4">Modifier Group Details</h3>
+				<h3 className="text-lg font-bold text-white mb-4">Chi tiết nhóm modifier</h3>
 
 				<div className="space-y-4">
 					<div>
-						<label className="block text-[#9dabb9] text-sm mb-2">Group Name *</label>
+						<label className="block text-[#9dabb9] text-sm mb-2">Tên nhóm *</label>
 						<input
 							type="text"
 							value={formData.name}
 							onChange={(e) => handleChange('name', e.target.value)}
 							className="w-full px-4 py-2 bg-[#1A202C] text-white rounded-lg border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#137fec]"
-							placeholder="e.g., Size, Toppings, Extras"
+							placeholder="VD: Size, Topping, Thêm món"
+							disabled={saving}
+						/>
+					</div>
+
+					<div>
+						<label className="block text-[#9dabb9] text-sm mb-2">Mô tả</label>
+						<textarea
+							value={formData.description || ''}
+							onChange={(e) => handleChange('description', e.target.value)}
+							className="w-full px-4 py-2 bg-[#1A202C] text-white rounded-lg border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#137fec]"
+							placeholder="Mô tả cho nhóm modifier này..."
+							rows={2}
+							disabled={saving}
 						/>
 					</div>
 
 					<div className="grid grid-cols-2 gap-4">
 						<div>
-							<label className="block text-[#9dabb9] text-sm mb-2">
-								Selection Type *
-							</label>
-							<select
-								value={formData.type}
-								onChange={(e) => {
-									const type = e.target.value
-									handleChange('type', type)
-									if (type === 'SINGLE') {
-										handleChange('minSelection', 1)
-										handleChange('maxSelection', 1)
-									}
-								}}
+							<label className="block text-[#9dabb9] text-sm mb-2">Thứ tự hiển thị</label>
+							<input
+								type="number"
+								min="0"
+								value={formData.displayOrder}
+								onChange={(e) => handleChange('displayOrder', parseInt(e.target.value))}
 								className="w-full px-4 py-2 bg-[#1A202C] text-white rounded-lg border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#137fec]"
-							>
-								<option value="SINGLE">Single Choice</option>
-								<option value="MULTIPLE">Multiple Choice</option>
-							</select>
+								disabled={saving}
+							/>
 						</div>
 
 						<div>
-							<label className="block text-[#9dabb9] text-sm mb-2">Required</label>
+							<label className="block text-[#9dabb9] text-sm mb-2">Trạng thái</label>
 							<label className="flex items-center gap-2 px-4 py-2 bg-[#1A202C] rounded-lg border border-white/10 cursor-pointer">
 								<input
 									type="checkbox"
-									checked={formData.required}
-									onChange={(e) => handleChange('required', e.target.checked)}
+									checked={formData.isActive}
+									onChange={(e) => handleChange('isActive', e.target.checked)}
 									className="w-4 h-4"
+									disabled={saving}
 								/>
-								<span className="text-white">Customer must select</span>
+								<span className="text-white">Kích hoạt</span>
 							</label>
 						</div>
 					</div>
-
-					{formData.type === 'MULTIPLE' && (
-						<div className="grid grid-cols-2 gap-4">
-							<div>
-								<label className="block text-[#9dabb9] text-sm mb-2">Min Selection</label>
-								<input
-									type="number"
-									min="0"
-									value={formData.minSelection}
-									onChange={(e) => handleChange('minSelection', parseInt(e.target.value))}
-									className="w-full px-4 py-2 bg-[#1A202C] text-white rounded-lg border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#137fec]"
-								/>
-							</div>
-							<div>
-								<label className="block text-[#9dabb9] text-sm mb-2">Max Selection</label>
-								<input
-									type="number"
-									min="1"
-									value={formData.maxSelection}
-									onChange={(e) => handleChange('maxSelection', parseInt(e.target.value))}
-									className="w-full px-4 py-2 bg-[#1A202C] text-white rounded-lg border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#137fec]"
-								/>
-							</div>
-						</div>
-					)}
 				</div>
 			</div>
 
@@ -541,10 +831,11 @@ const ModifierEditor = ({ modifier, onSave, onCancel }) => {
 					<h3 className="text-lg font-bold text-white m-0">Options</h3>
 					<button
 						onClick={handleAddOption}
-						className="px-3 py-1.5 bg-[#137fec] text-white rounded text-sm hover:bg-[#0d6ecc] flex items-center gap-1"
+						disabled={saving}
+						className="px-3 py-1.5 bg-[#137fec] text-white rounded text-sm hover:bg-[#0d6ecc] flex items-center gap-1 disabled:opacity-50"
 					>
 						<span className="material-symbols-outlined text-sm">add</span>
-						Add Option
+						Thêm option
 					</button>
 				</div>
 
@@ -557,25 +848,27 @@ const ModifierEditor = ({ modifier, onSave, onCancel }) => {
 							<span className="text-[#9dabb9] text-sm w-6">{index + 1}.</span>
 							<input
 								type="text"
-								value={option.name}
-								onChange={(e) => handleUpdateOption(option.id, 'name', e.target.value)}
+								value={option.label || option.name || ''}
+								onChange={(e) => handleUpdateOption(option.id, 'label', e.target.value)}
 								className="flex-1 px-3 py-2 bg-[#2D3748] text-white rounded border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#137fec] text-sm"
-								placeholder="Option name"
+								placeholder="Tên option"
+								disabled={saving}
 							/>
 							<div className="flex items-center gap-1">
 								<span className="text-[#9dabb9] text-sm">$</span>
 								<input
 									type="number"
 									step="0.01"
-									value={option.priceAdjustment}
+									value={option.priceDelta || option.priceAdjustment || 0}
 									onChange={(e) =>
 										handleUpdateOption(
 											option.id,
-											'priceAdjustment',
-											parseFloat(e.target.value),
+											'priceDelta',
+											parseFloat(e.target.value) || 0,
 										)
 									}
 									className="w-20 px-2 py-2 bg-[#2D3748] text-white rounded border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#137fec] text-sm"
+									disabled={saving}
 								/>
 							</div>
 							<label className="flex items-center gap-1 cursor-pointer">
@@ -586,12 +879,14 @@ const ModifierEditor = ({ modifier, onSave, onCancel }) => {
 										handleUpdateOption(option.id, 'isActive', e.target.checked)
 									}
 									className="w-4 h-4"
+									disabled={saving}
 								/>
 								<span className="text-[#9dabb9] text-xs">Active</span>
 							</label>
 							<button
 								onClick={() => handleDeleteOption(option.id)}
-								className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded"
+								disabled={saving}
+								className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded disabled:opacity-50"
 							>
 								<span className="material-symbols-outlined text-lg">delete</span>
 							</button>
@@ -599,7 +894,7 @@ const ModifierEditor = ({ modifier, onSave, onCancel }) => {
 					))}
 					{formData.options.length === 0 && (
 						<p className="text-center text-[#9dabb9] py-4 text-sm italic">
-							No options added. Click "Add Option" to create one.
+							Chưa có option. Click "Thêm option" để tạo mới.
 						</p>
 					)}
 				</div>
@@ -609,15 +904,20 @@ const ModifierEditor = ({ modifier, onSave, onCancel }) => {
 			<div className="flex justify-end gap-3">
 				<button
 					onClick={onCancel}
-					className="px-4 py-2 rounded-lg bg-[#2D3748] text-white hover:bg-[#4A5568] transition-colors"
+					disabled={saving}
+					className="px-4 py-2 rounded-lg bg-[#2D3748] text-white hover:bg-[#4A5568] transition-colors disabled:opacity-50"
 				>
-					Cancel
+					Hủy
 				</button>
 				<button
 					onClick={() => onSave(formData)}
-					className="px-4 py-2 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors"
+					disabled={saving}
+					className="px-4 py-2 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-2"
 				>
-					Save Modifier
+					{saving && (
+						<div className="inline-block animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+					)}
+					Lưu nhóm modifier
 				</button>
 			</div>
 		</div>
@@ -682,11 +982,26 @@ const ConfirmationModal = ({ isOpen, title, message, onConfirm, onClose }) => {
 // DishDetailsModal (đã cập nhật với Modifiers)
 const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => {
 	const modalRef = useRef(null)
+	const { user } = useUser()
 	const [isVisible, setIsVisible] = useState(false)
 	const [activeTab, setActiveTab] = useState('view')
 	const [editFormData, setEditFormData] = useState(null)
 	const [isSaving, setIsSaving] = useState(false)
 	const [isModifiersModalOpen, setIsModifiersModalOpen] = useState(false)
+
+	// Focus and cursor position tracking for Edit tab
+	const nameInputRef = useRef(null)
+	const descriptionInputRef = useRef(null)
+	const priceInputRef = useRef(null)
+	const preparationTimeInputRef = useRef(null)
+	const imageInputRef = useRef(null)
+	const lastFocusedField = useRef(null)
+	const cursorPosition = useRef(null)
+
+	// Photo management states
+	const [photos, setPhotos] = useState([])
+	const [loadingPhotos, setLoadingPhotos] = useState(false)
+	const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
 	useEffect(() => {
 		if (dish) {
@@ -697,8 +1012,139 @@ const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => 
 				image: dish.image || '',
 				preparationTime: dish.preparationTime || 0,
 			})
+			// Ensure photos is always an array
+			const dishPhotos = dish.photos || []
+			setPhotos(Array.isArray(dishPhotos) ? dishPhotos : [])
 		}
 	}, [dish])
+
+	// Fetch photos when Photos tab is active
+	useEffect(() => {
+		if (activeTab === 'photos' && dish && user) {
+			fetchPhotos()
+		}
+	}, [activeTab, dish, user])
+
+	// Restore focus and cursor position in Edit tab after re-render
+	useEffect(() => {
+		if (isOpen && activeTab === 'edit' && lastFocusedField.current) {
+			const refMap = {
+				name: nameInputRef,
+				description: descriptionInputRef,
+				price: priceInputRef,
+				preparationTime: preparationTimeInputRef,
+				image: imageInputRef,
+			}
+			const targetRef = refMap[lastFocusedField.current]
+			if (targetRef?.current) {
+				targetRef.current.focus()
+				// Restore cursor position for text inputs/textareas
+				if (cursorPosition.current !== null) {
+					targetRef.current.setSelectionRange(
+						cursorPosition.current,
+						cursorPosition.current,
+					)
+				}
+			}
+		}
+	})
+
+	const fetchPhotos = async () => {
+		if (!dish || !user) return
+
+		setLoadingPhotos(true)
+		try {
+			const result = await getMenuItemPhotosAPI(user.userId, dish.id)
+			if (result.success) {
+				const fetchedPhotos = result.photos || []
+				// Ensure photos is always an array
+				setPhotos(Array.isArray(fetchedPhotos) ? fetchedPhotos : [])
+			}
+		} catch (error) {
+			console.error('Failed to fetch photos:', error)
+			setPhotos([]) // Reset to empty array on error
+		} finally {
+			setLoadingPhotos(false)
+		}
+	}
+
+	const handleAddPhoto = async (e) => {
+		const file = e.target.files?.[0]
+		if (!file || !user || !dish) return
+
+		// Check limit
+		if (photos.length >= 5) {
+			alert('Maximum 5 photos per item')
+			return
+		}
+
+		setUploadingPhoto(true)
+		try {
+			// Upload to cloud
+			const url = await uploadFile(file, 'image')
+
+			// Add to backend
+			const result = await addMenuItemPhotoAPI(user.userId, dish.id, {
+				url,
+				isPrimary: photos.length === 0, // First photo is primary
+				displayOrder: photos.length + 1,
+			})
+
+			if (result.success) {
+				setPhotos([...photos, result.photo])
+				// Update parent component
+				onSave({ ...dish, photos: [...photos, result.photo] })
+				alert('Photo added successfully!')
+			}
+		} catch (error) {
+			console.error('Failed to add photo:', error)
+			alert(error.message || 'Failed to add photo')
+		} finally {
+			setUploadingPhoto(false)
+			e.target.value = '' // Reset input
+		}
+	}
+
+	const handleSetPrimary = async (photoId) => {
+		if (!user || !dish) return
+
+		try {
+			const result = await setPrimaryPhotoAPI(user.userId, dish.id, photoId)
+			if (result.success) {
+				// Update photos list
+				const updatedPhotos = photos.map((p) => ({
+					...p,
+					isPrimary: p.id === photoId,
+				}))
+				setPhotos(updatedPhotos)
+				// Update parent component
+				onSave({ ...dish, photos: updatedPhotos })
+				alert('Primary photo updated!')
+			}
+		} catch (error) {
+			console.error('Failed to set primary photo:', error)
+			alert(error.message || 'Failed to set primary photo')
+		}
+	}
+
+	const handleDeletePhoto = async (photoId) => {
+		if (!user || !dish) return
+		if (!confirm('Delete this photo?')) return
+
+		try {
+			const result = await deleteMenuItemPhotoAPI(user.userId, dish.id, photoId)
+			if (result.success) {
+				const updatedPhotos = photos.filter((p) => p.id !== photoId)
+				setPhotos(updatedPhotos)
+				// Update parent component
+				onSave({ ...dish, photos: updatedPhotos })
+				alert('Photo deleted successfully!')
+			}
+		} catch (error) {
+			console.error('Failed to delete photo:', error)
+			alert(error.message || 'Failed to delete photo')
+		}
+	}
 
 	useEffect(() => {
 		if (isOpen) {
@@ -718,6 +1164,9 @@ const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => 
 
 	const handleInputChange = (e) => {
 		const { name, value } = e.target
+		lastFocusedField.current = name
+		// Save cursor position before state update
+		cursorPosition.current = e.target.selectionStart
 		setEditFormData((prev) => ({ ...prev, [name]: value }))
 	}
 
@@ -727,23 +1176,69 @@ const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => 
 			!editFormData.description.trim() ||
 			editFormData.price <= 0
 		) {
-			alert('Please fill in all required fields correctly')
+			alert('Vui lòng điền đầy đủ các trường bắt buộc')
+			return
+		}
+
+		if (!user || !user.userId) {
+			alert('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.')
 			return
 		}
 
 		setIsSaving(true)
 		try {
-			await new Promise((resolve) => setTimeout(resolve, 500))
-			onSave({ ...dish, ...editFormData })
+			const tenantId = user.userId
+			const itemId = dish.id
+
+			console.log('📝 Updating menu item:', itemId)
+
+			// Prepare update data
+			const updateData = {
+				name: editFormData.name.trim(),
+				description: editFormData.description.trim(),
+				price: editFormData.price,
+			}
+
+			// Add preparation time if provided
+			if (
+				editFormData.preparationTime !== undefined &&
+				editFormData.preparationTime !== null &&
+				editFormData.preparationTime !== ''
+			) {
+				updateData.prepTimeMinutes = parseInt(editFormData.preparationTime)
+			}
+
+			// Call backend API
+			const result = await updateMenuItemAPI(tenantId, itemId, updateData)
+
+			if (!result.success) {
+				throw new Error(result.message || 'Không thể cập nhật món ăn')
+			}
+
+			console.log('✅ Menu item updated successfully')
+
+			// Update local state with returned data
+			const updatedDish = {
+				...dish,
+				name: result.item.name,
+				description: result.item.description,
+				price: result.item.price,
+				preparationTime: result.item.prepTimeMinutes || 0,
+				cookingTime: result.item.prepTimeMinutes || 0,
+			}
+
+			onSave(updatedDish)
 			setActiveTab('view')
+			alert('Cập nhật món ăn thành công!')
 		} catch (error) {
-			alert('Failed to save dish. Please try again.')
+			console.error('❌ Update menu item error:', error)
+			alert(`Không thể cập nhật món ăn: ${error.message}`)
 		} finally {
 			setIsSaving(false)
 		}
 	}
 
-	const isActive = dish.status === 'ACTIVE'
+	const isAvailable = dish.status === 'AVAILABLE'
 
 	const calculateTotalPrice = (basePrice, selectedModifiers) => {
 		let total = basePrice
@@ -771,13 +1266,11 @@ const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => 
 					<div className="flex items-center gap-3">
 						<h2 className="text-2xl font-bold text-white m-0">{dish.name}</h2>
 						<span
-							className={`px-3 py-1 rounded-full text-xs font-bold ${
-								isActive
-									? 'bg-green-500/20 text-green-400'
-									: 'bg-gray-500/20 text-gray-400'
-							}`}
+							className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(
+								dish.status,
+							)}`}
 						>
-							{dish.status}
+							{getStatusLabel(dish.status)}
 						</span>
 					</div>
 					<button
@@ -800,6 +1293,16 @@ const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => 
 						View Details
 					</button>
 					<button
+						onClick={() => setActiveTab('photos')}
+						className={`flex-1 px-6 py-3 font-semibold transition-colors ${
+							activeTab === 'photos'
+								? 'text-[#137fec] border-b-2 border-[#137fec]'
+								: 'text-[#9dabb9] hover:text-white'
+						}`}
+					>
+						Photos ({photos.length}/5)
+					</button>
+					<button
 						onClick={() => setActiveTab('edit')}
 						className={`flex-1 px-6 py-3 font-semibold transition-colors ${
 							activeTab === 'edit'
@@ -816,9 +1319,16 @@ const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => 
 						<div className="space-y-6">
 							<div className="w-full h-64 rounded-lg overflow-hidden">
 								<img
-									src={dish.image}
+									src={
+										dish.primaryPhoto?.url ||
+										dish.image ||
+										'https://via.placeholder.com/400x300?text=No+Image'
+									}
 									alt={dish.name}
 									className="w-full h-full object-cover"
+									onError={(e) => {
+										e.target.src = 'https://via.placeholder.com/400x300?text=No+Image'
+									}}
 								/>
 							</div>
 
@@ -904,37 +1414,171 @@ const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => 
 
 							<div className="flex gap-3 pt-4 border-t border-white/10">
 								<button
-									onClick={() => setIsModifiersModalOpen(true)}
+									onClick={() => {
+										console.log(
+											'📖 [CategoryDishes] Opening modifiers modal for dish:',
+											dish.id,
+											dish.name,
+										)
+										setIsModifiersModalOpen(true)
+									}}
 									className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors bg-[#137fec]/20 text-[#137fec] hover:bg-[#137fec]/30"
 								>
 									<span className="material-symbols-outlined">tune</span>
 									{dish.modifiers?.length > 0 ? 'Manage Modifiers' : 'Add Modifiers'}
 								</button>
-								<button
-									onClick={() => onToggleStatus(dish)}
-									className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
-										isActive
-											? 'bg-gray-500/20 text-gray-400 hover:bg-gray-500/30'
-											: 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-									}`}
-								>
-									<span className="material-symbols-outlined">
-										{isActive ? 'toggle_off' : 'toggle_on'}
-									</span>
-									{isActive ? 'Deactivate' : 'Activate'}
-								</button>
+								<div className="flex gap-2">
+									<button
+										onClick={() => onToggleStatus(dish, 'AVAILABLE')}
+										className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
+											dish.status === 'AVAILABLE'
+												? 'bg-green-500/30 text-green-300 border-2 border-green-500'
+												: 'bg-green-500/10 text-green-400 hover:bg-green-500/20'
+										}`}
+									>
+										<span className="material-symbols-outlined text-sm">
+											check_circle
+										</span>
+										Có sẵn
+									</button>
+									<button
+										onClick={() => onToggleStatus(dish, 'SOLD_OUT')}
+										className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
+											dish.status === 'SOLD_OUT'
+												? 'bg-orange-500/30 text-orange-300 border-2 border-orange-500'
+												: 'bg-orange-500/10 text-orange-400 hover:bg-orange-500/20'
+										}`}
+									>
+										<span className="material-symbols-outlined text-sm">
+											production_quantity_limits
+										</span>
+										Hết hàng
+									</button>
+									<button
+										onClick={() => onToggleStatus(dish, 'UNAVAILABLE')}
+										className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
+											dish.status === 'UNAVAILABLE'
+												? 'bg-gray-500/30 text-gray-300 border-2 border-gray-500'
+												: 'bg-gray-500/10 text-gray-400 hover:bg-gray-500/20'
+										}`}
+									>
+										<span className="material-symbols-outlined text-sm">block</span>
+										Không sẵn
+									</button>
+								</div>
 							</div>
+						</div>
+					) : activeTab === 'photos' ? (
+						<div className="space-y-4">
+							<div className="flex items-center justify-between mb-4">
+								<h3 className="text-lg font-semibold text-white m-0">
+									Photo Gallery ({photos.length}/5)
+								</h3>
+								{photos.length < 5 && (
+									<label className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#137fec] text-white font-semibold hover:bg-[#0d6ecc] cursor-pointer transition-colors">
+										<span className="material-symbols-outlined">add_photo_alternate</span>
+										{uploadingPhoto ? 'Uploading...' : 'Add Photo'}
+										<input
+											type="file"
+											accept="image/*"
+											onChange={handleAddPhoto}
+											className="sr-only"
+											disabled={uploadingPhoto}
+										/>
+									</label>
+								)}
+							</div>
+
+							{loadingPhotos ? (
+								<div className="flex items-center justify-center py-12">
+									<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+								</div>
+							) : photos.length === 0 ? (
+								<div className="text-center py-12 bg-[#2D3748] rounded-lg border-2 border-dashed border-white/10">
+									<span className="material-symbols-outlined text-gray-500 text-6xl mb-3">
+										photo_library
+									</span>
+									<p className="text-[#9dabb9] mb-4">No photos yet</p>
+									<label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#137fec] text-white font-semibold hover:bg-[#0d6ecc] cursor-pointer transition-colors">
+										<span className="material-symbols-outlined">add</span>
+										Add First Photo
+										<input
+											type="file"
+											accept="image/*"
+											onChange={handleAddPhoto}
+											className="sr-only"
+											disabled={uploadingPhoto}
+										/>
+									</label>
+								</div>
+							) : (
+								Array.isArray(photos) && (
+									<div className="grid grid-cols-2 gap-4">
+										{photos.map((photo, index) => (
+											<div key={photo.id} className="relative group">
+												<div className="aspect-square rounded-lg overflow-hidden bg-[#2D3748]">
+													<img
+														src={photo.url}
+														alt={`Photo ${index + 1}`}
+														className="w-full h-full object-cover"
+													/>
+												</div>
+
+												{/* Primary badge */}
+												{photo.isPrimary && (
+													<div className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-semibold flex items-center gap-1">
+														<span className="material-symbols-outlined text-sm">
+															star
+														</span>
+														Primary
+													</div>
+												)}
+
+												{/* Action buttons */}
+												<div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+													{!photo.isPrimary && (
+														<button
+															onClick={() => handleSetPrimary(photo.id)}
+															className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+															title="Set as primary"
+														>
+															<span className="material-symbols-outlined">star</span>
+														</button>
+													)}
+													<button
+														onClick={() => handleDeletePhoto(photo.id)}
+														className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+														title="Delete photo"
+													>
+														<span className="material-symbols-outlined">delete</span>
+													</button>
+												</div>
+
+												{/* Display order */}
+												<div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+													#{photo.displayOrder}
+												</div>
+											</div>
+										))}
+									</div>
+								)
+							)}
+
+							<p className="text-sm text-[#9dabb9] mt-4">
+								💡 The primary photo will be displayed as the main image. You can add up
+								to 5 photos per item.
+							</p>
 						</div>
 					) : (
 						<div className="space-y-4">
 							<div>
 								<label className="block text-[#9dabb9] text-sm mb-2">Dish Name *</label>
 								<input
+									ref={nameInputRef}
 									type="text"
 									name="name"
 									value={editFormData?.name || ''}
 									onChange={handleInputChange}
-									autoFocus
 									className="w-full px-4 py-2 bg-[#2D3748] text-white rounded-lg border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#137fec]"
 									placeholder="Enter dish name"
 								/>
@@ -943,6 +1587,7 @@ const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => 
 							<div>
 								<label className="block text-[#9dabb9] text-sm mb-2">Description *</label>
 								<textarea
+									ref={descriptionInputRef}
 									name="description"
 									value={editFormData?.description || ''}
 									onChange={handleInputChange}
@@ -956,6 +1601,7 @@ const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => 
 								<div>
 									<label className="block text-[#9dabb9] text-sm mb-2">Price ($) *</label>
 									<input
+										ref={priceInputRef}
 										type="number"
 										name="price"
 										value={editFormData?.price || 0}
@@ -971,6 +1617,7 @@ const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => 
 										Prep Time (mins)
 									</label>
 									<input
+										ref={preparationTimeInputRef}
 										type="number"
 										name="preparationTime"
 										value={editFormData?.preparationTime || 0}
@@ -984,6 +1631,7 @@ const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => 
 							<div>
 								<label className="block text-[#9dabb9] text-sm mb-2">Image URL</label>
 								<input
+									ref={imageInputRef}
 									type="url"
 									name="image"
 									value={editFormData?.image || ''}
@@ -1029,6 +1677,7 @@ const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => 
 			<ModifiersModal
 				isOpen={isModifiersModalOpen}
 				dish={dish}
+				user={user}
 				onClose={() => setIsModifiersModalOpen(false)}
 				onSave={(updatedDish) => {
 					onSave(updatedDish)
@@ -1133,7 +1782,7 @@ const DishCard = ({ dish, onDelete, onClick, viewMode = 'grid' }) => {
 		<div className="flex flex-col items-center">
 			<div
 				onClick={() => onClick(dish)}
-				className="relative w-full aspect-square overflow-hidden rounded-xl bg-black/40 backdrop-blur-md transition-all group hover:shadow-2xl hover:scale-[1.02] border border-white/10 cursor-pointer"
+				className="relative w-full aspect-square overflow-hidden rounded-xl bg-gray-900 backdrop-blur-md transition-all group hover:shadow-2xl hover:scale-[1.02] border border-white/10 cursor-pointer"
 				onMouseEnter={() => setIsHovering(true)}
 				onMouseLeave={() => setIsHovering(false)}
 			>
@@ -1141,7 +1790,6 @@ const DishCard = ({ dish, onDelete, onClick, viewMode = 'grid' }) => {
 					className="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
 					style={{ backgroundImage: `url('${dish.image}')` }}
 				>
-					<div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors"></div>
 					{!isActive && (
 						<div className="absolute inset-0 bg-black/70 z-10 flex items-center justify-center">
 							{getStatusBadge(dish.status)}
@@ -1423,11 +2071,11 @@ const EditCategoryModal = ({ isOpen, onClose, onSave, categoryData }) => {
 	return ReactDOM.createPortal(<ModalContent />, document.body)
 }
 
-const CategoryDishes = ({ categorySlug = 'noodle-dishes' }) => {
+const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) => {
 	const navigate = useNavigate()
 	const { user, loading: contextLoading } = useUser()
 	const [dishes, setDishes] = useState([])
-	const [categoryName, setCategoryName] = useState('')
+	const [categoryName, setCategoryName] = useState(category?.name || '')
 	const [loading, setLoading] = useState(true)
 	const [dishToDelete, setDishToDelete] = useState(null)
 	const [selectedDish, setSelectedDish] = useState(null)
@@ -1437,52 +2085,342 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes' }) => {
 	const [viewMode, setViewMode] = useState('grid')
 	const [isAddDishModalOpen, setIsAddDishModalOpen] = useState(false)
 	const [isEditCategoryModalOpen, setIsEditCategoryModalOpen] = useState(false)
-	const [categoryImage, setCategoryImage] = useState('')
+	const [categoryImage, setCategoryImage] = useState(category?.image || '')
 
-	const fetchDishes = async (slug) => {
+	// Debug user object
+	console.log('🔍 [CategoryDishes] User object:', JSON.stringify(user, null, 2))
+	console.log('🔍 [CategoryDishes] User keys:', user ? Object.keys(user) : 'null')
+
+	// Helper function to delay execution for rate limiting
+	const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+	const fetchDishes = async () => {
+		if (!user || !user.userId || !category || !category.id) {
+			console.log('⏳ Waiting for user and category data...')
+			return
+		}
+
+		const tenantId = user.userId
+		const categoryId = category.id
+
 		setLoading(true)
-		setTimeout(() => {
-			const data = JSON.parse(JSON.stringify(mockDishesData[slug] || []))
-			setDishes(data)
-			setCategoryName(formatCategoryName(slug))
+		try {
+			console.log('📥 Fetching menu items for category:', categoryId)
+			const result = await getMenuItemsAPI(tenantId, {
+				categoryId: categoryId,
+				sortBy: 'name',
+				sortOrder: 'ASC',
+			})
+
+			if (result.success) {
+				// Fetch photos for each item with rate limiting to avoid 5 API calls/second limit
+				console.log(
+					'📸 Fetching photos for',
+					result.items.length,
+					'items with rate limiting...',
+				)
+
+				const itemsWithPhotos = []
+				const BATCH_SIZE = 4 // Fetch 4 items at a time to stay under 5 calls/second
+				const DELAY_MS = 1000 // Wait 1 second between batches
+
+				// Process items in batches
+				for (let i = 0; i < result.items.length; i += BATCH_SIZE) {
+					const batch = result.items.slice(i, i + BATCH_SIZE)
+					console.log(
+						`📦 Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(
+							result.items.length / BATCH_SIZE,
+						)}...`,
+					)
+
+					const batchResults = await Promise.all(
+						batch.map(async (item) => {
+							try {
+								const photosResult = await getMenuItemPhotosAPI(tenantId, item.id)
+								const photos = photosResult.success ? photosResult.photos : []
+								const primaryPhoto = photosResult.success
+									? photosResult.primaryPhoto
+									: null
+
+								return {
+									id: item.id,
+									name: item.name,
+									description: item.description || '',
+									price: item.price,
+									currency: item.currency || 'VND',
+									image: primaryPhoto?.url || photos[0]?.url || '', // Use primary photo as main image
+									photos: photos, // Store all photos
+									primaryPhoto: primaryPhoto, // Store primary photo reference
+									status: item.status, // "AVAILABLE", "UNAVAILABLE", "SOLD_OUT"
+									preparationTime: item.prepTimeMinutes || 0,
+									cookingTime: item.prepTimeMinutes || 0,
+									isChefRecommendation: item.isChefRecommended || false,
+									modifiers: [], // TODO: Implement modifiers if needed
+								}
+							} catch (photoError) {
+								console.warn(`⚠️ Failed to fetch photos for item ${item.id}:`, photoError)
+								return {
+									id: item.id,
+									name: item.name,
+									description: item.description || '',
+									price: item.price,
+									currency: item.currency || 'VND',
+									image: '',
+									photos: [],
+									status: item.status,
+									preparationTime: item.prepTimeMinutes || 0,
+									cookingTime: item.prepTimeMinutes || 0,
+									isChefRecommendation: item.isChefRecommended || false,
+									modifiers: [],
+								}
+							}
+						}),
+					)
+
+					itemsWithPhotos.push(...batchResults)
+
+					// Wait before processing next batch (except for the last batch)
+					if (i + BATCH_SIZE < result.items.length) {
+						console.log(`⏳ Waiting ${DELAY_MS}ms before next batch...`)
+						await delay(DELAY_MS)
+					}
+				}
+
+				// 🖼️ Preload all images before displaying dishes
+				console.log('🖼️ Preloading images for', itemsWithPhotos.length, 'dishes...')
+				const imagePromises = itemsWithPhotos
+					.filter((dish) => dish.image) // Only preload dishes with images
+					.map((dish) => {
+						return new Promise((resolve) => {
+							const img = new Image()
+							img.onload = () => {
+								console.log('✅ Image loaded:', dish.name)
+								resolve()
+							}
+							img.onerror = () => {
+								console.warn('⚠️ Failed to load image for:', dish.name)
+								resolve() // Still resolve to not block other images
+							}
+							img.src = dish.image
+						})
+					})
+
+				// Wait for all images to load
+				await Promise.all(imagePromises)
+				console.log('✅ All images preloaded')
+
+				setDishes(itemsWithPhotos)
+				console.log('✅ Menu items loaded:', itemsWithPhotos.length)
+			} else {
+				console.error('❌ Failed to fetch menu items:', result.message)
+				setDishes([])
+			}
+		} catch (error) {
+			console.error('❌ Error fetching menu items:', error)
+			setDishes([])
+		} finally {
 			setLoading(false)
-		}, 500)
+		}
 	}
 
 	useEffect(() => {
-		fetchDishes(categorySlug)
-	}, [categorySlug])
+		if (!contextLoading && user && category) {
+			fetchDishes()
+		}
+	}, [contextLoading, user, category])
 
 	const handleUpdateDish = (updatedDish) => {
 		setDishes((prev) => prev.map((d) => (d.id === updatedDish.id ? updatedDish : d)))
 		setSelectedDish(updatedDish)
 	}
 
-	const handleToggleDishStatus = async (dish) => {
-		const newStatus = dish.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
+	const handleToggleDishStatus = async (dish, newStatus) => {
+		if (!user || !user.userId) {
+			alert('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.')
+			return
+		}
+
+		if (dish.status === newStatus) {
+			// Already in this status, no need to update
+			return
+		}
+
 		try {
-			await new Promise((resolve) => setTimeout(resolve, 300))
+			const tenantId = user.userId
+			const itemId = dish.id
+
+			console.log(`🔄 Updating item status to: ${newStatus}`)
+
+			// Call backend API
+			const result = await updateMenuItemStatusAPI(tenantId, itemId, newStatus)
+
+			if (!result.success) {
+				throw new Error(result.message || 'Không thể cập nhật trạng thái')
+			}
+
+			console.log('✅ Status updated successfully')
+
+			// Update local state
 			setDishes((prev) =>
 				prev.map((d) => (d.id === dish.id ? { ...d, status: newStatus } : d)),
 			)
+
 			if (selectedDish?.id === dish.id) {
 				setSelectedDish({ ...dish, status: newStatus })
 			}
+
+			const statusLabel = getStatusLabel(newStatus)
+			alert(`Đã cập nhật trạng thái thành: ${statusLabel}`)
 		} catch (error) {
-			alert(`Failed to update dish status`)
+			console.error('❌ Update status error:', error)
+			alert(`Không thể cập nhật trạng thái: ${error.message}`)
 		}
 	}
 
 	const executeDeleteDish = async () => {
 		if (!dishToDelete) return
+
+		if (!user || !user.userId) {
+			alert('User not found. Please login again.')
+			setDishToDelete(null)
+			return
+		}
+
+		const tenantId = user.userId
+		const itemId = dishToDelete.id
+
 		setDishToDelete(null)
-		const prevDishes = dishes
-		setDishes(prevDishes.filter((dish) => dish.id !== dishToDelete.id))
+
+		try {
+			console.log('🗑️ Deleting menu item:', itemId)
+
+			// Call backend API to delete menu item
+			const result = await deleteMenuItemAPI(tenantId, itemId)
+
+			if (!result.success) {
+				throw new Error(result.message || 'Failed to delete menu item')
+			}
+
+			console.log('✅ Menu item deleted successfully')
+
+			// Remove from UI
+			setDishes((prevDishes) => prevDishes.filter((dish) => dish.id !== itemId))
+
+			// Close modal if the deleted dish was being viewed
+			if (selectedDish?.id === itemId) {
+				setSelectedDish(null)
+			}
+
+			alert('Món ăn đã được xóa thành công!')
+		} catch (error) {
+			console.error('❌ Delete menu item error:', error)
+			alert(`Không thể xóa món ăn: ${error.message}`)
+		}
 	}
 
-	const handleSaveNewDish = (newDish) => {
-		setDishes((prev) => [...prev, { ...newDish, status: 'READY', modifiers: [] }])
-		setIsAddDishModalOpen(false)
+	const handleSaveNewDish = async (newDish) => {
+		if (!user || !user.userId) {
+			alert('User not found. Please login again.')
+			return
+		}
+
+		if (!category || !category.id) {
+			alert('Category information is missing. Please go back and try again.')
+			return
+		}
+
+		const tenantId = user.userId
+		const categoryId = category.id
+
+		try {
+			console.log('📤 Creating new menu item for category:', categoryId)
+
+			// Prepare item data for backend
+			const itemData = {
+				categoryId: categoryId,
+				name: newDish.name,
+				description: newDish.description || '',
+				price: newDish.price,
+				currency: 'VND',
+				status: 'AVAILABLE',
+			}
+
+			// Add prepTimeMinutes if provided (0-240 minutes)
+			if (
+				newDish.preparationTime !== undefined &&
+				newDish.preparationTime !== null &&
+				newDish.preparationTime !== ''
+			) {
+				itemData.prepTimeMinutes = parseInt(newDish.preparationTime)
+			}
+
+			// Create menu item
+			const result = await createMenuItemAPI(tenantId, itemData)
+
+			if (!result.success) {
+				throw new Error(result.message || 'Failed to create menu item')
+			}
+
+			console.log('✅ Menu item created:', result.item)
+
+			// If there are image URLs, add them as photos
+			const photoUrls = []
+			if (newDish.imageUrls && newDish.imageUrls.length > 0) {
+				console.log(
+					`📤 Adding ${newDish.imageUrls.length} photo(s) to menu item:`,
+					result.item.id,
+				)
+
+				// Upload photos sequentially with isPrimary flag for first photo
+				for (let i = 0; i < newDish.imageUrls.length; i++) {
+					const url = newDish.imageUrls[i]
+					try {
+						const photoResult = await addMenuItemPhotoAPI(tenantId, result.item.id, {
+							url: url,
+							isPrimary: i === 0, // First image is primary
+							displayOrder: i + 1,
+						})
+
+						if (photoResult.success) {
+							console.log(
+								`✅ Photo ${i + 1}/${newDish.imageUrls.length} added successfully`,
+							)
+							photoUrls.push(photoResult.photo)
+						} else {
+							console.warn(`⚠️ Photo ${i + 1} upload failed:`, photoResult.message)
+						}
+					} catch (photoError) {
+						console.error(`❌ Error adding photo ${i + 1}:`, photoError)
+						// Continue with other photos even if one fails
+					}
+				}
+			}
+
+			// Add the new dish to local state
+			// Find the primary photo (first one uploaded has isPrimary=true)
+			const primaryPhoto = photoUrls.find((p) => p.isPrimary) || photoUrls[0]
+
+			setDishes((prev) => [
+				...prev,
+				{
+					...result.item,
+					image: primaryPhoto?.url || '', // Use primary photo as main image
+					photos: photoUrls,
+					primaryPhoto: primaryPhoto, // Store primary photo reference
+					modifiers: [],
+				},
+			])
+
+			setIsAddDishModalOpen(false)
+			alert(
+				`Menu item created successfully${
+					photoUrls.length > 0 ? ` with ${photoUrls.length} photo(s)` : ''
+				}!`,
+			)
+		} catch (error) {
+			console.error('❌ Error creating menu item:', error)
+			alert(error.message || 'Failed to create menu item. Please try again.')
+		}
 	}
 
 	const handleEditCategory = () => {

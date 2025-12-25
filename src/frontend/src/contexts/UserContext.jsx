@@ -42,6 +42,8 @@ export const UserProvider = ({ children }) => {
 					name: result.user.username,
 				}
 				setUser(userData)
+				// ✅ Save user to localStorage for F5 persistence
+				localStorage.setItem('user', JSON.stringify(result.user))
 				setLoading(false)
 				return { success: true, user: userData }
 			} else {
@@ -86,13 +88,16 @@ export const UserProvider = ({ children }) => {
 						window.accessToken = loginResult.accessToken
 					}
 
-					setUser({
+					const userData = {
 						...loginResult.user,
 						role: loginResult.user.roles.includes('ADMIN')
 							? 'Super Administrator'
 							: 'User',
 						name: loginResult.user.username,
-					})
+					}
+					setUser(userData)
+					// ✅ Save user to localStorage for F5 persistence
+					localStorage.setItem('user', JSON.stringify(loginResult.user))
 					setPendingSignupData(null) // Clear pending data
 					setLoading(false)
 					return { success: true, message: 'Registration and login successful!' }
@@ -211,6 +216,8 @@ export const UserProvider = ({ children }) => {
 						name: refreshResult.user.username || refreshResult.user.email,
 					}
 					setUser(userData)
+					// ✅ Save user to localStorage for F5 persistence
+					localStorage.setItem('user', JSON.stringify(refreshResult.user))
 
 					// Debug: Verify token is stored
 					console.log('🔍 Token check after setUser:', {
