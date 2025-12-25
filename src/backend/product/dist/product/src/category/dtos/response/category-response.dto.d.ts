@@ -3,7 +3,9 @@ export declare class CategoryResponseDto {
     tenantId: string;
     name: string;
     description?: string;
-    published: boolean;
+    status: string;
     displayOrder: number;
+    itemCount?: number;
     createdAt: Date;
+    updatedAt: Date;
 }

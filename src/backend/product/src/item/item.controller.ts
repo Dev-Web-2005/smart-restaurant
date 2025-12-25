@@ -1,67 +1,150 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import { ItemService } from './item.service';
-
 import HttpResponse from '@shared/utils/http-response';
 import { handleRpcCall } from '@shared/utils/rpc-error-handler';
 import {
-	CreateItemRequestDto,
-	GetItemsRequestDto,
-	UpdateItemRequestDto,
-	PublishItemRequestDto,
-	DeleteItemRequestDto,
-	AddModifiersRequestDto,
+	CreateMenuItemRequestDto,
+	GetMenuItemsRequestDto,
+	UpdateMenuItemRequestDto,
+	UpdateMenuItemStatusRequestDto,
+	DeleteMenuItemRequestDto,
+	AddMenuItemPhotoRequestDto,
+	UpdateMenuItemPhotoRequestDto,
+	SetPrimaryPhotoRequestDto,
+	DeleteMenuItemPhotoRequestDto,
+	GetMenuItemPhotosRequestDto,
 } from 'src/item/dtos/request';
 
+/**
+ * ItemController
+ *
+ * Handles RPC messages for menu item management and photo operations
+ * Implements CRUD operations with filtering, sorting, and pagination
+ */
 @Controller()
 export class ItemController {
 	constructor(private readonly itemService: ItemService) {}
 
-	@MessagePattern('items:create')
-	async createItem(dto: CreateItemRequestDto) {
+	/**
+	 * Create a new menu item
+	 * RPC Pattern: 'menu-items:create'
+	 */
+	@MessagePattern('menu-items:create')
+	async createMenuItem(dto: CreateMenuItemRequestDto) {
 		return handleRpcCall(async () => {
-			const item = await this.itemService.createItem(dto);
+			const item = await this.itemService.createMenuItem(dto);
 			return new HttpResponse(1000, 'Menu item created successfully', item);
 		});
 	}
 
-	@MessagePattern('items:get-all')
-	async getItems(dto: GetItemsRequestDto) {
+	/**
+	 * Get all menu items with filtering, sorting, and pagination
+	 * RPC Pattern: 'menu-items:get-all'
+	 */
+	@MessagePattern('menu-items:get-all')
+	async getMenuItems(dto: GetMenuItemsRequestDto) {
 		return handleRpcCall(async () => {
-			const items = await this.itemService.getItems(dto);
-			return new HttpResponse(1000, 'Menu items retrieved successfully', items);
+			const result = await this.itemService.getMenuItems(dto);
+			return new HttpResponse(1000, 'Menu items retrieved successfully', result);
 		});
 	}
 
-	@MessagePattern('items:update')
-	async updateItem(dto: UpdateItemRequestDto) {
+	/**
+	 * Update an existing menu item
+	 * RPC Pattern: 'menu-items:update'
+	 */
+	@MessagePattern('menu-items:update')
+	async updateMenuItem(dto: UpdateMenuItemRequestDto) {
 		return handleRpcCall(async () => {
-			const item = await this.itemService.updateItem(dto);
+			const item = await this.itemService.updateMenuItem(dto);
 			return new HttpResponse(1000, 'Menu item updated successfully', item);
 		});
 	}
 
-	@MessagePattern('items:publish')
-	async publishItem(dto: PublishItemRequestDto) {
+	/**
+	 * Update menu item status (AVAILABLE, UNAVAILABLE, SOLD_OUT)
+	 * RPC Pattern: 'menu-items:update-status'
+	 */
+	@MessagePattern('menu-items:update-status')
+	async updateMenuItemStatus(dto: UpdateMenuItemStatusRequestDto) {
 		return handleRpcCall(async () => {
-			const item = await this.itemService.publishItem(dto);
-			return new HttpResponse(1000, 'Menu item publish status updated', item);
+			const item = await this.itemService.updateMenuItemStatus(dto);
+			return new HttpResponse(1000, 'Menu item status updated successfully', item);
 		});
 	}
 
-	@MessagePattern('items:delete')
-	async deleteItem(dto: DeleteItemRequestDto) {
+	/**
+	 * Soft delete a menu item
+	 * RPC Pattern: 'menu-items:delete'
+	 */
+	@MessagePattern('menu-items:delete')
+	async deleteMenuItem(dto: DeleteMenuItemRequestDto) {
 		return handleRpcCall(async () => {
-			await this.itemService.deleteItem(dto);
+			await this.itemService.deleteMenuItem(dto);
 			return new HttpResponse(1000, 'Menu item deleted successfully');
 		});
 	}
 
-	@MessagePattern('items:add-modifiers')
-	async addModifiers(dto: AddModifiersRequestDto) {
+	// ==================== PHOTO MANAGEMENT ====================
+
+	/**
+	 * Add a photo to a menu item
+	 * RPC Pattern: 'menu-item-photos:add'
+	 */
+	@MessagePattern('menu-item-photos:add')
+	async addMenuItemPhoto(dto: AddMenuItemPhotoRequestDto) {
 		return handleRpcCall(async () => {
-			const item = await this.itemService.addModifiers(dto);
-			return new HttpResponse(1000, 'Modifiers added successfully', item);
+			const photo = await this.itemService.addMenuItemPhoto(dto);
+			return new HttpResponse(1000, 'Photo added successfully', photo);
+		});
+	}
+
+	/**
+	 * Get all photos for a menu item
+	 * RPC Pattern: 'menu-item-photos:get-all'
+	 */
+	@MessagePattern('menu-item-photos:get-all')
+	async getMenuItemPhotos(dto: GetMenuItemPhotosRequestDto) {
+		return handleRpcCall(async () => {
+			const result = await this.itemService.getMenuItemPhotos(dto);
+			return new HttpResponse(1000, 'Photos retrieved successfully', result);
+		});
+	}
+
+	/**
+	 * Update photo details (order, primary status)
+	 * RPC Pattern: 'menu-item-photos:update'
+	 */
+	@MessagePattern('menu-item-photos:update')
+	async updateMenuItemPhoto(dto: UpdateMenuItemPhotoRequestDto) {
+		return handleRpcCall(async () => {
+			const photo = await this.itemService.updateMenuItemPhoto(dto);
+			return new HttpResponse(1000, 'Photo updated successfully', photo);
+		});
+	}
+
+	/**
+	 * Set a photo as primary
+	 * RPC Pattern: 'menu-item-photos:set-primary'
+	 */
+	@MessagePattern('menu-item-photos:set-primary')
+	async setPrimaryPhoto(dto: SetPrimaryPhotoRequestDto) {
+		return handleRpcCall(async () => {
+			const photo = await this.itemService.setPrimaryPhoto(dto);
+			return new HttpResponse(1000, 'Primary photo set successfully', photo);
+		});
+	}
+
+	/**
+	 * Delete a photo from a menu item
+	 * RPC Pattern: 'menu-item-photos:delete'
+	 */
+	@MessagePattern('menu-item-photos:delete')
+	async deleteMenuItemPhoto(dto: DeleteMenuItemPhotoRequestDto) {
+		return handleRpcCall(async () => {
+			await this.itemService.deleteMenuItemPhoto(dto);
+			return new HttpResponse(1000, 'Photo deleted successfully');
 		});
 	}
 }

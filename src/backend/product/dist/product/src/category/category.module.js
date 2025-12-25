@@ -18,7 +18,7 @@ let CategoryModule = class CategoryModule {
 exports.CategoryModule = CategoryModule;
 exports.CategoryModule = CategoryModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([entities_1.MenuCategory]), config_1.ConfigModule],
+        imports: [typeorm_1.TypeOrmModule.forFeature([entities_1.MenuCategory, entities_1.MenuItem]), config_1.ConfigModule],
         controllers: [category_controller_1.CategoryController],
         providers: [category_service_1.CategoryService],
         exports: [category_service_1.CategoryService],

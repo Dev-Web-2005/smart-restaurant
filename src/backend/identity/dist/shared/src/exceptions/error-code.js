@@ -19,6 +19,8 @@ class ErrorCode {
     static AUTHORITY_CREATION_FAILED = new ErrorCode(2104, "Authority creation failed", 500);
     static VALIDATION_FAILED = new ErrorCode(2901, "Validation failed", 400);
     static CATEGORY_NOT_FOUND = new ErrorCode(3001, "Category not found", 404);
+    static CATEGORY_NAME_ALREADY_EXISTS = new ErrorCode(3004, "Category name already exists in this restaurant", 409);
+    static CATEGORY_HAS_ACTIVE_ITEMS = new ErrorCode(3005, "Category has active items and cannot be deleted", 400);
     static ITEM_NOT_FOUND = new ErrorCode(3002, "Menu item not found", 404);
     static MODIFIER_NOT_FOUND = new ErrorCode(3003, "Modifier not found", 404);
     static ERROR_VALIDATION = new ErrorCode(2902, "Validation error", 400);

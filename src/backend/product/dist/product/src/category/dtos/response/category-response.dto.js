@@ -6,9 +6,11 @@ class CategoryResponseDto {
     tenantId;
     name;
     description;
-    published;
+    status;
     displayOrder;
+    itemCount;
     createdAt;
+    updatedAt;
 }
 exports.CategoryResponseDto = CategoryResponseDto;
 //# sourceMappingURL=category-response.dto.js.map
