@@ -14,6 +14,21 @@ const apiClient = axios.create({
 	timeout: 30000,
 })
 
+// Global flag to prevent multiple concurrent token refresh requests
+let isRefreshing = false
+let refreshSubscribers = []
+
+// Function to add pending requests to queue
+const subscribeTokenRefresh = (callback) => {
+	refreshSubscribers.push(callback)
+}
+
+// Function to execute all pending requests with new token
+const onTokenRefreshed = (newToken) => {
+	refreshSubscribers.forEach((callback) => callback(newToken))
+	refreshSubscribers = []
+}
+
 // Request Interceptor - Attach access token from memory (window.accessToken)
 apiClient.interceptors.request.use(
 	(config) => {
@@ -63,6 +78,18 @@ apiClient.interceptors.response.use(
 			if (errorCode === 1002 && !originalRequest._retry) {
 				originalRequest._retry = true
 
+				// If already refreshing, queue this request
+				if (isRefreshing) {
+					return new Promise((resolve) => {
+						subscribeTokenRefresh((newToken) => {
+							originalRequest.headers.Authorization = `Bearer ${newToken}`
+							resolve(apiClient(originalRequest))
+						})
+					})
+				}
+
+				isRefreshing = true
+
 				try {
 					console.log('🔄 Attempting manual token refresh...')
 
@@ -77,9 +104,25 @@ apiClient.interceptors.response.use(
 						apiClient.defaults.headers.common[
 							'Authorization'
 						] = `Bearer ${newAccessToken}`
-						originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
 
-						console.log('✅ Token refreshed, retrying request...')
+						console.log('✅ Token refreshed, retrying queued requests...')
+
+						// Update localStorage with new user data
+						if (refreshResponse.data.data.userId) {
+							const userData = {
+								userId: refreshResponse.data.data.userId,
+								username: refreshResponse.data.data.username,
+								email: refreshResponse.data.data.email,
+								roles: refreshResponse.data.data.roles,
+							}
+							localStorage.setItem('user', JSON.stringify(userData))
+						}
+
+						// Execute all queued requests with new token
+						onTokenRefreshed(newAccessToken)
+
+						// Retry original request
+						originalRequest.headers.Authorization = `Bearer ${newAccessToken}`
 
 						// Ensure POST data is properly sent on retry
 						if (originalRequest.data && typeof originalRequest.data === 'string') {
@@ -93,17 +136,21 @@ apiClient.interceptors.response.use(
 
 					window.accessToken = null
 					localStorage.removeItem('user')
+
+					// Notify all queued requests of failure
+					refreshSubscribers = []
+
+					// Redirect to login
 					window.location.href = '/login'
 
 					return Promise.reject({
 						code: 1002,
 						message: 'Session expired. Please login again.',
 					})
+				} finally {
+					isRefreshing = false
 				}
 			}
-
-			console.error('❌ Unauthorized:', data)
-			return Promise.reject(data)
 		}
 
 		// Handle 403 Forbidden

@@ -13,7 +13,8 @@ export default defineConfig({
 		proxy: {
 			// Proxy backend API requests to avoid CORS issues
 			'/api/v1': {
-				target: 'https://web-dev-api.lethanhcong.site:46268',
+				// target: 'https://web-dev-api.lethanhcong.site:46268',
+				target: 'http://localhost:8888',
 				changeOrigin: true,
 				configure: (proxy, options) => {
 					proxy.on('proxyReq', (proxyReq, req, res) => {

@@ -1,86 +1,18 @@
 import React, { useState, useEffect } from 'react'
-// import axios from 'axios'; // Import Axios khi bạn sẵn sàng tích hợp API
-import { useUser } from '../../../contexts/UserContext' // 👈 IMPORT CONTEXT
+import { useUser } from '../../../contexts/UserContext'
 import { useLoading } from '../../../contexts/LoadingContext'
+import { useAlert } from '../../../contexts/AlertContext'
 import BasePageLayout from '../../../components/layout/BasePageLayout'
 import AddCategoryModal from './AddCategoryModal'
 import CategoryDishes from './CategoryDishes'
-import ReactDOM from 'react-dom' // Thêm import này
+import ReactDOM from 'react-dom'
 import { InlineLoader, CardSkeleton } from '../../../components/common/LoadingSpinner'
-
-// --- Dữ liệu Mock (Giữ nguyên) ---
-const mockCategories = [
-	{
-		id: 1,
-		name: 'Soups',
-		image: 'https://images3.alphacoders.com/108/1088128.jpg',
-		route: 'soups',
-		status: 'ACTIVE',
-	},
-	{
-		id: 2,
-		name: 'Salads',
-		image:
-			'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=500&q=80',
-		route: 'salads',
-		status: 'ACTIVE',
-	},
-	{
-		id: 3,
-		name: 'Rice Dishes',
-		image:
-			'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=500&q=80',
-		route: 'rice-dishes',
-		status: 'ACTIVE',
-	},
-	{
-		id: 4,
-		name: 'Noodle Dishes',
-		image:
-			'https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=500&q=80',
-		route: 'noodle-dishes',
-		status: 'INACTIVE',
-	},
-	{
-		id: 5,
-		name: 'Seafood',
-		image:
-			'https://images.unsplash.com/photo-1535400255456-984241443b29?auto=format&fit=crop&w=500&q=80',
-		route: 'seafood',
-		status: 'ACTIVE',
-	},
-	{
-		id: 6,
-		name: 'Grilled Specialties',
-		image:
-			'https://sofein.ch/cdn/shop/articles/zart-und-wuerzig-das-perfekte-steak-mit-unserer-speziellen-marinade-1727604884.webp?v=1729157602',
-		route: 'grilled',
-		status: 'ACTIVE',
-	},
-	{
-		id: 7,
-		name: 'Vegetarian',
-		image:
-			'https://media.istockphoto.com/id/1416818056/photo/colourful-vegan-bowl-with-quinoa-and-sweet-potato.jpg?s=612x612&w=0&k=20&c=t1I58CqucV6bLRaa4iDy7PIVjnV8D9eWDjEsX9X-87k=',
-		route: 'vegetarian',
-		status: 'ACTIVE',
-	},
-	{
-		id: 8,
-		name: 'Desserts',
-		image: 'https://wallpapercave.com/wp/wp12572997.jpg',
-		route: 'desserts',
-		status: 'ACTIVE',
-	},
-	{
-		id: 9,
-		name: 'Beverages',
-		image:
-			'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=500&q=80',
-		route: 'beverages',
-		status: 'INACTIVE',
-	},
-]
+import {
+	getCategoriesAPI,
+	createCategoryAPI,
+	updateCategoryStatusAPI,
+	deleteCategoryAPI,
+} from '../../../services/api/categoryAPI'
 
 // --- Sub-component: Delete Confirmation Modal (ĐÃ SỬA VỚI PORTAL) ---
 const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, categoryName }) => {
@@ -304,9 +236,10 @@ const SearchBar = ({ placeholder, value, onChange, onClear }) => {
 const MenuCategoryManagement = () => {
 	const { user, loading: contextLoading } = useUser()
 	const { showLoading, hideLoading } = useLoading()
+	const { showAlert } = useAlert()
 
-	const [categories, setCategories] = useState(mockCategories)
-	const [loading, setLoading] = useState(false)
+	const [categories, setCategories] = useState([])
+	const [loading, setLoading] = useState(true)
 	const [isAddModalOpen, setIsAddModalOpen] = useState(false)
 	const [selectedCategorySlug, setSelectedCategorySlug] = useState(null)
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
@@ -316,13 +249,58 @@ const MenuCategoryManagement = () => {
 	// Debounce search query
 	const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
+	// Fetch categories from API
 	const fetchCategories = async () => {
-		console.log('Fetching menu categories...')
+		if (!user || !user.userId) {
+			console.log('⏳ Waiting for user data...')
+			return
+		}
+
+		const tenantId = user.userId
+		setLoading(true)
+
+		try {
+			console.log('📥 Fetching categories for tenant:', tenantId)
+			const result = await getCategoriesAPI(tenantId, {
+				sortBy: 'displayOrder',
+				sortOrder: 'ASC',
+			})
+
+			if (result.success) {
+				// Transform backend data to frontend format
+				const transformedCategories = result.categories.map((cat) => ({
+					id: cat.id,
+					name: cat.name,
+					description: cat.description,
+					image: cat.image || 'https://images3.alphacoders.com/108/1088128.jpg', // Default image
+					route: cat.name.toLowerCase().replace(/\s+/g, '-'),
+					status: cat.status, // "ACTIVE" or "INACTIVE"
+					displayOrder: cat.displayOrder,
+					itemCount: cat.itemCount || 0,
+					createdAt: cat.createdAt,
+					updatedAt: cat.updatedAt,
+				}))
+
+				setCategories(transformedCategories)
+				console.log('✅ Categories loaded:', transformedCategories.length)
+			} else {
+				console.error('❌ Failed to fetch categories:', result.message)
+				showAlert('error', 'Failed to load categories', result.message)
+			}
+		} catch (error) {
+			console.error('❌ Error fetching categories:', error)
+			showAlert('error', 'Error', 'Failed to load categories. Please try again.')
+		} finally {
+			setLoading(false)
+		}
 	}
 
+	// Load categories when component mounts or user changes
 	useEffect(() => {
-		// if (!contextLoading) fetchCategories();
-	}, [contextLoading])
+		if (!contextLoading && user) {
+			fetchCategories()
+		}
+	}, [contextLoading, user])
 
 	const handleDeleteCategory = async (category) => {
 		setCategoryToDelete(category)
@@ -337,26 +315,34 @@ const MenuCategoryManagement = () => {
 			return
 		}
 
-		setLoading(true)
 		showLoading(
 			`${actionText === 'activate' ? 'Activating' : 'Deactivating'} category...`,
 		)
 
 		try {
-			// TODO: Replace with actual API call when backend is ready
-			// await axios.patch(`/api/categories/${category.id}`, { status: newStatus })
+			const tenantId = user.userId
+			const result = await updateCategoryStatusAPI(tenantId, category.id, newStatus)
 
-			setCategories((prev) =>
-				prev.map((c) => (c.id === category.id ? { ...c, status: newStatus } : c)),
-			)
+			if (result.success) {
+				// Update local state
+				setCategories((prev) =>
+					prev.map((c) => (c.id === category.id ? { ...c, status: newStatus } : c)),
+				)
 
-			console.log(`Category ${category.id} status changed to: ${newStatus}`)
-			// Show success notification (optional)
+				showAlert(
+					'success',
+					'Success',
+					`Category "${category.name}" has been ${actionText}d.`,
+				)
+				console.log(`✅ Category ${category.id} status changed to: ${newStatus}`)
+			} else {
+				console.error('❌ Failed to toggle status:', result.message)
+				showAlert('error', 'Failed', result.message)
+			}
 		} catch (error) {
-			console.error('Error toggling category status:', error)
-			alert(`Failed to ${actionText} category. Please try again.`)
+			console.error('❌ Error toggling category status:', error)
+			showAlert('error', 'Error', `Failed to ${actionText} category. Please try again.`)
 		} finally {
-			setLoading(false)
 			hideLoading()
 		}
 	}
@@ -368,16 +354,29 @@ const MenuCategoryManagement = () => {
 		const categoryName = categoryToDelete.name
 
 		setIsDeleteModalOpen(false)
-		setLoading(true)
-		showLoading('Đang xóa danh mục...')
+		showLoading('Deleting category...')
 
-		setCategories((prev) => prev.filter((c) => c.id !== categoryId))
-		setCategoryToDelete(null)
+		try {
+			const tenantId = user.userId
+			const result = await deleteCategoryAPI(tenantId, categoryId)
 
-		console.log(`DELETING Category: ${categoryId}`)
+			if (result.success) {
+				// Remove from local state
+				setCategories((prev) => prev.filter((c) => c.id !== categoryId))
+				setCategoryToDelete(null)
 
-		setLoading(false)
-		hideLoading()
+				showAlert('success', 'Deleted', `Category "${categoryName}" has been deleted.`)
+				console.log(`✅ Category ${categoryId} deleted successfully`)
+			} else {
+				console.error('❌ Failed to delete category:', result.message)
+				showAlert('error', 'Failed', result.message)
+			}
+		} catch (error) {
+			console.error('❌ Error deleting category:', error)
+			showAlert('error', 'Error', 'Failed to delete category. Please try again.')
+		} finally {
+			hideLoading()
+		}
 	}
 
 	const handleCardClick = (route) => {
@@ -392,13 +391,70 @@ const MenuCategoryManagement = () => {
 		setIsAddModalOpen(true)
 	}
 
-	const handleSaveCategory = (newCategory) => {
-		const categoryWithRoute = {
-			...newCategory,
-			route: newCategory.name.toLowerCase().replace(/\s+/g, '-'),
-			id: Date.now(),
+	const handleSaveCategory = async (newCategoryData) => {
+		if (!user || !user.userId) {
+			showAlert('error', 'Error', 'User not found. Please login again.')
+			return
 		}
-		setCategories((prev) => [...prev, categoryWithRoute])
+
+		showLoading('Creating category...')
+
+		try {
+			const tenantId = user.userId
+
+			// Map frontend field names to backend requirements
+			const categoryPayload = {
+				name: newCategoryData.name,
+				description: newCategoryData.description || '',
+				status: newCategoryData.status || 'ACTIVE',
+				displayOrder: newCategoryData.displayOrder || 0,
+			}
+
+			// Add image URL if available
+			if (newCategoryData.image) {
+				categoryPayload.image = newCategoryData.image
+				console.log('🖼️ Image URL included:', newCategoryData.image)
+			}
+
+			console.log('📤 Creating category:', categoryPayload)
+			const result = await createCategoryAPI(tenantId, categoryPayload)
+
+			if (result.success) {
+				// Transform backend response to frontend format
+				const transformedCategory = {
+					id: result.category.id,
+					name: result.category.name,
+					description: result.category.description,
+					image:
+						result.category.image || 'https://images3.alphacoders.com/108/1088128.jpg',
+					route: result.category.name.toLowerCase().replace(/\s+/g, '-'),
+					status: result.category.status,
+					displayOrder: result.category.displayOrder,
+					itemCount: 0,
+					createdAt: result.category.createdAt,
+					updatedAt: result.category.updatedAt,
+				}
+
+				// Add to local state
+				setCategories((prev) => [...prev, transformedCategory])
+				setIsAddModalOpen(false)
+
+				showAlert(
+					'success',
+					'Success',
+					`Category "${result.category.name}" created successfully!`,
+				)
+				console.log('✅ Category created:', transformedCategory)
+			} else {
+				console.error('❌ Failed to create category:', result.message)
+				showAlert('error', 'Failed', result.message)
+			}
+		} catch (error) {
+			console.error('❌ Error creating category:', error)
+			showAlert('error', 'Error', 'Failed to create category. Please try again.')
+		} finally {
+			hideLoading()
+		}
 	}
 
 	const handleAddDish = () => {
@@ -444,15 +500,18 @@ const MenuCategoryManagement = () => {
 
 				<div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
 					{loading ? (
-						<p className="text-[#9dabb9] lg:col-span-3 text-center py-10">
-							Loading categories...
-						</p>
+						// Loading skeleton
+						<>
+							{[1, 2, 3, 4].map((i) => (
+								<CardSkeleton key={i} />
+							))}
+						</>
 					) : filteredCategories.length === 0 ? (
 						<div className="lg:col-span-4 text-center py-10">
 							<p className="text-[#9dabb9] text-lg">
 								{searchQuery
 									? `No categories found matching "${searchQuery}"`
-									: 'No categories available'}
+									: 'No categories available. Click "Add New Category" to get started.'}
 							</p>
 						</div>
 					) : (
@@ -467,7 +526,7 @@ const MenuCategoryManagement = () => {
 						))
 					)}
 
-					{!searchQuery && <AddCategoryCard onClick={handleAddCategory} />}
+					{!searchQuery && !loading && <AddCategoryCard onClick={handleAddCategory} />}
 				</div>
 
 				{/* MODALS - Được render ở ngoài BasePageLayout */}
@@ -481,6 +540,7 @@ const MenuCategoryManagement = () => {
 				{selectedCategorySlug ? (
 					<CategoryDishes
 						categorySlug={selectedCategorySlug}
+						category={categories.find((cat) => cat.route === selectedCategorySlug)}
 						onBack={handleBackToCategories}
 					/>
 				) : (
