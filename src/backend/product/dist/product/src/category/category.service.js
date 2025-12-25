@@ -139,8 +139,9 @@ let CategoryService = class CategoryService {
         const activeItemsCount = await this.menuItemRepository.count({
             where: {
                 categoryId: dto.categoryId,
-                available: true,
-                published: true,
+                tenantId: dto.tenantId,
+                status: enums_1.MenuItemStatus.AVAILABLE,
+                deletedAt: (0, typeorm_2.IsNull)(),
             },
         });
         if (activeItemsCount > 0) {

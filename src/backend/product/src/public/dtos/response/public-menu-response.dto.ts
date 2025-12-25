@@ -5,6 +5,30 @@ export class PublicMenuCategoryDto {
 	items: PublicMenuItemDto[];
 }
 
+export class PublicPhotoDto {
+	id: string;
+	url: string;
+	isPrimary: boolean;
+	displayOrder: number;
+}
+
+export class PublicModifierOptionDto {
+	id: string;
+	label: string;
+	priceDelta: number;
+	displayOrder: number;
+}
+
+export class PublicModifierGroupDto {
+	id: string;
+	name: string;
+	displayOrder: number;
+	isRequired: boolean;
+	minSelections: number;
+	maxSelections: number;
+	options: PublicModifierOptionDto[];
+}
+
 export class PublicMenuItemDto {
 	id: string;
 	categoryId: string;
@@ -17,22 +41,7 @@ export class PublicMenuItemDto {
 	prepTimeMinutes?: number;
 	isChefRecommended: boolean;
 	status: string; // "AVAILABLE", "UNAVAILABLE", or "SOLD_OUT"
-	modifiers: PublicModifierDto[];
-}
-
-export class PublicPhotoDto {
-	id: string;
-	url: string;
-	isPrimary: boolean;
-	displayOrder: number;
-}
-
-export class PublicModifierDto {
-	id: string;
-	groupName: string;
-	label: string;
-	priceDelta: number;
-	type: string;
+	modifierGroups: PublicModifierGroupDto[];
 }
 
 export class GetPublicMenuResponseDto {

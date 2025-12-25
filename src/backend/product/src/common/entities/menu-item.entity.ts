@@ -10,8 +10,8 @@ import {
 	PrimaryGeneratedColumn,
 } from 'typeorm';
 import { MenuCategory } from './menu-category.entity';
-import { ModifierOption } from './modifier-option.entity';
 import { MenuItemPhoto } from './menu-item-photo.entity';
+import { MenuItemModifierGroup } from './menu-item-modifier-group.entity';
 import { MenuItemStatus } from '../enums';
 
 @Entity()
@@ -59,8 +59,10 @@ export class MenuItem {
 	@JoinColumn({ name: 'categoryId' })
 	category: MenuCategory;
 
-	@OneToMany(() => ModifierOption, (modifier) => modifier.item)
-	modifiers: ModifierOption[];
+	@OneToMany(() => MenuItemModifierGroup, (modifierGroup) => modifierGroup.menuItem, {
+		cascade: true,
+	})
+	modifierGroups: MenuItemModifierGroup[];
 
 	@OneToMany(() => MenuItemPhoto, (photo) => photo.menuItem, { cascade: true })
 	photos: MenuItemPhoto[];

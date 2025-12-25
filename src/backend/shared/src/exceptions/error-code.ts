@@ -149,7 +149,42 @@ export default class ErrorCode {
 		404
 	);
 
-	/** Modifier not found */
+	/** Modifier group not found */
+	static readonly MODIFIER_GROUP_NOT_FOUND: ErrorCode = new ErrorCode(
+		3006,
+		"Modifier group not found",
+		404
+	);
+
+	/** Duplicate modifier group name */
+	static readonly DUPLICATE_MODIFIER_GROUP_NAME: ErrorCode = new ErrorCode(
+		3007,
+		"Modifier group with this name already exists",
+		409
+	);
+
+	/** Modifier option not found */
+	static readonly MODIFIER_OPTION_NOT_FOUND: ErrorCode = new ErrorCode(
+		3008,
+		"Modifier option not found",
+		404
+	);
+
+	/** Modifier group not attached to menu item */
+	static readonly MODIFIER_GROUP_NOT_ATTACHED: ErrorCode = new ErrorCode(
+		3009,
+		"Modifier group is not attached to this menu item",
+		404
+	);
+
+	/** Menu item not found (alternative) */
+	static readonly MENU_ITEM_NOT_FOUND: ErrorCode = new ErrorCode(
+		3010,
+		"Menu item not found",
+		404
+	);
+
+	/** Deprecated: Modifier not found */
 	static readonly MODIFIER_NOT_FOUND: ErrorCode = new ErrorCode(
 		3003,
 		"Modifier not found",

@@ -17,6 +17,7 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const entities_1 = require("../common/entities");
+const enums_1 = require("../common/enums");
 let PublicService = class PublicService {
     categoryRepository;
     itemRepository;
@@ -28,7 +29,11 @@ let PublicService = class PublicService {
     }
     async getPublicMenu(dto) {
         const categories = await this.categoryRepository.find({
-            where: { tenantId: dto.tenantId, published: true },
+            where: {
+                tenantId: dto.tenantId,
+                status: enums_1.CategoryStatus.ACTIVE,
+                deletedAt: (0, typeorm_2.IsNull)(),
+            },
             order: { displayOrder: 'ASC', createdAt: 'ASC' },
         });
         if (categories.length === 0) {
@@ -41,10 +46,10 @@ let PublicService = class PublicService {
         const items = await this.itemRepository.find({
             where: categoryIds.map((catId) => ({
                 categoryId: catId,
-                published: true,
-                available: true,
+                status: enums_1.MenuItemStatus.AVAILABLE,
+                deletedAt: (0, typeorm_2.IsNull)(),
             })),
-            relations: ['modifiers'],
+            relations: ['modifiers', 'photos'],
             order: { createdAt: 'ASC' },
         });
         const categoriesWithItems = categories.map((category) => {
@@ -63,15 +68,31 @@ let PublicService = class PublicService {
         };
     }
     toPublicItemDto(item) {
+        const sortedPhotos = item.photos?.sort((a, b) => {
+            if (a.isPrimary && !b.isPrimary)
+                return -1;
+            if (!a.isPrimary && b.isPrimary)
+                return 1;
+            return a.displayOrder - b.displayOrder;
+        });
+        const primaryPhoto = sortedPhotos?.[0];
         return {
             id: item.id,
             categoryId: item.categoryId,
             name: item.name,
             description: item.description,
-            imageUrl: item.imageUrl,
+            imageUrl: primaryPhoto?.url,
+            photos: sortedPhotos?.map((photo) => ({
+                id: photo.id,
+                url: photo.url,
+                isPrimary: photo.isPrimary,
+                displayOrder: photo.displayOrder,
+            })),
             price: Number(item.price),
             currency: item.currency,
-            available: item.available,
+            prepTimeMinutes: item.prepTimeMinutes,
+            isChefRecommended: item.isChefRecommended,
+            status: (0, enums_1.menuItemStatusToString)(item.status),
             modifiers: (item.modifiers || []).map((mod) => this.toPublicModifierDto(mod)),
         };
     }
