@@ -11,7 +11,6 @@ export class MenuItemResponseDto {
 	categoryName?: string; // Populated from relation
 	name: string;
 	description?: string;
-	imageUrl?: string;
 	price: number;
 	currency: string;
 	prepTimeMinutes?: number;

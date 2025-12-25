@@ -13,7 +13,6 @@ export class ItemResponseDto {
 	categoryId: string;
 	name: string;
 	description?: string;
-	imageUrl?: string;
 	price: number;
 	currency: string;
 	available: boolean;
