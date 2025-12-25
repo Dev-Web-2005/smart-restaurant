@@ -1,27 +1,51 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { MenuItem } from './menu-item.entity';
+import {
+	Column,
+	CreateDateColumn,
+	DeleteDateColumn,
+	Entity,
+	JoinColumn,
+	ManyToOne,
+	PrimaryGeneratedColumn,
+	UpdateDateColumn,
+} from 'typeorm';
+import { ModifierGroup } from './modifier-group.entity';
 
-@Entity()
+/**
+ * ModifierOption Entity
+ *
+ * Individual options within a modifier group
+ * Example: In "Size" group, options could be "Small", "Medium", "Large"
+ */
+@Entity('modifier_options')
 export class ModifierOption {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;
 
 	@Column()
-	itemId: string;
+	modifierGroupId: string;
 
-	@Column()
-	groupName: string;
+	@Column({ nullable: false, length: 100 })
+	label: string; // e.g., "Small", "Medium", "Large"
 
-	@Column()
-	label: string;
+	@Column('decimal', { precision: 10, scale: 2, default: 0 })
+	priceDelta: number; // Price adjustment (+2.00, -1.00, 0.00)
 
-	@Column('decimal', { default: 0 })
-	priceDelta: number;
+	@Column({ type: 'int', default: 0 })
+	displayOrder: number;
 
-	@Column({ default: 'single' })
-	type: string;
+	@Column({ type: 'boolean', default: true })
+	isActive: boolean;
 
-	@ManyToOne(() => MenuItem, (item) => item.modifiers, { onDelete: 'CASCADE' })
-	@JoinColumn({ name: 'itemId' })
-	item: MenuItem;
+	@CreateDateColumn()
+	createdAt: Date;
+
+	@UpdateDateColumn()
+	updatedAt: Date;
+
+	@DeleteDateColumn()
+	deletedAt: Date;
+
+	@ManyToOne(() => ModifierGroup, (group) => group.options, { onDelete: 'CASCADE' })
+	@JoinColumn({ name: 'modifierGroupId' })
+	group: ModifierGroup;
 }

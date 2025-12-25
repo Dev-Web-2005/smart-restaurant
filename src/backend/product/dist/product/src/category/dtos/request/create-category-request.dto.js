@@ -11,10 +11,14 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateCategoryRequestDto = void 0;
 const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
+const enums_1 = require("../../../common/enums");
 class CreateCategoryRequestDto {
     tenantId;
     name;
     description;
+    status;
+    displayOrder;
     productApiKey;
 }
 exports.CreateCategoryRequestDto = CreateCategoryRequestDto;
@@ -26,6 +30,7 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsString)({ message: 'Name of the category must be a string' }),
     (0, class_validator_1.IsNotEmpty)({ message: 'Name of the category must not be empty' }),
+    (0, class_validator_1.Length)(2, 50, { message: 'Category name must be between 2 and 50 characters' }),
     __metadata("design:type", String)
 ], CreateCategoryRequestDto.prototype, "name", void 0);
 __decorate([
@@ -33,6 +38,21 @@ __decorate([
     (0, class_validator_1.IsString)({ message: 'Description must be a string' }),
     __metadata("design:type", String)
 ], CreateCategoryRequestDto.prototype, "description", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)({ message: 'Status must be a string' }),
+    (0, class_validator_1.IsIn)(['ACTIVE', 'INACTIVE', 'active', 'inactive'], {
+        message: 'Status must be either ACTIVE or INACTIVE',
+    }),
+    (0, class_transformer_1.Transform)(({ value }) => (value ? (0, enums_1.categoryStatusFromString)(value) : undefined)),
+    __metadata("design:type", Number)
+], CreateCategoryRequestDto.prototype, "status", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsInt)({ message: 'Display order must be an integer' }),
+    (0, class_validator_1.Min)(0, { message: 'Display order must be a non-negative integer' }),
+    __metadata("design:type", Number)
+], CreateCategoryRequestDto.prototype, "displayOrder", void 0);
 __decorate([
     (0, class_validator_1.IsNotEmpty)({ message: 'Product API key must not be empty' }),
     (0, class_validator_1.IsString)({ message: 'Product API key must be a string' }),

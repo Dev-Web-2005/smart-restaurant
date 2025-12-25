@@ -14,10 +14,11 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-__exportStar(require("./create-item-request.dto"), exports);
-__exportStar(require("./update-item-request.dto"), exports);
-__exportStar(require("./get-items-request.dto"), exports);
-__exportStar(require("./publish-item-request.dto"), exports);
-__exportStar(require("./delete-item-request.dto"), exports);
+__exportStar(require("./create-menu-item-request.dto"), exports);
+__exportStar(require("./update-menu-item-request.dto"), exports);
+__exportStar(require("./get-menu-items-request.dto"), exports);
+__exportStar(require("./update-menu-item-status-request.dto"), exports);
+__exportStar(require("./delete-menu-item-request.dto"), exports);
 __exportStar(require("./add-modifiers-request.dto"), exports);
+__exportStar(require("./menu-item-photo-request.dto"), exports);
 //# sourceMappingURL=index.js.map

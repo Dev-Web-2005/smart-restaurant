@@ -20,6 +20,7 @@ const table_controller_1 = require("./services/table/table.controller");
 const floor_controller_1 = require("./services/table/floor.controller");
 const product_controller_1 = require("./services/product/product.controller");
 const public_url_middleware_1 = require("./common/middleware/public-url/public-url.middleware");
+const health_controller_1 = require("./health.controller");
 let AppModule = class AppModule {
     configure(consumer) {
         consumer
@@ -68,6 +69,7 @@ exports.AppModule = AppModule = __decorate([
             ]),
         ],
         controllers: [
+            health_controller_1.HealthController,
             app_controller_1.AppController,
             identity_controller_1.IdentityController,
             profile_controller_1.ProfileController,

@@ -18,7 +18,10 @@ let ItemModule = class ItemModule {
 exports.ItemModule = ItemModule;
 exports.ItemModule = ItemModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([entities_1.MenuItem, entities_1.ModifierOption]), config_1.ConfigModule],
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([entities_1.MenuItem, entities_1.MenuCategory, entities_1.MenuItemPhoto]),
+            config_1.ConfigModule,
+        ],
         controllers: [item_controller_1.ItemController],
         providers: [item_service_1.ItemService],
         exports: [item_service_1.ItemService],
