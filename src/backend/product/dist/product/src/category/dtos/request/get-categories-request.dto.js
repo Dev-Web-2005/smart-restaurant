@@ -11,8 +11,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GetCategoriesRequestDto = exports.SortOrder = exports.CategorySortBy = void 0;
 const class_validator_1 = require("class-validator");
-const class_transformer_1 = require("class-transformer");
-const enums_1 = require("../../../common/enums");
 var CategorySortBy;
 (function (CategorySortBy) {
     CategorySortBy["DISPLAY_ORDER"] = "displayOrder";
@@ -44,8 +42,7 @@ __decorate([
     (0, class_validator_1.IsIn)(['ACTIVE', 'INACTIVE', 'active', 'inactive'], {
         message: 'Status must be either ACTIVE or INACTIVE',
     }),
-    (0, class_transformer_1.Transform)(({ value }) => (value ? (0, enums_1.categoryStatusFromString)(value) : undefined)),
-    __metadata("design:type", Number)
+    __metadata("design:type", Object)
 ], GetCategoriesRequestDto.prototype, "status", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),

@@ -8,8 +8,7 @@ import {
 	Length,
 	Min,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
-import { CategoryStatus, categoryStatusFromString } from 'src/common/enums';
+import { CategoryStatus } from 'src/common/enums';
 
 export class CreateCategoryRequestDto {
 	@IsNotEmpty({ message: 'Tenant ID must not be empty' })
@@ -30,8 +29,7 @@ export class CreateCategoryRequestDto {
 	@IsIn(['ACTIVE', 'INACTIVE', 'active', 'inactive'], {
 		message: 'Status must be either ACTIVE or INACTIVE',
 	})
-	@Transform(({ value }) => (value ? categoryStatusFromString(value) : undefined))
-	status?: CategoryStatus;
+	status?: CategoryStatus | string;
 
 	@IsOptional()
 	@IsInt({ message: 'Display order must be an integer' })

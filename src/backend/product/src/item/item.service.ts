@@ -3,7 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import { MenuItem, MenuCategory, MenuItemPhoto } from 'src/common/entities';
-import { MenuItemStatus, menuItemStatusToString } from 'src/common/enums';
+import {
+	MenuItemStatus,
+	menuItemStatusToString,
+	menuItemStatusFromString,
+} from 'src/common/enums';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
 import {
@@ -73,6 +77,16 @@ export class ItemService {
 			throw new AppException(ErrorCode.CATEGORY_NOT_FOUND);
 		}
 
+		// Convert string status to enum if needed
+		let statusValue = MenuItemStatus.AVAILABLE; // Default
+		if (dto.status !== undefined) {
+			// If status is already a number (enum), use it; otherwise convert from string
+			statusValue =
+				typeof dto.status === 'number'
+					? dto.status
+					: menuItemStatusFromString(dto.status as unknown as string);
+		}
+
 		const menuItem = this.menuItemRepository.create({
 			tenantId: dto.tenantId,
 			categoryId: dto.categoryId,
@@ -81,7 +95,7 @@ export class ItemService {
 			price: dto.price,
 			currency: dto.currency || 'VND',
 			prepTimeMinutes: dto.prepTimeMinutes,
-			status: dto.status ?? MenuItemStatus.AVAILABLE,
+			status: statusValue,
 			isChefRecommended: dto.isChefRecommended ?? false,
 		});
 
@@ -117,7 +131,12 @@ export class ItemService {
 
 		// Filter by status
 		if (dto.status !== undefined) {
-			queryBuilder.andWhere('item.status = :status', { status: dto.status });
+			// Convert string status to enum if needed
+			const statusValue =
+				typeof dto.status === 'number'
+					? dto.status
+					: menuItemStatusFromString(dto.status as unknown as string);
+			queryBuilder.andWhere('item.status = :status', { status: statusValue });
 		}
 
 		// Filter by chef recommended
@@ -220,7 +239,13 @@ export class ItemService {
 		if (dto.price !== undefined) menuItem.price = dto.price;
 		if (dto.currency !== undefined) menuItem.currency = dto.currency;
 		if (dto.prepTimeMinutes !== undefined) menuItem.prepTimeMinutes = dto.prepTimeMinutes;
-		if (dto.status !== undefined) menuItem.status = dto.status;
+		if (dto.status !== undefined) {
+			// Convert string status to enum if needed
+			menuItem.status =
+				typeof dto.status === 'number'
+					? dto.status
+					: menuItemStatusFromString(dto.status as unknown as string);
+		}
 		if (dto.isChefRecommended !== undefined)
 			menuItem.isChefRecommended = dto.isChefRecommended;
 
@@ -251,7 +276,12 @@ export class ItemService {
 			throw new AppException(ErrorCode.ITEM_NOT_FOUND);
 		}
 
-		menuItem.status = dto.status;
+		// Convert string status to enum if needed
+		menuItem.status =
+			typeof dto.status === 'number'
+				? dto.status
+				: menuItemStatusFromString(dto.status as unknown as string);
+
 		const updated = await this.menuItemRepository.save(menuItem);
 		return this.toResponseDto(updated, menuItem.category?.name);
 	}

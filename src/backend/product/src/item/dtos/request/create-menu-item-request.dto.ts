@@ -8,8 +8,7 @@ import {
 	Length,
 	IsIn,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
-import { menuItemStatusFromString, MenuItemStatus } from 'src/common/enums';
+import { MenuItemStatus } from 'src/common/enums';
 
 /**
  * DTO for creating a new menu item
@@ -60,8 +59,7 @@ export class CreateMenuItemRequestDto {
 
 	@IsOptional()
 	@IsIn(['AVAILABLE', 'UNAVAILABLE', 'SOLD_OUT', 'available', 'unavailable', 'sold_out'])
-	@Transform(({ value }) => menuItemStatusFromString(value))
-	status?: MenuItemStatus;
+	status?: MenuItemStatus | string;
 
 	@IsOptional()
 	isChefRecommended?: boolean;

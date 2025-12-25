@@ -10,7 +10,7 @@ export declare enum SortOrder {
 }
 export declare class GetCategoriesRequestDto {
     tenantId: string;
-    status?: CategoryStatus;
+    status?: CategoryStatus | string;
     search?: string;
     sortBy?: CategorySortBy;
     sortOrder?: SortOrder;
