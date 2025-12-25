@@ -6,7 +6,15 @@ import { AppService } from './app.service';
 import { CategoryModule } from './category/category.module';
 import { ItemModule } from './item/item.module';
 import { PublicModule } from './public/public.module';
-import { MenuCategory, MenuItem, ModifierOption } from './common/entities';
+import { ModifierModule } from './modifier/modifier.module';
+import {
+	MenuCategory,
+	MenuItem,
+	MenuItemPhoto,
+	ModifierGroup,
+	ModifierOption,
+	MenuItemModifierGroup,
+} from './common/entities';
 
 @Module({
 	imports: [
@@ -23,7 +31,14 @@ import { MenuCategory, MenuItem, ModifierOption } from './common/entities';
 				username: configService.get('USERNAME_DB'),
 				password: configService.get('PASSWORD_DB'),
 				database: configService.get('DATABASE_DB'),
-				entities: [MenuCategory, MenuItem, ModifierOption],
+				entities: [
+					MenuCategory,
+					MenuItem,
+					MenuItemPhoto,
+					ModifierGroup,
+					ModifierOption,
+					MenuItemModifierGroup,
+				],
 				synchronize: true,
 				logging: false,
 			}),
@@ -32,6 +47,7 @@ import { MenuCategory, MenuItem, ModifierOption } from './common/entities';
 		CategoryModule,
 		ItemModule,
 		PublicModule,
+		ModifierModule,
 	],
 	controllers: [AppController],
 	providers: [AppService],

@@ -24,80 +24,128 @@ let ItemController = class ItemController {
     constructor(itemService) {
         this.itemService = itemService;
     }
-    async createItem(dto) {
+    async createMenuItem(dto) {
         return (0, rpc_error_handler_1.handleRpcCall)(async () => {
-            const item = await this.itemService.createItem(dto);
+            const item = await this.itemService.createMenuItem(dto);
             return new http_response_1.default(1000, 'Menu item created successfully', item);
         });
     }
-    async getItems(dto) {
+    async getMenuItems(dto) {
         return (0, rpc_error_handler_1.handleRpcCall)(async () => {
-            const items = await this.itemService.getItems(dto);
-            return new http_response_1.default(1000, 'Menu items retrieved successfully', items);
+            const result = await this.itemService.getMenuItems(dto);
+            return new http_response_1.default(1000, 'Menu items retrieved successfully', result);
         });
     }
-    async updateItem(dto) {
+    async updateMenuItem(dto) {
         return (0, rpc_error_handler_1.handleRpcCall)(async () => {
-            const item = await this.itemService.updateItem(dto);
+            const item = await this.itemService.updateMenuItem(dto);
             return new http_response_1.default(1000, 'Menu item updated successfully', item);
         });
     }
-    async publishItem(dto) {
+    async updateMenuItemStatus(dto) {
         return (0, rpc_error_handler_1.handleRpcCall)(async () => {
-            const item = await this.itemService.publishItem(dto);
-            return new http_response_1.default(1000, 'Menu item publish status updated', item);
+            const item = await this.itemService.updateMenuItemStatus(dto);
+            return new http_response_1.default(1000, 'Menu item status updated successfully', item);
         });
     }
-    async deleteItem(dto) {
+    async deleteMenuItem(dto) {
         return (0, rpc_error_handler_1.handleRpcCall)(async () => {
-            await this.itemService.deleteItem(dto);
+            await this.itemService.deleteMenuItem(dto);
             return new http_response_1.default(1000, 'Menu item deleted successfully');
         });
     }
-    async addModifiers(dto) {
+    async addMenuItemPhoto(dto) {
         return (0, rpc_error_handler_1.handleRpcCall)(async () => {
-            const item = await this.itemService.addModifiers(dto);
-            return new http_response_1.default(1000, 'Modifiers added successfully', item);
+            const photo = await this.itemService.addMenuItemPhoto(dto);
+            return new http_response_1.default(1000, 'Photo added successfully', photo);
+        });
+    }
+    async getMenuItemPhotos(dto) {
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const result = await this.itemService.getMenuItemPhotos(dto);
+            return new http_response_1.default(1000, 'Photos retrieved successfully', result);
+        });
+    }
+    async updateMenuItemPhoto(dto) {
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const photo = await this.itemService.updateMenuItemPhoto(dto);
+            return new http_response_1.default(1000, 'Photo updated successfully', photo);
+        });
+    }
+    async setPrimaryPhoto(dto) {
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const photo = await this.itemService.setPrimaryPhoto(dto);
+            return new http_response_1.default(1000, 'Primary photo set successfully', photo);
+        });
+    }
+    async deleteMenuItemPhoto(dto) {
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            await this.itemService.deleteMenuItemPhoto(dto);
+            return new http_response_1.default(1000, 'Photo deleted successfully');
         });
     }
 };
 exports.ItemController = ItemController;
 __decorate([
-    (0, microservices_1.MessagePattern)('items:create'),
+    (0, microservices_1.MessagePattern)('menu-items:create'),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [request_1.CreateItemRequestDto]),
+    __metadata("design:paramtypes", [request_1.CreateMenuItemRequestDto]),
     __metadata("design:returntype", Promise)
-], ItemController.prototype, "createItem", null);
+], ItemController.prototype, "createMenuItem", null);
 __decorate([
-    (0, microservices_1.MessagePattern)('items:get-all'),
+    (0, microservices_1.MessagePattern)('menu-items:get-all'),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [request_1.GetItemsRequestDto]),
+    __metadata("design:paramtypes", [request_1.GetMenuItemsRequestDto]),
     __metadata("design:returntype", Promise)
-], ItemController.prototype, "getItems", null);
+], ItemController.prototype, "getMenuItems", null);
 __decorate([
-    (0, microservices_1.MessagePattern)('items:update'),
+    (0, microservices_1.MessagePattern)('menu-items:update'),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [request_1.UpdateItemRequestDto]),
+    __metadata("design:paramtypes", [request_1.UpdateMenuItemRequestDto]),
     __metadata("design:returntype", Promise)
-], ItemController.prototype, "updateItem", null);
+], ItemController.prototype, "updateMenuItem", null);
 __decorate([
-    (0, microservices_1.MessagePattern)('items:publish'),
+    (0, microservices_1.MessagePattern)('menu-items:update-status'),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [request_1.PublishItemRequestDto]),
+    __metadata("design:paramtypes", [request_1.UpdateMenuItemStatusRequestDto]),
     __metadata("design:returntype", Promise)
-], ItemController.prototype, "publishItem", null);
+], ItemController.prototype, "updateMenuItemStatus", null);
 __decorate([
-    (0, microservices_1.MessagePattern)('items:delete'),
+    (0, microservices_1.MessagePattern)('menu-items:delete'),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [request_1.DeleteItemRequestDto]),
+    __metadata("design:paramtypes", [request_1.DeleteMenuItemRequestDto]),
     __metadata("design:returntype", Promise)
-], ItemController.prototype, "deleteItem", null);
+], ItemController.prototype, "deleteMenuItem", null);
 __decorate([
-    (0, microservices_1.MessagePattern)('items:add-modifiers'),
+    (0, microservices_1.MessagePattern)('menu-item-photos:add'),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [request_1.AddModifiersRequestDto]),
+    __metadata("design:paramtypes", [request_1.AddMenuItemPhotoRequestDto]),
     __metadata("design:returntype", Promise)
-], ItemController.prototype, "addModifiers", null);
+], ItemController.prototype, "addMenuItemPhoto", null);
+__decorate([
+    (0, microservices_1.MessagePattern)('menu-item-photos:get-all'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [request_1.GetMenuItemPhotosRequestDto]),
+    __metadata("design:returntype", Promise)
+], ItemController.prototype, "getMenuItemPhotos", null);
+__decorate([
+    (0, microservices_1.MessagePattern)('menu-item-photos:update'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [request_1.UpdateMenuItemPhotoRequestDto]),
+    __metadata("design:returntype", Promise)
+], ItemController.prototype, "updateMenuItemPhoto", null);
+__decorate([
+    (0, microservices_1.MessagePattern)('menu-item-photos:set-primary'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [request_1.SetPrimaryPhotoRequestDto]),
+    __metadata("design:returntype", Promise)
+], ItemController.prototype, "setPrimaryPhoto", null);
+__decorate([
+    (0, microservices_1.MessagePattern)('menu-item-photos:delete'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [request_1.DeleteMenuItemPhotoRequestDto]),
+    __metadata("design:returntype", Promise)
+], ItemController.prototype, "deleteMenuItemPhoto", null);
 exports.ItemController = ItemController = __decorate([
     (0, common_1.Controller)(),
     __metadata("design:paramtypes", [item_service_1.ItemService])

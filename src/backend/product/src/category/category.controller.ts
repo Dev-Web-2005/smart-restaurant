@@ -8,7 +8,7 @@ import {
 	CreateCategoryRequestDto,
 	GetCategoriesRequestDto,
 	UpdateCategoryRequestDto,
-	PublishCategoryRequestDto,
+	UpdateCategoryStatusRequestDto,
 	DeleteCategoryRequestDto,
 } from 'src/category/dtos/request';
 import { ConfigService } from '@nestjs/config';
@@ -33,8 +33,6 @@ export class CategoryController {
 	async createCategory(dto: CreateCategoryRequestDto) {
 		return handleRpcCall(async () => {
 			this.validateApiKey(dto.productApiKey);
-
-			console.log('Data received:', dto);
 
 			const category = await this.categoryService.createCategory(dto);
 			return new HttpResponse(1000, 'Category created successfully', category);
@@ -61,13 +59,13 @@ export class CategoryController {
 		});
 	}
 
-	@MessagePattern('categories:publish')
-	async publishCategory(dto: PublishCategoryRequestDto) {
+	@MessagePattern('categories:update-status')
+	async updateCategoryStatus(dto: UpdateCategoryStatusRequestDto) {
 		return handleRpcCall(async () => {
 			this.validateApiKey(dto.productApiKey);
 
-			const category = await this.categoryService.publishCategory(dto);
-			return new HttpResponse(1000, 'Category publish status updated', category);
+			const category = await this.categoryService.updateCategoryStatus(dto);
+			return new HttpResponse(1000, 'Category status updated successfully', category);
 		});
 	}
 

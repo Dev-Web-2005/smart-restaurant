@@ -1,11 +1,14 @@
 import {
 	Column,
 	CreateDateColumn,
+	DeleteDateColumn,
 	Entity,
 	OneToMany,
 	PrimaryGeneratedColumn,
+	UpdateDateColumn,
 } from 'typeorm';
 import { MenuItem } from './menu-item.entity';
+import { CategoryStatus } from '../enums';
 
 @Entity()
 export class MenuCategory {
@@ -15,20 +18,26 @@ export class MenuCategory {
 	@Column()
 	tenantId: string;
 
-	@Column({ nullable: false }) // Đảm bảo TypeORM cũng hiểu là không được null
+	@Column({ nullable: false, length: 50 })
 	name: string;
 
-	@Column({ nullable: true })
+	@Column({ nullable: true, type: 'text' })
 	description: string;
 
-	@Column({ default: false })
-	published: boolean;
+	@Column({ type: 'int', default: CategoryStatus.ACTIVE })
+	status: CategoryStatus;
 
-	@Column({ default: 0 })
+	@Column({ type: 'int', default: 0 })
 	displayOrder: number;
 
 	@CreateDateColumn()
 	createdAt: Date;
+
+	@UpdateDateColumn()
+	updatedAt: Date;
+
+	@DeleteDateColumn()
+	deletedAt: Date;
 
 	@OneToMany(() => MenuItem, (item) => item.category)
 	items: MenuItem[];

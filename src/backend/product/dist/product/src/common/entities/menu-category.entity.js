@@ -12,14 +12,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.MenuCategory = void 0;
 const typeorm_1 = require("typeorm");
 const menu_item_entity_1 = require("./menu-item.entity");
+const enums_1 = require("../enums");
 let MenuCategory = class MenuCategory {
     id;
     tenantId;
     name;
     description;
-    published;
+    status;
     displayOrder;
     createdAt;
+    updatedAt;
+    deletedAt;
     items;
 };
 exports.MenuCategory = MenuCategory;
@@ -32,25 +35,33 @@ __decorate([
     __metadata("design:type", String)
 ], MenuCategory.prototype, "tenantId", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ nullable: false }),
+    (0, typeorm_1.Column)({ nullable: false, length: 50 }),
     __metadata("design:type", String)
 ], MenuCategory.prototype, "name", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
+    (0, typeorm_1.Column)({ nullable: true, type: 'text' }),
     __metadata("design:type", String)
 ], MenuCategory.prototype, "description", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: false }),
-    __metadata("design:type", Boolean)
-], MenuCategory.prototype, "published", void 0);
+    (0, typeorm_1.Column)({ type: 'int', default: enums_1.CategoryStatus.ACTIVE }),
+    __metadata("design:type", Number)
+], MenuCategory.prototype, "status", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ default: 0 }),
+    (0, typeorm_1.Column)({ type: 'int', default: 0 }),
     __metadata("design:type", Number)
 ], MenuCategory.prototype, "displayOrder", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
 ], MenuCategory.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)(),
+    __metadata("design:type", Date)
+], MenuCategory.prototype, "updatedAt", void 0);
+__decorate([
+    (0, typeorm_1.DeleteDateColumn)(),
+    __metadata("design:type", Date)
+], MenuCategory.prototype, "deletedAt", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => menu_item_entity_1.MenuItem, (item) => item.category),
     __metadata("design:type", Array)
