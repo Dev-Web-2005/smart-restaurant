@@ -3,14 +3,9 @@
 
 import axios from 'axios'
 
-// Get API Gateway URL from environment variable or use relative path for development
-const API_BASE_URL = import.meta.env.VITE_API_GATEWAY_URL
-	? `${import.meta.env.VITE_API_GATEWAY_URL}/api/v1`
-	: '/api/v1'
-
 // Create axios instance
 const apiClient = axios.create({
-	baseURL: API_BASE_URL,
+	baseURL: '/api/v1',
 	withCredentials: true, // Enable cookies for refresh token
 	headers: {
 		'Content-Type': 'application/json',
@@ -19,11 +14,14 @@ const apiClient = axios.create({
 	timeout: 30000,
 })
 
-// Request Interceptor - Attach access token
+// Request Interceptor - Attach access token from memory (window.accessToken)
 apiClient.interceptors.request.use(
 	(config) => {
+		// ✅ Get access token from window (set by authAPI after login/refresh)
 		const accessToken = window.accessToken || ''
-		config.headers.Authorization = `Bearer ${accessToken}`
+		if (accessToken) {
+			config.headers.Authorization = `Bearer ${accessToken}`
+		}
 		return config
 	},
 	(error) => {

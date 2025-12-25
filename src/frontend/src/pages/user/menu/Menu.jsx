@@ -15,6 +15,7 @@ const mockCategories = [
 		name: 'Soups',
 		image: 'https://images3.alphacoders.com/108/1088128.jpg',
 		route: 'soups',
+		status: 'ACTIVE',
 	},
 	{
 		id: 2,
@@ -22,6 +23,7 @@ const mockCategories = [
 		image:
 			'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=500&q=80',
 		route: 'salads',
+		status: 'ACTIVE',
 	},
 	{
 		id: 3,
@@ -29,6 +31,7 @@ const mockCategories = [
 		image:
 			'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=500&q=80',
 		route: 'rice-dishes',
+		status: 'ACTIVE',
 	},
 	{
 		id: 4,
@@ -36,6 +39,7 @@ const mockCategories = [
 		image:
 			'https://images.unsplash.com/photo-1552611052-33e04de081de?auto=format&fit=crop&w=500&q=80',
 		route: 'noodle-dishes',
+		status: 'INACTIVE',
 	},
 	{
 		id: 5,
@@ -43,6 +47,7 @@ const mockCategories = [
 		image:
 			'https://images.unsplash.com/photo-1535400255456-984241443b29?auto=format&fit=crop&w=500&q=80',
 		route: 'seafood',
+		status: 'ACTIVE',
 	},
 	{
 		id: 6,
@@ -50,6 +55,7 @@ const mockCategories = [
 		image:
 			'https://sofein.ch/cdn/shop/articles/zart-und-wuerzig-das-perfekte-steak-mit-unserer-speziellen-marinade-1727604884.webp?v=1729157602',
 		route: 'grilled',
+		status: 'ACTIVE',
 	},
 	{
 		id: 7,
@@ -57,12 +63,14 @@ const mockCategories = [
 		image:
 			'https://media.istockphoto.com/id/1416818056/photo/colourful-vegan-bowl-with-quinoa-and-sweet-potato.jpg?s=612x612&w=0&k=20&c=t1I58CqucV6bLRaa4iDy7PIVjnV8D9eWDjEsX9X-87k=',
 		route: 'vegetarian',
+		status: 'ACTIVE',
 	},
 	{
 		id: 8,
 		name: 'Desserts',
 		image: 'https://wallpapercave.com/wp/wp12572997.jpg',
 		route: 'desserts',
+		status: 'ACTIVE',
 	},
 	{
 		id: 9,
@@ -70,6 +78,7 @@ const mockCategories = [
 		image:
 			'https://images.unsplash.com/photo-1544145945-f90425340c7e?auto=format&fit=crop&w=500&q=80',
 		route: 'beverages',
+		status: 'INACTIVE',
 	},
 ]
 
@@ -159,12 +168,19 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, categoryName }) =
 	return ReactDOM.createPortal(<ModalContent />, document.body)
 }
 
-// --- Sub-component: Category Button Card (GIỮ NGUYÊN) ---
-const CategoryCard = ({ category, onClick, onDeleteRequest }) => {
+// --- Sub-component: Category Button Card ---
+const CategoryCard = ({ category, onClick, onDeleteRequest, onToggleStatus }) => {
 	const handleDeleteClick = (e) => {
 		e.stopPropagation()
 		onDeleteRequest(category)
 	}
+
+	const handleToggleStatus = (e) => {
+		e.stopPropagation()
+		onToggleStatus(category)
+	}
+
+	const isActive = category.status === 'ACTIVE'
 
 	return (
 		<div
@@ -178,6 +194,14 @@ const CategoryCard = ({ category, onClick, onDeleteRequest }) => {
 					alt={category.name}
 					className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
 				/>
+				{/* Inactive Overlay */}
+				{!isActive && (
+					<div className="absolute inset-0 bg-black/60 z-15 flex items-center justify-center">
+						<span className="text-gray-400 text-sm font-bold bg-black/70 px-3 py-1 rounded-full">
+							INACTIVE
+						</span>
+					</div>
+				)}
 			</div>
 
 			<div className="absolute inset-0 z-20 flex flex-col items-start justify-end p-5 w-full text-left">
@@ -186,11 +210,28 @@ const CategoryCard = ({ category, onClick, onDeleteRequest }) => {
 				</h3>
 			</div>
 
-			<div className="absolute top-2 right-2 z-30 opacity-0 group-hover:opacity-100 transition-opacity">
+			{/* Action Buttons - Top Right */}
+			<div className="absolute top-2 right-2 z-30 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+				{/* Toggle Status Button */}
+				<button
+					onClick={handleToggleStatus}
+					title={isActive ? 'Deactivate category' : 'Activate category'}
+					className={`flex items-center justify-center w-8 h-8 rounded-full backdrop-blur-sm transition-colors ${
+						isActive
+							? 'bg-green-500/30 text-green-400 hover:bg-green-500/50 hover:text-green-300'
+							: 'bg-gray-500/30 text-gray-400 hover:bg-gray-500/50 hover:text-gray-300'
+					}`}
+				>
+					<span className="material-symbols-outlined text-base">
+						{isActive ? 'toggle_on' : 'toggle_off'}
+					</span>
+				</button>
+
+				{/* Delete Button */}
 				<button
 					onClick={handleDeleteClick}
 					title={`Delete ${category.name}`}
-					className="flex items-center justify-center w-8 h-8 rounded-full bg-black/50 text-red-400 hover:bg-red-600 hover:text-white transition-colors"
+					className="flex items-center justify-center w-8 h-8 rounded-full bg-black/50 text-red-400 hover:bg-red-600 hover:text-white transition-colors backdrop-blur-sm"
 				>
 					<span className="material-symbols-outlined text-base">close</span>
 				</button>
@@ -213,6 +254,52 @@ const AddCategoryCard = ({ onClick }) => (
 	</button>
 )
 
+// --- Custom Hook: useDebounce ---
+const useDebounce = (value, delay) => {
+	const [debouncedValue, setDebouncedValue] = useState(value)
+
+	useEffect(() => {
+		const handler = setTimeout(() => {
+			setDebouncedValue(value)
+		}, delay)
+
+		return () => {
+			clearTimeout(handler)
+		}
+	}, [value, delay])
+
+	return debouncedValue
+}
+
+// --- Sub-component: SearchBar ---
+const SearchBar = ({ placeholder, value, onChange, onClear }) => {
+	return (
+		<div className="relative w-full max-w-md">
+			<div className="relative">
+				<span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#9dabb9] text-xl">
+					search
+				</span>
+				<input
+					type="text"
+					placeholder={placeholder}
+					value={value}
+					onChange={onChange}
+					className="w-full h-10 pl-10 pr-10 bg-black/30 backdrop-blur-md text-white rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#137fec] focus:border-[#137fec] placeholder-[#9dabb9] transition-all"
+				/>
+				{value && (
+					<button
+						onClick={onClear}
+						className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9dabb9] hover:text-white transition-colors"
+						title="Clear search"
+					>
+						<span className="material-symbols-outlined text-xl">close</span>
+					</button>
+				)}
+			</div>
+		</div>
+	)
+}
+
 // --- Main Component ---
 const MenuCategoryManagement = () => {
 	const { user, loading: contextLoading } = useUser()
@@ -224,6 +311,10 @@ const MenuCategoryManagement = () => {
 	const [selectedCategorySlug, setSelectedCategorySlug] = useState(null)
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 	const [categoryToDelete, setCategoryToDelete] = useState(null)
+	const [searchQuery, setSearchQuery] = useState('')
+
+	// Debounce search query
+	const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
 	const fetchCategories = async () => {
 		console.log('Fetching menu categories...')
@@ -236,6 +327,38 @@ const MenuCategoryManagement = () => {
 	const handleDeleteCategory = async (category) => {
 		setCategoryToDelete(category)
 		setIsDeleteModalOpen(true)
+	}
+
+	const handleToggleStatus = async (category) => {
+		const newStatus = category.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
+		const actionText = newStatus === 'ACTIVE' ? 'activate' : 'deactivate'
+
+		if (!window.confirm(`Are you sure you want to ${actionText} "${category.name}"?`)) {
+			return
+		}
+
+		setLoading(true)
+		showLoading(
+			`${actionText === 'activate' ? 'Activating' : 'Deactivating'} category...`,
+		)
+
+		try {
+			// TODO: Replace with actual API call when backend is ready
+			// await axios.patch(`/api/categories/${category.id}`, { status: newStatus })
+
+			setCategories((prev) =>
+				prev.map((c) => (c.id === category.id ? { ...c, status: newStatus } : c)),
+			)
+
+			console.log(`Category ${category.id} status changed to: ${newStatus}`)
+			// Show success notification (optional)
+		} catch (error) {
+			console.error('Error toggling category status:', error)
+			alert(`Failed to ${actionText} category. Please try again.`)
+		} finally {
+			setLoading(false)
+			hideLoading()
+		}
 	}
 
 	const confirmDelete = async () => {
@@ -282,6 +405,11 @@ const MenuCategoryManagement = () => {
 		alert('Opening form to add new dish directly.')
 	}
 
+	// Filter categories based on debounced search query
+	const filteredCategories = categories.filter((category) =>
+		category.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()),
+	)
+
 	if (contextLoading) {
 		return (
 			<div className="flex min-h-screen bg-[#101922] w-full items-center justify-center">
@@ -304,23 +432,42 @@ const MenuCategoryManagement = () => {
 					</div>
 				</header>
 
+				{/* Search Bar */}
+				<div className="mb-6">
+					<SearchBar
+						placeholder="Search categories by name..."
+						value={searchQuery}
+						onChange={(e) => setSearchQuery(e.target.value)}
+						onClear={() => setSearchQuery('')}
+					/>
+				</div>
+
 				<div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
 					{loading ? (
 						<p className="text-[#9dabb9] lg:col-span-3 text-center py-10">
 							Loading categories...
 						</p>
+					) : filteredCategories.length === 0 ? (
+						<div className="lg:col-span-4 text-center py-10">
+							<p className="text-[#9dabb9] text-lg">
+								{searchQuery
+									? `No categories found matching "${searchQuery}"`
+									: 'No categories available'}
+							</p>
+						</div>
 					) : (
-						categories.map((category) => (
+						filteredCategories.map((category) => (
 							<CategoryCard
 								key={category.id}
 								category={category}
 								onClick={() => handleCardClick(category.route)}
 								onDeleteRequest={handleDeleteCategory}
+								onToggleStatus={handleToggleStatus}
 							/>
 						))
 					)}
 
-					<AddCategoryCard onClick={handleAddCategory} />
+					{!searchQuery && <AddCategoryCard onClick={handleAddCategory} />}
 				</div>
 
 				{/* MODALS - Được render ở ngoài BasePageLayout */}
