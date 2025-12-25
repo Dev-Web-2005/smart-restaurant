@@ -66,8 +66,4 @@ export class UpdateMenuItemRequestDto {
 
 	@IsOptional()
 	isChefRecommended?: boolean;
-
-	@IsOptional()
-	@IsString()
-	imageUrl?: string;
 }

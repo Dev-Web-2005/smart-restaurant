@@ -10,7 +10,7 @@ export class PublicMenuItemDto {
 	categoryId: string;
 	name: string;
 	description?: string;
-	imageUrl?: string;
+	imageUrl?: string; // Derived from primary photo
 	price: number;
 	currency: string;
 	available: boolean;

@@ -83,7 +83,6 @@ export class ItemService {
 			prepTimeMinutes: dto.prepTimeMinutes,
 			status: dto.status ?? MenuItemStatus.AVAILABLE,
 			isChefRecommended: dto.isChefRecommended ?? false,
-			imageUrl: dto.imageUrl,
 		});
 
 		const saved = await this.menuItemRepository.save(menuItem);
@@ -224,7 +223,6 @@ export class ItemService {
 		if (dto.status !== undefined) menuItem.status = dto.status;
 		if (dto.isChefRecommended !== undefined)
 			menuItem.isChefRecommended = dto.isChefRecommended;
-		if (dto.imageUrl !== undefined) menuItem.imageUrl = dto.imageUrl;
 
 		const updated = await this.menuItemRepository.save(menuItem);
 		return this.toResponseDto(updated, menuItem.category?.name);
@@ -296,7 +294,7 @@ export class ItemService {
 			categoryName,
 			name: item.name,
 			description: item.description,
-			imageUrl: item.imageUrl,
+
 			price: Number(item.price),
 			currency: item.currency,
 			prepTimeMinutes: item.prepTimeMinutes,

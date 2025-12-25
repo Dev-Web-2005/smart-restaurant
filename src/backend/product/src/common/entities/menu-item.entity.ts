@@ -31,9 +31,6 @@ export class MenuItem {
 	@Column({ nullable: true, type: 'text' })
 	description: string;
 
-	@Column({ nullable: true })
-	imageUrl: string;
-
 	@Column('decimal', { precision: 12, scale: 2 })
 	price: number;
 

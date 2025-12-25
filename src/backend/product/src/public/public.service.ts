@@ -1,9 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { MenuCategory, MenuItem, ModifierOption } from 'src/common/entities';
-import AppException from '@shared/exceptions/app-exception';
-import ErrorCode from '@shared/exceptions/error-code';
+import { CategoryStatus, MenuItemStatus } from 'src/common/enums';
 import { GetPublicMenuRequestDto } from './dtos/request/get-public-menu-request.dto';
 import {
 	GetPublicMenuResponseDto,
@@ -24,9 +23,13 @@ export class PublicService {
 	) {}
 
 	async getPublicMenu(dto: GetPublicMenuRequestDto): Promise<GetPublicMenuResponseDto> {
-		// Get all published categories for this tenant
+		// Get all active categories for this tenant
 		const categories = await this.categoryRepository.find({
-			where: { tenantId: dto.tenantId, published: true },
+			where: {
+				tenantId: dto.tenantId,
+				status: CategoryStatus.ACTIVE,
+				deletedAt: IsNull(),
+			},
 			order: { displayOrder: 'ASC', createdAt: 'ASC' },
 		});
 
@@ -39,14 +42,14 @@ export class PublicService {
 
 		const categoryIds = categories.map((cat) => cat.id);
 
-		// Get all published AND available items in these categories
+		// Get all available items in these categories
 		const items = await this.itemRepository.find({
 			where: categoryIds.map((catId) => ({
 				categoryId: catId,
-				published: true,
-				available: true,
+				status: MenuItemStatus.AVAILABLE,
+				deletedAt: IsNull(),
 			})),
-			relations: ['modifiers'],
+			relations: ['modifiers', 'photos'],
 			order: { createdAt: 'ASC' },
 		});
 
@@ -72,15 +75,20 @@ export class PublicService {
 	}
 
 	private toPublicItemDto(item: MenuItem): PublicMenuItemDto {
+		// Get primary photo URL (first look for isPrimary=true, otherwise first photo by displayOrder)
+		const primaryPhoto =
+			item.photos?.find((photo) => photo.isPrimary) ||
+			item.photos?.sort((a, b) => a.displayOrder - b.displayOrder)[0];
+
 		return {
 			id: item.id,
 			categoryId: item.categoryId,
 			name: item.name,
 			description: item.description,
-			imageUrl: item.imageUrl,
+			imageUrl: primaryPhoto?.url,
 			price: Number(item.price),
 			currency: item.currency,
-			available: item.available,
+			available: item.status === MenuItemStatus.AVAILABLE,
 			modifiers: (item.modifiers || []).map((mod) => this.toPublicModifierDto(mod)),
 		};
 	}

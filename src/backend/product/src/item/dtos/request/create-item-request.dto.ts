@@ -24,10 +24,6 @@ export class CreateItemRequestDto {
 	@IsString()
 	description?: string;
 
-	@IsOptional()
-	@IsString()
-	imageUrl?: string;
-
 	@IsNotEmpty()
 	@IsNumber()
 	price: number;

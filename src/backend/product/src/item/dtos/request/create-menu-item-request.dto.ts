@@ -65,8 +65,4 @@ export class CreateMenuItemRequestDto {
 
 	@IsOptional()
 	isChefRecommended?: boolean;
-
-	@IsOptional()
-	@IsString()
-	imageUrl?: string;
 }

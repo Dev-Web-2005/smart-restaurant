@@ -25,10 +25,6 @@ export class UpdateItemRequestDto {
 	description?: string;
 
 	@IsOptional()
-	@IsString()
-	imageUrl?: string;
-
-	@IsOptional()
 	@IsNumber()
 	price?: number;
 
