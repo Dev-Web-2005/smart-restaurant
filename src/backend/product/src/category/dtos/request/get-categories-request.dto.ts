@@ -1,6 +1,5 @@
 import { IsEnum, IsIn, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
-import { Transform } from 'class-transformer';
-import { CategoryStatus, categoryStatusFromString } from 'src/common/enums';
+import { CategoryStatus } from 'src/common/enums';
 
 export enum CategorySortBy {
 	DISPLAY_ORDER = 'displayOrder',
@@ -23,8 +22,7 @@ export class GetCategoriesRequestDto {
 	@IsIn(['ACTIVE', 'INACTIVE', 'active', 'inactive'], {
 		message: 'Status must be either ACTIVE or INACTIVE',
 	})
-	@Transform(({ value }) => (value ? categoryStatusFromString(value) : undefined))
-	status?: CategoryStatus;
+	status?: CategoryStatus | string;
 
 	@IsOptional()
 	@IsString()

@@ -17,7 +17,14 @@ export default class ErrorCode {
     static readonly AUTHORITY_CREATION_FAILED: ErrorCode;
     static readonly VALIDATION_FAILED: ErrorCode;
     static readonly CATEGORY_NOT_FOUND: ErrorCode;
+    static readonly CATEGORY_NAME_ALREADY_EXISTS: ErrorCode;
+    static readonly CATEGORY_HAS_ACTIVE_ITEMS: ErrorCode;
     static readonly ITEM_NOT_FOUND: ErrorCode;
+    static readonly MODIFIER_GROUP_NOT_FOUND: ErrorCode;
+    static readonly DUPLICATE_MODIFIER_GROUP_NAME: ErrorCode;
+    static readonly MODIFIER_OPTION_NOT_FOUND: ErrorCode;
+    static readonly MODIFIER_GROUP_NOT_ATTACHED: ErrorCode;
+    static readonly MENU_ITEM_NOT_FOUND: ErrorCode;
     static readonly MODIFIER_NOT_FOUND: ErrorCode;
     static readonly ERROR_VALIDATION: ErrorCode;
     static readonly INVALID_TIME_FORMAT: ErrorCode;

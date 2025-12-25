@@ -715,6 +715,7 @@
 					"item": [
 						{
 							"name": "Create Category",
+							"id": "c170c631-2f7b-4998-b78b-fb32366196f7",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -736,7 +737,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"name\": \"Appetizers\",\n  \"description\": \"Start your meal with our delicious appetizers\",\n  \"displayOrder\": 0,\n  \"status\": \"ACTIVE\"\n}",
+									"raw": "{\n  \"name\": \"Beverages\",\n  \"description\": \"Enjoy meals with wonderful drinks\",\n  \"displayOrder\": 1,\n  \"status\": \"ACTIVE\"\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -744,15 +745,22 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/categories",
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/categories",
 									"host": ["{{baseURL}}"],
-									"path": ["tenants", "{{tenantId}}", "categories"]
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"categories"
+									]
 								}
 							},
 							"response": []
 						},
 						{
 							"name": "Get All Categories",
+							"id": "7b515daa-e631-448c-a402-45c7f498b50a",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -773,9 +781,15 @@
 									}
 								],
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/categories?status=ACTIVE&sortBy=displayOrder&sortOrder=ASC",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/categories?status=ACTIVE&sortBy=displayOrder&sortOrder=ASC",
 									"host": ["{{baseURL}}"],
-									"path": ["tenants", "{{tenantId}}", "categories"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"{{tenantId}}",
+										"categories"
+									],
 									"query": [
 										{
 											"key": "status",
@@ -801,6 +815,7 @@
 						},
 						{
 							"name": "Update Category",
+							"id": "a08bde04-4672-404a-8106-508eb8838383",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -830,9 +845,11 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/categories/{{categoryId}}",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/categories/{{categoryId}}",
 									"host": ["{{baseURL}}"],
 									"path": [
+										"api",
+										"v1",
 										"tenants",
 										"{{tenantId}}",
 										"categories",
@@ -844,6 +861,7 @@
 						},
 						{
 							"name": "Update Category Status",
+							"id": "7f999180-291f-4493-8d5e-1a3609c6ecbc",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -873,9 +891,11 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/categories/{{categoryId}}/status",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/categories/{{categoryId}}/status",
 									"host": ["{{baseURL}}"],
 									"path": [
+										"api",
+										"v1",
 										"tenants",
 										"{{tenantId}}",
 										"categories",
@@ -888,6 +908,7 @@
 						},
 						{
 							"name": "Delete Category",
+							"id": "069277ad-3396-4533-a8f4-3a52f604ac78",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -908,9 +929,11 @@
 									}
 								],
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/categories/{{categoryId}}",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/categories/{{categoryId}}",
 									"host": ["{{baseURL}}"],
 									"path": [
+										"api",
+										"v1",
 										"tenants",
 										"{{tenantId}}",
 										"categories",
@@ -920,13 +943,15 @@
 							},
 							"response": []
 						}
-					]
+					],
+					"id": "aa4e33ad-adab-4413-bd1f-7caec7c73a27"
 				},
 				{
 					"name": "Menu Items",
 					"item": [
 						{
 							"name": "Create Menu Item",
+							"id": "6588ff3f-4ab8-4720-b331-0b1162613cee",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -956,15 +981,16 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/items",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/items",
 									"host": ["{{baseURL}}"],
-									"path": ["tenants", "{{tenantId}}", "items"]
+									"path": ["api", "v1", "tenants", "{{tenantId}}", "items"]
 								}
 							},
 							"response": []
 						},
 						{
 							"name": "Get All Menu Items",
+							"id": "f7326aba-ea9d-48bd-b713-4c71e172d729",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -985,9 +1011,9 @@
 									}
 								],
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/items?categoryId={{categoryId}}&status=AVAILABLE&isChefRecommended=true&page=1&limit=20",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/items?categoryId={{categoryId}}&status=AVAILABLE&isChefRecommended=true&page=1&limit=20",
 									"host": ["{{baseURL}}"],
-									"path": ["tenants", "{{tenantId}}", "items"],
+									"path": ["api", "v1", "tenants", "{{tenantId}}", "items"],
 									"query": [
 										{
 											"key": "categoryId",
@@ -1031,6 +1057,7 @@
 						},
 						{
 							"name": "Update Menu Item",
+							"id": "815fa6cb-c317-4259-b836-4e8a630e839e",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1060,15 +1087,23 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/items/{{itemId}}",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/items/{{itemId}}",
 									"host": ["{{baseURL}}"],
-									"path": ["tenants", "{{tenantId}}", "items", "{{itemId}}"]
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"{{tenantId}}",
+										"items",
+										"{{itemId}}"
+									]
 								}
 							},
 							"response": []
 						},
 						{
 							"name": "Update Menu Item Status",
+							"id": "660629e9-f112-4ad3-bf58-1d37353ad251",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1098,9 +1133,11 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/items/{{itemId}}/status",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/items/{{itemId}}/status",
 									"host": ["{{baseURL}}"],
 									"path": [
+										"api",
+										"v1",
 										"tenants",
 										"{{tenantId}}",
 										"items",
@@ -1113,6 +1150,7 @@
 						},
 						{
 							"name": "Delete Menu Item",
+							"id": "31a592ff-0517-499b-a3ae-4f92d5053aaf",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1133,20 +1171,29 @@
 									}
 								],
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/items/{{itemId}}",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/items/{{itemId}}",
 									"host": ["{{baseURL}}"],
-									"path": ["tenants", "{{tenantId}}", "items", "{{itemId}}"]
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"{{tenantId}}",
+										"items",
+										"{{itemId}}"
+									]
 								}
 							},
 							"response": []
 						}
-					]
+					],
+					"id": "35cbdd74-9336-401c-8b41-ce20cd24c45d"
 				},
 				{
 					"name": "Menu Item Photos",
 					"item": [
 						{
 							"name": "Add Photo to Menu Item",
+							"id": "a1adfb6f-467c-4459-9775-cac42ea378bc",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1176,9 +1223,11 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/items/{{itemId}}/photos",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/items/{{itemId}}/photos",
 									"host": ["{{baseURL}}"],
 									"path": [
+										"api",
+										"v1",
 										"tenants",
 										"{{tenantId}}",
 										"items",
@@ -1191,6 +1240,7 @@
 						},
 						{
 							"name": "Get All Photos for Menu Item",
+							"id": "5b109554-50f7-42ea-a7df-e436ca0c9157",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1211,9 +1261,11 @@
 									}
 								],
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/items/{{itemId}}/photos",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/items/{{itemId}}/photos",
 									"host": ["{{baseURL}}"],
 									"path": [
+										"api",
+										"v1",
 										"tenants",
 										"{{tenantId}}",
 										"items",
@@ -1226,6 +1278,7 @@
 						},
 						{
 							"name": "Update Photo",
+							"id": "0b7c738f-e90d-4f3c-8ae2-fa625db69aa2",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1255,9 +1308,11 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/items/{{itemId}}/photos/{{photoId}}",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/items/{{itemId}}/photos/{{photoId}}",
 									"host": ["{{baseURL}}"],
 									"path": [
+										"api",
+										"v1",
 										"tenants",
 										"{{tenantId}}",
 										"items",
@@ -1271,6 +1326,7 @@
 						},
 						{
 							"name": "Set Primary Photo",
+							"id": "16ae3390-d7d8-4339-8f28-9666ea766765",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1291,9 +1347,11 @@
 									}
 								],
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/items/{{itemId}}/photos/{{photoId}}/primary",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/items/{{itemId}}/photos/{{photoId}}/primary",
 									"host": ["{{baseURL}}"],
 									"path": [
+										"api",
+										"v1",
 										"tenants",
 										"{{tenantId}}",
 										"items",
@@ -1308,6 +1366,7 @@
 						},
 						{
 							"name": "Delete Photo",
+							"id": "445a6e55-384f-496d-8ffa-825aa78fe9fa",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1328,9 +1387,11 @@
 									}
 								],
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/items/{{itemId}}/photos/{{photoId}}",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/items/{{itemId}}/photos/{{photoId}}",
 									"host": ["{{baseURL}}"],
 									"path": [
+										"api",
+										"v1",
 										"tenants",
 										"{{tenantId}}",
 										"items",
@@ -1342,13 +1403,15 @@
 							},
 							"response": []
 						}
-					]
+					],
+					"id": "f9da6be7-b44c-4456-8db8-96a3216ebd26"
 				},
 				{
 					"name": "Modifier Groups",
 					"item": [
 						{
 							"name": "Create Modifier Group",
+							"id": "9f2f9dc6-6553-45d2-9821-4df1a8e9aae5",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1378,15 +1441,22 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/modifier-groups",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/modifier-groups",
 									"host": ["{{baseURL}}"],
-									"path": ["tenants", "{{tenantId}}", "modifier-groups"]
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"{{tenantId}}",
+										"modifier-groups"
+									]
 								}
 							},
 							"response": []
 						},
 						{
 							"name": "Get All Modifier Groups",
+							"id": "86bca97d-539c-42d6-a730-4069d33ef1f5",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1407,9 +1477,15 @@
 									}
 								],
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/modifier-groups?isActive=true",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/modifier-groups?isActive=true",
 									"host": ["{{baseURL}}"],
-									"path": ["tenants", "{{tenantId}}", "modifier-groups"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"{{tenantId}}",
+										"modifier-groups"
+									],
 									"query": [
 										{
 											"key": "isActive",
@@ -1427,6 +1503,7 @@
 						},
 						{
 							"name": "Update Modifier Group",
+							"id": "69e87266-243e-4b4a-aa6d-41c7d75624a3",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1456,9 +1533,11 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/modifier-groups/{{groupId}}",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/modifier-groups/{{groupId}}",
 									"host": ["{{baseURL}}"],
 									"path": [
+										"api",
+										"v1",
 										"tenants",
 										"{{tenantId}}",
 										"modifier-groups",
@@ -1470,6 +1549,7 @@
 						},
 						{
 							"name": "Delete Modifier Group",
+							"id": "e6c31668-0771-42d5-bdda-3d1dd49e064e",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1490,9 +1570,11 @@
 									}
 								],
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/modifier-groups/{{groupId}}",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/modifier-groups/{{groupId}}",
 									"host": ["{{baseURL}}"],
 									"path": [
+										"api",
+										"v1",
 										"tenants",
 										"{{tenantId}}",
 										"modifier-groups",
@@ -1502,13 +1584,15 @@
 							},
 							"response": []
 						}
-					]
+					],
+					"id": "2851e86c-10a2-489e-bc95-9213d87db718"
 				},
 				{
 					"name": "Modifier Options",
 					"item": [
 						{
 							"name": "Create Modifier Option",
+							"id": "d7959258-a35d-4429-8b19-6315d1173885",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1538,9 +1622,11 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/modifier-groups/{{groupId}}/options",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/modifier-groups/{{groupId}}/options",
 									"host": ["{{baseURL}}"],
 									"path": [
+										"api",
+										"v1",
 										"tenants",
 										"{{tenantId}}",
 										"modifier-groups",
@@ -1553,6 +1639,7 @@
 						},
 						{
 							"name": "Get All Modifier Options",
+							"id": "3f93f56f-60ef-461f-97f9-d06a40a96b2c",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1573,9 +1660,11 @@
 									}
 								],
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/modifier-groups/{{groupId}}/options?isActive=true",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/modifier-groups/{{groupId}}/options?isActive=true",
 									"host": ["{{baseURL}}"],
 									"path": [
+										"api",
+										"v1",
 										"tenants",
 										"{{tenantId}}",
 										"modifier-groups",
@@ -1594,6 +1683,7 @@
 						},
 						{
 							"name": "Update Modifier Option",
+							"id": "02275c34-d6a7-42bb-8ec1-7623385d2832",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1623,9 +1713,11 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/modifier-groups/{{groupId}}/options/{{optionId}}",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/modifier-groups/{{groupId}}/options/{{optionId}}",
 									"host": ["{{baseURL}}"],
 									"path": [
+										"api",
+										"v1",
 										"tenants",
 										"{{tenantId}}",
 										"modifier-groups",
@@ -1639,6 +1731,7 @@
 						},
 						{
 							"name": "Delete Modifier Option",
+							"id": "33b54e5a-b88b-4419-afc8-98440074001d",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1659,9 +1752,11 @@
 									}
 								],
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/modifier-groups/{{groupId}}/options/{{optionId}}",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/modifier-groups/{{groupId}}/options/{{optionId}}",
 									"host": ["{{baseURL}}"],
 									"path": [
+										"api",
+										"v1",
 										"tenants",
 										"{{tenantId}}",
 										"modifier-groups",
@@ -1673,13 +1768,15 @@
 							},
 							"response": []
 						}
-					]
+					],
+					"id": "14b629c2-9db3-4d63-815b-34f9f98a05fd"
 				},
 				{
 					"name": "Menu Item Modifiers",
 					"item": [
 						{
 							"name": "Attach Modifier Groups to Item",
+							"id": "a6ab2879-f2ea-47b9-98bf-be2534b2d9d4",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1709,9 +1806,11 @@
 									}
 								},
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/items/{{itemId}}/modifiers",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/items/{{itemId}}/modifiers",
 									"host": ["{{baseURL}}"],
 									"path": [
+										"api",
+										"v1",
 										"tenants",
 										"{{tenantId}}",
 										"items",
@@ -1724,6 +1823,7 @@
 						},
 						{
 							"name": "Get Menu Item Modifier Groups",
+							"id": "91aebee3-8769-4ba3-ad36-6e4325ab9875",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1744,9 +1844,11 @@
 									}
 								],
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/items/{{itemId}}/modifiers",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/items/{{itemId}}/modifiers",
 									"host": ["{{baseURL}}"],
 									"path": [
+										"api",
+										"v1",
 										"tenants",
 										"{{tenantId}}",
 										"items",
@@ -1759,6 +1861,7 @@
 						},
 						{
 							"name": "Detach Modifier Group from Item",
+							"id": "a9ee2d6a-21d3-4072-804b-640bdc675a13",
 							"request": {
 								"auth": {
 									"type": "bearer",
@@ -1779,9 +1882,11 @@
 									}
 								],
 								"url": {
-									"raw": "{{baseURL}}/tenants/{{tenantId}}/items/{{itemId}}/modifiers/{{groupId}}",
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/items/{{itemId}}/modifiers/{{groupId}}",
 									"host": ["{{baseURL}}"],
 									"path": [
+										"api",
+										"v1",
 										"tenants",
 										"{{tenantId}}",
 										"items",
@@ -1793,25 +1898,28 @@
 							},
 							"response": []
 						}
-					]
+					],
+					"id": "cdbee070-6318-44ce-809d-6da1cf62a2c3"
 				},
 				{
 					"name": "Public Menu",
 					"item": [
 						{
 							"name": "Get Public Menu (No Auth)",
+							"id": "b8b39e37-344a-4673-8ed5-8c578417c972",
 							"request": {
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{baseURL}}/public/menu/{{tenantId}}",
+									"raw": "{{baseURL}}/api/v1/public/menu/{{tenantId}}",
 									"host": ["{{baseURL}}"],
-									"path": ["public", "menu", "{{tenantId}}"]
+									"path": ["api", "v1", "public", "menu", "{{tenantId}}"]
 								}
 							},
 							"response": []
 						}
-					]
+					],
+					"id": "d7f09ab3-8d2e-45e5-bc51-b58902cbda94"
 				}
 			],
 			"id": "8ab72cfb-05a5-48fc-bc3b-0dd9bb65b6ec"

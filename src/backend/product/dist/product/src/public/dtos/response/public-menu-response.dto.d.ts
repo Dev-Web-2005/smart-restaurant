@@ -4,6 +4,27 @@ export declare class PublicMenuCategoryDto {
     description?: string;
     items: PublicMenuItemDto[];
 }
+export declare class PublicPhotoDto {
+    id: string;
+    url: string;
+    isPrimary: boolean;
+    displayOrder: number;
+}
+export declare class PublicModifierOptionDto {
+    id: string;
+    label: string;
+    priceDelta: number;
+    displayOrder: number;
+}
+export declare class PublicModifierGroupDto {
+    id: string;
+    name: string;
+    displayOrder: number;
+    isRequired: boolean;
+    minSelections: number;
+    maxSelections: number;
+    options: PublicModifierOptionDto[];
+}
 export declare class PublicMenuItemDto {
     id: string;
     categoryId: string;
@@ -16,20 +37,7 @@ export declare class PublicMenuItemDto {
     prepTimeMinutes?: number;
     isChefRecommended: boolean;
     status: string;
-    modifiers: PublicModifierDto[];
-}
-export declare class PublicPhotoDto {
-    id: string;
-    url: string;
-    isPrimary: boolean;
-    displayOrder: number;
-}
-export declare class PublicModifierDto {
-    id: string;
-    groupName: string;
-    label: string;
-    priceDelta: number;
-    type: string;
+    modifierGroups: PublicModifierGroupDto[];
 }
 export declare class GetPublicMenuResponseDto {
     tenantId: string;

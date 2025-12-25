@@ -1,6 +1,6 @@
 import { IsString, IsNotEmpty, IsOptional, IsIn, IsEnum } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
-import { menuItemStatusFromString, MenuItemStatus } from 'src/common/enums';
+import { Type } from 'class-transformer';
+import { MenuItemStatus } from 'src/common/enums';
 
 /**
  * Sort fields for menu items
@@ -47,8 +47,7 @@ export class GetMenuItemsRequestDto {
 
 	@IsOptional()
 	@IsIn(['AVAILABLE', 'UNAVAILABLE', 'SOLD_OUT', 'available', 'unavailable', 'sold_out'])
-	@Transform(({ value }) => (value ? menuItemStatusFromString(value) : undefined))
-	status?: MenuItemStatus;
+	status?: MenuItemStatus | string;
 
 	@IsOptional()
 	isChefRecommended?: boolean;
