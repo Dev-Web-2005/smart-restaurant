@@ -42,11 +42,11 @@ let PublicService = class PublicService {
         }
         const categoryIds = categories.map((cat) => cat.id);
         const items = await this.itemRepository.find({
-            where: categoryIds.map((catId) => ({
-                categoryId: catId,
+            where: {
+                categoryId: (0, typeorm_2.In)(categoryIds),
                 status: enums_1.MenuItemStatus.AVAILABLE,
                 deletedAt: (0, typeorm_2.IsNull)(),
-            })),
+            },
             relations: [
                 'photos',
                 'modifierGroups',
