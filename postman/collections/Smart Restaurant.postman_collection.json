@@ -1110,7 +1110,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items?status=AVAILABLE&isChefRecommended=true&page=1&limit=20&categoryId=5f6f6d52-d12c-485d-aa98-b624f2a27329",
+                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items?status=SOLD_OUT&page=1&limit=20",
                   "host": [
                     "{{baseURL}}"
                   ],
@@ -1124,13 +1124,14 @@
                   "query": [
                     {
                       "key": "status",
-                      "value": "AVAILABLE",
+                      "value": "SOLD_OUT",
                       "uuid": "649a4ae6-7010-4498-b63f-d791a26468df"
                     },
                     {
                       "key": "isChefRecommended",
                       "value": "true",
-                      "uuid": "87e400b2-f72a-4ac4-9878-39f416f956ae"
+                      "uuid": "87e400b2-f72a-4ac4-9878-39f416f956ae",
+                      "disabled": true
                     },
                     {
                       "key": "search",
@@ -1159,7 +1160,9 @@
                     },
                     {
                       "key": "categoryId",
-                      "value": "5f6f6d52-d12c-485d-aa98-b624f2a27329"
+                      "value": "5f6f6d52-d12c-485d-aa98-b624f2a27329",
+                      "uuid": "c02b79b4-59e1-4868-a837-262de4e15619",
+                      "disabled": true
                     }
                   ]
                 }
@@ -1388,7 +1391,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"url\": \"https://storage.example.com/photos/caesar-salad-main.jpg\",\n  \"displayOrder\": 0,\n  \"isPrimary\": true\n}",
+                  "raw": "{\n  \"url\": \"https://storage.example.com/photos/caesar-salad-two.jpg\",\n  \"displayOrder\": 2,\n  \"isPrimary\": false\n}",
                   "options": {
                     "raw": {
                       "language": "json"
