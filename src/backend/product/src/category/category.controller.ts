@@ -7,6 +7,7 @@ import { handleRpcCall } from '@shared/utils/rpc-error-handler';
 import {
 	CreateCategoryRequestDto,
 	GetCategoriesRequestDto,
+	GetCategoryRequestDto,
 	UpdateCategoryRequestDto,
 	UpdateCategoryStatusRequestDto,
 	DeleteCategoryRequestDto,
@@ -46,6 +47,16 @@ export class CategoryController {
 
 			const categories = await this.categoryService.getCategories(dto);
 			return new HttpResponse(1000, 'Categories retrieved successfully', categories);
+		});
+	}
+
+	@MessagePattern('categories:get')
+	async getCategory(dto: GetCategoryRequestDto) {
+		return handleRpcCall(async () => {
+			this.validateApiKey(dto.productApiKey);
+
+			const category = await this.categoryService.getCategory(dto);
+			return new HttpResponse(1000, 'Category retrieved successfully', category);
 		});
 	}
 

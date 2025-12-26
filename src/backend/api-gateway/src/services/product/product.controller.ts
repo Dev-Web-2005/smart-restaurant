@@ -53,6 +53,19 @@ export class ProductController {
 		});
 	}
 
+	@Get('tenants/:tenantId/categories/:categoryId')
+	// @UseGuards(AuthGuard, Role('USER'))
+	getCategory(
+		@Param('tenantId') tenantId: string,
+		@Param('categoryId') categoryId: string,
+	) {
+		return this.productClient.send('categories:get', {
+			tenantId,
+			categoryId,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
 	@Patch('tenants/:tenantId/categories/:categoryId')
 	@UseGuards(AuthGuard, Role('USER'))
 	updateCategory(
@@ -133,6 +146,16 @@ export class ProductController {
 			sortOrder,
 			page,
 			limit,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	@Get('tenants/:tenantId/items/:itemId')
+	// @UseGuards(AuthGuard, Role('USER'))
+	getItem(@Param('tenantId') tenantId: string, @Param('itemId') itemId: string) {
+		return this.productClient.send('menu-items:get', {
+			tenantId,
+			menuItemId: itemId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
@@ -281,6 +304,19 @@ export class ProductController {
 		});
 	}
 
+	@Get('tenants/:tenantId/modifier-groups/:groupId')
+	@UseGuards(AuthGuard, Role('USER'))
+	getModifierGroup(
+		@Param('tenantId') tenantId: string,
+		@Param('groupId') groupId: string,
+	) {
+		return this.productClient.send('modifier-groups:get', {
+			tenantId,
+			modifierGroupId: groupId,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
 	@Patch('tenants/:tenantId/modifier-groups/:groupId')
 	@UseGuards(AuthGuard, Role('USER'))
 	updateModifierGroup(
@@ -337,6 +373,21 @@ export class ProductController {
 			tenantId,
 			modifierGroupId: groupId,
 			isActive,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	@Get('tenants/:tenantId/modifier-groups/:groupId/options/:optionId')
+	@UseGuards(AuthGuard, Role('USER'))
+	getModifierOption(
+		@Param('tenantId') tenantId: string,
+		@Param('groupId') groupId: string,
+		@Param('optionId') optionId: string,
+	) {
+		return this.productClient.send('modifier-options:get', {
+			tenantId,
+			modifierGroupId: groupId,
+			modifierOptionId: optionId,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
