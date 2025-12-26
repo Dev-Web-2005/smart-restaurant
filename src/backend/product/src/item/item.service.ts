@@ -21,6 +21,7 @@ import {
 import {
 	CreateMenuItemRequestDto,
 	GetMenuItemsRequestDto,
+	GetMenuItemRequestDto,
 	UpdateMenuItemRequestDto,
 	UpdateMenuItemStatusRequestDto,
 	DeleteMenuItemRequestDto,
@@ -190,6 +191,32 @@ export class ItemService {
 			limit,
 			totalPages: Math.ceil(total / limit),
 		};
+	}
+
+	/**
+	 * Get single menu item by ID
+	 *
+	 * Business Rules:
+	 * - Item must exist and belong to tenant
+	 * - Returns full item details with category name
+	 */
+	async getMenuItem(dto: GetMenuItemRequestDto): Promise<MenuItemResponseDto> {
+		this.validateApiKey(dto.productApiKey);
+
+		const menuItem = await this.menuItemRepository.findOne({
+			where: {
+				id: dto.menuItemId,
+				tenantId: dto.tenantId,
+				deletedAt: IsNull(),
+			},
+			relations: ['category'],
+		});
+
+		if (!menuItem) {
+			throw new AppException(ErrorCode.ITEM_NOT_FOUND);
+		}
+
+		return this.toResponseDto(menuItem, menuItem.category?.name);
 	}
 
 	/**

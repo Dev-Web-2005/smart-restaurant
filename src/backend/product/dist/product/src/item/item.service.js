@@ -133,6 +133,21 @@ let ItemService = class ItemService {
             totalPages: Math.ceil(total / limit),
         };
     }
+    async getMenuItem(dto) {
+        this.validateApiKey(dto.productApiKey);
+        const menuItem = await this.menuItemRepository.findOne({
+            where: {
+                id: dto.menuItemId,
+                tenantId: dto.tenantId,
+                deletedAt: (0, typeorm_2.IsNull)(),
+            },
+            relations: ['category'],
+        });
+        if (!menuItem) {
+            throw new app_exception_1.default(error_code_1.default.ITEM_NOT_FOUND);
+        }
+        return this.toResponseDto(menuItem, menuItem.category?.name);
+    }
     async updateMenuItem(dto) {
         this.validateApiKey(dto.productApiKey);
         const menuItem = await this.menuItemRepository.findOne({
