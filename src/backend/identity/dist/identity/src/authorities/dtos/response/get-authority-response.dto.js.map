@@ -1,1 +1,0 @@
-{"version":3,"file":"get-authority-response.dto.js","sourceRoot":"","sources":["../../../../../../src/authorities/dtos/response/get-authority-response.dto.ts"],"names":[],"mappings":";;AAAA,MAAqB,uBAAuB;IAC3C,IAAI,CAAS;IACb,WAAW,CAAU;IACrB,YAAY,EAAE,IAAI,EAAE,WAAW,EAA0C;QACxE,IAAI,CAAC,IAAI,GAAG,IAAI,CAAC;QACjB,IAAI,CAAC,WAAW,GAAG,WAAW,CAAC;IAChC,CAAC;CACD;AAPD,0CAOC"}
