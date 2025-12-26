@@ -13,7 +13,7 @@ async function bootstrap() {
 		exclude: [
 			'/',
 			'health',
-			'tenants/:tenantId/tables/scan/:token', // QR scan endpoint - public, no prefix
+			// 'tenants/:tenantId/tables/scan/:token', // QR scan endpoint - public, no prefix
 		],
 	});
 	app.use(express.json({ limit: '10mb' }));
