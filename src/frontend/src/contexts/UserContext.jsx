@@ -232,11 +232,13 @@ export const UserProvider = ({ children }) => {
 					// ❌ Refresh token expired or invalid
 					window.accessToken = null
 					localStorage.removeItem('user')
+					sessionStorage.removeItem('tabSession') // ✅ Clear tab session on invalid refresh token
 				}
 			} catch (error) {
 				console.error('❌ Session restore failed:', error)
 				window.accessToken = null
 				localStorage.removeItem('user')
+				sessionStorage.removeItem('tabSession') // ✅ Clear tab session on refresh failure
 			}
 		}
 
