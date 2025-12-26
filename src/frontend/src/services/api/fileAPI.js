@@ -4,9 +4,12 @@
 
 import axios from 'axios'
 
-// Use local proxy to avoid CORS issues
-// In development: /api/file -> https://file-service-cdal.onrender.com/api/v1/file
-const FILE_SERVICE_BASE_URL = '/api/file'
+// Use environment variable in production, proxy in development
+// Development: /api/file (Vite proxy)
+// Production: Full URL from VITE_FILE_SERVICE_URL
+const FILE_SERVICE_BASE_URL = import.meta.env.VITE_FILE_SERVICE_URL
+	? `${import.meta.env.VITE_FILE_SERVICE_URL}/api/v1/file`
+	: '/api/file'
 
 /**
  * Upload a single file to the file service
@@ -21,8 +24,11 @@ export const uploadFile = async (file, fieldName = 'image') => {
 		formData.append('id', Date.now().toString())
 		formData.append(fieldName, file)
 
-		// Upload via proxy (x-api-key added automatically)
+		// Upload via proxy (x-api-key added automatically in dev, manually in prod)
 		const response = await axios.post(`${FILE_SERVICE_BASE_URL}/uploads`, formData, {
+			headers: {
+				'x-api-key': import.meta.env.VITE_API_KEY || 'smart-restaurant-2025-secret-key',
+			},
 			timeout: 60000,
 		})
 

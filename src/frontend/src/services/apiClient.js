@@ -10,13 +10,24 @@ const API_BASE_URL = import.meta.env.VITE_API_GATEWAY_URL
 	? `${import.meta.env.VITE_API_GATEWAY_URL}/api/v1`
 	: '/api/v1'
 
+const API_KEY = import.meta.env.VITE_API_KEY || 'smart-restaurant-2025-secret-key'
+
+// Debug: Log configuration (remove in production)
+if (import.meta.env.DEV) {
+	console.log('🔧 API Client Config:', {
+		baseURL: API_BASE_URL,
+		hasApiKey: !!API_KEY,
+		apiKeyLength: API_KEY?.length,
+	})
+}
+
 // Create axios instance
 const apiClient = axios.create({
 	baseURL: API_BASE_URL,
 	withCredentials: true, // Enable cookies for refresh token
 	headers: {
 		'Content-Type': 'application/json',
-		'x-api-key': import.meta.env.VITE_API_KEY || 'smart-restaurant-2025-secret-key',
+		'x-api-key': API_KEY,
 	},
 	timeout: 30000,
 })
