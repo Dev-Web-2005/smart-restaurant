@@ -58,6 +58,7 @@ let CategoryService = class CategoryService {
             description: dto.description,
             status: statusValue,
             displayOrder: dto.displayOrder ?? 0,
+            imageUrl: dto.imageUrl,
         });
         const saved = await this.categoryRepository.save(category);
         return this.toResponseDto(saved);
@@ -128,6 +129,8 @@ let CategoryService = class CategoryService {
         }
         if (dto.displayOrder !== undefined)
             category.displayOrder = dto.displayOrder;
+        if (dto.imageUrl !== undefined)
+            category.imageUrl = dto.imageUrl;
         const updated = await this.categoryRepository.save(category);
         return this.toResponseDto(updated);
     }
@@ -174,6 +177,7 @@ let CategoryService = class CategoryService {
             description: category.description,
             status: (0, enums_1.categoryStatusToString)(category.status),
             displayOrder: category.displayOrder,
+            imageUrl: category.imageUrl,
             itemCount: itemCount,
             createdAt: category.createdAt,
             updatedAt: category.updatedAt,

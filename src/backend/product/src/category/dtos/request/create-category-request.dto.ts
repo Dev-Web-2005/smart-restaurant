@@ -36,6 +36,10 @@ export class CreateCategoryRequestDto {
 	@Min(0, { message: 'Display order must be a non-negative integer' })
 	displayOrder?: number;
 
+	@IsOptional()
+	@IsString({ message: 'Image URL must be a string' })
+	imageUrl?: string;
+
 	@IsNotEmpty({ message: 'Product API key must not be empty' })
 	@IsString({ message: 'Product API key must be a string' })
 	productApiKey: string;

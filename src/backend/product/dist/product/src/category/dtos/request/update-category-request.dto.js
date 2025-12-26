@@ -18,6 +18,7 @@ class UpdateCategoryRequestDto {
     description;
     status;
     displayOrder;
+    imageUrl;
     productApiKey;
 }
 exports.UpdateCategoryRequestDto = UpdateCategoryRequestDto;
@@ -56,6 +57,11 @@ __decorate([
     (0, class_validator_1.Min)(0, { message: 'Display order must be a non-negative integer' }),
     __metadata("design:type", Number)
 ], UpdateCategoryRequestDto.prototype, "displayOrder", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)({ message: 'Image URL must be a string' }),
+    __metadata("design:type", String)
+], UpdateCategoryRequestDto.prototype, "imageUrl", void 0);
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsString)(),

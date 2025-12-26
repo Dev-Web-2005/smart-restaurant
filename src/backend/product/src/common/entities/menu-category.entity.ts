@@ -30,6 +30,9 @@ export class MenuCategory {
 	@Column({ type: 'int', default: 0 })
 	displayOrder: number;
 
+	@Column({ nullable: true, type: 'text' })
+	imageUrl: string;
+
 	@CreateDateColumn()
 	createdAt: Date;
 
