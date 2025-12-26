@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useUser } from '../../contexts/UserContext'
 import { useLoading } from '../../contexts/LoadingContext'
@@ -497,19 +497,27 @@ const Step3 = ({ formData, kycStatus }) => {
 // ===========================================
 const RestaurantOnboarding = () => {
 	const navigate = useNavigate()
-	// Lấy Context user (nếu cần dùng BasePageLayout)
-	const { completeOnboarding } = useUser()
+	// Lấy Context user và pendingSignupData
+	const { completeOnboarding, pendingSignupData } = useUser()
+
+	// ✅ Redirect to signup if no pending data
+	useEffect(() => {
+		if (!pendingSignupData) {
+			console.warn('⚠️ No signup data found, redirecting to signup page')
+			navigate('/signup')
+		}
+	}, [pendingSignupData, navigate])
 
 	const [step, setStep] = useState(1)
 	const [formData, setFormData] = useState({
-		// Step 1: Business Information (Pre-filled for testing)
+		// Step 1: Business Information - Pre-fill with signup data if available
 		restaurantName: '',
-		address: '',
-		phone: '',
-		email: '',
+		address: pendingSignupData?.address || '',
+		phone: pendingSignupData?.phoneNumber || '',
+		email: pendingSignupData?.email || '',
 
-		// Step 2: Payment (Pre-filled for testing)
-		cardholderName: '',
+		// Step 2: Payment (Empty by default)
+		cardholderName: pendingSignupData?.fullName || '',
 		accountNumber: '',
 		expirationDate: '',
 		cvv: '',
@@ -779,6 +787,17 @@ const RestaurantOnboarding = () => {
 			return
 		}
 
+		// ✅ Validate CCCD images URLs exist
+		if (!kycStatus.cccdFrontUrl || !kycStatus.cccdBackUrl) {
+			alert('❌ CCCD images are missing. Please complete KYC verification again.')
+			console.error('Missing CCCD URLs:', {
+				cccdFrontUrl: kycStatus.cccdFrontUrl,
+				cccdBackUrl: kycStatus.cccdBackUrl,
+			})
+			setLoading(false)
+			return
+		}
+
 		// Tạo object onboarding data with KYC URLs
 		const onboardingData = {
 			restaurantName: formData.restaurantName,
@@ -789,12 +808,19 @@ const RestaurantOnboarding = () => {
 			accountNumber: formData.accountNumber,
 			expirationDate: formData.expirationDate,
 			cvv: formData.cvv,
-			// KYC verification data
+			// ✅ KYC verification data (REQUIRED - 2 image URLs)
 			cccdFrontUrl: kycStatus.cccdFrontUrl,
 			cccdBackUrl: kycStatus.cccdBackUrl,
 			kycSessionId: kycStatus.sessionId,
 			citizenInfo: kycStatus.citizenInfo,
 		}
+
+		// ✅ Debug log to verify URLs exist before sending
+		console.log('📦 Onboarding data prepared:', {
+			...onboardingData,
+			cccdFrontUrl: onboardingData.cccdFrontUrl ? '✅ Present' : '❌ Missing',
+			cccdBackUrl: onboardingData.cccdBackUrl ? '✅ Present' : '❌ Missing',
+		})
 
 		try {
 			// 🚀 Call completeOnboarding (uploads files, then registers user with backend)
