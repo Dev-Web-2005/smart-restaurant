@@ -70,7 +70,7 @@ export const getPublicMenuAPI = async (tenantId, params = {}) => {
 		}
 
 		const queryString = queryParams.toString()
-		const url = `/product/public/menu/${tenantId}${queryString ? `?${queryString}` : ''}`
+		const url = `/public/menu/${tenantId}${queryString ? `?${queryString}` : ''}`
 
 		console.log('📥 Fetching public menu:', url)
 		const response = await apiClient.get(url)
@@ -170,7 +170,11 @@ export const getPublicMenuByCategoryAPI = async (tenantId, categoryId) => {
  * @param {Object} additionalParams - Additional filter params
  * @returns {Promise<Object>} Response with matching items
  */
-export const searchPublicMenuAPI = async (tenantId, searchQuery, additionalParams = {}) => {
+export const searchPublicMenuAPI = async (
+	tenantId,
+	searchQuery,
+	additionalParams = {},
+) => {
 	return getPublicMenuAPI(tenantId, {
 		search: searchQuery,
 		page: 1,

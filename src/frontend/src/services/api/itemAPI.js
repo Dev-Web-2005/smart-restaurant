@@ -148,6 +148,110 @@ export const getMenuItemsAPI = async (tenantId, params = {}) => {
 }
 
 /**
+ * Get menu item by ID (Get Detail)
+ * @param {string} tenantId - Tenant ID (UUID format)
+ * @param {string} itemId - Menu Item ID (UUID format)
+ * @returns {Promise<Object>} Response with menu item detail
+ *
+ * Response structure:
+ * {
+ *   success: boolean,
+ *   item: {
+ *     id: string,                   // UUID of menu item
+ *     tenantId: string,             // UUID of tenant
+ *     categoryId: string,           // UUID of category
+ *     categoryName: string,         // Category name (from relation)
+ *     name: string,                 // Item name
+ *     description: string,          // Description (optional)
+ *     price: number,                // Price
+ *     currency: string,             // Currency (default "VND")
+ *     prepTimeMinutes: number,      // Prep time in minutes (optional)
+ *     status: string,               // "AVAILABLE", "UNAVAILABLE", "SOLD_OUT"
+ *     isChefRecommended: boolean,   // Chef recommended flag
+ *     photos: [                     // Array of photos (optional)
+ *       {
+ *         id: string,               // Photo UUID
+ *         url: string,              // Photo URL
+ *         isPrimary: boolean,       // Is primary photo
+ *         displayOrder: number      // Display order
+ *       }
+ *     ],
+ *     createdAt: Date,              // Creation timestamp
+ *     updatedAt: Date               // Update timestamp
+ *   },
+ *   message: string
+ * }
+ */
+export const getMenuItemByIdAPI = async (tenantId, itemId) => {
+	try {
+		// Validate tenantId
+		if (!tenantId || typeof tenantId !== 'string') {
+			throw new Error('Tenant ID is required and must be a string')
+		}
+
+		// Validate itemId
+		if (!itemId || typeof itemId !== 'string') {
+			throw new Error('Menu item ID is required and must be a string')
+		}
+
+		const url = `/tenants/${tenantId}/items/${itemId}`
+
+		console.log('📥 Fetching menu item detail:', itemId)
+		const response = await apiClient.get(url)
+
+		const { code, message, data } = response.data
+
+		if (code === 1000) {
+			// Backend returns MenuItemResponseDto with full details including photos
+			console.log('✅ Menu item detail fetched successfully:', data)
+			return {
+				success: true,
+				item: data, // Full item object with all fields including photos array
+				message,
+			}
+		} else {
+			console.warn('⚠️ Unexpected response:', response.data)
+			return {
+				success: false,
+				item: null,
+				message: message || 'Failed to fetch menu item detail',
+			}
+		}
+	} catch (error) {
+		console.error('❌ Get menu item detail error:', error)
+
+		const errorCode = error?.code || error?.response?.data?.code
+		const errorMessage = error?.message || error?.response?.data?.message
+		let userMessage = 'Failed to load menu item detail. Please try again.'
+
+		// Handle specific error codes
+		switch (errorCode) {
+			case 1002:
+				userMessage = 'Session expired. Please login again.'
+				break
+			case 2000:
+				userMessage = 'Tenant not found.'
+				break
+			case 2905:
+				userMessage = 'Menu item not found.'
+				break
+			case 9002:
+				userMessage = 'Cannot connect to server. Please check your internet connection.'
+				break
+			default:
+				userMessage = errorMessage || userMessage
+		}
+
+		return {
+			success: false,
+			item: null,
+			message: userMessage,
+			errorCode,
+		}
+	}
+}
+
+/**
  * Create new menu item
  * @param {string} tenantId - Tenant ID (UUID format)
  * @param {Object} itemData - Menu item data

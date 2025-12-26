@@ -245,6 +245,15 @@ const MenuCategoryManagement = () => {
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
 	const [categoryToDelete, setCategoryToDelete] = useState(null)
 	const [searchQuery, setSearchQuery] = useState('')
+	const [statusFilter, setStatusFilter] = useState('ALL') // ALL, ACTIVE, INACTIVE
+	const [sortBy, setSortBy] = useState('displayOrder') // displayOrder, name, createdAt
+	const [sortOrder, setSortOrder] = useState('ASC') // ASC, DESC
+
+	// Pagination states
+	const [currentPage, setCurrentPage] = useState(1)
+	const [totalPages, setTotalPages] = useState(1)
+	const [totalItems, setTotalItems] = useState(0)
+	const [itemsPerPage, setItemsPerPage] = useState(12)
 
 	// Debounce search query
 	const debouncedSearchQuery = useDebounce(searchQuery, 300)
@@ -260,11 +269,27 @@ const MenuCategoryManagement = () => {
 		setLoading(true)
 
 		try {
-			console.log('📥 Fetching categories for tenant:', tenantId)
-			const result = await getCategoriesAPI(tenantId, {
-				sortBy: 'displayOrder',
-				sortOrder: 'ASC',
-			})
+			console.log('📥 Fetching categories for tenant:', tenantId, 'page:', currentPage)
+
+			// Build query params with pagination
+			const params = {
+				sortBy,
+				sortOrder,
+				page: currentPage,
+				limit: itemsPerPage,
+			}
+
+			// Add status filter if not ALL
+			if (statusFilter !== 'ALL') {
+				params.status = statusFilter
+			}
+
+			// Add search query if exists
+			if (debouncedSearchQuery) {
+				params.search = debouncedSearchQuery
+			}
+
+			const result = await getCategoriesAPI(tenantId, params)
 
 			if (result.success) {
 				// Transform backend data to frontend format
@@ -272,7 +297,7 @@ const MenuCategoryManagement = () => {
 					id: cat.id,
 					name: cat.name,
 					description: cat.description,
-					image: cat.image || 'https://images3.alphacoders.com/108/1088128.jpg', // Default image
+					image: cat.imageUrl || 'https://images3.alphacoders.com/108/1088128.jpg', // ✅ Backend returns 'imageUrl'
 					route: cat.name.toLowerCase().replace(/\s+/g, '-'),
 					status: cat.status, // "ACTIVE" or "INACTIVE"
 					displayOrder: cat.displayOrder,
@@ -282,6 +307,18 @@ const MenuCategoryManagement = () => {
 				}))
 
 				setCategories(transformedCategories)
+
+				// Update pagination info from backend
+				if (result.pagination) {
+					setTotalPages(result.pagination.totalPages || 1)
+					setTotalItems(result.pagination.total || transformedCategories.length)
+					console.log(
+						'📊 Pagination:',
+						`Page ${currentPage}/${result.pagination.totalPages}`,
+						`Total: ${result.pagination.total} items`,
+					)
+				}
+
 				console.log('✅ Categories loaded:', transformedCategories.length)
 			} else {
 				console.error('❌ Failed to fetch categories:', result.message)
@@ -300,7 +337,23 @@ const MenuCategoryManagement = () => {
 		if (!contextLoading && user) {
 			fetchCategories()
 		}
-	}, [contextLoading, user])
+	}, [
+		contextLoading,
+		user,
+		debouncedSearchQuery,
+		statusFilter,
+		sortBy,
+		sortOrder,
+		currentPage,
+		itemsPerPage,
+	])
+
+	// Reset to page 1 when filters change
+	useEffect(() => {
+		if (currentPage !== 1) {
+			setCurrentPage(1)
+		}
+	}, [debouncedSearchQuery, statusFilter, sortBy, sortOrder])
 
 	const handleDeleteCategory = async (category) => {
 		setCategoryToDelete(category)
@@ -426,7 +479,7 @@ const MenuCategoryManagement = () => {
 					name: result.category.name,
 					description: result.category.description,
 					image:
-						result.category.image || 'https://images3.alphacoders.com/108/1088128.jpg',
+						result.category.imageUrl || 'https://images3.alphacoders.com/108/1088128.jpg', // ✅ Backend returns 'imageUrl'
 					route: result.category.name.toLowerCase().replace(/\s+/g, '-'),
 					status: result.category.status,
 					displayOrder: result.category.displayOrder,
@@ -461,11 +514,6 @@ const MenuCategoryManagement = () => {
 		alert('Opening form to add new dish directly.')
 	}
 
-	// Filter categories based on debounced search query
-	const filteredCategories = categories.filter((category) =>
-		category.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()),
-	)
-
 	if (contextLoading) {
 		return (
 			<div className="flex min-h-screen bg-[#101922] w-full items-center justify-center">
@@ -488,14 +536,56 @@ const MenuCategoryManagement = () => {
 					</div>
 				</header>
 
-				{/* Search Bar */}
-				<div className="mb-6">
-					<SearchBar
-						placeholder="Search categories by name..."
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-						onClear={() => setSearchQuery('')}
-					/>
+				{/* Filter and Sort Controls */}
+				<div className="mb-6 flex flex-wrap gap-4 items-center">
+					{/* Search Bar */}
+					<div className="flex-1 min-w-[250px]">
+						<SearchBar
+							placeholder="Search categories by name..."
+							value={searchQuery}
+							onChange={(e) => setSearchQuery(e.target.value)}
+							onClear={() => setSearchQuery('')}
+						/>
+					</div>
+
+					{/* Status Filter */}
+					<div className="flex items-center gap-2">
+						<span className="text-[#9dabb9] text-sm font-medium">Status:</span>
+						<select
+							value={statusFilter}
+							onChange={(e) => setStatusFilter(e.target.value)}
+							className="h-10 px-4 bg-black/30 backdrop-blur-md text-white rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#137fec] focus:border-[#137fec] transition-all cursor-pointer"
+						>
+							<option value="ALL">All</option>
+							<option value="ACTIVE">Active</option>
+							<option value="INACTIVE">Inactive</option>
+						</select>
+					</div>
+
+					{/* Sort By */}
+					<div className="flex items-center gap-2">
+						<span className="text-[#9dabb9] text-sm font-medium">Sort:</span>
+						<select
+							value={sortBy}
+							onChange={(e) => setSortBy(e.target.value)}
+							className="h-10 px-4 bg-black/30 backdrop-blur-md text-white rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#137fec] focus:border-[#137fec] transition-all cursor-pointer"
+						>
+							<option value="displayOrder">Display Order</option>
+							<option value="name">Name</option>
+							<option value="createdAt">Created Date</option>
+						</select>
+					</div>
+
+					{/* Sort Order Toggle */}
+					<button
+						onClick={() => setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC')}
+						className="h-10 w-10 flex items-center justify-center bg-black/30 backdrop-blur-md text-white rounded-lg border border-white/20 hover:bg-[#137fec] hover:border-[#137fec] focus:outline-none focus:ring-2 focus:ring-[#137fec] transition-all"
+						title={sortOrder === 'ASC' ? 'Ascending' : 'Descending'}
+					>
+						<span className="material-symbols-outlined text-xl">
+							{sortOrder === 'ASC' ? 'arrow_upward' : 'arrow_downward'}
+						</span>
+					</button>
 				</div>
 
 				<div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -506,16 +596,16 @@ const MenuCategoryManagement = () => {
 								<CardSkeleton key={i} />
 							))}
 						</>
-					) : filteredCategories.length === 0 ? (
+					) : categories.length === 0 ? (
 						<div className="lg:col-span-4 text-center py-10">
 							<p className="text-[#9dabb9] text-lg">
-								{searchQuery
-									? `No categories found matching "${searchQuery}"`
+								{searchQuery || statusFilter !== 'ALL'
+									? 'No categories found matching your filters.'
 									: 'No categories available. Click "Add New Category" to get started.'}
 							</p>
 						</div>
 					) : (
-						filteredCategories.map((category) => (
+						categories.map((category) => (
 							<CategoryCard
 								key={category.id}
 								category={category}
@@ -526,9 +616,90 @@ const MenuCategoryManagement = () => {
 						))
 					)}
 
-					{!searchQuery && !loading && <AddCategoryCard onClick={handleAddCategory} />}
+					{!loading && <AddCategoryCard onClick={handleAddCategory} />}
 				</div>
-
+				{/* Pagination Controls */}
+				{!loading && totalPages > 1 && (
+					<div className="mt-8 flex items-center justify-between p-4 bg-black/30 backdrop-blur-md rounded-xl border border-white/20">
+						<div className="text-[#9dabb9] text-sm">
+							Showing {categories.length} of {totalItems} categories
+						</div>
+						<div className="flex items-center gap-2">
+							<button
+								onClick={() => setCurrentPage(1)}
+								disabled={currentPage === 1}
+								className="px-3 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+								title="First page"
+							>
+								<span className="material-symbols-outlined">first_page</span>
+							</button>
+							<button
+								onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+								disabled={currentPage === 1}
+								className="px-3 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+								title="Previous page"
+							>
+								<span className="material-symbols-outlined">chevron_left</span>
+							</button>
+							<div className="flex items-center gap-2">
+								{Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+									let pageNum
+									if (totalPages <= 5) {
+										pageNum = i + 1
+									} else if (currentPage <= 3) {
+										pageNum = i + 1
+									} else if (currentPage >= totalPages - 2) {
+										pageNum = totalPages - 4 + i
+									} else {
+										pageNum = currentPage - 2 + i
+									}
+									return (
+										<button
+											key={pageNum}
+											onClick={() => setCurrentPage(pageNum)}
+											className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+												pageNum === currentPage
+													? 'bg-[#137fec] text-white'
+													: 'bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-white/10'
+											}`}
+										>
+											{pageNum}
+										</button>
+									)
+								})}
+							</div>
+							<button
+								onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+								disabled={currentPage === totalPages}
+								className="px-3 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+								title="Next page"
+							>
+								<span className="material-symbols-outlined">chevron_right</span>
+							</button>
+							<button
+								onClick={() => setCurrentPage(totalPages)}
+								disabled={currentPage === totalPages}
+								className="px-3 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+								title="Last page"
+							>
+								<span className="material-symbols-outlined">last_page</span>
+							</button>
+						</div>
+						<select
+							value={itemsPerPage}
+							onChange={(e) => {
+								setItemsPerPage(Number(e.target.value))
+								setCurrentPage(1)
+							}}
+							className="px-3 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#137fec] transition-all"
+						>
+							<option value="8">8 per page</option>
+							<option value="12">12 per page</option>
+							<option value="20">20 per page</option>
+							<option value="50">50 per page</option>
+						</select>
+					</div>
+				)}
 				{/* MODALS - Được render ở ngoài BasePageLayout */}
 			</>
 		)

@@ -6,6 +6,7 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 	const modalRef = useRef(null)
 	const nameInputRef = useRef(null)
 	const priceInputRef = useRef(null)
+	const preparationTimeInputRef = useRef(null)
 	const descriptionInputRef = useRef(null)
 	const lastFocusedField = useRef(null)
 	const cursorPosition = useRef(null) // Store cursor position
@@ -50,6 +51,7 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 			const refMap = {
 				name: nameInputRef,
 				price: priceInputRef,
+				preparationTime: preparationTimeInputRef,
 				description: descriptionInputRef,
 			}
 			const targetRef = refMap[lastFocusedField.current]
@@ -353,6 +355,7 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 								Preparation Time (minutes)
 							</label>
 							<input
+								ref={preparationTimeInputRef}
 								type="number"
 								id="preparationTime"
 								name="preparationTime"

@@ -26,6 +26,9 @@ import Reports from './pages/user/analytics/Reports'
 import Settings from './pages/user/settings/Settings'
 import Profile from './pages/profile/Profile'
 
+// Customer pages (public)
+import OrderingInterface from './pages/customer/ordering/OrderingInterface'
+
 // Component chuyển hướng dựa trên role
 const RoleBasedRedirect = () => {
 	const { user, loading } = useUser()
@@ -63,6 +66,9 @@ function App() {
 								<Route path="/signup" element={<SignUp />} />
 								<Route path="/onboarding" element={<RestaurantSetupWizard />} />
 								<Route path="/kyc/callback" element={<KYCCallback />} />
+
+								{/* Customer ordering - Public route (no auth required) */}
+								<Route path="/order/:tenantId/:tableId" element={<OrderingInterface />} />
 
 								{/* Root redirect based on role */}
 								<Route path="/" element={<RoleBasedRedirect />} />
