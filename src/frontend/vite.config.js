@@ -23,25 +23,7 @@ export default defineConfig(({ mode }) => {
 					configure: (proxy, options) => {
 						proxy.on('proxyReq', (proxyReq, req, res) => {
 							// Add x-api-key header to proxied request
-							proxyReq.setHeader(
-								'x-api-key',
-								env.VITE_API_KEY || 'smart-restaurant-2025-secret-key',
-							)
-						})
-					},
-				},
-				// Proxy file upload requests to avoid CORS
-				'/api/file': {
-					target: env.VITE_FILE_SERVICE_URL || 'https://file-service-cdal.onrender.com',
-					changeOrigin: true,
-					rewrite: (path) => path.replace(/^\/api\/file/, '/api/v1/file'),
-					configure: (proxy, options) => {
-						proxy.on('proxyReq', (proxyReq, req, res) => {
-							// Add x-api-key header to proxied request
-							proxyReq.setHeader(
-								'x-api-key',
-								env.VITE_API_KEY || 'smart-restaurant-2025-secret-key',
-							)
+							proxyReq.setHeader('x-api-key', env.VITE_API_KEY)
 						})
 					},
 				},

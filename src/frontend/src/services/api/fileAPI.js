@@ -4,8 +4,8 @@
 import axios from 'axios'
 
 // ✅ Direct API call - CORS is enabled on server
-const FILE_SERVICE_BASE_URL = import.meta.env.VITE_FILE_SERVICE_URL
-	? `${import.meta.env.VITE_FILE_SERVICE_URL}/api/v1/file`
+const FILE_SERVICE_BASE_URL = import.meta.env.VITE_PROD
+	? '/api/v1/file'
 	: 'https://file-service-cdal.onrender.com/api/v1/file'
 
 /**
@@ -23,9 +23,6 @@ export const uploadFile = async (file, fieldName = 'image') => {
 
 		// ✅ Direct API call with x-api-key header
 		const response = await axios.post(`${FILE_SERVICE_BASE_URL}/uploads`, formData, {
-			headers: {
-				'x-api-key': import.meta.env.VITE_API_KEY || 'smart-restaurant-2025-secret-key',
-			},
 			timeout: 60000,
 		})
 
