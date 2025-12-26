@@ -98,6 +98,21 @@ let CategoryService = class CategoryService {
         const categories = await queryBuilder.getMany();
         return categories.map((cat) => this.toResponseDto(cat, cat.items?.length || 0));
     }
+    async getCategory(dto) {
+        const category = await this.categoryRepository.findOne({
+            where: {
+                id: dto.categoryId,
+                tenantId: dto.tenantId,
+                deletedAt: (0, typeorm_2.IsNull)(),
+            },
+            relations: ['items'],
+        });
+        if (!category) {
+            throw new app_exception_1.default(error_code_1.default.CATEGORY_NOT_FOUND);
+        }
+        const itemCount = category.items?.filter((item) => !item.deletedAt).length || 0;
+        return this.toResponseDto(category, itemCount);
+    }
     async updateCategory(dto) {
         const category = await this.categoryRepository.findOne({
             where: { id: dto.categoryId, tenantId: dto.tenantId, deletedAt: (0, typeorm_2.IsNull)() },

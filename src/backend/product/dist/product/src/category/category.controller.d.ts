@@ -1,6 +1,6 @@
 import { CategoryService } from './category.service';
 import HttpResponse from '@shared/utils/http-response';
-import { CreateCategoryRequestDto, GetCategoriesRequestDto, UpdateCategoryRequestDto, UpdateCategoryStatusRequestDto, DeleteCategoryRequestDto } from 'src/category/dtos/request';
+import { CreateCategoryRequestDto, GetCategoriesRequestDto, GetCategoryRequestDto, UpdateCategoryRequestDto, UpdateCategoryStatusRequestDto, DeleteCategoryRequestDto } from 'src/category/dtos/request';
 import { ConfigService } from '@nestjs/config';
 export declare class CategoryController {
     private readonly categoryService;
@@ -9,6 +9,7 @@ export declare class CategoryController {
     validateApiKey(providedKey: string): void;
     createCategory(dto: CreateCategoryRequestDto): Promise<HttpResponse>;
     getCategories(dto: GetCategoriesRequestDto): Promise<HttpResponse>;
+    getCategory(dto: GetCategoryRequestDto): Promise<HttpResponse>;
     updateCategory(dto: UpdateCategoryRequestDto): Promise<HttpResponse>;
     updateCategoryStatus(dto: UpdateCategoryStatusRequestDto): Promise<HttpResponse>;
     deleteCategory(dto: DeleteCategoryRequestDto): Promise<HttpResponse>;

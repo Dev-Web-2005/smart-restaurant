@@ -6,6 +6,7 @@ import { handleRpcCall } from '@shared/utils/rpc-error-handler';
 import {
 	CreateMenuItemRequestDto,
 	GetMenuItemsRequestDto,
+	GetMenuItemRequestDto,
 	UpdateMenuItemRequestDto,
 	UpdateMenuItemStatusRequestDto,
 	DeleteMenuItemRequestDto,
@@ -47,6 +48,18 @@ export class ItemController {
 		return handleRpcCall(async () => {
 			const result = await this.itemService.getMenuItems(dto);
 			return new HttpResponse(1000, 'Menu items retrieved successfully', result);
+		});
+	}
+
+	/**
+	 * Get single menu item by ID
+	 * RPC Pattern: 'menu-items:get'
+	 */
+	@MessagePattern('menu-items:get')
+	async getMenuItem(dto: GetMenuItemRequestDto) {
+		return handleRpcCall(async () => {
+			const menuItem = await this.itemService.getMenuItem(dto);
+			return new HttpResponse(1000, 'Menu item retrieved successfully', menuItem);
 		});
 	}
 

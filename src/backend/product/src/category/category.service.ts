@@ -15,6 +15,7 @@ import { CategoryResponseDto } from './dtos/response/category-response.dto';
 import {
 	CreateCategoryRequestDto,
 	GetCategoriesRequestDto,
+	GetCategoryRequestDto,
 	UpdateCategoryRequestDto,
 	UpdateCategoryStatusRequestDto,
 	DeleteCategoryRequestDto,
@@ -113,6 +114,26 @@ export class CategoryService {
 		const categories = await queryBuilder.getMany();
 
 		return categories.map((cat) => this.toResponseDto(cat, cat.items?.length || 0));
+	}
+
+	async getCategory(dto: GetCategoryRequestDto): Promise<CategoryResponseDto> {
+		const category = await this.categoryRepository.findOne({
+			where: {
+				id: dto.categoryId,
+				tenantId: dto.tenantId,
+				deletedAt: IsNull(),
+			},
+			relations: ['items'],
+		});
+
+		if (!category) {
+			throw new AppException(ErrorCode.CATEGORY_NOT_FOUND);
+		}
+
+		// Count only non-deleted items
+		const itemCount = category.items?.filter((item) => !item.deletedAt).length || 0;
+
+		return this.toResponseDto(category, itemCount);
 	}
 
 	async updateCategory(dto: UpdateCategoryRequestDto): Promise<CategoryResponseDto> {
