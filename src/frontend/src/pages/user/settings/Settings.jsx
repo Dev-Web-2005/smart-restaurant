@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 // import axios from 'axios'; // Import Axios khi bạn sẵn sàng tích hợp API
 import { useUser } from '../../../contexts/UserContext' // 👈 IMPORT CONTEXT
+import { useTheme } from '../../../contexts/ThemeContext' // 👈 IMPORT THEME CONTEXT
 import { useLoading } from '../../../contexts/LoadingContext'
 import BasePageLayout from '../../../components/layout/BasePageLayout' // 👈 IMPORT LAYOUT CHUNG
 import { ButtonLoader, InlineLoader } from '../../../components/common/LoadingSpinner'
@@ -25,11 +26,14 @@ const languageOptions = ['Vietnamese (Tiếng Việt)', 'English', 'Spanish', 'F
 
 const ApplicationSettings = () => {
 	const { user, loading: contextLoading } = useUser()
+	const { backgroundImage, uploadBackgroundImage, resetBackground } = useTheme()
 
 	// 1. State chính cho form settings
 	const [settings, setSettings] = useState(mockSettings)
 	const [loading, setLoading] = useState(true)
 	const [formLoading, setFormLoading] = useState(false)
+	const [uploadingBackground, setUploadingBackground] = useState(false)
+	const [backgroundPreview, setBackgroundPreview] = useState(null)
 
 	// 2. Hàm Fetch Settings (GET)
 	const fetchSettings = async () => {
@@ -57,6 +61,33 @@ const ApplicationSettings = () => {
 	const handleChange = (e) => {
 		const { name, value } = e.target
 		setSettings((prev) => ({ ...prev, [name]: value }))
+	}
+
+	// 3b. Hàm xử lý upload background image
+	const handleBackgroundUpload = async (e) => {
+		const file = e.target.files?.[0]
+		if (!file) return
+
+		setUploadingBackground(true)
+		try {
+			const imageUrl = await uploadBackgroundImage(file)
+			setBackgroundPreview(imageUrl)
+			alert('✅ Background image updated successfully!')
+		} catch (error) {
+			alert(`❌ ${error.message}`)
+			console.error('Upload error:', error)
+		} finally {
+			setUploadingBackground(false)
+		}
+	}
+
+	// 3c. Hàm reset background về mặc định
+	const handleResetBackground = () => {
+		if (confirm('Reset background to default image?')) {
+			resetBackground()
+			setBackgroundPreview(null)
+			alert('✅ Background reset to default!')
+		}
 	}
 
 	// 4. Hàm Xử lý Lưu (POST/PUT)
@@ -187,6 +218,67 @@ const ApplicationSettings = () => {
 										</span>
 									</div>
 								</label>
+							</div>
+						</div>
+					</div>
+
+					{/* 1.5 Background Image */}
+					<div className="settings-card bg-black/40 backdrop-blur-md rounded-xl border border-white/10">
+						<div className="card-header p-6 border-b border-white/10">
+							<h2 className="text-xl font-bold text-white m-0 flex items-center gap-2">
+								<span className="material-symbols-outlined">wallpaper</span>
+								Background Image
+							</h2>
+							<p className="text-sm text-gray-300 mt-1">
+								Customize the background image for the entire application.
+							</p>
+						</div>
+						<div className="card-body p-6 space-y-4">
+							{/* Current Background Preview */}
+							<div className="space-y-2">
+								<label className="text-sm font-medium text-gray-300">
+									Current Background
+								</label>
+								<div
+									className="w-full h-32 rounded-lg bg-cover bg-center border-2 border-white/20"
+									style={{
+										backgroundImage: `url("${backgroundPreview || backgroundImage}")`,
+									}}
+								/>
+							</div>
+
+							{/* Upload Button */}
+							<div className="flex gap-3">
+								<label className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#137fec] hover:bg-[#1068c4] text-white rounded-lg cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+									<span className="material-symbols-outlined">upload</span>
+									<span>{uploadingBackground ? 'Uploading...' : 'Upload New Image'}</span>
+									<input
+										type="file"
+										accept="image/*"
+										onChange={handleBackgroundUpload}
+										className="hidden"
+										disabled={uploadingBackground}
+									/>
+								</label>
+
+								<button
+									type="button"
+									onClick={handleResetBackground}
+									className="px-4 py-2 bg-black/40 hover:bg-black/60 text-white border border-white/20 rounded-lg transition-colors flex items-center gap-2"
+									disabled={uploadingBackground}
+								>
+									<span className="material-symbols-outlined">refresh</span>
+									<span>Reset to Default</span>
+								</button>
+							</div>
+
+							{/* Info */}
+							<div className="text-xs text-gray-400 flex items-start gap-2">
+								<span className="material-symbols-outlined text-sm">info</span>
+								<span>
+									Recommended: High-resolution image (1920x1080 or higher). Max file size:
+									5MB. Supported formats: JPG, PNG, WebP.
+								</span>
 							</div>
 						</div>
 					</div>

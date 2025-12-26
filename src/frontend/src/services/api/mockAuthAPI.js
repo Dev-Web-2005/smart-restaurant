@@ -81,7 +81,9 @@ export const loginAPI = async (username, password) => {
 	// Generate mock access token
 	const mockAccessToken = `mock-access-token-${user.userId}-${Date.now()}`
 
-	// Save to localStorage
+	// ✅ Store access token in memory (window.accessToken)
+	window.accessToken = mockAccessToken
+	// Also save to localStorage for mock persistence
 	localStorage.setItem('accessToken', mockAccessToken)
 
 	// Prepare user data (without password)
@@ -100,6 +102,7 @@ export const loginAPI = async (username, password) => {
 	return {
 		success: true,
 		user: userData,
+		accessToken: mockAccessToken, // ✅ Include accessToken in response
 		message: 'Login successful',
 	}
 }
@@ -240,6 +243,9 @@ export const refreshTokenAPI = async () => {
 
 	// Generate new mock access token
 	const newAccessToken = `mock-access-token-${userData.userId}-${Date.now()}`
+
+	// ✅ Store access token in memory (window.accessToken)
+	window.accessToken = newAccessToken
 	localStorage.setItem('accessToken', newAccessToken)
 
 	console.log('✅ MOCK: Token refreshed')
@@ -247,6 +253,7 @@ export const refreshTokenAPI = async () => {
 	return {
 		success: true,
 		accessToken: newAccessToken,
+		user: userData, // ✅ Include user data (match real API structure)
 	}
 }
 

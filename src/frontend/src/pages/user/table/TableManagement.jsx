@@ -25,6 +25,7 @@ import AddTableModal from './AddTableModal'
 import AddFloorModal from './AddFloorModal'
 import { useLoading } from '../../../contexts/LoadingContext'
 import { useAlert } from '../../../contexts/AlertContext'
+import { useUser } from '../../../contexts/UserContext'
 import { InlineLoader, SkeletonLoader } from '../../../components/common/LoadingSpinner'
 import AuthenticationWarning from '../../../components/common/AuthenticationWarning'
 
@@ -748,6 +749,7 @@ const RestaurantTableManagement = () => {
 	const { showLoading, hideLoading } = useLoading()
 	const { showAlert, showSuccess, showError, showWarning, showInfo, showConfirm } =
 		useAlert()
+	const { user, loading: authLoading } = useUser()
 	const [tables, setTables] = useState([])
 	const [floors, setFloors] = useState([])
 	const [currentFloorId, setCurrentFloorId] = useState(null)
@@ -780,6 +782,20 @@ const RestaurantTableManagement = () => {
 
 	// ✅ Fetch floors from API when component mounts
 	useEffect(() => {
+		// ⏳ Wait for authentication to complete before fetching data
+		if (authLoading) {
+			console.log('⏳ Waiting for authentication to complete...')
+			return
+		}
+
+		// ✅ Check if user is authenticated and token exists
+		if (!user || !window.accessToken) {
+			console.log('⚠️ No user or token found, skipping floor fetch')
+			return
+		}
+
+		console.log('✅ Authentication complete, fetching floors...')
+
 		const fetchFloors = async () => {
 			try {
 				const floorsData = await getFloorsAPI()
@@ -813,7 +829,7 @@ const RestaurantTableManagement = () => {
 			}
 		}
 		fetchFloors()
-	}, [])
+	}, [authLoading, user])
 
 	// ✅ Fetch tables from API when floor changes or filters change
 	useEffect(() => {
@@ -2040,14 +2056,14 @@ const RestaurantTableManagement = () => {
 				existingFloorNumbers={floors.map((f) => f.floorNumber)}
 			/>
 
-		<AddFloorModal
-			isOpen={isAddFloorModalOpen}
-			onClose={() => setIsAddFloorModalOpen(false)}
-			onConfirm={handleCreateFloor}
-			existingFloorNumbers={floors.map((f) => f.floorNumber)}
-		/>
-	</>
-)
+			<AddFloorModal
+				isOpen={isAddFloorModalOpen}
+				onClose={() => setIsAddFloorModalOpen(false)}
+				onConfirm={handleCreateFloor}
+				existingFloorNumbers={floors.map((f) => f.floorNumber)}
+			/>
+		</>
+	)
 }
 
 export default RestaurantTableManagement

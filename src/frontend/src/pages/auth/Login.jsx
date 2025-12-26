@@ -5,6 +5,7 @@ import { useUser } from '../../contexts/UserContext' // Giả định đã có U
 import { useLoading } from '../../contexts/LoadingContext'
 import FloatingInputField from '../../components/form/FloatingInputField'
 import { ButtonLoader } from '../../components/common/LoadingSpinner'
+import BackgroundImage from '../../components/common/BackgroundImage'
 
 const AdminLogin = () => {
 	const navigate = useNavigate()
@@ -84,17 +85,10 @@ const AdminLogin = () => {
 	}
 
 	return (
-		<div
-			className="flex min-h-screen flex-col items-center justify-center p-4 font-[Work_Sans] w-full "
-			style={{
-				backgroundImage:
-					'url("https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=2070")',
-				backgroundSize: 'cover',
-				backgroundPosition: 'center',
-				backgroundAttachment: 'fixed',
-			}}
-		>
-			<div className="absolute inset-0 bg-black/75 h-full" />
+		<div className="flex min-h-screen flex-col items-center justify-center p-4 font-[Work_Sans] w-full">
+			{/* Background image - Sử dụng component tập trung */}
+			<BackgroundImage overlayOpacity={75} fixed={true} />
+
 			<div className="flex w-full max-w-md flex-col items-center ">
 				{/* Logo Group */}
 				<div className="mb-8 flex items-center gap-3">

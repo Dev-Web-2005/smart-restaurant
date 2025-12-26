@@ -5,6 +5,7 @@ import { useLoading } from '../../contexts/LoadingContext'
 import FloatingInputField from '../../components/form/FloatingInputField'
 import BasePageLayout from '../../components/layout/BasePageLayout'
 import { ButtonLoader } from '../../components/common/LoadingSpinner'
+import BackgroundImage from '../../components/common/BackgroundImage'
 import {
 	createKYCSession,
 	getKYCResult,
@@ -600,8 +601,20 @@ const RestaurantOnboarding = () => {
 			// Fetch KYC result from Didit API
 			const result = await getKYCResult(kycStatus.sessionId)
 
+			// Debug: Log full result to see exact structure
+			console.log('📊 Full KYC Result:', result)
+			console.log('📊 Result Status:', result.status)
+			console.log('📊 Result Data:', result.data)
+
+			// Normalize status to lowercase for comparison
+			const normalizedStatus = (result.status || '').toLowerCase()
+
 			// Check if verification is approved
-			if (result.status === 'Approved') {
+			if (
+				normalizedStatus === 'approved' ||
+				normalizedStatus === 'completed' ||
+				normalizedStatus === 'success'
+			) {
 				// Extract and upload CCCD images
 				const { cccdFrontUrl, cccdBackUrl, citizenInfo } = await completeKYCVerification(
 					kycStatus.sessionId,
@@ -624,14 +637,22 @@ const RestaurantOnboarding = () => {
 
 				// Show success message
 				alert('✅ Identity verification successful!')
-			} else if (result.status === 'In Review') {
+			} else if (
+				normalizedStatus === 'in review' ||
+				normalizedStatus === 'pending' ||
+				normalizedStatus === 'processing'
+			) {
 				// Still processing
 				setKycStatus((prev) => ({
 					...prev,
 					error:
 						'Verification is still being processed. Please wait a moment and try again.',
 				}))
-			} else if (result.status === 'Declined' || result.status === 'Failed') {
+			} else if (
+				normalizedStatus === 'declined' ||
+				normalizedStatus === 'failed' ||
+				normalizedStatus === 'rejected'
+			) {
 				// Verification failed
 				setKycStatus((prev) => ({
 					...prev,
@@ -642,8 +663,9 @@ const RestaurantOnboarding = () => {
 				// Not started or other status
 				setKycStatus((prev) => ({
 					...prev,
-					error:
-						'Verification not completed yet. Please complete the verification in the pop-up window first.',
+					error: `Verification status: ${
+						result.status || 'Unknown'
+					}. Please complete the verification in the pop-up window first.`,
 				}))
 			}
 		} catch (error) {
@@ -835,17 +857,10 @@ const RestaurantOnboarding = () => {
 	}
 
 	return (
-		<div
-			className="page-wrapper flex min-h-screen w-full flex-col items-center justify-center p-4 font-['Work_Sans',_sans-serif] relative"
-			style={{
-				backgroundImage:
-					'url("https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=2070")',
-				backgroundSize: 'cover',
-				backgroundPosition: 'center',
-				backgroundAttachment: 'fixed',
-			}}
-		>
-			<div className="fixed inset-0 bg-black/75 " />
+		<div className="page-wrapper flex min-h-screen w-full flex-col items-center justify-center p-4 font-['Work_Sans',_sans-serif] relative">
+			{/* Background image - Sử dụng component tập trung */}
+			<BackgroundImage overlayOpacity={75} fixed={true} />
+
 			<div className="content-container w-full max-w-4xl z-50">
 				<div className="my-8 text-center">
 					<h1

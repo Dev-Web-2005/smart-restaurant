@@ -5,6 +5,7 @@ import { useLoading } from '../../contexts/LoadingContext'
 import FloatingInputField from '../../components/form/FloatingInputField'
 import PasswordStrengthIndicator from '../../components/form/PasswordStrengthIndicator'
 import { ButtonLoader } from '../../components/common/LoadingSpinner'
+import BackgroundImage from '../../components/common/BackgroundImage'
 // import axios from 'axios'; // Import Axios khi bạn sẵn sàng tích hợp API
 
 const SignUp = () => {
@@ -157,17 +158,10 @@ const SignUp = () => {
 	}
 
 	return (
-		<div
-			className="flex min-h-screen flex-col items-center justify-center p-4 font-[Work_Sans] w-full relative"
-			style={{
-				backgroundImage:
-					'url("https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=2070")',
-				backgroundSize: 'cover',
-				backgroundPosition: 'center',
-				backgroundAttachment: 'fixed',
-			}}
-		>
-			<div className="fixed inset-0 bg-black/75" />
+		<div className="flex min-h-screen flex-col items-center justify-center p-4 font-[Work_Sans] w-full relative">
+			{/* Background image - Sử dụng component tập trung */}
+			<BackgroundImage overlayOpacity={75} fixed={true} />
+
 			<div className="flex w-full max-w-md flex-col items-center">
 				{/* Logo Group */}
 				<div className="mb-8 flex items-center gap-3 z-50">
