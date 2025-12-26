@@ -6,11 +6,13 @@ export declare class ProductController {
     constructor(productClient: ClientProxy, configService: ConfigService);
     createCategory(tenantId: string, data: any): import("rxjs").Observable<any>;
     getCategories(tenantId: string, status?: string, search?: string, sortBy?: string, sortOrder?: string): import("rxjs").Observable<any>;
+    getCategory(tenantId: string, categoryId: string): import("rxjs").Observable<any>;
     updateCategory(tenantId: string, categoryId: string, data: any): import("rxjs").Observable<any>;
     updateCategoryStatus(tenantId: string, categoryId: string, data: any): import("rxjs").Observable<any>;
     deleteCategory(tenantId: string, categoryId: string, data: any): import("rxjs").Observable<any>;
     createItem(tenantId: string, data: any): import("rxjs").Observable<any>;
     getItems(tenantId: string, categoryId?: string, status?: string, isChefRecommended?: boolean, search?: string, sortBy?: string, sortOrder?: string, page?: number, limit?: number): import("rxjs").Observable<any>;
+    getItem(tenantId: string, itemId: string): import("rxjs").Observable<any>;
     updateItem(tenantId: string, itemId: string, data: any): import("rxjs").Observable<any>;
     updateItemStatus(tenantId: string, itemId: string, data: any): import("rxjs").Observable<any>;
     deleteItem(tenantId: string, itemId: string): import("rxjs").Observable<any>;
@@ -21,10 +23,12 @@ export declare class ProductController {
     deleteMenuItemPhoto(tenantId: string, itemId: string, photoId: string): import("rxjs").Observable<any>;
     createModifierGroup(tenantId: string, data: any): import("rxjs").Observable<any>;
     getModifierGroups(tenantId: string, isActive?: boolean, search?: string): import("rxjs").Observable<any>;
+    getModifierGroup(tenantId: string, groupId: string): import("rxjs").Observable<any>;
     updateModifierGroup(tenantId: string, groupId: string, data: any): import("rxjs").Observable<any>;
     deleteModifierGroup(tenantId: string, groupId: string): import("rxjs").Observable<any>;
     createModifierOption(tenantId: string, groupId: string, data: any): import("rxjs").Observable<any>;
     getModifierOptions(tenantId: string, groupId: string, isActive?: boolean): import("rxjs").Observable<any>;
+    getModifierOption(tenantId: string, groupId: string, optionId: string): import("rxjs").Observable<any>;
     updateModifierOption(tenantId: string, groupId: string, optionId: string, data: any): import("rxjs").Observable<any>;
     deleteModifierOption(tenantId: string, groupId: string, optionId: string): import("rxjs").Observable<any>;
     attachModifierGroups(tenantId: string, itemId: string, data: any): import("rxjs").Observable<any>;

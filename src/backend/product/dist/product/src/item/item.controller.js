@@ -36,6 +36,12 @@ let ItemController = class ItemController {
             return new http_response_1.default(1000, 'Menu items retrieved successfully', result);
         });
     }
+    async getMenuItem(dto) {
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            const menuItem = await this.itemService.getMenuItem(dto);
+            return new http_response_1.default(1000, 'Menu item retrieved successfully', menuItem);
+        });
+    }
     async updateMenuItem(dto) {
         return (0, rpc_error_handler_1.handleRpcCall)(async () => {
             const item = await this.itemService.updateMenuItem(dto);
@@ -98,6 +104,12 @@ __decorate([
     __metadata("design:paramtypes", [request_1.GetMenuItemsRequestDto]),
     __metadata("design:returntype", Promise)
 ], ItemController.prototype, "getMenuItems", null);
+__decorate([
+    (0, microservices_1.MessagePattern)('menu-items:get'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [request_1.GetMenuItemRequestDto]),
+    __metadata("design:returntype", Promise)
+], ItemController.prototype, "getMenuItem", null);
 __decorate([
     (0, microservices_1.MessagePattern)('menu-items:update'),
     __metadata("design:type", Function),

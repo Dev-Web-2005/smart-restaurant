@@ -21,6 +21,7 @@ import {
 import {
 	CreateMenuItemRequestDto,
 	GetMenuItemsRequestDto,
+	GetMenuItemRequestDto,
 	UpdateMenuItemRequestDto,
 	UpdateMenuItemStatusRequestDto,
 	DeleteMenuItemRequestDto,
@@ -193,6 +194,38 @@ export class ItemService {
 	}
 
 	/**
+	 * Get single menu item by ID
+	 *
+	 * Business Rules:
+	 * - Item must exist and belong to tenant
+	 * - Returns full item details with category name and photos
+	 */
+	async getMenuItem(dto: GetMenuItemRequestDto): Promise<MenuItemResponseDto> {
+		this.validateApiKey(dto.productApiKey);
+
+		const menuItem = await this.menuItemRepository.findOne({
+			where: {
+				id: dto.menuItemId,
+				tenantId: dto.tenantId,
+				deletedAt: IsNull(),
+			},
+			relations: ['category', 'photos'],
+			order: {
+				photos: {
+					isPrimary: 'DESC',
+					displayOrder: 'ASC',
+				},
+			},
+		});
+
+		if (!menuItem) {
+			throw new AppException(ErrorCode.ITEM_NOT_FOUND);
+		}
+
+		return this.toResponseDto(menuItem, menuItem.category?.name);
+	}
+
+	/**
 	 * Update an existing menu item
 	 *
 	 * Business Rules:
@@ -315,6 +348,7 @@ export class ItemService {
 	/**
 	 * Convert MenuItem entity to response DTO
 	 * Converts status enum to uppercase string
+	 * Includes photos if loaded (sorted by isPrimary DESC, displayOrder ASC)
 	 */
 	private toResponseDto(item: MenuItem, categoryName?: string): MenuItemResponseDto {
 		return {
@@ -330,6 +364,12 @@ export class ItemService {
 			prepTimeMinutes: item.prepTimeMinutes,
 			status: menuItemStatusToString(item.status),
 			isChefRecommended: item.isChefRecommended,
+			photos: item.photos?.map((photo) => ({
+				id: photo.id,
+				url: photo.url,
+				isPrimary: photo.isPrimary,
+				displayOrder: photo.displayOrder,
+			})),
 			createdAt: item.createdAt,
 			updatedAt: item.updatedAt,
 		};

@@ -17,6 +17,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./create-category-request.dto"), exports);
 __exportStar(require("./update-category-request.dto"), exports);
 __exportStar(require("./get-categories-request.dto"), exports);
+__exportStar(require("./get-category-request.dto"), exports);
 __exportStar(require("./publish-category-request.dto"), exports);
 __exportStar(require("./delete-category-request.dto"), exports);
 //# sourceMappingURL=index.js.map

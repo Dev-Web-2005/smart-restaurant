@@ -45,6 +45,13 @@ let ProductController = class ProductController {
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
+    getCategory(tenantId, categoryId) {
+        return this.productClient.send('categories:get', {
+            tenantId,
+            categoryId,
+            productApiKey: this.configService.get('PRODUCT_API_KEY'),
+        });
+    }
     updateCategory(tenantId, categoryId, data) {
         return this.productClient.send('categories:update', {
             ...data,
@@ -87,6 +94,13 @@ let ProductController = class ProductController {
             sortOrder,
             page,
             limit,
+            productApiKey: this.configService.get('PRODUCT_API_KEY'),
+        });
+    }
+    getItem(tenantId, itemId) {
+        return this.productClient.send('menu-items:get', {
+            tenantId,
+            menuItemId: itemId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
@@ -168,6 +182,13 @@ let ProductController = class ProductController {
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
+    getModifierGroup(tenantId, groupId) {
+        return this.productClient.send('modifier-groups:get', {
+            tenantId,
+            modifierGroupId: groupId,
+            productApiKey: this.configService.get('PRODUCT_API_KEY'),
+        });
+    }
     updateModifierGroup(tenantId, groupId, data) {
         return this.productClient.send('modifier-groups:update', {
             ...data,
@@ -196,6 +217,14 @@ let ProductController = class ProductController {
             tenantId,
             modifierGroupId: groupId,
             isActive,
+            productApiKey: this.configService.get('PRODUCT_API_KEY'),
+        });
+    }
+    getModifierOption(tenantId, groupId, optionId) {
+        return this.productClient.send('modifier-options:get', {
+            tenantId,
+            modifierGroupId: groupId,
+            modifierOptionId: optionId,
             productApiKey: this.configService.get('PRODUCT_API_KEY'),
         });
     }
@@ -274,6 +303,14 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "getCategories", null);
 __decorate([
+    (0, common_1.Get)('tenants/:tenantId/categories/:categoryId'),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('categoryId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "getCategory", null);
+__decorate([
     (0, common_1.Patch)('tenants/:tenantId/categories/:categoryId'),
     (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
     __param(0, (0, common_1.Param)('tenantId')),
@@ -327,6 +364,14 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String, Boolean, String, String, String, Number, Number]),
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "getItems", null);
+__decorate([
+    (0, common_1.Get)('tenants/:tenantId/items/:itemId'),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('itemId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "getItem", null);
 __decorate([
     (0, common_1.Patch)('tenants/:tenantId/items/:itemId'),
     (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
@@ -425,6 +470,15 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "getModifierGroups", null);
 __decorate([
+    (0, common_1.Get)('tenants/:tenantId/modifier-groups/:groupId'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('groupId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "getModifierGroup", null);
+__decorate([
     (0, common_1.Patch)('tenants/:tenantId/modifier-groups/:groupId'),
     (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
     __param(0, (0, common_1.Param)('tenantId')),
@@ -463,6 +517,16 @@ __decorate([
     __metadata("design:paramtypes", [String, String, Boolean]),
     __metadata("design:returntype", void 0)
 ], ProductController.prototype, "getModifierOptions", null);
+__decorate([
+    (0, common_1.Get)('tenants/:tenantId/modifier-groups/:groupId/options/:optionId'),
+    (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
+    __param(0, (0, common_1.Param)('tenantId')),
+    __param(1, (0, common_1.Param)('groupId')),
+    __param(2, (0, common_1.Param)('optionId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:returntype", void 0)
+], ProductController.prototype, "getModifierOption", null);
 __decorate([
     (0, common_1.Patch)('tenants/:tenantId/modifier-groups/:groupId/options/:optionId'),
     (0, common_1.UseGuards)(auth_guard_1.AuthGuard, (0, check_role_guard_1.default)('USER')),
