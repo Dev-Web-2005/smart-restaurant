@@ -111,6 +111,7 @@ export class ItemService {
 	 * - Filter by category, status, search by name, chef recommended
 	 * - Sort by createdAt, price, name, popularity (future)
 	 * - Pagination with page/limit
+	 * - Includes photos sorted by isPrimary DESC, displayOrder ASC
 	 */
 	async getMenuItems(
 		dto: GetMenuItemsRequestDto,
@@ -120,6 +121,7 @@ export class ItemService {
 		const queryBuilder = this.menuItemRepository
 			.createQueryBuilder('item')
 			.leftJoinAndSelect('item.category', 'category')
+			.leftJoinAndSelect('item.photos', 'photos')
 			.where('item.tenantId = :tenantId', { tenantId: dto.tenantId })
 			.andWhere('item.deletedAt IS NULL');
 
@@ -174,6 +176,10 @@ export class ItemService {
 				queryBuilder.orderBy('item.createdAt', sortOrder);
 				break;
 		}
+
+		// Sort photos within each item (primary first, then by display order)
+		queryBuilder.addOrderBy('photos.isPrimary', 'DESC');
+		queryBuilder.addOrderBy('photos.displayOrder', 'ASC');
 
 		// Pagination
 		const page = dto.page && dto.page > 0 ? dto.page : 1;
