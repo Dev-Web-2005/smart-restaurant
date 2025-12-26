@@ -34,7 +34,6 @@ export const loginAPI = async (username, password) => {
 
 			// Set tenantId for table management (userId = tenantId in this system)
 			window.currentTenantId = userId
-			console.log('✅ Login successful - TenantId set:', userId)
 
 			return {
 				success: true,
@@ -43,15 +42,12 @@ export const loginAPI = async (username, password) => {
 				message,
 			}
 		} else {
-			console.warn('⚠️ Unexpected login response:', response.data)
 			return {
 				success: false,
 				message: message || 'Login failed',
 			}
 		}
 	} catch (error) {
-		console.error('❌ Login error:', error)
-
 		const errorCode = error?.code || error?.response?.data?.code
 		const errorMessage = error?.message || error?.response?.data?.message
 		let userMessage = 'Login failed. Please try again.'
@@ -95,7 +91,6 @@ export const registerAPI = async (signupData, onboardingData) => {
 			backImageUrl = onboardingData.cccdBackUrl
 		} else if (onboardingData.cccdFrontFile && onboardingData.cccdBackFile) {
 			// Old flow - upload files manually
-			console.log('📤 Uploading CCCD images...')
 			try {
 				const { frontImageUrl: front, backImageUrl: back } = await uploadCCCDImages(
 					onboardingData.cccdFrontFile,
@@ -159,15 +154,12 @@ export const registerAPI = async (signupData, onboardingData) => {
 				message,
 			}
 		} else {
-			console.warn('⚠️ Unexpected registration response:', response.data)
 			return {
 				success: false,
 				message: message || 'Registration failed',
 			}
 		}
 	} catch (error) {
-		console.error('❌ Registration error:', error)
-
 		const errorCode = error?.code || error?.response?.data?.code
 		const errorMessage = error?.message || error?.response?.data?.message
 		const validationErrors = error?.errors || error?.response?.data?.errors
@@ -246,7 +238,6 @@ export const logoutAPI = async (accessToken) => {
 				message,
 			}
 		} else {
-			console.warn('⚠️ Unexpected logout response:', response.data)
 			return {
 				success: false,
 				message: message || 'Logout failed',
@@ -292,7 +283,6 @@ export const getCurrentUserAPI = async (accessToken) => {
 				user: data,
 			}
 		} else {
-			console.warn('⚠️ Unexpected user data response:', response.data)
 			return {
 				success: false,
 				message: 'Failed to fetch user data',
