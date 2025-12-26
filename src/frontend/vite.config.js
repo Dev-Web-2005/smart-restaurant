@@ -45,21 +45,6 @@ export default defineConfig(({ mode }) => {
 						})
 					},
 				},
-				// Proxy Didit KYC API to avoid CORS
-				'/api/kyc': {
-					target: 'https://verification.didit.me',
-					changeOrigin: true,
-					rewrite: (path) => path.replace(/^\/api\/kyc/, '/v2'),
-					configure: (proxy, options) => {
-						proxy.on('proxyReq', (proxyReq, req, res) => {
-							// Add X-Api-Key header for Didit authentication
-							proxyReq.setHeader(
-								'X-Api-Key',
-								env.VITE_DIDIT_API_KEY || '7hwmBAe7gzf8RECVEc5oZWQc8Sp9_SDpX9lkLiHUyMs',
-							)
-						})
-					},
-				},
 			},
 		},
 	}
