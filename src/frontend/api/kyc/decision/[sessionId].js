@@ -1,9 +1,6 @@
 // api/kyc/decision/[sessionId].js
-// ⚠️ DEPRECATED: This Vercel Edge Function is no longer needed
-// KYC API now supports CORS - frontend makes direct API calls
-// See: src/services/api/kycAPI.js
-//
-// Kept for backward compatibility only
+// Vercel Serverless Function: Get KYC decision by session ID
+// Proxies requests to Didit API to avoid CORS issues
 
 import axios from 'axios'
 
