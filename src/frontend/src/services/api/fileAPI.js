@@ -1,12 +1,15 @@
 // services/api/fileAPI.js
-// File Upload Service - Direct API call (CORS enabled)
+// File Upload Service - External API via Vite proxy
+// Proxy: /api/file -> https://file-service-cdal.onrender.com/api/v1/file
 
 import axios from 'axios'
 
-// ✅ Direct API call - CORS is enabled on server
+// Use environment variable in production, proxy in development
+// Development: /api/file (Vite proxy)
+// Production: Full URL from VITE_FILE_SERVICE_URL
 const FILE_SERVICE_BASE_URL = import.meta.env.VITE_FILE_SERVICE_URL
 	? `${import.meta.env.VITE_FILE_SERVICE_URL}/api/v1/file`
-	: 'https://file-service-cdal.onrender.com/api/v1/file'
+	: '/api/file'
 
 /**
  * Upload a single file to the file service
@@ -21,7 +24,7 @@ export const uploadFile = async (file, fieldName = 'image') => {
 		formData.append('id', Date.now().toString())
 		formData.append(fieldName, file)
 
-		// ✅ Direct API call with x-api-key header
+		// Upload via proxy (x-api-key added automatically in dev, manually in prod)
 		const response = await axios.post(`${FILE_SERVICE_BASE_URL}/uploads`, formData, {
 			headers: {
 				'x-api-key': import.meta.env.VITE_API_KEY || 'smart-restaurant-2025-secret-key',
