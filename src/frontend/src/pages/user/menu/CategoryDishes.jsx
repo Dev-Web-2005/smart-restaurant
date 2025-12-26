@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import AddDishModal from './AddDishModal'
 import { useUser } from '../../../contexts/UserContext'
+import { useAlert } from '../../../contexts/AlertContext'
 import {
 	createMenuItemAPI,
 	addMenuItemPhotoAPI,
@@ -163,6 +164,7 @@ const formatCategoryName = (slug) => {
 const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 	const modalRef = useRef(null)
 	const { user } = useUser()
+	const { showAlert, showSuccess, showError, showWarning, showConfirm } = useAlert()
 	const [isVisible, setIsVisible] = useState(false)
 	const [modifierGroups, setModifierGroups] = useState([]) // All available modifier groups
 	const [attachedGroups, setAttachedGroups] = useState([]) // Groups attached to this item
@@ -170,15 +172,23 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 	const [isAddingNew, setIsAddingNew] = useState(false)
 	const [loading, setLoading] = useState(false)
 	const [saving, setSaving] = useState(false)
+	const [isFetching, setIsFetching] = useState(false) // Guard against duplicate fetches
 
 	// Fetch modifier groups and attached groups when modal opens
 	useEffect(() => {
 		if (isOpen && dish && user?.userId) {
 			fetchModifierData()
 		}
-	}, [isOpen, dish, user])
+	}, [isOpen, dish?.id, user?.userId])
 
 	const fetchModifierData = async () => {
+		// Guard: Prevent duplicate fetch requests
+		if (isFetching) {
+			console.log('⏭️ Already fetching modifier data, skipping...')
+			return
+		}
+
+		setIsFetching(true)
 		setLoading(true)
 		try {
 			// Fetch all modifier groups for tenant
@@ -220,12 +230,13 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 			console.error('❌ [ModifiersModal] Error response:', error.response)
 			console.error('❌ [ModifiersModal] Error data:', error.response?.data)
 			console.error('❌ [ModifiersModal] Error status:', error.response?.status)
-			alert(
-				'Failed to load modifier data: ' +
-					(error.response?.data?.message || error.message),
+			showError(
+				'Failed to load modifier data',
+				error.response?.data?.message || error.message,
 			)
 		} finally {
 			setLoading(false)
+			setIsFetching(false)
 		}
 	}
 
@@ -262,8 +273,26 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 	const handleSaveGroup = async (group) => {
 		if (!group.name.trim()) {
 			console.error('❌ [ModifiersModal] Group name is empty')
-			alert('Please enter group name')
+			showWarning('Validation Error', 'Please enter group name')
 			return
+		}
+
+		// Check if group has no options when updating existing group
+		if (!isAddingNew && group.options.length === 0) {
+			const confirmed = await showConfirm(
+				'Group không có options',
+				'Nhóm modifier này không có options nào. Bạn có muốn xóa luôn nhóm này không?',
+			)
+			if (confirmed) {
+				await handleDeleteGroup(group.id)
+				return
+			} else {
+				showWarning(
+					'Cannot save empty group',
+					'Vui lòng thêm ít nhất một option hoặc xóa nhóm',
+				)
+				return
+			}
 		}
 
 		setSaving(true)
@@ -305,7 +334,27 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 					isActive: group.isActive,
 				})
 
-				// Update options
+				// Get original group to find deleted options
+				const originalGroup = modifierGroups.find((g) => g.id === group.id)
+				const currentOptionIds = group.options
+					.filter((opt) => opt.id && typeof opt.id === 'string' && opt.id.length > 10)
+					.map((opt) => opt.id)
+
+				// Delete options that were removed
+				if (originalGroup?.options) {
+					for (const originalOption of originalGroup.options) {
+						if (!currentOptionIds.includes(originalOption.id)) {
+							try {
+								await deleteModifierOptionAPI(user.userId, group.id, originalOption.id)
+								console.log(`✅ Deleted option ${originalOption.id}`)
+							} catch (error) {
+								console.error(`❌ Failed to delete option ${originalOption.id}:`, error)
+							}
+						}
+					}
+				}
+
+				// Update or create options
 				for (const option of group.options) {
 					if (option.id && typeof option.id === 'string' && option.id.length > 10) {
 						// Existing option - update
@@ -327,28 +376,70 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 				}
 			}
 
-			// Refresh data
+			// Refresh data only on success
 			await fetchModifierData()
 			setEditingGroup(null)
 			setIsAddingNew(false)
+			showSuccess('Success', 'Modifier group saved successfully!')
 		} catch (error) {
 			console.error('Error saving group:', error)
-			alert('Failed to save group: ' + (error.response?.data?.message || error.message))
+			showError('Failed to save group', error.response?.data?.message || error.message)
+			// Don't refresh data on error - keep editing form visible
+			// User can fix the issue and try again
 		} finally {
 			setSaving(false)
 		}
 	}
 
 	const handleDeleteGroup = async (groupId) => {
-		if (!confirm('Bạn có chắc muốn xóa nhóm modifier này?')) return
+		// Check if this group is attached to the current dish
+		const isAttached = attachedGroups.some((ag) => ag.modifierGroupId === groupId)
+
+		let confirmMessage = 'Bạn có chắc muốn xóa nhóm modifier này?'
+		if (isAttached) {
+			confirmMessage =
+				'Nhóm modifier này đang được gắn vào món ăn hiện tại. Xóa nhóm sẽ tự động gỡ khỏi tất cả món ăn. Bạn có chắc muốn tiếp tục?'
+		}
+
+		const confirmed = await showConfirm('Xác nhận xóa', confirmMessage)
+		if (!confirmed) return
 
 		setSaving(true)
 		try {
+			// If attached, detach first
+			if (isAttached) {
+				console.log(`🔗 Group ${groupId} is attached, detaching first...`)
+				try {
+					await detachModifierGroupAPI(user.userId, dish.id, groupId)
+					console.log('✅ Detached successfully')
+				} catch (detachError) {
+					console.warn('⚠️ Failed to detach, continuing with delete:', detachError)
+					// Continue anyway, backend might handle cascade delete
+				}
+			}
+
+			// Delete the group
+			console.log(`🗑️ Deleting group ${groupId}...`)
 			await deleteModifierGroupAPI(user.userId, groupId)
-			await fetchModifierData()
-		} catch (error) {
-			console.error('Error deleting group:', error)
-			alert('Failed to delete group: ' + (error.response?.data?.message || error.message))
+			console.log('✅ Group deleted successfully')
+
+			// ✅ Optimize: Update local state instead of fetching all data
+			setModifierGroups((prev) => prev.filter((g) => g.id !== groupId))
+			setAttachedGroups((prev) => prev.filter((ag) => ag.modifierGroupId !== groupId))
+
+			showSuccess('Success', 'Nhóm modifier đã được xóa thành công!')
+
+			// ✅ Close modal after successful delete to prevent unnecessary re-renders
+			setTimeout(() => {
+				onClose()
+			}, 500) // Small delay to show success message
+			const errorMessage =
+				error.response?.data?.message ||
+				error.response?.data?.error ||
+				error.message ||
+				'Không thể xóa nhóm modifier'
+
+			showError('Failed to delete group', errorMessage)
 		} finally {
 			setSaving(false)
 		}
@@ -357,7 +448,7 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 	const handleAttachGroup = async (groupId, config = {}) => {
 		setSaving(true)
 		try {
-			await attachModifierGroupsAPI(user.userId, dish.id, {
+			const attachConfig = {
 				modifierGroups: [
 					{
 						modifierGroupId: groupId,
@@ -367,33 +458,57 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 						maxSelections: config.maxSelections || 1,
 					},
 				],
-			})
-			await fetchModifierData()
+			}
+			await attachModifierGroupsAPI(user.userId, dish.id, attachConfig)
+
+			// ✅ Optimize: Update local state instead of fetching
+			setAttachedGroups((prev) => [
+				...prev,
+				{
+					modifierGroupId: groupId,
+					displayOrder: config.displayOrder || 0,
+					isRequired: config.isRequired || false,
+					minSelections: config.minSelections || 0,
+					maxSelections: config.maxSelections || 1,
+				},
+			])
+			showSuccess('Success', 'Đã gắn nhóm modifier thành công!')
 		} catch (error) {
 			console.error('Error attaching group:', error)
-			alert('Failed to attach group: ' + (error.response?.data?.message || error.message))
+			showError('Failed to attach group', error.response?.data?.message || error.message)
 		} finally {
 			setSaving(false)
 		}
 	}
 
 	const handleDetachGroup = async (groupId) => {
-		if (!confirm('Bạn có chắc muốn gỡ nhóm modifier này khỏi món ăn?')) return
+		const confirmed = await showConfirm(
+			'Xác nhận gỡ',
+			'Bạn có chắc muốn gỡ nhóm modifier này khỏi món ăn?',
+		)
+		if (!confirmed) return
 
 		setSaving(true)
 		try {
 			await detachModifierGroupAPI(user.userId, dish.id, groupId)
-			await fetchModifierData()
+
+			// ✅ Optimize: Update local state instead of fetching
+			setAttachedGroups((prev) => prev.filter((ag) => ag.modifierGroupId !== groupId))
+			showSuccess('Success', 'Đã gỡ nhóm modifier thành công!')
 		} catch (error) {
 			console.error('Error detaching group:', error)
-			alert('Failed to detach group: ' + (error.response?.data?.message || error.message))
+			showError('Failed to detach group', error.response?.data?.message || error.message)
 		} finally {
 			setSaving(false)
 		}
 	}
 
 	const handleDeleteOption = async (groupId, optionId) => {
-		if (!confirm('Bạn có chắc muốn xóa option này?')) return
+		const confirmed = await showConfirm(
+			'Xác nhận xóa',
+			'Bạn có chắc muốn xóa option này?',
+		)
+		if (!confirmed) return
 
 		setSaving(true)
 		try {
@@ -401,9 +516,7 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 			await fetchModifierData()
 		} catch (error) {
 			console.error('Error deleting option:', error)
-			alert(
-				'Failed to delete option: ' + (error.response?.data?.message || error.message),
-			)
+			showError('Failed to delete option', error.response?.data?.message || error.message)
 		} finally {
 			setSaving(false)
 		}
@@ -436,7 +549,7 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 				</div>
 
 				{/* Content */}
-				<div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+				<div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)] scrollbar-hide">
 					{loading ? (
 						<div className="text-center py-12">
 							<div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#137fec] mb-4"></div>
@@ -1081,7 +1194,7 @@ const DishDetailsModal = ({
 			}
 		} catch (error) {
 			console.error('Failed to add photo:', error)
-			alert(error.message || 'Failed to add photo')
+			showError('Failed to add photo', error.message)
 		} finally {
 			setUploadingPhoto(false)
 			e.target.value = '' // Reset input
@@ -1295,7 +1408,7 @@ const DishDetailsModal = ({
 					</button>
 				</div>
 
-				<div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+				<div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)] scrollbar-hide">
 					{/* 🆕 Loading state when fetching detail */}
 					{loadingDetail ? (
 						<div className="flex flex-col items-center justify-center py-12">
@@ -1654,7 +1767,7 @@ const DishDetailsModal = ({
 									value={editFormData?.name || ''}
 									onChange={handleInputChange}
 									className="w-full px-4 py-2 bg-[#2D3748] text-white rounded-lg border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#137fec]"
-									placeholder="Enter dish name"
+									placeholder={dish?.name || 'Enter dish name'}
 								/>
 							</div>
 
@@ -1667,7 +1780,7 @@ const DishDetailsModal = ({
 									onChange={handleInputChange}
 									rows={4}
 									className="w-full px-4 py-2 bg-[#2D3748] text-white rounded-lg border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#137fec] resize-none"
-									placeholder="Enter dish description"
+									placeholder={dish?.description || 'Enter dish description'}
 								/>
 							</div>
 
@@ -1682,6 +1795,7 @@ const DishDetailsModal = ({
 										onChange={handleInputChange}
 										step="0.01"
 										min="0.01"
+										placeholder={dish?.price ? `Current: $${dish.price}` : '0.00'}
 										className="w-full px-4 py-2 bg-[#2D3748] text-white rounded-lg border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#137fec]"
 									/>
 								</div>
@@ -1697,6 +1811,11 @@ const DishDetailsModal = ({
 										value={editFormData?.preparationTime || 0}
 										onChange={handleInputChange}
 										min="0"
+										placeholder={
+											dish?.preparationTime || dish?.prepTimeMinutes
+												? `Current: ${dish.preparationTime || dish.prepTimeMinutes} mins`
+												: '0'
+										}
 										className="w-full px-4 py-2 bg-[#2D3748] text-white rounded-lg border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#137fec]"
 									/>
 								</div>
@@ -1861,7 +1980,6 @@ const DishCard = ({ dish, onDelete, onClick, viewMode = 'grid' }) => {
 							</span>
 						)}
 					</div>
-					<p className="text-sm text-[#9dabb9] line-clamp-2">{dish.description}</p>
 					<div className="flex items-center gap-4 mt-2 text-xs text-[#9dabb9]">
 						{dish.cookingTime && (
 							<span className="flex items-center gap-1">
@@ -1923,9 +2041,6 @@ const DishCard = ({ dish, onDelete, onClick, viewMode = 'grid' }) => {
 						<h3 className="text-xl font-bold text-white m-0 leading-tight">
 							{dish.name}
 						</h3>
-						<p className="text-xs text-[#E2E8F0] mt-1 line-clamp-2 m-0">
-							{dish.description}
-						</p>
 					</div>
 				</div>
 
@@ -2242,6 +2357,7 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 
 	const navigate = useNavigate()
 	const { user, loading: contextLoading } = useUser()
+	const { showAlert, showSuccess, showError, showWarning, showConfirm } = useAlert()
 	const [dishes, setDishes] = useState([])
 	const [categoryDetail, setCategoryDetail] = useState(null) // 🆕 Store full category detail from API
 	const [categoryName, setCategoryName] = useState(category?.name || '')
@@ -2332,40 +2448,10 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 			if (result.success) {
 				const items = result.items || []
 
-				// 🔧 WORKAROUND: getMenuItemsAPI doesn't include photos relation
-				// Solution: Fetch full details for each item using getMenuItemByIdAPI
-				// ⚠️ Sequential with delay to avoid 429 Rate Limiting
-				const itemsWithPhotos = []
-
-				for (let i = 0; i < items.length; i++) {
-					const item = items[i]
-					try {
-						const detailResult = await getMenuItemByIdAPI(tenantId, item.id)
-						if (detailResult.success && detailResult.item) {
-							itemsWithPhotos.push(detailResult.item) // Full item with photos
-						} else {
-							itemsWithPhotos.push(item) // Fallback to item without photos
-						}
-					} catch (error) {
-						console.warn('⚠️ Failed to fetch photos for item:', item.name, error)
-						itemsWithPhotos.push(item) // Fallback to item without photos
-					}
-
-					// Add delay between requests to avoid rate limiting (except for last item)
-					if (i < items.length - 1) {
-						await delay(150) // 150ms delay between requests
-					}
-				}
-
-				// Debug: Check which items have photos
-				itemsWithPhotos.forEach((item, index) => {
-					const hasPhotos = item.photos && item.photos.length > 0
-					const primaryPhoto = item.photos?.find((p) => p.isPrimary)
-				})
-
 				// Transform API response to match component's data structure
-				const transformedItems = itemsWithPhotos.map((item) => {
+				const transformedItems = items.map((item) => {
 					// Get primary photo or first photo from photos array
+					// Backend already includes photos sorted by isPrimary DESC, displayOrder ASC
 					const primaryPhoto =
 						item.photos?.find((p) => p.isPrimary) || item.photos?.[0] || null
 					const imageUrl = primaryPhoto?.url || PLACEHOLDER_IMAGE

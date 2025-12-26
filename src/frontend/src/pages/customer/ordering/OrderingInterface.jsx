@@ -263,21 +263,27 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 	const modifierGroups = useMemo(() => {
 		// Support both old and new API structures
 		if (dish?.modifierGroups && Array.isArray(dish.modifierGroups)) {
-			// New API structure
-			return dish.modifierGroups.map((group) => ({
-				name: group.name,
-				type: group.type === 'SINGLE' ? 'single' : 'multiple',
-				required: group.required || false,
-				minSelection: group.minSelection || 0,
-				maxSelection: group.maxSelection || 10,
-				options: (group.options || []).map((opt) => ({
-					id: opt.id,
-					label: opt.name,
-					priceDelta: opt.priceAdjustment || 0,
-					groupName: group.name,
-					type: group.type === 'SINGLE' ? 'single' : 'multiple',
-				})),
-			}))
+			// New API structure from backend
+			console.log('🔧 Processing modifier groups:', dish.modifierGroups)
+			return dish.modifierGroups
+				.filter((group) => group.options && group.options.length > 0)
+				.map((group) => {
+					const groupType = group.maxSelections === 1 ? 'single' : 'multiple'
+					return {
+						name: group.name,
+						type: groupType,
+						required: group.isRequired || false,
+						minSelection: group.minSelections || 0,
+						maxSelection: group.maxSelections || 10,
+						options: (group.options || []).map((opt) => ({
+							id: opt.id,
+							label: opt.label,
+							priceDelta: opt.priceDelta || 0,
+							groupName: group.name,
+							type: groupType,
+						})),
+					}
+				})
 		} else if (dish?.modifiers && Array.isArray(dish.modifiers)) {
 			// Old mock structure
 			const groups = {}
@@ -285,7 +291,7 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 				if (!groups[mod.groupName]) {
 					groups[mod.groupName] = {
 						name: mod.groupName,
-						type: mod.type, // 'single' or 'multiple'
+						type: mod.type,
 						options: [],
 					}
 				}
@@ -317,8 +323,24 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 			if (type === 'single') {
 				// Remove all other selections from same group, add this one
 				const filteredPrev = prev.filter((id) => {
-					const mod = dish.modifiers.find((m) => m.id === id)
-					return mod && mod.groupName !== groupName
+					// Find modifier in modifierGroups
+					if (dish.modifierGroups) {
+						for (const group of dish.modifierGroups) {
+							const option = group.options?.find((opt) => opt.id === id)
+							if (option && group.name !== groupName) {
+								return true
+							}
+							if (option && group.name === groupName) {
+								return false
+							}
+						}
+					}
+					// Fallback to old structure
+					if (dish.modifiers) {
+						const mod = dish.modifiers.find((m) => m.id === id)
+						return mod && mod.groupName !== groupName
+					}
+					return false
 				})
 				return [...filteredPrev, modifierId]
 			} else {
@@ -346,7 +368,7 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 					const option = group.options?.find((opt) => opt.id === modId)
 					if (option) {
 						modifier = {
-							priceDelta: option.priceAdjustment || 0,
+							priceDelta: option.priceDelta || 0,
 						}
 						break
 					}
@@ -572,12 +594,18 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 // =========================================================
 const CustomerCategoryCard = ({ category, onClick }) => {
 	// Handle category data from public API
+	// Backend returns items array, calculate itemCount from it
+	const itemCount = category.items?.length || 0
+	// Use first item's image as category cover, or fallback to placeholder
+	const firstItemImage =
+		category.items?.[0]?.imageUrl || category.items?.[0]?.photos?.[0]?.url
 	const imageUrl =
 		category.coverPhoto?.url ||
 		category.image ||
-		'https://via.placeholder.com/400?text=No+Image'
-	const isActive = category.status === 'ACTIVE'
-	const itemCount = category.itemCount || 0
+		firstItemImage ||
+		'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400"%3E%3Crect fill="%23374151" width="400" height="400"/%3E%3Ctext fill="%239CA3AF" font-family="system-ui" font-size="20" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle"%3ENo Image%3C/text%3E%3C/svg%3E'
+	// Backend already filters active categories
+	const isActive = category.status === 'ACTIVE' || true
 
 	return (
 		<div
@@ -590,7 +618,9 @@ const CustomerCategoryCard = ({ category, onClick }) => {
 					alt={category.name}
 					className="w-full h-full object-cover"
 					onError={(e) => {
-						e.target.src = 'https://via.placeholder.com/400?text=No+Image'
+						// Use a simple gray placeholder instead of external URL
+						e.target.style.display = 'none'
+						e.target.nextElementSibling.style.background = '#374151'
 					}}
 				/>
 				<div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
@@ -831,7 +861,7 @@ const DishListItem = ({ dish, onViewDetails }) => {
 				{isAvailable ? (
 					<>
 						<span className="material-symbols-outlined text-sm">add_shopping_cart</span>
-						{hasModifiers ? 'Customize & Add' : 'Add to Cart'}
+						Add to Cart
 					</>
 				) : (
 					<span>Not Available</span>
@@ -844,7 +874,7 @@ const DishListItem = ({ dish, onViewDetails }) => {
 // =========================================================
 // 🚨 MODAL THANH TOÁN VÀ ĐẶT MÓN (CART MODAL)
 // =========================================================
-const CartModal = ({ isOpen, onClose, cartItems, onClearCart }) => {
+const CartModal = ({ isOpen, onClose, cartItems, onClearCart, onUpdateCart }) => {
 	const [step, setStep] = useState('CART')
 	const [paymentLoading, setPaymentLoading] = useState(false)
 	const [qrCodeUrl, setQrCodeUrl] = useState(null)
@@ -958,22 +988,78 @@ const CartModal = ({ isOpen, onClose, cartItems, onClearCart }) => {
 							cartItems.map((item, index) => (
 								<div key={index} className="bg-[#2D3748] p-4 rounded-lg">
 									<div className="flex items-start gap-3">
-										{/* Dish Image */}
-										<div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-											<img
-												src={item.image}
-												alt={item.name}
-												className="w-full h-full object-cover"
-											/>
-										</div>
-
 										{/* Dish Info */}
 										<div className="flex-1">
-											<div className="flex justify-between items-start mb-1">
-												<p className="text-white font-semibold">
-													{item.qty}x {item.name}
-												</p>
-												<span className="text-white font-bold">
+											<div className="flex justify-between items-start mb-2">
+												<p className="text-white font-semibold">{item.name}</p>
+												<button
+													onClick={() => {
+														const newCart = cartItems.filter((_, i) => i !== index)
+														onUpdateCart?.(newCart)
+													}}
+													className="text-red-400 hover:text-red-300 transition-colors"
+												>
+													<span className="material-symbols-outlined text-sm">
+														delete
+													</span>
+												</button>
+											</div>
+
+											{/* Quantity Controls and Price */}
+											<div className="flex justify-between items-center mb-2">
+												<div className="flex items-center gap-2">
+													<button
+														onClick={() => {
+															if (item.qty > 1) {
+																const newQty = item.qty - 1
+																// Recalculate totalPrice based on base price + modifiers
+																const modifierTotal =
+																	item.modifiers?.reduce(
+																		(sum, mod) => sum + (mod.priceDelta || 0),
+																		0,
+																	) || 0
+																const newTotalPrice =
+																	(item.price + modifierTotal) * newQty
+																const newCart = [...cartItems]
+																newCart[index] = {
+																	...item,
+																	qty: newQty,
+																	totalPrice: newTotalPrice,
+																}
+																onUpdateCart?.(newCart)
+															}
+														}}
+														className="w-7 h-7 flex items-center justify-center bg-[#1A202C] text-white rounded hover:bg-[#4A5568] transition-colors"
+													>
+														−
+													</button>
+													<span className="text-white font-bold w-8 text-center">
+														{item.qty}
+													</span>
+													<button
+														onClick={() => {
+															const newQty = item.qty + 1
+															// Recalculate totalPrice based on base price + modifiers
+															const modifierTotal =
+																item.modifiers?.reduce(
+																	(sum, mod) => sum + (mod.priceDelta || 0),
+																	0,
+																) || 0
+															const newTotalPrice = (item.price + modifierTotal) * newQty
+															const newCart = [...cartItems]
+															newCart[index] = {
+																...item,
+																qty: newQty,
+																totalPrice: newTotalPrice,
+															}
+															onUpdateCart?.(newCart)
+														}}
+														className="w-7 h-7 flex items-center justify-center bg-[#137fec] text-white rounded hover:bg-blue-600 transition-colors"
+													>
+														+
+													</button>
+												</div>
+												<span className="text-[#4ade80] font-bold text-lg">
 													${(item.totalPrice || item.price * item.qty).toFixed(2)}
 												</span>
 											</div>
@@ -1139,6 +1225,14 @@ const OrderManagementInterface = () => {
 
 			if (response.success && response.categories) {
 				console.log('✅ Categories loaded:', response.categories.length)
+				console.log(
+					'📦 Categories data:',
+					response.categories.map((c) => ({
+						name: c.name,
+						itemCount: c.items?.length,
+						firstItemImage: c.items?.[0]?.imageUrl || c.items?.[0]?.photos?.[0]?.url,
+					})),
+				)
 				setCategories(response.categories)
 			} else {
 				console.warn('⚠️ No categories found:', response.message)
@@ -1242,6 +1336,11 @@ const OrderManagementInterface = () => {
 
 	// --- Filter categories by search ---
 	const filteredCategories = useMemo(() => {
+		console.log('🔍 Filtering categories:', {
+			total: categories.length,
+			search: categorySearch,
+			categories: categories,
+		})
 		if (!categorySearch.trim()) return categories
 		return categories.filter((cat) =>
 			cat.name.toLowerCase().includes(categorySearch.toLowerCase()),
@@ -1300,6 +1399,10 @@ const OrderManagementInterface = () => {
 
 	const handleClearCart = () => {
 		setCartItems([])
+	}
+
+	const handleUpdateCart = (newCartItems) => {
+		setCartItems(newCartItems)
 	}
 
 	const handleCategorySelect = (categoryData) => {
@@ -1387,10 +1490,7 @@ const OrderManagementInterface = () => {
 			{/* CONTENT VIEWS */}
 			{view === 'CATEGORIES' ? (
 				// CATEGORY VIEW
-				<div className="p-4 float-start flex flex-col items-center justify-center">
-					<h2 className="text-2xl font-bold text-white mb-6">Select a Category</h2>
-
-					{/* Category Search Bar */}
+				<div className="p-4 flex flex-col items-center justify-center">
 					<div className="w-full max-w-md mb-6">
 						<div className="relative">
 							<input
@@ -1553,14 +1653,18 @@ const OrderManagementInterface = () => {
 					</div>
 
 					{/* Dishes Grid or List */}
-					{loadingDishes ? (
-						<div className="flex items-center justify-center py-12">
-							<div className="text-center">
-								<div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-[#137fec] mx-auto mb-4"></div>
-								<p className="text-[#9dabb9]">Loading dishes...</p>
-							</div>
-						</div>
-					) : dishes.length > 0 ? (
+					{loadingDishes &&
+						ReactDOM.createPortal(
+							<div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/70 backdrop-blur-md transition-all duration-200">
+								<div className="text-center bg-[#1A202C] p-10 rounded-2xl border border-white/20 shadow-2xl transform scale-100 animate-fade-in">
+									<div className="animate-spin rounded-full h-20 w-20 border-t-4 border-b-4 border-[#137fec] mx-auto mb-6"></div>
+									<p className="text-white text-xl font-semibold">Loading dishes...</p>
+									<p className="text-[#9dabb9] text-sm mt-2">Please wait</p>
+								</div>
+							</div>,
+							document.body,
+						)}
+					{!loadingDishes && dishes.length > 0 ? (
 						<>
 							{layoutView === 'grid' ? (
 								<div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -1631,7 +1735,7 @@ const OrderManagementInterface = () => {
 								</div>
 							)}
 						</>
-					) : (
+					) : !loadingDishes ? (
 						<div className="text-center py-12">
 							<span className="material-symbols-outlined text-6xl text-[#9dabb9] mb-4 block">
 								restaurant_menu
@@ -1643,7 +1747,7 @@ const OrderManagementInterface = () => {
 									: 'This category has no items'}
 							</p>
 						</div>
-					)}
+					) : null}
 				</div>
 			)}
 
@@ -1670,6 +1774,7 @@ const OrderManagementInterface = () => {
 				}}
 				cartItems={cartItems}
 				onClearCart={handleClearCart}
+				onUpdateCart={handleUpdateCart}
 			/>
 		</div>
 	)

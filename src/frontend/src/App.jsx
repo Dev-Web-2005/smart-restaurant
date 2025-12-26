@@ -28,6 +28,7 @@ import Profile from './pages/profile/Profile'
 
 // Customer pages (public)
 import OrderingInterface from './pages/customer/ordering/OrderingInterface'
+import QRScanHandler from './pages/customer/scan/QRScanHandler'
 
 // Component chuyển hướng dựa trên role
 const RoleBasedRedirect = () => {
@@ -67,12 +68,16 @@ function App() {
 								<Route path="/onboarding" element={<RestaurantSetupWizard />} />
 								<Route path="/kyc/callback" element={<KYCCallback />} />
 
+								{/* QR Scan - Validates token and redirects to ordering */}
+								<Route
+									path="/tenants/:tenantId/tables/scan/:token"
+									element={<QRScanHandler />}
+								/>
 								{/* Customer ordering - Public route (no auth required) */}
-								<Route path="/order/:tenantId/:tableId" element={<OrderingInterface />} />
-
-								{/* Root redirect based on role */}
-								<Route path="/" element={<RoleBasedRedirect />} />
-
+								<Route
+									path="/order/:tenantId/table/:tableId"
+									element={<OrderingInterface />}
+								/>
 								{/* Admin routes - Only for Super Administrator */}
 								<Route
 									path="/admin/dashboard"

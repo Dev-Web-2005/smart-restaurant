@@ -244,7 +244,16 @@ const AddTableQuickCard = ({ onClick }) => (
 )
 
 // --- Modal sử dụng React Portal ---
-const TableStatusModal = ({ isOpen, onClose, table, onUpdateStatus, onUpdateInfo }) => {
+const TableStatusModal = ({
+	isOpen,
+	onClose,
+	table,
+	onUpdateStatus,
+	onUpdateInfo,
+	showConfirm,
+	showSuccess,
+	showError,
+}) => {
 	const modalRef = React.useRef(null)
 	const nameInputRef = React.useRef(null)
 	const capacityInputRef = React.useRef(null)
@@ -2043,6 +2052,9 @@ const RestaurantTableManagement = () => {
 				onUpdateStatus={handleStatusUpdate}
 				onUpdateInfo={handleUpdateTableInfo}
 				floorId={currentFloorId}
+				showConfirm={showConfirm}
+				showSuccess={showSuccess}
+				showError={showError}
 			/>
 
 			<AddTableModal

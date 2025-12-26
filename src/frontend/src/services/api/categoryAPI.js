@@ -510,6 +510,7 @@ export const updateCategoryStatusAPI = async (tenantId, categoryId, status) => {
 		const url = `/tenants/${tenantId}/categories/${categoryId}/status`
 		console.log('📤 Updating category status to:', normalizedStatus)
 
+		// API Gateway will automatically add productApiKey from config
 		const response = await apiClient.patch(url, { status: normalizedStatus })
 
 		const { code, message, data } = response.data
