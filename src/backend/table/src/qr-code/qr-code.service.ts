@@ -137,7 +137,7 @@ export class QrCodeService {
 
 		// Return redirect URL for frontend
 		// const redirect = `/menu?tenantId=${table.tenantId}&tableId=${table.id}`;
-		const redirect = `/login`;
+		const redirect = `/order/${table.tenantId}/table/${table.id}`;
 
 		return new ScanResponseDto({
 			tenantId: table.tenantId,
