@@ -1776,7 +1776,7 @@ const DishCard = ({ dish, onDelete, onClick, viewMode = 'grid' }) => {
 		)
 	}
 
-	const isActive = dish.status === 'READY'
+	const isActive = dish.status === 'Active'
 
 	return (
 		<div className="flex flex-col items-center">
@@ -1802,8 +1802,8 @@ const DishCard = ({ dish, onDelete, onClick, viewMode = 'grid' }) => {
 						</div>
 					)}
 				</div>
-				<div className="absolute inset-0 z-10 flex flex-col justify-end p-4">
-					<div className="p-3 bg-black/50 rounded-lg backdrop-blur-sm transition-colors duration-300 group-hover:bg-black/70">
+				<div className="absolute bottom-0 left-0 right-0 z-10 p-4">
+					<div className="p-3 bg-gradient-to-t from-black/80 via-black/60 to-transparent rounded-lg backdrop-blur-sm transition-colors duration-300 group-hover:from-black/90 group-hover:via-black/70">
 						<h3 className="text-xl font-bold text-white m-0 leading-tight">
 							{dish.name}
 						</h3>
