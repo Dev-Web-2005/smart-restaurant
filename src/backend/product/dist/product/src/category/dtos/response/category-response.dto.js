@@ -8,6 +8,7 @@ class CategoryResponseDto {
     description;
     status;
     displayOrder;
+    imageUrl;
     itemCount;
     createdAt;
     updatedAt;

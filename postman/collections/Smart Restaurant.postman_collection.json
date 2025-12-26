@@ -769,7 +769,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Beverages\",\n  \"description\": \"Enjoy meals with wonderful drinks\",\n  \"displayOrder\": 1,\n  \"status\": \"ACTIVE\"\n}",
+                  "raw": "{\n  \"name\": \"Beverages v2\",\n  \"description\": \"Enjoy meals with wonderful drinks\",\n  \"displayOrder\": 2,\n  \"imageUrl\": \"example-image.com\",\n  \"status\": \"ACTIVE\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"

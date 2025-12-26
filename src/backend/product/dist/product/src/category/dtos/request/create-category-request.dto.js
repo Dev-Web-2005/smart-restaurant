@@ -17,6 +17,7 @@ class CreateCategoryRequestDto {
     description;
     status;
     displayOrder;
+    imageUrl;
     productApiKey;
 }
 exports.CreateCategoryRequestDto = CreateCategoryRequestDto;
@@ -50,6 +51,11 @@ __decorate([
     (0, class_validator_1.Min)(0, { message: 'Display order must be a non-negative integer' }),
     __metadata("design:type", Number)
 ], CreateCategoryRequestDto.prototype, "displayOrder", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)({ message: 'Image URL must be a string' }),
+    __metadata("design:type", String)
+], CreateCategoryRequestDto.prototype, "imageUrl", void 0);
 __decorate([
     (0, class_validator_1.IsNotEmpty)({ message: 'Product API key must not be empty' }),
     (0, class_validator_1.IsString)({ message: 'Product API key must be a string' }),
