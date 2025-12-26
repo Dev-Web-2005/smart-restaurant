@@ -142,6 +142,23 @@ export const registerAPI = async (signupData, onboardingData) => {
 			backImage: backImageUrl,
 		}
 
+		// ✅ Debug log to verify payload before sending
+		console.log('📦 Registration payload prepared:', {
+			username: payload.username,
+			email: payload.email,
+			hasPassword: !!payload.password,
+			restaurantName: payload.restaurantName,
+			frontImage: payload.frontImage ? '✅ Present' : '❌ Missing',
+			backImage: payload.backImage ? '✅ Present' : '❌ Missing',
+		})
+
+		// ✅ Final validation before sending
+		if (!payload.frontImage || !payload.backImage) {
+			throw new Error(
+				'❌ CCCD images are required. Please complete identity verification.',
+			)
+		}
+
 		// Send registration request
 		const response = await apiClient.post('/identity/users/register', payload)
 
