@@ -477,10 +477,6 @@
                 "type": "text"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": ""
-            },
             "url": {
               "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/scan/eyJ0YWJsZUlkIjoiZmYwOWM3OWQtZmNlZS00OTg5LWJlMGUtNThkODliYTI1MjQzIiwidGVuYW50SWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ0b2tlblZlcnNpb24iOjMsImlzc3VlZEF0IjoxNzY2MjIxNTc5MzAyfQ.SWQZgcp8FVvC1ZIJwdwQM-ZKINCLAgtf_y-ejO2djqU",
               "host": [
@@ -526,7 +522,7 @@
               "raw": ""
             },
             "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/4e40e08c-675a-4825-af78-7028ac86fe69/qrcode",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/ff09c79d-fcee-4989-be0e-58d89ba25243/qrcode",
               "host": [
                 "{{baseURL}}"
               ],
@@ -536,7 +532,7 @@
                 "tenants",
                 "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "tables",
-                "4e40e08c-675a-4825-af78-7028ac86fe69",
+                "ff09c79d-fcee-4989-be0e-58d89ba25243",
                 "qrcode"
               ]
             }
@@ -1110,7 +1106,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items?status=SOLD_OUT&page=1&limit=20",
+                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items?page=1&limit=20",
                   "host": [
                     "{{baseURL}}"
                   ],
@@ -1125,7 +1121,8 @@
                     {
                       "key": "status",
                       "value": "SOLD_OUT",
-                      "uuid": "649a4ae6-7010-4498-b63f-d791a26468df"
+                      "uuid": "649a4ae6-7010-4498-b63f-d791a26468df",
+                      "disabled": true
                     },
                     {
                       "key": "isChefRecommended",
