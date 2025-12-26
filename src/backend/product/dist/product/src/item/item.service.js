@@ -80,6 +80,7 @@ let ItemService = class ItemService {
         const queryBuilder = this.menuItemRepository
             .createQueryBuilder('item')
             .leftJoinAndSelect('item.category', 'category')
+            .leftJoinAndSelect('item.photos', 'photos')
             .where('item.tenantId = :tenantId', { tenantId: dto.tenantId })
             .andWhere('item.deletedAt IS NULL');
         if (dto.categoryId) {
@@ -120,6 +121,8 @@ let ItemService = class ItemService {
                 queryBuilder.orderBy('item.createdAt', sortOrder);
                 break;
         }
+        queryBuilder.addOrderBy('photos.isPrimary', 'DESC');
+        queryBuilder.addOrderBy('photos.displayOrder', 'ASC');
         const page = dto.page && dto.page > 0 ? dto.page : 1;
         const limit = dto.limit && dto.limit > 0 ? Math.min(dto.limit, 100) : 20;
         const skip = (page - 1) * limit;
