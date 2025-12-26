@@ -243,10 +243,10 @@ export class TableController {
 			// Server-side redirect đến trang menu
 
 			// Test response in development mode
-			if (this.configService.get('MOD') === 'development') {
-				console.log('QR Scan Validated:', result);
-				return res.status(200).json({ redirect: result.redirect });
-			}
+			// if (this.configService.get('MOD') === 'development') {
+			// 	console.log('QR Scan Validated:', result);
+			// 	return res.status(200).json({ redirect: result.redirect });
+			// }
 
 			// Production mode - perform redirect
 			const frontendUrl =
