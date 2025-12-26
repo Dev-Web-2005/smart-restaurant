@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import Sidebar from './Sidebar'
 import { useUser } from '../../contexts/UserContext'
+import BackgroundImage from '../common/BackgroundImage'
 
 /**
  * Component bao bọc (Wrapper) cung cấp cấu trúc layout chung cho các trang.
@@ -29,20 +30,8 @@ const BasePageLayout = ({ children, activeRoute = 'Dashboard' }) => {
 
 	return (
 		<div className="flex min-h-screen font-[Work_Sans] relative">
-			{/* Background image with dark overlay */}
-			<div
-				className="fixed inset-0 -z-10"
-				style={{
-					backgroundImage:
-						'url("https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=2070")',
-					backgroundSize: 'cover',
-					backgroundPosition: 'center',
-					backgroundAttachment: 'fixed',
-				}}
-			>
-				{/* Dark overlay to reduce contrast */}
-				<div className="absolute inset-0 bg-black/75" />
-			</div>
+			{/* Background image with dark overlay - Sử dụng component tập trung */}
+			<BackgroundImage overlayOpacity={75} fixed={true} />
 
 			{/* TRUYỀN DỮ LIỆU TỚI SIDEBAR */}
 			<Sidebar

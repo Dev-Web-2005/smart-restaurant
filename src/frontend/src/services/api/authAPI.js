@@ -22,7 +22,7 @@ export const loginAPI = async (username, password) => {
 		if (code === 1000) {
 			const { accessToken, userId, username: userName, email, roles, authorities } = data
 
-			window.accessToken = accessToken
+			// ✅ Don't store in window - will be stored in React state
 			const userData = {
 				userId,
 				username: userName,
@@ -38,6 +38,7 @@ export const loginAPI = async (username, password) => {
 
 			return {
 				success: true,
+				accessToken, // ✅ Return access token to store in React state
 				user: userData,
 				message,
 			}
@@ -223,8 +224,13 @@ export const registerAPI = async (signupData, onboardingData) => {
  * Error codes:
  * - 1004: UNAUTHORIZED (401) - No valid token
  */
-export const logoutAPI = async () => {
+export const logoutAPI = async (accessToken) => {
 	try {
+		// Temporarily set token for logout request
+		if (accessToken) {
+			window.accessToken = accessToken
+		}
+
 		const response = await apiClient.get('/identity/auth/logout')
 
 		const { code, message } = response.data
@@ -262,10 +268,16 @@ export const logoutAPI = async () => {
 
 /**
  * Get current authenticated user information
+ * @param {string} accessToken - Access token from React state
  * @returns {Promise} Response with user data
  */
-export const getCurrentUserAPI = async () => {
+export const getCurrentUserAPI = async (accessToken) => {
 	try {
+		// Temporarily set token for this request
+		if (accessToken) {
+			window.accessToken = accessToken
+		}
+
 		const response = await apiClient.get('/identity/auth/me')
 
 		const { code, data } = response.data
@@ -306,42 +318,54 @@ export const getCurrentUserAPI = async () => {
 }
 
 /**
- * Manually refresh access token
- * @returns {Promise} Response with new access token
+ * Refresh access token using httpOnly refresh token cookie
+ * Flow:
+ *   Browser refresh → Access token lost (React state cleared)
+ *   → Frontend calls /auth/refresh (cookie auto-sent)
+ *   → Server verifies refreshToken from cookie
+ *   → Returns new accessToken + user data
+ *   → Frontend stores in React state (RAM)
+ *
+ * @returns {Promise} Response with new access token and user data
  */
 export const refreshTokenAPI = async () => {
 	try {
 		const response = await apiClient.get('/identity/auth/refresh')
 
-		const { code, data } = response.data
+		const { code, data, message } = response.data
 
 		if (code === 1000) {
-			// ✅ Token refreshed
-			const { accessToken } = data
+			// ✅ Token refreshed from httpOnly cookie
+			const { accessToken, userId, username, email, roles } = data
 
-			console.log('✅ Token refreshed manually')
+			console.log('✅ Token refreshed from httpOnly cookie')
 
-			// Update memory storage
+			// ✅ Store access token in memory (window.accessToken)
 			window.accessToken = accessToken
+
+			// Update localStorage with user data (non-sensitive)
+			const userData = { userId, username, email, roles }
+			localStorage.setItem('user', JSON.stringify(userData))
 
 			return {
 				success: true,
 				accessToken,
+				user: userData, // ✅ User data from refresh response (no extra API call needed)
+				message,
 			}
 		} else {
 			// ⚠️ Unexpected response
 			console.warn('⚠️ Unexpected refresh response:', response.data)
 			return {
 				success: false,
-				message: 'Failed to refresh token',
+				message: message || 'Failed to refresh token',
 			}
 		}
 	} catch (error) {
-		// ❌ Handle errors
+		// ❌ Refresh token expired or invalid
 		console.error('❌ Token refresh error:', error)
 
 		// Clear storage if refresh fails
-		window.accessToken = null
 		localStorage.removeItem('user')
 
 		return {
