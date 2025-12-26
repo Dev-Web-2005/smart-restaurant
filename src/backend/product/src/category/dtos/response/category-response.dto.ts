@@ -5,6 +5,7 @@ export class CategoryResponseDto {
 	description?: string;
 	status: string; // Returns "ACTIVE" or "INACTIVE"
 	displayOrder: number;
+	imageUrl?: string;
 	itemCount?: number;
 	createdAt: Date;
 	updatedAt: Date;

@@ -5,6 +5,7 @@ export declare class CategoryResponseDto {
     description?: string;
     status: string;
     displayOrder: number;
+    imageUrl?: string;
     itemCount?: number;
     createdAt: Date;
     updatedAt: Date;
