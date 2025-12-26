@@ -20,6 +20,7 @@ let MenuCategory = class MenuCategory {
     description;
     status;
     displayOrder;
+    imageUrl;
     createdAt;
     updatedAt;
     deletedAt;
@@ -50,6 +51,10 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'int', default: 0 }),
     __metadata("design:type", Number)
 ], MenuCategory.prototype, "displayOrder", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true, type: 'text' }),
+    __metadata("design:type", String)
+], MenuCategory.prototype, "imageUrl", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)

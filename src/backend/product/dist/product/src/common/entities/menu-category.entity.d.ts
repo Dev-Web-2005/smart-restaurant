@@ -7,6 +7,7 @@ export declare class MenuCategory {
     description: string;
     status: CategoryStatus;
     displayOrder: number;
+    imageUrl: string;
     createdAt: Date;
     updatedAt: Date;
     deletedAt: Date;

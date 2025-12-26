@@ -40,6 +40,10 @@ export class UpdateCategoryRequestDto {
 	@Min(0, { message: 'Display order must be a non-negative integer' })
 	displayOrder?: number;
 
+	@IsOptional()
+	@IsString({ message: 'Image URL must be a string' })
+	imageUrl?: string;
+
 	@IsNotEmpty()
 	@IsString()
 	productApiKey: string;

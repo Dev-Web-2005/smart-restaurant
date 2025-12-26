@@ -6,5 +6,6 @@ export declare class UpdateCategoryRequestDto {
     description?: string;
     status?: CategoryStatus | string;
     displayOrder?: number;
+    imageUrl?: string;
     productApiKey: string;
 }
