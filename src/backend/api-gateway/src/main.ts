@@ -28,9 +28,9 @@ async function bootstrap() {
 	// CORS configuration - allow frontend domain with credentials
 	const allowedOrigins = process.env.FRONTEND_URL
 		? process.env.FRONTEND_URL.split(',').map((url) => url.trim())
-		: ['http://localhost:5173', 'http://localhost:3000'];
+		: ['http://localhost:5173', 'http://localhost:3000', "https://web-dev.lethanhcong.site:46268"];
 
-	console.log('🔐 CORS Allowed Origins:', allowedOrigins);
+	console.log('CORS Allowed Origins:', allowedOrigins);
 
 	app.enableCors({
 		origin: (origin, callback) => {
