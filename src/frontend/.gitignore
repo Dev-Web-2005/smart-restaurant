@@ -7,6 +7,13 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Trong file .gitignore
+dist/
+build/
+*.js
+*.js.map
+*.d.ts
+
 node_modules
 dist
 dist-ssr

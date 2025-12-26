@@ -14,6 +14,7 @@ import {
 	updateMenuItemAPI,
 	updateMenuItemStatusAPI,
 } from '../../../services/api/itemAPI'
+import { getPublicMenuByCategoryAPI } from '../../../services/api/publicMenuAPI'
 import { uploadFile } from '../../../services/api/fileAPI'
 import {
 	createModifierGroupAPI,
@@ -2105,118 +2106,56 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 
 		setLoading(true)
 		try {
-			console.log('📥 Fetching menu items for category:', categoryId)
-			const result = await getMenuItemsAPI(tenantId, {
-				categoryId: categoryId,
-				sortBy: 'name',
-				sortOrder: 'ASC',
-			})
+			console.log('📥 Fetching public menu for category:', categoryId)
+			
+			// Use Public Menu API - it returns imageUrl and photos directly, no need for separate photo fetches
+			const result = await getPublicMenuByCategoryAPI(tenantId, categoryId)
 
 			if (result.success) {
-				// Fetch photos for each item with rate limiting to avoid 5 API calls/second limit
-				console.log(
-					'📸 Fetching photos for',
-					result.items.length,
-					'items with rate limiting...',
-				)
+				const items = result.items || []
+				console.log('✅ Public menu items fetched:', items.length)
 
-				const itemsWithPhotos = []
-				const BATCH_SIZE = 4 // Fetch 4 items at a time to stay under 5 calls/second
-				const DELAY_MS = 1000 // Wait 1 second between batches
+				// Transform API response to match component's data structure
+				const transformedItems = items.map((item) => ({
+					id: item.id,
+					name: item.name,
+					description: item.description || '',
+					price: item.price,
+					currency: item.currency || 'VND',
+					image: item.imageUrl || '', // Primary photo URL from API
+					photos: item.photos || [], // All photos from API
+					primaryPhoto: item.photos?.find((p) => p.isPrimary) || item.photos?.[0] || null,
+					status: item.status, // "AVAILABLE", "UNAVAILABLE", "SOLD_OUT"
+					preparationTime: item.prepTimeMinutes || 0,
+					cookingTime: item.prepTimeMinutes || 0,
+					isChefRecommendation: item.isChefRecommended || false,
+					modifiers: item.modifierGroups || [], // Modifiers from API
+				}))
 
-				// Process items in batches
-				for (let i = 0; i < result.items.length; i += BATCH_SIZE) {
-					const batch = result.items.slice(i, i + BATCH_SIZE)
-					console.log(
-						`📦 Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(
-							result.items.length / BATCH_SIZE,
-						)}...`,
-					)
-
-					const batchResults = await Promise.all(
-						batch.map(async (item) => {
-							try {
-								const photosResult = await getMenuItemPhotosAPI(tenantId, item.id)
-								const photos = photosResult.success ? photosResult.photos : []
-								const primaryPhoto = photosResult.success
-									? photosResult.primaryPhoto
-									: null
-
-								return {
-									id: item.id,
-									name: item.name,
-									description: item.description || '',
-									price: item.price,
-									currency: item.currency || 'VND',
-									image: primaryPhoto?.url || photos[0]?.url || '', // Use primary photo as main image
-									photos: photos, // Store all photos
-									primaryPhoto: primaryPhoto, // Store primary photo reference
-									status: item.status, // "AVAILABLE", "UNAVAILABLE", "SOLD_OUT"
-									preparationTime: item.prepTimeMinutes || 0,
-									cookingTime: item.prepTimeMinutes || 0,
-									isChefRecommendation: item.isChefRecommended || false,
-									modifiers: [], // TODO: Implement modifiers if needed
-								}
-							} catch (photoError) {
-								console.warn(`⚠️ Failed to fetch photos for item ${item.id}:`, photoError)
-								return {
-									id: item.id,
-									name: item.name,
-									description: item.description || '',
-									price: item.price,
-									currency: item.currency || 'VND',
-									image: '',
-									photos: [],
-									status: item.status,
-									preparationTime: item.prepTimeMinutes || 0,
-									cookingTime: item.prepTimeMinutes || 0,
-									isChefRecommendation: item.isChefRecommended || false,
-									modifiers: [],
-								}
-							}
-						}),
-					)
-
-					itemsWithPhotos.push(...batchResults)
-
-					// Wait before processing next batch (except for the last batch)
-					if (i + BATCH_SIZE < result.items.length) {
-						console.log(`⏳ Waiting ${DELAY_MS}ms before next batch...`)
-						await delay(DELAY_MS)
-					}
-				}
-
-				// 🖼️ Preload all images before displaying dishes
-				console.log('🖼️ Preloading images for', itemsWithPhotos.length, 'dishes...')
-				const imagePromises = itemsWithPhotos
-					.filter((dish) => dish.image) // Only preload dishes with images
+				// 🖼️ Preload images for better UX
+				console.log('🖼️ Preloading images for', transformedItems.length, 'dishes...')
+				const imagePromises = transformedItems
+					.filter((dish) => dish.image)
 					.map((dish) => {
 						return new Promise((resolve) => {
 							const img = new Image()
-							img.onload = () => {
-								console.log('✅ Image loaded:', dish.name)
-								resolve()
-							}
-							img.onerror = () => {
-								console.warn('⚠️ Failed to load image for:', dish.name)
-								resolve() // Still resolve to not block other images
-							}
+							img.onload = () => resolve()
+							img.onerror = () => resolve() // Don't block on errors
 							img.src = dish.image
 						})
 					})
 
-				// Wait for all images to load
 				await Promise.all(imagePromises)
 				console.log('✅ All images preloaded')
 
-				setDishes(itemsWithPhotos)
-				console.log('✅ Menu items loaded:', itemsWithPhotos.length)
+				setDishes(transformedItems)
+				console.log('✅ Menu items loaded:', transformedItems.length)
 			} else {
-				console.error('❌ Failed to fetch menu items:', result.message)
+				console.error('❌ Failed to fetch public menu:', result.message)
 				setDishes([])
 			}
 		} catch (error) {
-			console.error('❌ Error fetching menu items:', error)
+			console.error('❌ Error fetching public menu:', error)
 			setDishes([])
 		} finally {
 			setLoading(false)
