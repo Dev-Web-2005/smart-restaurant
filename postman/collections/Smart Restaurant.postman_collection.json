@@ -853,6 +853,52 @@
               "response": []
             },
             {
+              "name": "Get Detail Category",
+              "id": "10601e30-79f3-4fd4-aa07-9cfef33f6a0a",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "x-api-key",
+                    "value": "{{x-api-key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/categories/7bb4c5d3-208c-4853-967f-eefef0d53ef9",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "tenants",
+                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                    "categories",
+                    "7bb4c5d3-208c-4853-967f-eefef0d53ef9"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
               "name": "Update Category",
               "id": "a08bde04-4672-404a-8106-508eb8838383",
               "request": {
@@ -1114,6 +1160,62 @@
                     {
                       "key": "categoryId",
                       "value": "5f6f6d52-d12c-485d-aa98-b624f2a27329"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Detail Menu Item",
+              "id": "657627f4-f0e9-42a2-96ae-812b3c2a3b8f",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "x-api-key",
+                    "value": "{{x-api-key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "tenants",
+                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                    "items",
+                    "2dc1b28b-76d6-4ee4-935c-8741157d60c6"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortBy",
+                      "value": "createdAt",
+                      "disabled": true
+                    },
+                    {
+                      "key": "sortOrder",
+                      "value": "DESC",
+                      "disabled": true
                     }
                   ]
                 }
@@ -1588,6 +1690,52 @@
               "response": []
             },
             {
+              "name": "Get Detail Modifier Group",
+              "id": "386e3b3f-8d87-4c19-816e-3ccc1de2522e",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "x-api-key",
+                    "value": "{{x-api-key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "tenants",
+                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                    "modifier-groups",
+                    "3b6f04c5-8517-42ff-ab76-8cb2d5c04abe"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": "",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
               "name": "Update Modifier Group",
               "id": "69e87266-243e-4b4a-aa6d-41c7d75624a3",
               "request": {
@@ -1771,6 +1919,47 @@
                       "value": "true",
                       "uuid": "ebe3897f-dfe1-447c-b707-777a37576c09"
                     }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Detail Modifier Option",
+              "id": "31a5c16e-f3a3-4d49-ba9d-7f30aa5cea27",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "x-api-key",
+                    "value": "{{x-api-key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe/options/f4c25b7d-233c-4e98-98fe-5bf33aa11244",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "tenants",
+                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                    "modifier-groups",
+                    "3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
+                    "options",
+                    "f4c25b7d-233c-4e98-98fe-5bf33aa11244"
                   ]
                 }
               },

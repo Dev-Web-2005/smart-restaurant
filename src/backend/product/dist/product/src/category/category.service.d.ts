@@ -2,7 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { Repository } from 'typeorm';
 import { MenuCategory, MenuItem } from 'src/common/entities';
 import { CategoryResponseDto } from './dtos/response/category-response.dto';
-import { CreateCategoryRequestDto, GetCategoriesRequestDto, UpdateCategoryRequestDto, UpdateCategoryStatusRequestDto, DeleteCategoryRequestDto } from 'src/category/dtos/request';
+import { CreateCategoryRequestDto, GetCategoriesRequestDto, GetCategoryRequestDto, UpdateCategoryRequestDto, UpdateCategoryStatusRequestDto, DeleteCategoryRequestDto } from 'src/category/dtos/request';
 export declare class CategoryService {
     private readonly categoryRepository;
     private readonly menuItemRepository;
@@ -10,6 +10,7 @@ export declare class CategoryService {
     constructor(categoryRepository: Repository<MenuCategory>, menuItemRepository: Repository<MenuItem>, configService: ConfigService);
     createCategory(dto: CreateCategoryRequestDto): Promise<CategoryResponseDto>;
     getCategories(dto: GetCategoriesRequestDto): Promise<CategoryResponseDto[]>;
+    getCategory(dto: GetCategoryRequestDto): Promise<CategoryResponseDto>;
     updateCategory(dto: UpdateCategoryRequestDto): Promise<CategoryResponseDto>;
     updateCategoryStatus(dto: UpdateCategoryStatusRequestDto): Promise<CategoryResponseDto>;
     deleteCategory(dto: DeleteCategoryRequestDto): Promise<void>;
