@@ -6,10 +6,12 @@ import { handleRpcCall } from '@shared/utils/rpc-error-handler';
 import {
 	CreateModifierGroupRequestDto,
 	GetModifierGroupsRequestDto,
+	GetModifierGroupRequestDto,
 	UpdateModifierGroupRequestDto,
 	DeleteModifierGroupRequestDto,
 	CreateModifierOptionRequestDto,
 	GetModifierOptionsRequestDto,
+	GetModifierOptionRequestDto,
 	UpdateModifierOptionRequestDto,
 	DeleteModifierOptionRequestDto,
 	AttachModifierGroupsRequestDto,
@@ -45,6 +47,14 @@ export class ModifierController {
 		});
 	}
 
+	@MessagePattern('modifier-groups:get')
+	async getModifierGroup(dto: GetModifierGroupRequestDto) {
+		return handleRpcCall(async () => {
+			const group = await this.modifierService.getModifierGroup(dto);
+			return new HttpResponse(1000, 'Modifier group retrieved successfully', group);
+		});
+	}
+
 	@MessagePattern('modifier-groups:update')
 	async updateModifierGroup(dto: UpdateModifierGroupRequestDto) {
 		return handleRpcCall(async () => {
@@ -76,6 +86,14 @@ export class ModifierController {
 		return handleRpcCall(async () => {
 			const options = await this.modifierService.getModifierOptions(dto);
 			return new HttpResponse(1000, 'Modifier options retrieved successfully', options);
+		});
+	}
+
+	@MessagePattern('modifier-options:get')
+	async getModifierOption(dto: GetModifierOptionRequestDto) {
+		return handleRpcCall(async () => {
+			const option = await this.modifierService.getModifierOption(dto);
+			return new HttpResponse(1000, 'Modifier option retrieved successfully', option);
 		});
 	}
 

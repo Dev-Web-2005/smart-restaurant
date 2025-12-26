@@ -17,6 +17,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./create-menu-item-request.dto"), exports);
 __exportStar(require("./update-menu-item-request.dto"), exports);
 __exportStar(require("./get-menu-items-request.dto"), exports);
+__exportStar(require("./get-menu-item-request.dto"), exports);
 __exportStar(require("./update-menu-item-status-request.dto"), exports);
 __exportStar(require("./delete-menu-item-request.dto"), exports);
 __exportStar(require("./add-modifiers-request.dto"), exports);
