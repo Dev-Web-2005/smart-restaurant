@@ -45,15 +45,14 @@ export const FullPageLoader = ({
 	const backdropClasses = {
 		dark: 'bg-black/80',
 		light: 'bg-white/80',
-		blur: 'bg-black/60 backdrop-blur-md',
+		blur: 'bg-black/70 backdrop-blur-lg',
 	}
 
 	return (
 		<div
-			className={`fixed inset-0 z-[99999] flex items-center justify-center ${backdropClasses[backdrop]}`}
-			style={{ transition: 'opacity 0.3s ease' }}
+			className={`fixed inset-0 z-[99999] flex items-center justify-center ${backdropClasses[backdrop]} transition-all duration-300`}
 		>
-			<div className="bg-gray-900/90 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/10">
+			<div className="bg-[#1A202C] backdrop-blur-xl rounded-2xl p-10 shadow-2xl border border-white/20 transform scale-100 animate-fade-in">
 				<LoadingSpinner size="lg" color="text-blue-500" message={message} />
 			</div>
 		</div>

@@ -18,8 +18,7 @@ export default defineConfig(({ mode }) => {
 			proxy: {
 				// Proxy backend API requests to avoid CORS issues
 				'/api/v1': {
-					// target: 'https://web-dev-api.lethanhcong.site:46268',
-					target: 'http://localhost:8888',
+					target: env.VITE_API_GATEWAY_URL || 'http://localhost:8888',
 					changeOrigin: true,
 					configure: (proxy, options) => {
 						proxy.on('proxyReq', (proxyReq, req, res) => {
@@ -33,7 +32,7 @@ export default defineConfig(({ mode }) => {
 				},
 				// Proxy file upload requests to avoid CORS
 				'/api/file': {
-					target: 'https://file-service-cdal.onrender.com',
+					target: env.VITE_FILE_SERVICE_URL || 'https://file-service-cdal.onrender.com',
 					changeOrigin: true,
 					rewrite: (path) => path.replace(/^\/api\/file/, '/api/v1/file'),
 					configure: (proxy, options) => {

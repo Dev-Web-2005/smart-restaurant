@@ -8,9 +8,13 @@ import CookieParser from 'cookie-parser';
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
 
-	// Set global prefix nhưng exclude health routes để Render có thể health check
+	// Set global prefix nhưng exclude health routes và QR scan routes
 	app.setGlobalPrefix('api/v1', {
-		exclude: ['/', 'health'],
+		exclude: [
+			'/',
+			'health',
+			'tenants/:tenantId/tables/scan/:token', // QR scan endpoint - public, no prefix
+		],
 	});
 	app.use(express.json({ limit: '10mb' }));
 	app.use(express.urlencoded({ limit: '10mb', extended: true }));

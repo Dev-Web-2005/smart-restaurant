@@ -236,7 +236,7 @@ const SearchBar = ({ placeholder, value, onChange, onClear }) => {
 const MenuCategoryManagement = () => {
 	const { user, loading: contextLoading } = useUser()
 	const { showLoading, hideLoading } = useLoading()
-	const { showAlert } = useAlert()
+	const { showAlert, showConfirm, showSuccess, showError } = useAlert()
 
 	const [categories, setCategories] = useState([])
 	const [loading, setLoading] = useState(true)
@@ -354,7 +354,11 @@ const MenuCategoryManagement = () => {
 		const newStatus = category.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
 		const actionText = newStatus === 'ACTIVE' ? 'activate' : 'deactivate'
 
-		if (!window.confirm(`Are you sure you want to ${actionText} "${category.name}"?`)) {
+		const confirmed = await showConfirm(
+			'Confirm Status Change',
+			`Are you sure you want to ${actionText} "${category.name}"?`,
+		)
+		if (!confirmed) {
 			return
 		}
 

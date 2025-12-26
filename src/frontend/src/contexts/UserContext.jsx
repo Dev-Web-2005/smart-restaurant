@@ -50,6 +50,8 @@ export const UserProvider = ({ children }) => {
 				setUser(userData)
 				// ✅ Save user to localStorage for F5 persistence
 				localStorage.setItem('user', JSON.stringify(result.user))
+				// ✅ Mark this tab as active session (persists through F5, clears on tab close)
+				sessionStorage.setItem('tabSession', Date.now().toString())
 				setLoading(false)
 				return { success: true, user: userData }
 			} else {
@@ -104,6 +106,8 @@ export const UserProvider = ({ children }) => {
 					setUser(userData)
 					// ✅ Save user to localStorage for F5 persistence
 					localStorage.setItem('user', JSON.stringify(loginResult.user))
+					// ✅ Mark tab as active session
+					sessionStorage.setItem('tabSession', Date.now().toString())
 					setPendingSignupData(null) // Clear pending data
 					setLoading(false)
 					return { success: true, message: 'Registration and login successful!' }
@@ -140,6 +144,7 @@ export const UserProvider = ({ children }) => {
 			// Always clear local state
 			setUser(null)
 			window.accessToken = null // ✅ Clear access token from memory
+			sessionStorage.removeItem('tabSession') // ✅ Clear tab session
 			setPendingSignupData(null)
 		}
 	}
@@ -177,10 +182,21 @@ export const UserProvider = ({ children }) => {
 			}
 			// Case 2: F5 - Access token mất (window.accessToken = undefined) -> restore từ refresh token cookie
 			else if (savedUser) {
-				console.log(
-					'🔄 F5 detected - No access token in memory, restoring from refresh token cookie...',
-				)
-				await attemptTokenRefresh()
+				// Check if this is the same tab (F5) or a new tab
+				const tabSession = sessionStorage.getItem('tabSession')
+
+				if (tabSession) {
+					// ✅ Same tab (F5) - sessionStorage still exists
+					console.log(
+						'🔄 F5 detected (same tab) - Restoring from refresh token cookie...',
+					)
+					await attemptTokenRefresh()
+				} else {
+					// ❌ New tab - sessionStorage cleared by browser
+					console.log('🆕 New tab detected - Clearing stale data, login required...')
+					localStorage.removeItem('user')
+					window.accessToken = null
+				}
 			}
 			// Case 3: Không có gì cả -> user chưa đăng nhập
 			else {
@@ -224,6 +240,8 @@ export const UserProvider = ({ children }) => {
 					setUser(userData)
 					// ✅ Save user to localStorage for F5 persistence
 					localStorage.setItem('user', JSON.stringify(refreshResult.user))
+					// ✅ Restore tab session marker
+					sessionStorage.setItem('tabSession', Date.now().toString())
 
 					// Debug: Verify token is stored
 					console.log('🔍 Token check after setUser:', {
