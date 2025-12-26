@@ -173,35 +173,18 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 
 	// Fetch modifier groups and attached groups when modal opens
 	useEffect(() => {
-		console.log(
-			'🔄 [ModifiersModal] useEffect triggered. isOpen:',
-			isOpen,
-			'dish:',
-			dish?.id,
-			'tenantId:',
-			user?.userId,
-		)
 		if (isOpen && dish && user?.userId) {
-			console.log('✅ [ModifiersModal] All conditions met, calling fetchModifierData...')
 			fetchModifierData()
-		} else {
-			console.log('❌ [ModifiersModal] Conditions not met:', {
-				isOpen,
-				hasDish: !!dish,
-				hasTenant: !!user?.userId,
-			})
 		}
 	}, [isOpen, dish, user])
 
 	const fetchModifierData = async () => {
-		console.log('📥 [ModifiersModal] Fetching modifier data for tenant:', user.userId)
 		setLoading(true)
 		try {
 			// Fetch all modifier groups for tenant
 			const groupsResponse = await getModifierGroupsAPI(user.userId, {
 				isActive: true,
 			})
-			console.log('✅ [ModifiersModal] Groups response:', groupsResponse)
 
 			// Fetch groups with options
 			const groupsWithOptions = await Promise.all(
@@ -217,13 +200,11 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 					}
 				}),
 			)
-			console.log('✅ [ModifiersModal] Groups with options:', groupsWithOptions)
 			setModifierGroups(groupsWithOptions)
 
 			// Fetch attached groups for this menu item
 			try {
 				const attachedResponse = await getMenuItemModifierGroupsAPI(user.userId, dish.id)
-				console.log('✅ [ModifiersModal] Attached groups:', attachedResponse)
 				setAttachedGroups(attachedResponse.data || [])
 			} catch (attachError) {
 				console.warn(
@@ -244,7 +225,6 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 					(error.response?.data?.message || error.message),
 			)
 		} finally {
-			console.log('✅ [ModifiersModal] Fetch complete. Loading:', false)
 			setLoading(false)
 		}
 	}
@@ -267,10 +247,6 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 	if (!isOpen || !dish) return null
 
 	const handleAddGroup = () => {
-		console.log(
-			'➕ [ModifiersModal] Adding new group. Current groups:',
-			modifierGroups.length,
-		)
 		const newGroup = {
 			id: null, // null means it's a new group
 			name: '',
@@ -279,25 +255,20 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 			isActive: true,
 			options: [],
 		}
-		console.log('➕ [ModifiersModal] New group template:', newGroup)
 		setEditingGroup(newGroup)
 		setIsAddingNew(true)
 	}
 
 	const handleSaveGroup = async (group) => {
-		console.log('💾 [ModifiersModal] Saving group:', group)
-		console.log('💾 [ModifiersModal] Is adding new:', isAddingNew)
 		if (!group.name.trim()) {
 			console.error('❌ [ModifiersModal] Group name is empty')
 			alert('Please enter group name')
 			return
 		}
 
-		console.log('💾 [ModifiersModal] Starting save process...')
 		setSaving(true)
 		try {
 			if (isAddingNew) {
-				console.log('➕ [ModifiersModal] Creating new group via API...')
 				// Create new group
 				const response = await createModifierGroupAPI(user.userId, {
 					name: group.name,
@@ -305,8 +276,6 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 					displayOrder: group.displayOrder,
 					isActive: group.isActive,
 				})
-
-				console.log('🔍 Create group response:', response)
 
 				// Backend returns { status, message, data: { id, ... } }
 				const newGroupId = response.data?.id || response.id
@@ -1204,8 +1173,6 @@ const DishDetailsModal = ({
 			const tenantId = user.userId
 			const itemId = dish.id
 
-			console.log('📝 Updating menu item:', itemId)
-
 			// Prepare update data
 			const updateData = {
 				name: editFormData.name.trim(),
@@ -1229,8 +1196,6 @@ const DishDetailsModal = ({
 			if (!result.success) {
 				throw new Error(result.message || 'Không thể cập nhật món ăn')
 			}
-
-			console.log('✅ Menu item updated successfully')
 
 			// Update local state with returned data
 			const updatedDish = {
@@ -1480,11 +1445,6 @@ const DishDetailsModal = ({
 							<div className="flex gap-3 pt-4 border-t border-white/10">
 								<button
 									onClick={() => {
-										console.log(
-											'📖 [CategoryDishes] Opening modifiers modal for dish:',
-											dish.id,
-											dish.name,
-										)
 										setIsModifiersModalOpen(true)
 									}}
 									className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors bg-[#137fec]/20 text-[#137fec] hover:bg-[#137fec]/30"
@@ -2117,21 +2077,17 @@ const EditCategoryModal = ({ isOpen, onClose, onSave, categoryData }) => {
 
 			// If user selected a file (base64 data), upload to cloud first
 			if (formData.imageFile) {
-				console.log('📤 Uploading category image to cloud...')
 				const { uploadFile } = await import('../../../services/api/fileAPI')
 				const cloudUrl = await uploadFile(formData.imageFile, 'image')
 				updatedData.imageUrl = cloudUrl
-				console.log('✅ Image uploaded to cloud:', cloudUrl)
 			} else if (formData.image && formData.image.startsWith('data:')) {
 				// If it's base64 but no file object, convert to blob and upload
-				console.log('📤 Converting base64 to file and uploading...')
 				const response = await fetch(formData.image)
 				const blob = await response.blob()
 				const file = new File([blob], 'category-image.jpg', { type: 'image/jpeg' })
 				const { uploadFile } = await import('../../../services/api/fileAPI')
 				const cloudUrl = await uploadFile(file, 'image')
 				updatedData.imageUrl = cloudUrl
-				console.log('✅ Image uploaded to cloud:', cloudUrl)
 			}
 
 			if (onSave) {
@@ -2319,17 +2275,12 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 		return () => clearTimeout(timer)
 	}, [searchQuery])
 
-	// Debug user object
-	console.log('🔍 [CategoryDishes] User object:', JSON.stringify(user, null, 2))
-	console.log('🔍 [CategoryDishes] User keys:', user ? Object.keys(user) : 'null')
-
 	// Helper function to delay execution for rate limiting
 	const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 	// 🆕 Fetch category detail from backend
 	const fetchCategoryDetail = async () => {
 		if (!user || !user.userId || !category || !category.id) {
-			console.log('⏳ Waiting for user and category data...')
 			return
 		}
 
@@ -2337,24 +2288,14 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 		const categoryId = category.id
 
 		try {
-			console.log('📥 Fetching category detail:', categoryId)
 			const result = await getCategoryByIdAPI(tenantId, categoryId)
 
 			if (result.success && result.category) {
-				console.log('✅ Category detail fetched:', result.category)
 				setCategoryDetail(result.category)
 
 				// Update UI states with fetched data
 				setCategoryName(result.category.name || '')
 				setCategoryImage(result.category.imageUrl || '')
-
-				// Log important category info
-				console.log('📊 Category Info:', {
-					name: result.category.name,
-					status: result.category.status,
-					itemCount: result.category.itemCount,
-					displayOrder: result.category.displayOrder,
-				})
 			} else {
 				console.warn('⚠️ Failed to fetch category detail:', result.message)
 			}
@@ -2365,7 +2306,6 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 
 	const fetchDishes = async () => {
 		if (!user || !user.userId || !category || !category.id) {
-			console.log('⏳ Waiting for user and category data...')
 			return
 		}
 
@@ -2374,13 +2314,6 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 
 		setLoading(true)
 		try {
-			console.log(
-				'📥 Fetching menu items for category:',
-				categoryId,
-				'page:',
-				currentPage,
-			)
-
 			// Use getMenuItemsAPI with pagination support
 			// This is for user management view, not public customer view
 			const params = {
@@ -2398,18 +2331,15 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 
 			if (result.success) {
 				const items = result.items || []
-				console.log('✅ Menu items fetched:', items.length)
 
 				// 🔧 WORKAROUND: getMenuItemsAPI doesn't include photos relation
 				// Solution: Fetch full details for each item using getMenuItemByIdAPI
 				// ⚠️ Sequential with delay to avoid 429 Rate Limiting
-				console.log('📸 Fetching photos for each item (sequential)...')
 				const itemsWithPhotos = []
 
 				for (let i = 0; i < items.length; i++) {
 					const item = items[i]
 					try {
-						console.log(`📸 Fetching photos ${i + 1}/${items.length}: ${item.name}`)
 						const detailResult = await getMenuItemByIdAPI(tenantId, item.id)
 						if (detailResult.success && detailResult.item) {
 							itemsWithPhotos.push(detailResult.item) // Full item with photos
@@ -2427,18 +2357,10 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 					}
 				}
 
-				console.log('✅ Photos loaded for all items')
-
 				// Debug: Check which items have photos
 				itemsWithPhotos.forEach((item, index) => {
 					const hasPhotos = item.photos && item.photos.length > 0
 					const primaryPhoto = item.photos?.find((p) => p.isPrimary)
-					console.log(
-						`📸 Item ${index + 1}/${itemsWithPhotos.length}: ${item.name}`,
-						`| Photos: ${hasPhotos ? item.photos.length : 0}`,
-						`| Primary: ${primaryPhoto ? '✅' : '❌'}`,
-						hasPhotos ? `| URL: ${item.photos[0]?.url?.substring(0, 50)}...` : '',
-					)
 				})
 
 				// Transform API response to match component's data structure
@@ -2472,19 +2394,15 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 					}
 				})
 
-				console.log('🔄 Transformed items count:', transformedItems.length)
 				const itemsWithImages = transformedItems.filter((d) => d.image)
-				console.log('📸 Items WITH images:', itemsWithImages.length)
 
 				// 🖼️ Preload ALL images before showing cards
-				console.log('🖼️ Preloading images for', itemsWithImages.length, 'dishes...')
 
 				const imageLoadResults = await Promise.all(
 					itemsWithImages.map((dish) => {
 						return new Promise((resolve) => {
 							const img = new Image()
 							img.onload = () => {
-								console.log('✅ Image loaded:', dish.name)
 								resolve({ success: true, dish: dish.name })
 							}
 							img.onerror = () => {
@@ -2498,9 +2416,6 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 
 				const successCount = imageLoadResults.filter((r) => r.success).length
 				const failCount = imageLoadResults.filter((r) => !r.success).length
-				console.log(
-					`✅ Images loaded: ${successCount}/${itemsWithImages.length} (${failCount} failed)`,
-				)
 
 				// Only set dishes after ALL images are loaded (success or fail)
 				setDishes(transformedItems)
@@ -2509,14 +2424,7 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 				if (result.pagination) {
 					setTotalPages(result.pagination.totalPages || 1)
 					setTotalItems(result.pagination.total || transformedItems.length)
-					console.log(
-						'📊 Pagination:',
-						`Page ${currentPage}/${result.pagination.totalPages}`,
-						`Total: ${result.pagination.total} items`,
-					)
 				}
-
-				console.log('✅ Menu items loaded with images:', transformedItems.length)
 			} else {
 				console.error('❌ Failed to fetch menu items:', result.message)
 				setDishes([])
@@ -2568,22 +2476,10 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 
 			setLoadingDishDetail(true)
 			try {
-				console.log('📥 Fetching dish detail:', itemId)
 				const result = await getMenuItemByIdAPI(tenantId, itemId)
 
 				if (result.success && result.item) {
-					console.log('✅ Dish detail fetched:', result.item)
 					setSelectedDishDetail(result.item)
-
-					// Log important dish info
-					console.log('📊 Dish Detail Info:', {
-						name: result.item.name,
-						categoryName: result.item.categoryName,
-						price: result.item.price,
-						status: result.item.status,
-						photosCount: result.item.photos?.length || 0,
-						primaryPhoto: result.item.photos?.find((p) => p.isPrimary),
-					})
 				} else {
 					console.warn('⚠️ Failed to fetch dish detail:', result.message)
 					setSelectedDishDetail(null)
@@ -2619,16 +2515,12 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 			const tenantId = user.userId
 			const itemId = dish.id
 
-			console.log(`🔄 Updating item status to: ${newStatus}`)
-
 			// Call backend API
 			const result = await updateMenuItemStatusAPI(tenantId, itemId, newStatus)
 
 			if (!result.success) {
 				throw new Error(result.message || 'Không thể cập nhật trạng thái')
 			}
-
-			console.log('✅ Status updated successfully')
 
 			// Update local state
 			setDishes((prev) =>
@@ -2662,16 +2554,12 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 		setDishToDelete(null)
 
 		try {
-			console.log('🗑️ Deleting menu item:', itemId)
-
 			// Call backend API to delete menu item
 			const result = await deleteMenuItemAPI(tenantId, itemId)
 
 			if (!result.success) {
 				throw new Error(result.message || 'Failed to delete menu item')
 			}
-
-			console.log('✅ Menu item deleted successfully')
 
 			// Remove from UI
 			setDishes((prevDishes) => prevDishes.filter((dish) => dish.id !== itemId))
@@ -2703,8 +2591,6 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 		const categoryId = category.id
 
 		try {
-			console.log('📤 Creating new menu item for category:', categoryId)
-
 			// Prepare item data for backend
 			const itemData = {
 				categoryId: categoryId,
@@ -2731,16 +2617,9 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 				throw new Error(result.message || 'Failed to create menu item')
 			}
 
-			console.log('✅ Menu item created:', result.item)
-
 			// If there are image URLs, add them as photos
 			const photoUrls = []
 			if (newDish.imageUrls && newDish.imageUrls.length > 0) {
-				console.log(
-					`📤 Adding ${newDish.imageUrls.length} photo(s) to menu item:`,
-					result.item.id,
-				)
-
 				// Upload photos sequentially with isPrimary flag for first photo
 				for (let i = 0; i < newDish.imageUrls.length; i++) {
 					const url = newDish.imageUrls[i]
@@ -2752,9 +2631,6 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 						})
 
 						if (photoResult.success) {
-							console.log(
-								`✅ Photo ${i + 1}/${newDish.imageUrls.length} added successfully`,
-							)
 							photoUrls.push(photoResult.photo)
 						} else {
 							console.warn(`⚠️ Photo ${i + 1} upload failed:`, photoResult.message)
@@ -2807,8 +2683,6 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 		const categoryId = category.id
 
 		try {
-			console.log('📤 Updating category with backend API:', updatedCategory)
-
 			// Prepare update data
 			const updateData = {}
 
@@ -2828,8 +2702,6 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 			if (!result.success) {
 				throw new Error(result.message || 'Failed to update category')
 			}
-
-			console.log('✅ Category updated successfully:', result.category)
 
 			// Update local state with response from backend
 			if (result.category.name) {
