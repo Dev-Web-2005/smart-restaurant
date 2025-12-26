@@ -146,9 +146,7 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 		files.forEach(async (file, index) => {
 			const imageId = newImages[index].id
 			try {
-				console.log(`📤 Uploading dish image ${index + 1}/${files.length} to cloud...`)
 				const url = await uploadFile(file, 'image')
-				console.log(`✅ Dish image ${index + 1} uploaded successfully! URL:`, url)
 
 				setImages((prev) =>
 					prev.map((img) =>
@@ -186,9 +184,7 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 		setUploadingCount((prev) => prev + 1)
 
 		try {
-			console.log('🔄 Retrying dish image upload...')
 			const url = await uploadFile(image.file, 'image')
-			console.log('✅ Dish image uploaded successfully! URL:', url)
 
 			setImages((prev) =>
 				prev.map((img) =>
@@ -247,8 +243,6 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 					: undefined,
 				imageUrls: imageUrls, // Array of pre-uploaded image URLs
 			}
-
-			console.log(`📦 Dish data ready for ${categorySlug}:`, dishData)
 
 			// Call onSave callback with dish data
 			if (onSave) {

@@ -261,7 +261,6 @@ const MenuCategoryManagement = () => {
 	// Fetch categories from API
 	const fetchCategories = async () => {
 		if (!user || !user.userId) {
-			console.log('⏳ Waiting for user data...')
 			return
 		}
 
@@ -269,8 +268,6 @@ const MenuCategoryManagement = () => {
 		setLoading(true)
 
 		try {
-			console.log('📥 Fetching categories for tenant:', tenantId, 'page:', currentPage)
-
 			// Build query params with pagination
 			const params = {
 				sortBy,
@@ -312,14 +309,7 @@ const MenuCategoryManagement = () => {
 				if (result.pagination) {
 					setTotalPages(result.pagination.totalPages || 1)
 					setTotalItems(result.pagination.total || transformedCategories.length)
-					console.log(
-						'📊 Pagination:',
-						`Page ${currentPage}/${result.pagination.totalPages}`,
-						`Total: ${result.pagination.total} items`,
-					)
 				}
-
-				console.log('✅ Categories loaded:', transformedCategories.length)
 			} else {
 				console.error('❌ Failed to fetch categories:', result.message)
 				showAlert('error', 'Failed to load categories', result.message)
@@ -387,7 +377,6 @@ const MenuCategoryManagement = () => {
 					'Success',
 					`Category "${category.name}" has been ${actionText}d.`,
 				)
-				console.log(`✅ Category ${category.id} status changed to: ${newStatus}`)
 			} else {
 				console.error('❌ Failed to toggle status:', result.message)
 				showAlert('error', 'Failed', result.message)
@@ -419,7 +408,6 @@ const MenuCategoryManagement = () => {
 				setCategoryToDelete(null)
 
 				showAlert('success', 'Deleted', `Category "${categoryName}" has been deleted.`)
-				console.log(`✅ Category ${categoryId} deleted successfully`)
 			} else {
 				console.error('❌ Failed to delete category:', result.message)
 				showAlert('error', 'Failed', result.message)
@@ -466,10 +454,7 @@ const MenuCategoryManagement = () => {
 			// Add image URL if available
 			if (newCategoryData.image) {
 				categoryPayload.image = newCategoryData.image
-				console.log('🖼️ Image URL included:', newCategoryData.image)
 			}
-
-			console.log('📤 Creating category:', categoryPayload)
 			const result = await createCategoryAPI(tenantId, categoryPayload)
 
 			if (result.success) {
@@ -497,7 +482,6 @@ const MenuCategoryManagement = () => {
 					'Success',
 					`Category "${result.category.name}" created successfully!`,
 				)
-				console.log('✅ Category created:', transformedCategory)
 			} else {
 				console.error('❌ Failed to create category:', result.message)
 				showAlert('error', 'Failed', result.message)

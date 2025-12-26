@@ -3,14 +3,20 @@
 import React, { createContext, useState, useEffect, useContext } from 'react'
 
 // Toggle between mock and real API
-const USE_MOCK_API = false
+// In production, mock API is not imported to avoid console logs
+const USE_MOCK_API = import.meta.env.DEV && false // Always false, can be changed for local testing
 
-// Import from mock or real API
-import * as mockAPI from '../services/api/mockAuthAPI'
+// Import real API (always used in production)
 import * as realAPI from '../services/api/authAPI'
 
+// Conditionally import mock API only in development
+let mockAPI = null
+if (import.meta.env.DEV && USE_MOCK_API) {
+	mockAPI = await import('../services/api/mockAuthAPI')
+}
+
 const { loginAPI, logoutAPI, registerAPI, getCurrentUserAPI, refreshTokenAPI } =
-	USE_MOCK_API ? mockAPI : realAPI
+	USE_MOCK_API && mockAPI ? mockAPI : realAPI
 
 const UserContext = createContext()
 
