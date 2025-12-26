@@ -3,10 +3,13 @@
 
 import axios from 'axios'
 
-// ✅ Direct API call - CORS is enabled on server
-const DIDIT_API_BASE = 'https://verification.didit.me/v2'
+// Use environment variable in production, proxy in development
+// Development: /api/kyc (Vite proxy -> https://verification.didit.me/v2)
+// Production: Direct URL
+const DIDIT_API_BASE = import.meta.env.PROD
+	? 'https://verification.didit.me/v2'
+	: '/api/kyc'
 
-// ✅ Environment variables from .env and GitHub Secrets
 const DIDIT_API_KEY = import.meta.env.VITE_DIDIT_API_KEY
 const DIDIT_WORKFLOW_ID = import.meta.env.VITE_DIDIT_WORKFLOW_ID
 const DIDIT_CALLBACK_URL = import.meta.env.VITE_DIDIT_CALLBACK_URL
@@ -37,7 +40,7 @@ export const createKYCSession = async (userId, email, phone) => {
 			},
 		}
 
-		// ✅ Direct API call with X-Api-Key header
+		// X-Api-Key header auto-injected by Vite proxy in dev, manually added in prod
 		const response = await axios.post(`${DIDIT_API_BASE}/session/`, payload, {
 			headers: {
 				'Content-Type': 'application/json',
@@ -78,7 +81,7 @@ export const createKYCSession = async (userId, email, phone) => {
  */
 export const getKYCResult = async (sessionId) => {
 	try {
-		// ✅ Direct API call with X-Api-Key header
+		// X-Api-Key header auto-injected by Vite proxy in dev, manually added in prod
 		const response = await axios.get(`${DIDIT_API_BASE}/session/${sessionId}/decision/`, {
 			headers: {
 				'X-Api-Key': DIDIT_API_KEY,
