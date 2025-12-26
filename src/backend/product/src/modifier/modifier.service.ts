@@ -13,10 +13,12 @@ import ErrorCode from '@shared/exceptions/error-code';
 import {
 	CreateModifierGroupRequestDto,
 	GetModifierGroupsRequestDto,
+	GetModifierGroupRequestDto,
 	UpdateModifierGroupRequestDto,
 	DeleteModifierGroupRequestDto,
 	CreateModifierOptionRequestDto,
 	GetModifierOptionsRequestDto,
+	GetModifierOptionRequestDto,
 	UpdateModifierOptionRequestDto,
 	DeleteModifierOptionRequestDto,
 	AttachModifierGroupsRequestDto,
@@ -109,6 +111,30 @@ export class ModifierService {
 		const groups = await queryBuilder.getMany();
 
 		return groups.map((group) => this.toModifierGroupResponseDto(group, group.options));
+	}
+
+	async getModifierGroup(
+		dto: GetModifierGroupRequestDto,
+	): Promise<ModifierGroupResponseDto> {
+		this.validateApiKey(dto.productApiKey);
+
+		const group = await this.modifierGroupRepository.findOne({
+			where: {
+				id: dto.modifierGroupId,
+				tenantId: dto.tenantId,
+				deletedAt: IsNull(),
+			},
+			relations: ['options'],
+		});
+
+		if (!group) {
+			throw new AppException(ErrorCode.MODIFIER_GROUP_NOT_FOUND);
+		}
+
+		// Filter out soft-deleted options
+		const activeOptions = group.options?.filter((opt) => !opt.deletedAt) || [];
+
+		return this.toModifierGroupResponseDto(group, activeOptions);
 	}
 
 	async updateModifierGroup(
@@ -238,6 +264,39 @@ export class ModifierService {
 		const options = await queryBuilder.getMany();
 
 		return options.map((option) => this.toModifierOptionResponseDto(option));
+	}
+
+	async getModifierOption(
+		dto: GetModifierOptionRequestDto,
+	): Promise<ModifierOptionResponseDto> {
+		this.validateApiKey(dto.productApiKey);
+
+		// Validate group exists and belongs to tenant
+		const group = await this.modifierGroupRepository.findOne({
+			where: {
+				id: dto.modifierGroupId,
+				tenantId: dto.tenantId,
+				deletedAt: IsNull(),
+			},
+		});
+
+		if (!group) {
+			throw new AppException(ErrorCode.MODIFIER_GROUP_NOT_FOUND);
+		}
+
+		const option = await this.modifierOptionRepository.findOne({
+			where: {
+				id: dto.modifierOptionId,
+				modifierGroupId: dto.modifierGroupId,
+				deletedAt: IsNull(),
+			},
+		});
+
+		if (!option) {
+			throw new AppException(ErrorCode.MODIFIER_OPTION_NOT_FOUND);
+		}
+
+		return this.toModifierOptionResponseDto(option);
 	}
 
 	async updateModifierOption(

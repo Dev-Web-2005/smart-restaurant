@@ -49,6 +49,13 @@ let CategoryController = class CategoryController {
             return new http_response_1.default(1000, 'Categories retrieved successfully', categories);
         });
     }
+    async getCategory(dto) {
+        return (0, rpc_error_handler_1.handleRpcCall)(async () => {
+            this.validateApiKey(dto.productApiKey);
+            const category = await this.categoryService.getCategory(dto);
+            return new http_response_1.default(1000, 'Category retrieved successfully', category);
+        });
+    }
     async updateCategory(dto) {
         return (0, rpc_error_handler_1.handleRpcCall)(async () => {
             this.validateApiKey(dto.productApiKey);
@@ -84,6 +91,12 @@ __decorate([
     __metadata("design:paramtypes", [request_1.GetCategoriesRequestDto]),
     __metadata("design:returntype", Promise)
 ], CategoryController.prototype, "getCategories", null);
+__decorate([
+    (0, microservices_1.MessagePattern)('categories:get'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [request_1.GetCategoryRequestDto]),
+    __metadata("design:returntype", Promise)
+], CategoryController.prototype, "getCategory", null);
 __decorate([
     (0, microservices_1.MessagePattern)('categories:update'),
     __metadata("design:type", Function),

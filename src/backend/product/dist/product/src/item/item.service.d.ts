@@ -3,7 +3,7 @@ import { Repository } from 'typeorm';
 import { MenuItem, MenuCategory, MenuItemPhoto } from 'src/common/entities';
 import { MenuItemResponseDto, PaginatedMenuItemsResponseDto } from './dtos/response/menu-item-response.dto';
 import { MenuItemPhotoResponseDto, MenuItemPhotosListResponseDto } from './dtos/response/menu-item-photo-response.dto';
-import { CreateMenuItemRequestDto, GetMenuItemsRequestDto, UpdateMenuItemRequestDto, UpdateMenuItemStatusRequestDto, DeleteMenuItemRequestDto, AddMenuItemPhotoRequestDto, UpdateMenuItemPhotoRequestDto, SetPrimaryPhotoRequestDto, DeleteMenuItemPhotoRequestDto, GetMenuItemPhotosRequestDto } from 'src/item/dtos/request';
+import { CreateMenuItemRequestDto, GetMenuItemsRequestDto, GetMenuItemRequestDto, UpdateMenuItemRequestDto, UpdateMenuItemStatusRequestDto, DeleteMenuItemRequestDto, AddMenuItemPhotoRequestDto, UpdateMenuItemPhotoRequestDto, SetPrimaryPhotoRequestDto, DeleteMenuItemPhotoRequestDto, GetMenuItemPhotosRequestDto } from 'src/item/dtos/request';
 export declare class ItemService {
     private readonly menuItemRepository;
     private readonly categoryRepository;
@@ -13,6 +13,7 @@ export declare class ItemService {
     private validateApiKey;
     createMenuItem(dto: CreateMenuItemRequestDto): Promise<MenuItemResponseDto>;
     getMenuItems(dto: GetMenuItemsRequestDto): Promise<PaginatedMenuItemsResponseDto>;
+    getMenuItem(dto: GetMenuItemRequestDto): Promise<MenuItemResponseDto>;
     updateMenuItem(dto: UpdateMenuItemRequestDto): Promise<MenuItemResponseDto>;
     updateMenuItemStatus(dto: UpdateMenuItemStatusRequestDto): Promise<MenuItemResponseDto>;
     deleteMenuItem(dto: DeleteMenuItemRequestDto): Promise<void>;
