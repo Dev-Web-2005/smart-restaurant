@@ -1,4 +1,14 @@
 /**
+ * Photo information in Menu Item response
+ */
+export class MenuItemPhotoDto {
+	id: string;
+	url: string;
+	isPrimary: boolean;
+	displayOrder: number;
+}
+
+/**
  * Response DTO for Menu Item
  *
  * Returns status as uppercase string (AVAILABLE, UNAVAILABLE, SOLD_OUT)
@@ -16,6 +26,7 @@ export class MenuItemResponseDto {
 	prepTimeMinutes?: number;
 	status: string; // "AVAILABLE", "UNAVAILABLE", or "SOLD_OUT"
 	isChefRecommended: boolean;
+	photos?: MenuItemPhotoDto[]; // Photos sorted by isPrimary DESC, displayOrder ASC
 	createdAt: Date;
 	updatedAt: Date;
 }
