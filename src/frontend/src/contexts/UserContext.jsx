@@ -139,7 +139,7 @@ export const UserProvider = ({ children }) => {
 			// 🚀 Call real logout API (blacklist tokens)
 			await logoutAPI()
 		} catch (error) {
-			console.error('Logout error:', error)
+			// Silent error
 		} finally {
 			// Always clear local state
 			setUser(null)
@@ -176,7 +176,6 @@ export const UserProvider = ({ children }) => {
 						await attemptTokenRefresh()
 					}
 				} catch (error) {
-					console.error('❌ Token verification failed:', error)
 					await attemptTokenRefresh()
 				}
 			}
@@ -200,7 +199,7 @@ export const UserProvider = ({ children }) => {
 			}
 			// Case 3: Không có gì cả -> user chưa đăng nhập
 			else {
-				console.log('ℹ️ No session found')
+				// No session
 			}
 
 			setLoading(false)
@@ -211,24 +210,11 @@ export const UserProvider = ({ children }) => {
 			try {
 				const refreshResult = await refreshTokenAPI()
 
-				console.log('🔍 Refresh API result:', {
-					success: refreshResult.success,
-					hasUser: !!refreshResult.user,
-					hasAccessToken: !!refreshResult.accessToken,
-					user: refreshResult.user,
-				})
-
 				if (refreshResult.success && refreshResult.user) {
 					// ✅ Store access token in memory if provided
 					if (refreshResult.accessToken) {
 						window.accessToken = refreshResult.accessToken
-						console.log(
-							'✅ Access token stored from refresh:',
-							`${refreshResult.accessToken.substring(0, 30)}...`,
-						)
 					}
-
-					console.log('✅ Session restored from refresh token (httpOnly cookie)')
 
 					// ✅ Use user data directly from refresh response (1 API call instead of 2)
 					const roles = refreshResult.user.roles || []
@@ -242,17 +228,8 @@ export const UserProvider = ({ children }) => {
 					localStorage.setItem('user', JSON.stringify(refreshResult.user))
 					// ✅ Restore tab session marker
 					sessionStorage.setItem('tabSession', Date.now().toString())
-
-					// Debug: Verify token is stored
-					console.log('🔍 Token check after setUser:', {
-						hasToken: !!window.accessToken,
-						tokenPreview: window.accessToken
-							? `${window.accessToken.substring(0, 20)}...`
-							: 'undefined',
-					})
 				} else {
 					// ❌ Refresh token expired or invalid
-					console.log('❌ Session expired, please login again')
 					window.accessToken = null
 					localStorage.removeItem('user')
 				}

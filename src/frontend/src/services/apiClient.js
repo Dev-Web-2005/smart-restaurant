@@ -10,24 +10,13 @@ const API_BASE_URL = import.meta.env.VITE_API_GATEWAY_URL
 	? `${import.meta.env.VITE_API_GATEWAY_URL}/api/v1`
 	: '/api/v1'
 
-const API_KEY = import.meta.env.VITE_API_KEY || 'smart-restaurant-2025-secret-key'
-
-// Debug: Log configuration (remove in production)
-if (import.meta.env.DEV) {
-	console.log('🔧 API Client Config:', {
-		baseURL: API_BASE_URL,
-		hasApiKey: !!API_KEY,
-		apiKeyLength: API_KEY?.length,
-	})
-}
-
 // Create axios instance
 const apiClient = axios.create({
 	baseURL: API_BASE_URL,
 	withCredentials: true, // Enable cookies for refresh token
 	headers: {
 		'Content-Type': 'application/json',
-		'x-api-key': API_KEY,
+		'x-api-key': import.meta.env.VITE_API_KEY || 'smart-restaurant-2025-secret-key',
 	},
 	timeout: 30000,
 })
@@ -68,7 +57,6 @@ apiClient.interceptors.response.use(
 		const newAccessToken = response.headers['x-new-access-token']
 
 		if (newAccessToken) {
-			console.log('🔄 Access token refreshed automatically by backend')
 			window.accessToken = newAccessToken
 			apiClient.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`
 		}
@@ -109,8 +97,6 @@ apiClient.interceptors.response.use(
 				isRefreshing = true
 
 				try {
-					console.log('🔄 Attempting manual token refresh...')
-
 					const refreshResponse = await axios.get('/api/v1/identity/auth/refresh', {
 						withCredentials: true, // Important: Send httpOnly refresh token cookie
 					})
@@ -122,8 +108,6 @@ apiClient.interceptors.response.use(
 						apiClient.defaults.headers.common[
 							'Authorization'
 						] = `Bearer ${newAccessToken}`
-
-						console.log('✅ Token refreshed, retrying queued requests...')
 
 						// Update localStorage with new user data
 						if (refreshResponse.data.data.userId) {
@@ -150,8 +134,6 @@ apiClient.interceptors.response.use(
 						return apiClient(originalRequest)
 					}
 				} catch (refreshError) {
-					console.error('❌ Token refresh failed:', refreshError)
-
 					window.accessToken = null
 					localStorage.removeItem('user')
 
