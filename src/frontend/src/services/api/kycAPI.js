@@ -6,9 +6,7 @@ import axios from 'axios'
 // Use environment variable in production, proxy in development
 // Development: /api/kyc (Vite proxy -> https://verification.didit.me/v2)
 // Production: Direct URL
-const DIDIT_API_BASE = import.meta.env.PROD
-	? 'https://verification.didit.me/v2'
-	: '/api/kyc'
+const DIDIT_API_BASE = '/api/kyc'
 
 const DIDIT_API_KEY = import.meta.env.VITE_DIDIT_API_KEY
 const DIDIT_WORKFLOW_ID = import.meta.env.VITE_DIDIT_WORKFLOW_ID
@@ -42,10 +40,7 @@ export const createKYCSession = async (userId, email, phone) => {
 
 		// X-Api-Key header auto-injected by Vite proxy in dev, manually added in prod
 		const response = await axios.post(`${DIDIT_API_BASE}/session/`, payload, {
-			headers: {
-				'Content-Type': 'application/json',
-				'X-Api-Key': DIDIT_API_KEY,
-			},
+			headers: { 'Content-Type': 'application/json' },
 			timeout: 15000,
 		})
 
