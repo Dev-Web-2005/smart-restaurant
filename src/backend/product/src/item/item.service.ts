@@ -198,7 +198,7 @@ export class ItemService {
 	 *
 	 * Business Rules:
 	 * - Item must exist and belong to tenant
-	 * - Returns full item details with category name
+	 * - Returns full item details with category name and photos
 	 */
 	async getMenuItem(dto: GetMenuItemRequestDto): Promise<MenuItemResponseDto> {
 		this.validateApiKey(dto.productApiKey);
@@ -209,7 +209,13 @@ export class ItemService {
 				tenantId: dto.tenantId,
 				deletedAt: IsNull(),
 			},
-			relations: ['category'],
+			relations: ['category', 'photos'],
+			order: {
+				photos: {
+					isPrimary: 'DESC',
+					displayOrder: 'ASC',
+				},
+			},
 		});
 
 		if (!menuItem) {
@@ -342,6 +348,7 @@ export class ItemService {
 	/**
 	 * Convert MenuItem entity to response DTO
 	 * Converts status enum to uppercase string
+	 * Includes photos if loaded (sorted by isPrimary DESC, displayOrder ASC)
 	 */
 	private toResponseDto(item: MenuItem, categoryName?: string): MenuItemResponseDto {
 		return {
@@ -357,6 +364,12 @@ export class ItemService {
 			prepTimeMinutes: item.prepTimeMinutes,
 			status: menuItemStatusToString(item.status),
 			isChefRecommended: item.isChefRecommended,
+			photos: item.photos?.map((photo) => ({
+				id: photo.id,
+				url: photo.url,
+				isPrimary: photo.isPrimary,
+				displayOrder: photo.displayOrder,
+			})),
 			createdAt: item.createdAt,
 			updatedAt: item.updatedAt,
 		};

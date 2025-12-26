@@ -141,7 +141,13 @@ let ItemService = class ItemService {
                 tenantId: dto.tenantId,
                 deletedAt: (0, typeorm_2.IsNull)(),
             },
-            relations: ['category'],
+            relations: ['category', 'photos'],
+            order: {
+                photos: {
+                    isPrimary: 'DESC',
+                    displayOrder: 'ASC',
+                },
+            },
         });
         if (!menuItem) {
             throw new app_exception_1.default(error_code_1.default.ITEM_NOT_FOUND);
@@ -243,6 +249,12 @@ let ItemService = class ItemService {
             prepTimeMinutes: item.prepTimeMinutes,
             status: (0, enums_1.menuItemStatusToString)(item.status),
             isChefRecommended: item.isChefRecommended,
+            photos: item.photos?.map((photo) => ({
+                id: photo.id,
+                url: photo.url,
+                isPrimary: photo.isPrimary,
+                displayOrder: photo.displayOrder,
+            })),
             createdAt: item.createdAt,
             updatedAt: item.updatedAt,
         };
