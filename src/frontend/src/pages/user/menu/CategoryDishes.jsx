@@ -7,6 +7,7 @@ import {
 	createMenuItemAPI,
 	addMenuItemPhotoAPI,
 	getMenuItemsAPI,
+	getMenuItemByIdAPI,
 	getMenuItemPhotosAPI,
 	deleteMenuItemPhotoAPI,
 	setPrimaryPhotoAPI,
@@ -14,7 +15,7 @@ import {
 	updateMenuItemAPI,
 	updateMenuItemStatusAPI,
 } from '../../../services/api/itemAPI'
-import { getPublicMenuByCategoryAPI } from '../../../services/api/publicMenuAPI'
+import { getCategoryByIdAPI, updateCategoryAPI } from '../../../services/api/categoryAPI'
 import { uploadFile } from '../../../services/api/fileAPI'
 import {
 	createModifierGroupAPI,
@@ -66,7 +67,7 @@ const mockDishesData = {
 			price: 15.5,
 			image:
 				'https://images.unsplash.com/photo-1591814468924-caf88d1232e1?auto=format&fit=crop&w=500&q=80',
-			status: 'READY',
+			status: 'AVAILABLE',
 			preparationTime: 15,
 			cookingTime: 15,
 			spicyLevel: 3,
@@ -110,7 +111,7 @@ const mockDishesData = {
 			price: 14.0,
 			image:
 				'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQCylxfP50ETWvYyVwTx3qbbPj27wYtyyW5GQ&s',
-			status: 'READY',
+			status: 'AVAILABLE',
 			preparationTime: 12,
 			cookingTime: 12,
 			spicyLevel: 2,
@@ -124,7 +125,7 @@ const mockDishesData = {
 			price: 13.75,
 			image:
 				'https://iamafoodblog.b-cdn.net/wp-content/uploads/2017/11/authentic-instant-pot-pho-recipe-1959w.jpg',
-			status: 'NOT_READY',
+			status: 'UNAVAILABLE',
 			preparationTime: 20,
 			cookingTime: 20,
 			spicyLevel: 1,
@@ -138,7 +139,7 @@ const mockDishesData = {
 			price: 12.5,
 			image:
 				'https://images.unsplash.com/photo-1618841557871-b4664fbf0cb3?auto=format&fit=crop&w=500&q=80',
-			status: 'READY',
+			status: 'SOLD_OUT',
 			preparationTime: 10,
 			cookingTime: 10,
 			spicyLevel: 0,
@@ -981,7 +982,15 @@ const ConfirmationModal = ({ isOpen, title, message, onConfirm, onClose }) => {
 }
 
 // DishDetailsModal (đã cập nhật với Modifiers)
-const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => {
+const DishDetailsModal = ({
+	isOpen,
+	dish,
+	dishDetail, // 🆕 Full detail from backend
+	loadingDetail, // 🆕 Loading state
+	onClose,
+	onSave,
+	onToggleStatus,
+}) => {
 	const modalRef = useRef(null)
 	const { user } = useUser()
 	const [isVisible, setIsVisible] = useState(false)
@@ -1005,19 +1014,23 @@ const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => 
 	const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
 	useEffect(() => {
-		if (dish) {
+		// 🆕 Use dishDetail if available, otherwise fallback to dish
+		const dataSource = dishDetail || dish
+
+		if (dataSource) {
 			setEditFormData({
-				name: dish.name || '',
-				description: dish.description || '',
-				price: dish.price || 0,
-				image: dish.image || '',
-				preparationTime: dish.preparationTime || 0,
+				name: dataSource.name || '',
+				description: dataSource.description || '',
+				price: dataSource.price || 0,
+				image: dataSource.image || dataSource.imageUrl || '', // Support both formats
+				preparationTime: dataSource.preparationTime || dataSource.prepTimeMinutes || 0,
+				isChefRecommended: dataSource.isChefRecommended || false,
 			})
-			// Ensure photos is always an array
-			const dishPhotos = dish.photos || []
+			// 🆕 Use photos from dishDetail (more complete with all fields)
+			const dishPhotos = dataSource.photos || []
 			setPhotos(Array.isArray(dishPhotos) ? dishPhotos : [])
 		}
-	}, [dish])
+	}, [dish, dishDetail]) // 🆕 Update when either dish or dishDetail changes
 
 	// Fetch photos when Photos tab is active
 	useEffect(() => {
@@ -1198,6 +1211,7 @@ const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => 
 				name: editFormData.name.trim(),
 				description: editFormData.description.trim(),
 				price: editFormData.price,
+				isChefRecommended: Boolean(editFormData.isChefRecommended),
 			}
 
 			// Add preparation time if provided
@@ -1226,6 +1240,7 @@ const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => 
 				price: result.item.price,
 				preparationTime: result.item.prepTimeMinutes || 0,
 				cookingTime: result.item.prepTimeMinutes || 0,
+				isChefRecommendation: result.item.isChefRecommended || false,
 			}
 
 			onSave(updatedDish)
@@ -1316,19 +1331,46 @@ const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => 
 				</div>
 
 				<div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
-					{activeTab === 'view' ? (
+					{/* 🆕 Loading state when fetching detail */}
+					{loadingDetail ? (
+						<div className="flex flex-col items-center justify-center py-12">
+							<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#137fec] mb-4"></div>
+							<p className="text-[#9dabb9]">Loading dish details...</p>
+						</div>
+					) : activeTab === 'view' ? (
 						<div className="space-y-6">
-							<div className="w-full h-64 rounded-lg overflow-hidden">
+							{/* 🆕 Use dishDetail if available for more complete info */}
+							{dishDetail && dishDetail.categoryName && (
+								<div className="flex items-center gap-2 text-sm">
+									<span className="material-symbols-outlined text-[#9dabb9]">
+										category
+									</span>
+									<span className="text-[#9dabb9]">Category:</span>
+									<span className="text-white font-semibold">
+										{dishDetail.categoryName}
+									</span>
+								</div>
+							)}
+
+							<div className="w-full h-64 rounded-lg overflow-hidden bg-gray-800">
 								<img
 									src={
-										dish.primaryPhoto?.url ||
-										dish.image ||
-										'https://via.placeholder.com/400x300?text=No+Image'
+										// Try multiple sources for image
+										(dishDetail || dish).primaryPhoto?.url ||
+										(dishDetail || dish).photos?.[0]?.url ||
+										(dishDetail || dish).image ||
+										PLACEHOLDER_IMAGE
 									}
-									alt={dish.name}
+									alt={(dishDetail || dish).name}
 									className="w-full h-full object-cover"
 									onError={(e) => {
-										e.target.src = 'https://via.placeholder.com/400x300?text=No+Image'
+										if (e.target.src !== PLACEHOLDER_IMAGE) {
+											console.warn(
+												'Failed to load detail image for:',
+												(dishDetail || dish).name,
+											)
+											e.target.src = PLACEHOLDER_IMAGE
+										}
 									}}
 								/>
 							</div>
@@ -1337,81 +1379,103 @@ const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => 
 								<div>
 									<p className="text-[#9dabb9] text-sm mb-1">Price</p>
 									<p className="text-white text-2xl font-bold">
-										${dish.price.toFixed(2)}
+										{(dishDetail || dish).currency || '$'}{' '}
+										{(dishDetail || dish).price.toFixed(2)}
 									</p>
 								</div>
-								{dish.preparationTime && (
+								{((dishDetail || dish).preparationTime ||
+									(dishDetail || dish).prepTimeMinutes) && (
 									<div>
 										<p className="text-[#9dabb9] text-sm mb-1">Preparation Time</p>
-										<p className="text-white text-lg">{dish.preparationTime} mins</p>
+										<p className="text-white text-lg">
+											{(dishDetail || dish).preparationTime ||
+												(dishDetail || dish).prepTimeMinutes}{' '}
+											mins
+										</p>
+									</div>
+								)}
+								{(dishDetail || dish).isChefRecommended && (
+									<div className="col-span-2">
+										<div className="flex items-center gap-2 px-3 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+											<span className="material-symbols-outlined text-yellow-400">
+												star
+											</span>
+											<span className="text-yellow-400 font-semibold">
+												Chef Recommended
+											</span>
+										</div>
 									</div>
 								)}
 							</div>
 
 							<div>
 								<p className="text-[#9dabb9] text-sm mb-2">Description</p>
-								<p className="text-white leading-relaxed">{dish.description}</p>
+								<p className="text-white leading-relaxed">
+									{(dishDetail || dish).description}
+								</p>
 							</div>
 
 							{/* 🆕 HIỂN THỊ MODIFIERS */}
-							{dish.modifiers && dish.modifiers.length > 0 && (
-								<div>
-									<div className="flex items-center justify-between mb-3">
-										<p className="text-[#9dabb9] text-sm m-0">Customization Options</p>
-										<button
-											onClick={() => setIsModifiersModalOpen(true)}
-											className="text-sm text-[#137fec] hover:text-[#0d6ecc] flex items-center gap-1"
-										>
-											<span className="material-symbols-outlined text-sm">edit</span>
-											Manage
-										</button>
-									</div>
-									<div className="space-y-3">
-										{dish.modifiers.map((modifier) => (
-											<div key={modifier.id} className="bg-[#2D3748] rounded-lg p-3">
-												<div className="flex items-center gap-2 mb-2">
-													<h4 className="text-white font-semibold m-0">
-														{modifier.name}
-													</h4>
-													<span
-														className={`text-xs px-2 py-0.5 rounded ${
-															modifier.type === 'SINGLE'
-																? 'bg-blue-500/20 text-blue-400'
-																: 'bg-purple-500/20 text-purple-400'
-														}`}
-													>
-														{modifier.type === 'SINGLE' ? 'Single' : 'Multiple'}
-													</span>
-													{modifier.required && (
-														<span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400">
-															Required
-														</span>
-													)}
-												</div>
-												<div className="flex flex-wrap gap-2">
-													{modifier.options.map((option) => (
-														<div
-															key={option.id}
-															className={`px-2 py-1 rounded text-xs ${
-																option.isActive
-																	? 'bg-[#1A202C] text-white'
-																	: 'bg-gray-500/20 text-gray-400'
+							{(dishDetail || dish).modifiers &&
+								(dishDetail || dish).modifiers.length > 0 && (
+									<div>
+										<div className="flex items-center justify-between mb-3">
+											<p className="text-[#9dabb9] text-sm m-0">Customization Options</p>
+											<button
+												onClick={() => setIsModifiersModalOpen(true)}
+												className="text-sm text-[#137fec] hover:text-[#0d6ecc] flex items-center gap-1"
+											>
+												<span className="material-symbols-outlined text-sm">edit</span>
+												Manage
+											</button>
+										</div>
+										<div className="space-y-3">
+											{dish.modifiers.map((modifier) => (
+												<div key={modifier.id} className="bg-[#2D3748] rounded-lg p-3">
+													<div className="flex items-center gap-2 mb-2">
+														<h4 className="text-white font-semibold m-0">
+															{modifier.name}
+														</h4>
+														<span
+															className={`text-xs px-2 py-0.5 rounded ${
+																modifier.type === 'SINGLE'
+																	? 'bg-blue-500/20 text-blue-400'
+																	: 'bg-purple-500/20 text-purple-400'
 															}`}
 														>
-															{option.name}
-															{option.priceAdjustment !== 0 && (
-																<span className="ml-1 font-semibold text-green-400">
-																	+${option.priceAdjustment.toFixed(2)}
-																</span>
-															)}
-														</div>
-													))}
+															{modifier.type === 'SINGLE' ? 'Single' : 'Multiple'}
+														</span>
+														{modifier.required && (
+															<span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400">
+																Required
+															</span>
+														)}
+													</div>
+													<div className="flex flex-wrap gap-2">
+														{modifier.options.map((option) => (
+															<div
+																key={option.id}
+																className={`px-2 py-1 rounded text-xs ${
+																	option.isActive
+																		? 'bg-[#1A202C] text-white'
+																		: 'bg-gray-500/20 text-gray-400'
+																}`}
+															>
+																{option.name}
+																{option.priceAdjustment &&
+																	option.priceAdjustment !== 0 && (
+																		<span className="ml-1 font-semibold text-green-400">
+																			+${option.priceAdjustment.toFixed(2)}
+																		</span>
+																	)}
+															</div>
+														))}
+													</div>
 												</div>
-											</div>
-										))}
+											))}
+										</div>
 									</div>
-								</div>
-							)}
+								)}
 
 							<div className="flex gap-3 pt-4 border-t border-white/10">
 								<button
@@ -1428,6 +1492,55 @@ const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => 
 									<span className="material-symbols-outlined">tune</span>
 									{dish.modifiers?.length > 0 ? 'Manage Modifiers' : 'Add Modifiers'}
 								</button>
+							</div>
+
+							{/* Chef Recommendation Toggle */}
+							<div className="flex gap-3 pt-2">
+								<button
+									onClick={async () => {
+										if (!user || !user.userId) {
+											alert(
+												'Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.',
+											)
+											return
+										}
+										try {
+											const newValue = !(dishDetail || dish).isChefRecommended
+											const result = await updateMenuItemAPI(user.userId, dish.id, {
+												isChefRecommended: newValue,
+											})
+											if (result.success) {
+												onSave({ ...dish, isChefRecommended: newValue })
+												alert(
+													newValue
+														? 'Đã đánh dấu Chef Recommendation'
+														: 'Đã bỏ đánh dấu Chef Recommendation',
+												)
+											} else {
+												alert('Cập nhật thất bại: ' + result.message)
+											}
+										} catch (error) {
+											console.error('Failed to update chef recommendation:', error)
+											alert('Lỗi khi cập nhật Chef Recommendation')
+										}
+									}}
+									className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-colors ${
+										(dishDetail || dish).isChefRecommended
+											? 'bg-yellow-500/30 text-yellow-300 border-2 border-yellow-500'
+											: 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20'
+									}`}
+								>
+									<span className="material-symbols-outlined text-sm">
+										{(dishDetail || dish).isChefRecommended ? 'star' : 'star_outline'}
+									</span>
+									{(dishDetail || dish).isChefRecommended
+										? 'Chef Recommendation'
+										: 'Đánh dấu Chef Recommendation'}
+								</button>
+							</div>
+
+							{/* Status Toggle Buttons */}
+							<div className="flex gap-3 pt-2 border-t border-white/10">
 								<div className="flex gap-2">
 									<button
 										onClick={() => onToggleStatus(dish, 'AVAILABLE')}
@@ -1641,6 +1754,29 @@ const DishDetailsModal = ({ isOpen, dish, onClose, onSave, onToggleStatus }) => 
 									placeholder="https://example.com/image.jpg"
 								/>
 							</div>
+							<div className="flex items-center gap-3 p-3 bg-[#2D3748] rounded-lg border border-white/10">
+								<input
+									type="checkbox"
+									id="isChefRecommended"
+									name="isChefRecommended"
+									checked={editFormData?.isChefRecommended || false}
+									onChange={(e) => {
+										setEditFormData((prev) => ({
+											...prev,
+											isChefRecommended: e.target.checked,
+										}))
+									}}
+									className="w-5 h-5 bg-[#1A202C] border-2 border-white/20 rounded cursor-pointer focus:ring-2 focus:ring-[#137fec]"
+									style={{ accentColor: '#EAB308' }}
+								/>
+								<label
+									htmlFor="isChefRecommended"
+									className="flex items-center gap-2 text-white text-sm cursor-pointer"
+								>
+									<span className="material-symbols-outlined text-yellow-400">star</span>
+									<span>��nh d?u Chef Recommendation</span>
+								</label>
+							</div>
 
 							<div className="flex justify-end gap-3 pt-4 border-t border-white/10">
 								<button
@@ -1702,16 +1838,22 @@ const DishCard = ({ dish, onDelete, onClick, viewMode = 'grid' }) => {
 
 	const getStatusBadge = (status) => {
 		switch (status) {
-			case 'READY':
+			case 'AVAILABLE':
 				return (
 					<span className="text-green-400 text-sm font-bold bg-green-500/20 px-2 py-1 rounded-full">
-						Ready
+						Có sẵn
 					</span>
 				)
-			case 'NOT_READY':
+			case 'UNAVAILABLE':
 				return (
-					<span className="text-yellow-400 text-sm font-bold bg-yellow-500/20 px-2 py-1 rounded-full">
-						Not Ready
+					<span className="text-gray-400 text-sm font-bold bg-gray-500/20 px-2 py-1 rounded-full">
+						Không có sẵn
+					</span>
+				)
+			case 'SOLD_OUT':
+				return (
+					<span className="text-orange-400 text-sm font-bold bg-orange-500/20 px-2 py-1 rounded-full">
+						Hết hàng
 					</span>
 				)
 			default:
@@ -1727,8 +1869,18 @@ const DishCard = ({ dish, onDelete, onClick, viewMode = 'grid' }) => {
 				onMouseEnter={() => setIsHovering(true)}
 				onMouseLeave={() => setIsHovering(false)}
 			>
-				<div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
-					<img src={dish.image} alt={dish.name} className="w-full h-full object-cover" />
+				<div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-gray-800">
+					<img
+						src={dish.image || PLACEHOLDER_IMAGE}
+						alt={dish.name}
+						className="w-full h-full object-cover"
+						onError={(e) => {
+							if (e.target.src !== PLACEHOLDER_IMAGE) {
+								console.warn('Failed to load image for:', dish.name)
+								e.target.src = PLACEHOLDER_IMAGE
+							}
+						}}
+					/>
 				</div>
 				<div className="flex-1 min-w-0">
 					<div className="flex items-center gap-2 mb-1">
@@ -1777,7 +1929,7 @@ const DishCard = ({ dish, onDelete, onClick, viewMode = 'grid' }) => {
 		)
 	}
 
-	const isActive = dish.status === 'Active'
+	const isActive = dish.status === 'AVAILABLE'
 
 	return (
 		<div className="flex flex-col items-center">
@@ -1789,10 +1941,13 @@ const DishCard = ({ dish, onDelete, onClick, viewMode = 'grid' }) => {
 			>
 				<div
 					className="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
-					style={{ backgroundImage: `url('${dish.image}')` }}
+					style={{ backgroundImage: `url('${dish.image || PLACEHOLDER_IMAGE}')` }}
 				>
 					{!isActive && (
-						<div className="absolute inset-0 bg-black/70 z-10 flex items-center justify-center">
+						<div className="absolute inset-0 bg-black/70 z-10 flex flex-col items-center justify-center gap-3">
+							<span className="material-symbols-outlined text-6xl text-white/80">
+								{dish.status === 'SOLD_OUT' ? 'production_quantity_limits' : 'block'}
+							</span>
 							{getStatusBadge(dish.status)}
 						</div>
 					)}
@@ -1834,12 +1989,20 @@ const DishCard = ({ dish, onDelete, onClick, viewMode = 'grid' }) => {
 	)
 }
 
-const AddDishCard = ({ onClick }) => (
+const AddDishCard = ({ onClick, viewMode = 'grid' }) => (
 	<button
 		onClick={onClick}
-		className="flex flex-col items-center justify-center w-full aspect-square bg-black/30 backdrop-blur-md rounded-xl border-2 border-dashed border-white/20 h-full p-6 text-center transition-all duration-200 hover:bg-black/50 hover:border-blue-400 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#137fec]"
+		className={`flex items-center justify-center bg-black/30 backdrop-blur-md rounded-xl border-2 border-dashed border-white/20 transition-all duration-200 hover:bg-black/50 hover:border-blue-400 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#137fec] ${
+			viewMode === 'grid'
+				? 'flex-col w-full aspect-square h-full p-6 text-center'
+				: 'flex-row gap-4 w-full p-6'
+		}`}
 	>
-		<span className="material-symbols-outlined text-7xl text-[#137fec] opacity-90 mb-2">
+		<span
+			className={`material-symbols-outlined text-[#137fec] opacity-90 ${
+				viewMode === 'grid' ? 'text-7xl mb-2' : 'text-5xl'
+			}`}
+		>
 			add_circle
 		</span>
 		<h3 className="text-lg font-bold text-white">Add New Dish</h3>
@@ -1852,6 +2015,7 @@ const EditCategoryModal = ({ isOpen, onClose, onSave, categoryData }) => {
 	const [formData, setFormData] = useState({
 		name: '',
 		image: '',
+		imageFile: null, // Store File object for upload to cloud
 	})
 	const [previewImage, setPreviewImage] = useState(null)
 	const [loading, setLoading] = useState(false)
@@ -1915,10 +2079,27 @@ const EditCategoryModal = ({ isOpen, onClose, onSave, categoryData }) => {
 	const handleFileChange = (e) => {
 		const file = e.target.files[0]
 		if (file) {
+			// Validate file size (max 5MB)
+			if (file.size > 5 * 1024 * 1024) {
+				alert('File size must be less than 5MB')
+				return
+			}
+
+			// Validate file type
+			const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+			if (!validTypes.includes(file.type)) {
+				alert('Please upload a valid image file (JPG, PNG, or WebP)')
+				return
+			}
+
 			const reader = new FileReader()
 			reader.onloadend = () => {
 				setPreviewImage(reader.result)
-				setFormData((prev) => ({ ...prev, image: reader.result }))
+				setFormData((prev) => ({
+					...prev,
+					image: reader.result, // base64 for preview
+					imageFile: file, // File object for cloud upload
+				}))
 			}
 			reader.readAsDataURL(file)
 		}
@@ -1928,15 +2109,41 @@ const EditCategoryModal = ({ isOpen, onClose, onSave, categoryData }) => {
 		e.preventDefault()
 		setLoading(true)
 
-		console.log('Updating category:', formData)
-
-		setTimeout(() => {
-			if (onSave) {
-				onSave(formData)
+		try {
+			const updatedData = {
+				name: formData.name,
+				imageUrl: formData.image, // Default to current image URL
 			}
-			setLoading(false)
+
+			// If user selected a file (base64 data), upload to cloud first
+			if (formData.imageFile) {
+				console.log('📤 Uploading category image to cloud...')
+				const { uploadFile } = await import('../../../services/api/fileAPI')
+				const cloudUrl = await uploadFile(formData.imageFile, 'image')
+				updatedData.imageUrl = cloudUrl
+				console.log('✅ Image uploaded to cloud:', cloudUrl)
+			} else if (formData.image && formData.image.startsWith('data:')) {
+				// If it's base64 but no file object, convert to blob and upload
+				console.log('📤 Converting base64 to file and uploading...')
+				const response = await fetch(formData.image)
+				const blob = await response.blob()
+				const file = new File([blob], 'category-image.jpg', { type: 'image/jpeg' })
+				const { uploadFile } = await import('../../../services/api/fileAPI')
+				const cloudUrl = await uploadFile(file, 'image')
+				updatedData.imageUrl = cloudUrl
+				console.log('✅ Image uploaded to cloud:', cloudUrl)
+			}
+
+			if (onSave) {
+				await onSave(updatedData)
+			}
 			onClose()
-		}, 1000)
+		} catch (error) {
+			console.error('❌ Error updating category:', error)
+			alert(`Failed to update category: ${error.message}`)
+		} finally {
+			setLoading(false)
+		}
 	}
 
 	if (!isOpen) return null
@@ -2073,20 +2280,44 @@ const EditCategoryModal = ({ isOpen, onClose, onSave, categoryData }) => {
 }
 
 const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) => {
+	// Placeholder image for dishes without photos
+	const PLACEHOLDER_IMAGE =
+		'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"%3E%3Crect fill="%23333" width="400" height="300"/%3E%3Ctext fill="%23666" font-family="Arial" font-size="20" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3ENo Image%3C/text%3E%3C/svg%3E'
+
 	const navigate = useNavigate()
 	const { user, loading: contextLoading } = useUser()
 	const [dishes, setDishes] = useState([])
+	const [categoryDetail, setCategoryDetail] = useState(null) // 🆕 Store full category detail from API
 	const [categoryName, setCategoryName] = useState(category?.name || '')
 	const [loading, setLoading] = useState(true)
 	const [dishToDelete, setDishToDelete] = useState(null)
 	const [selectedDish, setSelectedDish] = useState(null)
+	const [selectedDishDetail, setSelectedDishDetail] = useState(null) // 🆕 Store full dish detail from API
+	const [loadingDishDetail, setLoadingDishDetail] = useState(false) // 🆕 Loading state for dish detail
 	const [searchQuery, setSearchQuery] = useState('')
+	const [debouncedSearch, setDebouncedSearch] = useState('') // Debounced search value
 	const [statusFilter, setStatusFilter] = useState('ALL')
-	const [sortBy, setSortBy] = useState('default')
+	const [chefRecommendedFilter, setChefRecommendedFilter] = useState('ALL') // ALL, YES, NO
+	const [sortBy, setSortBy] = useState('createdAt') // Changed default to backend value
+	const [sortOrder, setSortOrder] = useState('DESC') // ASC or DESC
 	const [viewMode, setViewMode] = useState('grid')
 	const [isAddDishModalOpen, setIsAddDishModalOpen] = useState(false)
 	const [isEditCategoryModalOpen, setIsEditCategoryModalOpen] = useState(false)
 	const [categoryImage, setCategoryImage] = useState(category?.image || '')
+
+	// Pagination states
+	const [currentPage, setCurrentPage] = useState(1)
+	const [totalPages, setTotalPages] = useState(1)
+	const [totalItems, setTotalItems] = useState(0)
+	const [itemsPerPage, setItemsPerPage] = useState(12)
+
+	// Debounce search query
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setDebouncedSearch(searchQuery)
+		}, 300)
+		return () => clearTimeout(timer)
+	}, [searchQuery])
 
 	// Debug user object
 	console.log('🔍 [CategoryDishes] User object:', JSON.stringify(user, null, 2))
@@ -2094,6 +2325,43 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 
 	// Helper function to delay execution for rate limiting
 	const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+	// 🆕 Fetch category detail from backend
+	const fetchCategoryDetail = async () => {
+		if (!user || !user.userId || !category || !category.id) {
+			console.log('⏳ Waiting for user and category data...')
+			return
+		}
+
+		const tenantId = user.userId
+		const categoryId = category.id
+
+		try {
+			console.log('📥 Fetching category detail:', categoryId)
+			const result = await getCategoryByIdAPI(tenantId, categoryId)
+
+			if (result.success && result.category) {
+				console.log('✅ Category detail fetched:', result.category)
+				setCategoryDetail(result.category)
+
+				// Update UI states with fetched data
+				setCategoryName(result.category.name || '')
+				setCategoryImage(result.category.imageUrl || '')
+
+				// Log important category info
+				console.log('📊 Category Info:', {
+					name: result.category.name,
+					status: result.category.status,
+					itemCount: result.category.itemCount,
+					displayOrder: result.category.displayOrder,
+				})
+			} else {
+				console.warn('⚠️ Failed to fetch category detail:', result.message)
+			}
+		} catch (error) {
+			console.error('❌ Error fetching category detail:', error)
+		}
+	}
 
 	const fetchDishes = async () => {
 		if (!user || !user.userId || !category || !category.id) {
@@ -2106,56 +2374,155 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 
 		setLoading(true)
 		try {
-			console.log('📥 Fetching public menu for category:', categoryId)
-			
-			// Use Public Menu API - it returns imageUrl and photos directly, no need for separate photo fetches
-			const result = await getPublicMenuByCategoryAPI(tenantId, categoryId)
+			console.log(
+				'📥 Fetching menu items for category:',
+				categoryId,
+				'page:',
+				currentPage,
+			)
+
+			// Use getMenuItemsAPI with pagination support
+			// This is for user management view, not public customer view
+			const params = {
+				categoryId,
+				page: currentPage,
+				limit: itemsPerPage,
+			}
+
+			// Add chef recommended filter if not ALL
+			if (chefRecommendedFilter !== 'ALL') {
+				params.isChefRecommended = chefRecommendedFilter === 'YES'
+			}
+
+			const result = await getMenuItemsAPI(tenantId, params)
 
 			if (result.success) {
 				const items = result.items || []
-				console.log('✅ Public menu items fetched:', items.length)
+				console.log('✅ Menu items fetched:', items.length)
+
+				// 🔧 WORKAROUND: getMenuItemsAPI doesn't include photos relation
+				// Solution: Fetch full details for each item using getMenuItemByIdAPI
+				// ⚠️ Sequential with delay to avoid 429 Rate Limiting
+				console.log('📸 Fetching photos for each item (sequential)...')
+				const itemsWithPhotos = []
+
+				for (let i = 0; i < items.length; i++) {
+					const item = items[i]
+					try {
+						console.log(`📸 Fetching photos ${i + 1}/${items.length}: ${item.name}`)
+						const detailResult = await getMenuItemByIdAPI(tenantId, item.id)
+						if (detailResult.success && detailResult.item) {
+							itemsWithPhotos.push(detailResult.item) // Full item with photos
+						} else {
+							itemsWithPhotos.push(item) // Fallback to item without photos
+						}
+					} catch (error) {
+						console.warn('⚠️ Failed to fetch photos for item:', item.name, error)
+						itemsWithPhotos.push(item) // Fallback to item without photos
+					}
+
+					// Add delay between requests to avoid rate limiting (except for last item)
+					if (i < items.length - 1) {
+						await delay(150) // 150ms delay between requests
+					}
+				}
+
+				console.log('✅ Photos loaded for all items')
+
+				// Debug: Check which items have photos
+				itemsWithPhotos.forEach((item, index) => {
+					const hasPhotos = item.photos && item.photos.length > 0
+					const primaryPhoto = item.photos?.find((p) => p.isPrimary)
+					console.log(
+						`📸 Item ${index + 1}/${itemsWithPhotos.length}: ${item.name}`,
+						`| Photos: ${hasPhotos ? item.photos.length : 0}`,
+						`| Primary: ${primaryPhoto ? '✅' : '❌'}`,
+						hasPhotos ? `| URL: ${item.photos[0]?.url?.substring(0, 50)}...` : '',
+					)
+				})
 
 				// Transform API response to match component's data structure
-				const transformedItems = items.map((item) => ({
-					id: item.id,
-					name: item.name,
-					description: item.description || '',
-					price: item.price,
-					currency: item.currency || 'VND',
-					image: item.imageUrl || '', // Primary photo URL from API
-					photos: item.photos || [], // All photos from API
-					primaryPhoto: item.photos?.find((p) => p.isPrimary) || item.photos?.[0] || null,
-					status: item.status, // "AVAILABLE", "UNAVAILABLE", "SOLD_OUT"
-					preparationTime: item.prepTimeMinutes || 0,
-					cookingTime: item.prepTimeMinutes || 0,
-					isChefRecommendation: item.isChefRecommended || false,
-					modifiers: item.modifierGroups || [], // Modifiers from API
-				}))
+				const transformedItems = itemsWithPhotos.map((item) => {
+					// Get primary photo or first photo from photos array
+					const primaryPhoto =
+						item.photos?.find((p) => p.isPrimary) || item.photos?.[0] || null
+					const imageUrl = primaryPhoto?.url || PLACEHOLDER_IMAGE
 
-				// 🖼️ Preload images for better UX
-				console.log('🖼️ Preloading images for', transformedItems.length, 'dishes...')
-				const imagePromises = transformedItems
-					.filter((dish) => dish.image)
-					.map((dish) => {
+					// Warn if item has no photos (will use placeholder)
+					if (!primaryPhoto || !primaryPhoto.url) {
+						console.warn(
+							`⚠️ No photo for item: ${item.name} (ID: ${item.id}) - using placeholder`,
+						)
+					}
+
+					return {
+						id: item.id,
+						name: item.name,
+						description: item.description || '',
+						price: item.price,
+						currency: item.currency || '$',
+						image: imageUrl, // Primary photo URL from photos array
+						photos: item.photos || [], // All photos from API
+						primaryPhoto: primaryPhoto,
+						status: item.status, // "AVAILABLE", "UNAVAILABLE", "SOLD_OUT"
+						preparationTime: item.prepTimeMinutes || 0,
+						cookingTime: item.prepTimeMinutes || 0,
+						isChefRecommendation: item.isChefRecommended || false,
+						modifiers: item.modifierGroups || [], // Modifiers from API
+					}
+				})
+
+				console.log('🔄 Transformed items count:', transformedItems.length)
+				const itemsWithImages = transformedItems.filter((d) => d.image)
+				console.log('📸 Items WITH images:', itemsWithImages.length)
+
+				// 🖼️ Preload ALL images before showing cards
+				console.log('🖼️ Preloading images for', itemsWithImages.length, 'dishes...')
+
+				const imageLoadResults = await Promise.all(
+					itemsWithImages.map((dish) => {
 						return new Promise((resolve) => {
 							const img = new Image()
-							img.onload = () => resolve()
-							img.onerror = () => resolve() // Don't block on errors
+							img.onload = () => {
+								console.log('✅ Image loaded:', dish.name)
+								resolve({ success: true, dish: dish.name })
+							}
+							img.onerror = () => {
+								console.warn('⚠️ Image failed to load:', dish.name, dish.image)
+								resolve({ success: false, dish: dish.name })
+							}
 							img.src = dish.image
 						})
-					})
+					}),
+				)
 
-				await Promise.all(imagePromises)
-				console.log('✅ All images preloaded')
+				const successCount = imageLoadResults.filter((r) => r.success).length
+				const failCount = imageLoadResults.filter((r) => !r.success).length
+				console.log(
+					`✅ Images loaded: ${successCount}/${itemsWithImages.length} (${failCount} failed)`,
+				)
 
+				// Only set dishes after ALL images are loaded (success or fail)
 				setDishes(transformedItems)
-				console.log('✅ Menu items loaded:', transformedItems.length)
+
+				// Update pagination info from backend
+				if (result.pagination) {
+					setTotalPages(result.pagination.totalPages || 1)
+					setTotalItems(result.pagination.total || transformedItems.length)
+					console.log(
+						'📊 Pagination:',
+						`Page ${currentPage}/${result.pagination.totalPages}`,
+						`Total: ${result.pagination.total} items`,
+					)
+				}
+
+				console.log('✅ Menu items loaded with images:', transformedItems.length)
 			} else {
-				console.error('❌ Failed to fetch public menu:', result.message)
+				console.error('❌ Failed to fetch menu items:', result.message)
 				setDishes([])
 			}
 		} catch (error) {
-			console.error('❌ Error fetching public menu:', error)
+			console.error('❌ Error fetching menu items:', error)
 			setDishes([])
 		} finally {
 			setLoading(false)
@@ -2164,9 +2531,73 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 
 	useEffect(() => {
 		if (!contextLoading && user && category) {
+			// Fetch category detail first, then dishes
+			fetchCategoryDetail()
 			fetchDishes()
 		}
-	}, [contextLoading, user, category])
+	}, [
+		contextLoading,
+		user,
+		category,
+		currentPage,
+		itemsPerPage,
+		chefRecommendedFilter,
+		statusFilter,
+		debouncedSearch,
+		sortBy,
+		sortOrder,
+	])
+
+	// Reset to page 1 when filters change
+	useEffect(() => {
+		if (currentPage !== 1) {
+			setCurrentPage(1)
+		}
+	}, [debouncedSearch, statusFilter, chefRecommendedFilter, sortBy, sortOrder])
+
+	// 🆕 Fetch dish detail when selectedDish changes
+	useEffect(() => {
+		const fetchDishDetail = async () => {
+			if (!selectedDish || !user || !user.userId) {
+				setSelectedDishDetail(null)
+				return
+			}
+
+			const tenantId = user.userId
+			const itemId = selectedDish.id
+
+			setLoadingDishDetail(true)
+			try {
+				console.log('📥 Fetching dish detail:', itemId)
+				const result = await getMenuItemByIdAPI(tenantId, itemId)
+
+				if (result.success && result.item) {
+					console.log('✅ Dish detail fetched:', result.item)
+					setSelectedDishDetail(result.item)
+
+					// Log important dish info
+					console.log('📊 Dish Detail Info:', {
+						name: result.item.name,
+						categoryName: result.item.categoryName,
+						price: result.item.price,
+						status: result.item.status,
+						photosCount: result.item.photos?.length || 0,
+						primaryPhoto: result.item.photos?.find((p) => p.isPrimary),
+					})
+				} else {
+					console.warn('⚠️ Failed to fetch dish detail:', result.message)
+					setSelectedDishDetail(null)
+				}
+			} catch (error) {
+				console.error('❌ Error fetching dish detail:', error)
+				setSelectedDishDetail(null)
+			} finally {
+				setLoadingDishDetail(false)
+			}
+		}
+
+		fetchDishDetail()
+	}, [selectedDish, user])
 
 	const handleUpdateDish = (updatedDish) => {
 		setDishes((prev) => prev.map((d) => (d.id === updatedDish.id ? updatedDish : d)))
@@ -2280,7 +2711,7 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 				name: newDish.name,
 				description: newDish.description || '',
 				price: newDish.price,
-				currency: 'VND',
+				currency: '$',
 				status: 'AVAILABLE',
 			}
 
@@ -2366,44 +2797,102 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 		setIsEditCategoryModalOpen(true)
 	}
 
-	const handleSaveCategory = (updatedCategory) => {
-		if (updatedCategory.name.trim()) {
-			setCategoryName(updatedCategory.name.trim())
+	const handleSaveCategory = async (updatedCategory) => {
+		if (!user || !user.userId || !category || !category.id) {
+			alert('User or category information not found. Please try again.')
+			return
 		}
-		if (updatedCategory.image) {
-			setCategoryImage(updatedCategory.image)
+
+		const tenantId = user.userId
+		const categoryId = category.id
+
+		try {
+			console.log('📤 Updating category with backend API:', updatedCategory)
+
+			// Prepare update data
+			const updateData = {}
+
+			// Update name if changed
+			if (updatedCategory.name && updatedCategory.name.trim() !== categoryName) {
+				updateData.name = updatedCategory.name.trim()
+			}
+
+			// Update image if changed (imageUrl from cloud upload)
+			if (updatedCategory.imageUrl !== undefined) {
+				updateData.imageUrl = updatedCategory.imageUrl
+			}
+
+			// Call backend API to update category
+			const result = await updateCategoryAPI(tenantId, categoryId, updateData)
+
+			if (!result.success) {
+				throw new Error(result.message || 'Failed to update category')
+			}
+
+			console.log('✅ Category updated successfully:', result.category)
+
+			// Update local state with response from backend
+			if (result.category.name) {
+				setCategoryName(result.category.name)
+			}
+			if (result.category.imageUrl) {
+				setCategoryImage(result.category.imageUrl)
+			}
+
+			// Refresh category detail to get latest data
+			await fetchCategoryDetail()
+
+			setIsEditCategoryModalOpen(false)
+			alert('Category updated successfully!')
+		} catch (error) {
+			console.error('❌ Update category error:', error)
+			alert(`Failed to update category: ${error.message}`)
 		}
-		setIsEditCategoryModalOpen(false)
-		console.log('Category updated:', updatedCategory)
-		// TODO: Call API to update category
 	}
 
 	const filteredDishes = React.useMemo(() => {
 		let result = [...dishes]
-		if (searchQuery.trim()) {
-			const query = searchQuery.toLowerCase()
+
+		// Client-side search filter (for now, will move to API later)
+		if (debouncedSearch.trim()) {
+			const query = debouncedSearch.toLowerCase()
 			result = result.filter(
 				(dish) =>
 					dish.name.toLowerCase().includes(query) ||
-					dish.description.toLowerCase().includes(query),
+					(dish.description && dish.description.toLowerCase().includes(query)),
 			)
 		}
+
+		// Client-side status filter
 		if (statusFilter !== 'ALL') {
 			result = result.filter((dish) => dish.status === statusFilter)
 		}
+
+		// Client-side sorting
 		switch (sortBy) {
-			case 'name_asc':
-				result.sort((a, b) => a.name.localeCompare(b.name))
+			case 'name':
+				result.sort((a, b) =>
+					sortOrder === 'ASC'
+						? a.name.localeCompare(b.name)
+						: b.name.localeCompare(a.name),
+				)
 				break
-			case 'price_asc':
-				result.sort((a, b) => a.price - b.price)
+			case 'price':
+				result.sort((a, b) =>
+					sortOrder === 'ASC' ? a.price - b.price : b.price - a.price,
+				)
 				break
-			case 'price_desc':
-				result.sort((a, b) => b.price - a.price)
+			case 'createdAt':
+			default:
+				// Assuming dishes come sorted by createdAt DESC from API
+				if (sortOrder === 'ASC') {
+					result.reverse()
+				}
 				break
 		}
+
 		return result
-	}, [dishes, searchQuery, statusFilter, sortBy])
+	}, [dishes, debouncedSearch, statusFilter, sortBy, sortOrder])
 
 	if (contextLoading || loading) {
 		return (
@@ -2418,14 +2907,45 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 			<div className="max-w-7xl mx-auto">
 				<header className="mb-8 flex items-center justify-between">
 					<div className="flex items-center gap-3">
-						<h1 className="text-white text-4xl font-black mb-0">{categoryName}</h1>
-						<button
-							onClick={handleEditCategory}
-							className="p-2 text-[#9dabb9] hover:text-white transition-colors"
-							title="Edit category"
-						>
-							<span className="material-symbols-outlined">edit</span>
-						</button>
+						<div>
+							<div className="flex items-center gap-3">
+								<h1 className="text-white text-4xl font-black mb-0">{categoryName}</h1>
+								<button
+									onClick={handleEditCategory}
+									className="p-2 text-[#9dabb9] hover:text-white transition-colors"
+									title="Edit category"
+								>
+									<span className="material-symbols-outlined">edit</span>
+								</button>
+							</div>
+							{/* 🆕 Display category info from backend */}
+							{categoryDetail && (
+								<div className="flex items-center gap-4 mt-2">
+									<span className="text-sm text-[#9dabb9]">
+										<span className="material-symbols-outlined text-xs align-middle mr-1">
+											restaurant_menu
+										</span>
+										{categoryDetail.itemCount !== undefined
+											? `${categoryDetail.itemCount} món`
+											: `${dishes.length} món`}
+									</span>
+									<span
+										className={`text-xs px-2 py-1 rounded ${
+											categoryDetail.status === 'ACTIVE'
+												? 'bg-green-500/20 text-green-400'
+												: 'bg-gray-500/20 text-gray-400'
+										}`}
+									>
+										{categoryDetail.status === 'ACTIVE'
+											? 'Đang hoạt động'
+											: 'Không hoạt động'}
+									</span>
+									<span className="text-xs text-[#9dabb9]">
+										Thứ tự: {categoryDetail.displayOrder}
+									</span>
+								</div>
+							)}
+						</div>
 					</div>
 					<button
 						onClick={() => navigate('/menu')}
@@ -2452,19 +2972,38 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 							className="px-4 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#137fec] transition-all"
 						>
 							<option value="ALL">All Status</option>
-							<option value="READY">Ready</option>
-							<option value="NOT_READY">Not Ready</option>
+							<option value="AVAILABLE">Available</option>
+							<option value="UNAVAILABLE">Unavailable</option>
+							<option value="SOLD_OUT">Sold Out</option>
+						</select>
+						<select
+							value={chefRecommendedFilter}
+							onChange={(e) => setChefRecommendedFilter(e.target.value)}
+							className="px-4 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#137fec] transition-all"
+						>
+							<option value="ALL">All Dishes</option>
+							<option value="YES">Chef's Choice</option>
+							<option value="NO">Regular Dishes</option>
 						</select>
 						<select
 							value={sortBy}
 							onChange={(e) => setSortBy(e.target.value)}
 							className="px-4 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#137fec] transition-all"
 						>
-							<option value="default">Default Sort</option>
-							<option value="name_asc">Name A-Z</option>
-							<option value="price_asc">Price Low-High</option>
-							<option value="price_desc">Price High-Low</option>
+							<option value="createdAt">Newest First</option>
+							<option value="name">Name A-Z</option>
+							<option value="price">Price</option>
+							<option value="popularity">Popularity</option>
 						</select>
+						<button
+							onClick={() => setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC')}
+							className="px-4 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-[#137fec] transition-all"
+							title={sortOrder === 'ASC' ? 'Ascending' : 'Descending'}
+						>
+							<span className="material-symbols-outlined">
+								{sortOrder === 'ASC' ? 'arrow_upward' : 'arrow_downward'}
+							</span>
+						</button>
 						<button
 							onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
 							className="px-4 py-2 bg-[#137fec] text-white rounded-lg hover:bg-[#0d6ecc] transition-colors"
@@ -2492,45 +3031,128 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 							viewMode={viewMode}
 						/>
 					))}
-					<AddDishCard onClick={() => setIsAddDishModalOpen(true)} />
+					<AddDishCard onClick={() => setIsAddDishModalOpen(true)} viewMode={viewMode} />
 				</div>
+
+				{/* Pagination Controls */}
+				{totalPages > 1 && (
+					<div className="mt-8 flex items-center justify-between p-4 bg-black/30 backdrop-blur-md rounded-xl border border-white/20">
+						<div className="text-[#9dabb9] text-sm">
+							Showing {dishes.length} of {totalItems} items
+						</div>
+						<div className="flex items-center gap-2">
+							<button
+								onClick={() => setCurrentPage(1)}
+								disabled={currentPage === 1}
+								className="px-3 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+								title="First page"
+							>
+								<span className="material-symbols-outlined">first_page</span>
+							</button>
+							<button
+								onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+								disabled={currentPage === 1}
+								className="px-3 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+								title="Previous page"
+							>
+								<span className="material-symbols-outlined">chevron_left</span>
+							</button>
+							<div className="flex items-center gap-2">
+								{Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+									let pageNum
+									if (totalPages <= 5) {
+										pageNum = i + 1
+									} else if (currentPage <= 3) {
+										pageNum = i + 1
+									} else if (currentPage >= totalPages - 2) {
+										pageNum = totalPages - 4 + i
+									} else {
+										pageNum = currentPage - 2 + i
+									}
+									return (
+										<button
+											key={pageNum}
+											onClick={() => setCurrentPage(pageNum)}
+											className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+												pageNum === currentPage
+													? 'bg-[#137fec] text-white'
+													: 'bg-black/30 backdrop-blur-sm border border-white/20 text-white hover:bg-white/10'
+											}`}
+										>
+											{pageNum}
+										</button>
+									)
+								})}
+							</div>
+							<button
+								onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+								disabled={currentPage === totalPages}
+								className="px-3 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+								title="Next page"
+							>
+								<span className="material-symbols-outlined">chevron_right</span>
+							</button>
+							<button
+								onClick={() => setCurrentPage(totalPages)}
+								disabled={currentPage === totalPages}
+								className="px-3 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+								title="Last page"
+							>
+								<span className="material-symbols-outlined">last_page</span>
+							</button>
+						</div>
+						<select
+							value={itemsPerPage}
+							onChange={(e) => {
+								setItemsPerPage(Number(e.target.value))
+								setCurrentPage(1)
+							}}
+							className="px-3 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#137fec] transition-all"
+						>
+							<option value="8">8 per page</option>
+							<option value="12">12 per page</option>
+							<option value="20">20 per page</option>
+							<option value="50">50 per page</option>
+						</select>
+					</div>
+				)}
+
+				<DishDetailsModal
+					isOpen={!!selectedDish}
+					dish={selectedDish}
+					onClose={() => setSelectedDish(null)}
+					onSave={handleUpdateDish}
+					onToggleStatus={handleToggleDishStatus}
+				/>
+
+				<ConfirmationModal
+					isOpen={!!dishToDelete}
+					title="Confirm Dish Deletion"
+					message={dishToDelete ? `Delete "${dishToDelete.name}"?` : ''}
+					onConfirm={executeDeleteDish}
+					onClose={() => setDishToDelete(null)}
+				/>
+
+				<AddDishModal
+					isOpen={isAddDishModalOpen}
+					onClose={() => setIsAddDishModalOpen(false)}
+					onSave={handleSaveNewDish}
+					categorySlug={categorySlug}
+					categoryName={categoryName}
+				/>
+
+				<EditCategoryModal
+					isOpen={isEditCategoryModalOpen}
+					onClose={() => setIsEditCategoryModalOpen(false)}
+					onSave={handleSaveCategory}
+					categoryData={{ name: categoryName, image: categoryImage }}
+				/>
+
+				<link
+					href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
+					rel="stylesheet"
+				/>
 			</div>
-
-			<DishDetailsModal
-				isOpen={!!selectedDish}
-				dish={selectedDish}
-				onClose={() => setSelectedDish(null)}
-				onSave={handleUpdateDish}
-				onToggleStatus={handleToggleDishStatus}
-			/>
-
-			<ConfirmationModal
-				isOpen={!!dishToDelete}
-				title="Confirm Dish Deletion"
-				message={dishToDelete ? `Delete "${dishToDelete.name}"?` : ''}
-				onConfirm={executeDeleteDish}
-				onClose={() => setDishToDelete(null)}
-			/>
-
-			<AddDishModal
-				isOpen={isAddDishModalOpen}
-				onClose={() => setIsAddDishModalOpen(false)}
-				onSave={handleSaveNewDish}
-				categorySlug={categorySlug}
-				categoryName={categoryName}
-			/>
-
-			<EditCategoryModal
-				isOpen={isEditCategoryModalOpen}
-				onClose={() => setIsEditCategoryModalOpen(false)}
-				onSave={handleSaveCategory}
-				categoryData={{ name: categoryName, image: categoryImage }}
-			/>
-
-			<link
-				href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined"
-				rel="stylesheet"
-			/>
 		</div>
 	)
 }

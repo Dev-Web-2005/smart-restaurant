@@ -110,6 +110,99 @@ export const getCategoriesAPI = async (tenantId, params = {}) => {
 }
 
 /**
+ * Get category by ID (Get Detail)
+ * @param {string} tenantId - Tenant ID (UUID format)
+ * @param {string} categoryId - Category ID (UUID format)
+ * @returns {Promise<Object>} Response with category detail
+ *
+ * Response structure:
+ * {
+ *   success: boolean,
+ *   category: {
+ *     id: string,              // UUID of category
+ *     tenantId: string,        // UUID of tenant
+ *     name: string,            // Category name
+ *     description: string,     // Description (optional)
+ *     status: string,          // "ACTIVE" or "INACTIVE"
+ *     displayOrder: number,    // Display order number
+ *     imageUrl: string,        // Image URL (optional)
+ *     itemCount: number,       // Number of active items (optional)
+ *     createdAt: Date,         // Creation timestamp
+ *     updatedAt: Date          // Update timestamp
+ *   },
+ *   message: string
+ * }
+ */
+export const getCategoryByIdAPI = async (tenantId, categoryId) => {
+	try {
+		// Validate tenantId
+		if (!tenantId || typeof tenantId !== 'string') {
+			throw new Error('Tenant ID is required and must be a string')
+		}
+
+		// Validate categoryId
+		if (!categoryId || typeof categoryId !== 'string') {
+			throw new Error('Category ID is required and must be a string')
+		}
+
+		const url = `/tenants/${tenantId}/categories/${categoryId}`
+
+		console.log('📥 Fetching category detail:', categoryId)
+		const response = await apiClient.get(url)
+
+		const { code, message, data } = response.data
+
+		if (code === 1000) {
+			// Backend returns CategoryResponseDto with itemCount
+			console.log('✅ Category detail fetched successfully:', data)
+			return {
+				success: true,
+				category: data, // Full category object with all fields including itemCount
+				message,
+			}
+		} else {
+			console.warn('⚠️ Unexpected response:', response.data)
+			return {
+				success: false,
+				category: null,
+				message: message || 'Failed to fetch category detail',
+			}
+		}
+	} catch (error) {
+		console.error('❌ Get category detail error:', error)
+
+		const errorCode = error?.code || error?.response?.data?.code
+		const errorMessage = error?.message || error?.response?.data?.message
+		let userMessage = 'Failed to load category detail. Please try again.'
+
+		// Handle specific error codes
+		switch (errorCode) {
+			case 1002:
+				userMessage = 'Session expired. Please login again.'
+				break
+			case 2000:
+				userMessage = 'Tenant not found.'
+				break
+			case 2001:
+				userMessage = 'Category not found.'
+				break
+			case 9002:
+				userMessage = 'Cannot connect to server. Please check your internet connection.'
+				break
+			default:
+				userMessage = errorMessage || userMessage
+		}
+
+		return {
+			success: false,
+			category: null,
+			message: userMessage,
+			errorCode,
+		}
+	}
+}
+
+/**
  * Create new category
  * @param {string} tenantId - Tenant ID (UUID format)
  * @param {Object} categoryData - Category data
@@ -179,7 +272,7 @@ export const createCategoryAPI = async (tenantId, categoryData) => {
 				// Basic URL validation
 				try {
 					new URL(imageUrl)
-					requestBody.image = imageUrl
+					requestBody.imageUrl = imageUrl // ✅ Backend expects 'imageUrl' not 'image'
 				} catch (urlError) {
 					console.warn('⚠️ Invalid image URL format:', imageUrl)
 					// Don't throw error, just skip adding invalid URL
@@ -306,6 +399,27 @@ export const updateCategoryAPI = async (tenantId, categoryId, updateData) => {
 				throw new Error('Display order must be a non-negative integer')
 			}
 			requestBody.displayOrder = displayOrder
+		}
+
+		// Optional: imageUrl from cloud storage
+		if (updateData.imageUrl !== undefined) {
+			if (updateData.imageUrl && typeof updateData.imageUrl !== 'string') {
+				throw new Error('Image URL must be a string')
+			}
+			const imageUrl = updateData.imageUrl ? updateData.imageUrl.trim() : ''
+			if (imageUrl.length > 0) {
+				// Basic URL validation
+				try {
+					new URL(imageUrl)
+					requestBody.imageUrl = imageUrl
+				} catch (urlError) {
+					console.warn('⚠️ Invalid image URL format:', imageUrl)
+					// Don't throw error, just skip adding invalid URL
+				}
+			} else {
+				// Empty string to clear image
+				requestBody.imageUrl = ''
+			}
 		}
 
 		const url = `/tenants/${tenantId}/categories/${categoryId}`
@@ -519,6 +633,7 @@ export const deleteCategoryAPI = async (tenantId, categoryId) => {
 // Export all functions
 export default {
 	getCategoriesAPI,
+	getCategoryByIdAPI,
 	createCategoryAPI,
 	updateCategoryAPI,
 	updateCategoryStatusAPI,

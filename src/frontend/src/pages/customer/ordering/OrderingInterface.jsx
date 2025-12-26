@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react'
 import ReactDOM from 'react-dom'
-// import axios from 'axios'; // Import Axios khi bạn sẵn sàng tích hợp API
+import { useParams } from 'react-router-dom'
+import { getPublicMenuAPI } from '../../../services/api/publicMenuAPI'
 
-// --- CONSTANTS & DATA MOCK ---
+// --- CONSTANTS & DATA MOCK (Fallback) ---
 const mockCategories = [
 	{
 		id: 1,
@@ -258,23 +259,41 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 	const modalRef = useRef(null)
 	const [isVisible, setIsVisible] = useState(false)
 
-	// Group modifiers by groupName for display
+	// Handle API data structure for modifiers
 	const modifierGroups = useMemo(() => {
-		if (!dish?.modifiers || dish.modifiers.length === 0) return []
-
-		const groups = {}
-		dish.modifiers.forEach((mod) => {
-			if (!groups[mod.groupName]) {
-				groups[mod.groupName] = {
-					name: mod.groupName,
-					type: mod.type, // 'single' or 'multiple'
-					options: [],
+		// Support both old and new API structures
+		if (dish?.modifierGroups && Array.isArray(dish.modifierGroups)) {
+			// New API structure
+			return dish.modifierGroups.map((group) => ({
+				name: group.name,
+				type: group.type === 'SINGLE' ? 'single' : 'multiple',
+				required: group.required || false,
+				minSelection: group.minSelection || 0,
+				maxSelection: group.maxSelection || 10,
+				options: (group.options || []).map((opt) => ({
+					id: opt.id,
+					label: opt.name,
+					priceDelta: opt.priceAdjustment || 0,
+					groupName: group.name,
+					type: group.type === 'SINGLE' ? 'single' : 'multiple',
+				})),
+			}))
+		} else if (dish?.modifiers && Array.isArray(dish.modifiers)) {
+			// Old mock structure
+			const groups = {}
+			dish.modifiers.forEach((mod) => {
+				if (!groups[mod.groupName]) {
+					groups[mod.groupName] = {
+						name: mod.groupName,
+						type: mod.type, // 'single' or 'multiple'
+						options: [],
+					}
 				}
-			}
-			groups[mod.groupName].options.push(mod)
-		})
-
-		return Object.values(groups)
+				groups[mod.groupName].options.push(mod)
+			})
+			return Object.values(groups)
+		}
+		return []
 	}, [dish])
 
 	const [selectedModifiers, setSelectedModifiers] = useState([]) // Array of modifier IDs
@@ -317,9 +336,31 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 	const calculateTotalPrice = () => {
 		let total = dish.price * quantity
 
-		// Add selected modifiers' price deltas
+		// Handle both old and new API modifier structures
 		selectedModifiers.forEach((modId) => {
-			const modifier = dish.modifiers.find((m) => m.id === modId)
+			let modifier = null
+
+			// Try finding in modifierGroups (new API)
+			if (dish.modifierGroups) {
+				for (const group of dish.modifierGroups) {
+					const option = group.options?.find((opt) => opt.id === modId)
+					if (option) {
+						modifier = {
+							priceDelta: option.priceAdjustment || 0,
+						}
+						break
+					}
+				}
+			}
+
+			// Fallback to old structure
+			if (!modifier && dish.modifiers) {
+				const mod = dish.modifiers.find((m) => m.id === modId)
+				if (mod) {
+					modifier = mod
+				}
+			}
+
 			if (modifier) {
 				total += modifier.priceDelta * quantity
 			}
@@ -329,23 +370,49 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 	}
 
 	const handleAddToCart = () => {
-		// Get selected modifier details
-		const modifierDetails = selectedModifiers.map((modId) => {
-			const mod = dish.modifiers.find((m) => m.id === modId)
-			return {
-				id: mod.id,
-				groupName: mod.groupName,
-				label: mod.label,
-				priceDelta: mod.priceDelta,
-			}
-		})
+		// Get selected modifier details - handle both API structures
+		const modifierDetails = selectedModifiers
+			.map((modId) => {
+				// Try new API structure first
+				if (dish.modifierGroups) {
+					for (const group of dish.modifierGroups) {
+						const option = group.options?.find((opt) => opt.id === modId)
+						if (option) {
+							return {
+								id: option.id,
+								groupName: group.name,
+								label: option.name,
+								priceDelta: option.priceAdjustment || 0,
+							}
+						}
+					}
+				}
+
+				// Fallback to old structure
+				if (dish.modifiers) {
+					const mod = dish.modifiers.find((m) => m.id === modId)
+					if (mod) {
+						return {
+							id: mod.id,
+							groupName: mod.groupName,
+							label: mod.label,
+							priceDelta: mod.priceDelta,
+						}
+					}
+				}
+				return null
+			})
+			.filter(Boolean)
+
+		// Handle image URL from API
+		const imageUrl = dish.photos?.[0]?.url || dish.imageUrl || dish.image
 
 		const cartItem = {
 			id: dish.id,
 			name: dish.name,
 			price: dish.price,
 			qty: quantity,
-			imageUrl: dish.imageUrl,
+			imageUrl: imageUrl,
 			description: dish.description,
 			modifiers: modifierDetails,
 			specialNotes,
@@ -504,30 +571,52 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 // 🚨 COMPONENT: CustomerCategoryCard
 // =========================================================
 const CustomerCategoryCard = ({ category, onClick }) => {
+	// Handle category data from public API
+	const imageUrl =
+		category.coverPhoto?.url ||
+		category.image ||
+		'https://via.placeholder.com/400?text=No+Image'
+	const isActive = category.status === 'ACTIVE'
+	const itemCount = category.itemCount || 0
+
 	return (
 		<div
-			onClick={() => onClick(category.route)}
+			onClick={() => onClick(category)}
 			className="group relative overflow-hidden rounded-xl cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-2xl border border-white/10"
 		>
 			<div className="aspect-square relative">
 				<img
-					src={category.image}
+					src={imageUrl}
 					alt={category.name}
 					className="w-full h-full object-cover"
+					onError={(e) => {
+						e.target.src = 'https://via.placeholder.com/400?text=No+Image'
+					}}
 				/>
 				<div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+				{!isActive && (
+					<div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+						<span className="text-gray-400 text-sm font-bold bg-black/70 px-3 py-1 rounded-full">
+							UNAVAILABLE
+						</span>
+					</div>
+				)}
 				<div className="absolute bottom-0 left-0 right-0 p-6">
 					<h3 className="text-2xl font-bold text-white">{category.name}</h3>
+					{category.description && (
+						<p className="text-sm text-gray-300 mt-1 line-clamp-2">
+							{category.description}
+						</p>
+					)}
 					<div className="mt-2 flex items-center gap-2">
-						<span
-							className={`px-2 py-1 rounded text-xs font-bold ${
-								category.status === 'ACTIVE'
-									? 'bg-green-500/20 text-green-400'
-									: 'bg-gray-500/20 text-gray-400'
-							}`}
-						>
-							{category.status}
+						<span className="px-2 py-1 rounded text-xs font-bold bg-blue-500/20 text-blue-400">
+							{itemCount} {itemCount === 1 ? 'item' : 'items'}
 						</span>
+						{isActive && (
+							<span className="px-2 py-1 rounded text-xs font-bold bg-green-500/20 text-green-400">
+								AVAILABLE
+							</span>
+						)}
 					</div>
 				</div>
 			</div>
@@ -539,26 +628,43 @@ const CustomerCategoryCard = ({ category, onClick }) => {
 // 🚨 COMPONENT: DishCard (Updated with full info)
 // =========================================================
 const DishCard = ({ dish, onViewDetails }) => {
-	const hasModifiers = dish.modifiers && dish.modifiers.length > 0
+	// Handle API data structure
+	const imageUrl =
+		dish.photos?.[0]?.url ||
+		dish.imageUrl ||
+		dish.image ||
+		'https://via.placeholder.com/400?text=No+Image'
+	const isAvailable = dish.status === 'AVAILABLE' || dish.available === true
+	const hasModifiers = dish.modifierGroups && dish.modifierGroups.length > 0
+	const isChefRecommended = dish.isChefRecommended || dish.isChefRecommendation
 
 	return (
 		<div className="group relative overflow-hidden rounded-xl bg-[#1A202C] shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl border border-white/10 flex flex-col h-full">
 			{/* Image Section */}
 			<div className="aspect-video relative overflow-hidden flex-shrink-0">
 				<img
-					src={dish.imageUrl}
+					src={imageUrl}
 					alt={dish.name}
 					className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+					onError={(e) => {
+						e.target.src = 'https://via.placeholder.com/400?text=No+Image'
+					}}
 				/>
 
-				{/* Availability Badge */}
-				{!dish.available && (
-					<div className="absolute top-3 right-3">
+				{/* Badges */}
+				<div className="absolute top-3 right-3 flex flex-col gap-2">
+					{isChefRecommended && (
+						<span className="px-2 py-1 bg-yellow-500/90 text-white text-xs font-bold rounded-full flex items-center gap-1">
+							<span className="material-symbols-outlined text-sm">star</span>
+							Chef's Choice
+						</span>
+					)}
+					{!isAvailable && (
 						<span className="px-2 py-1 bg-red-500/90 text-white text-xs font-bold rounded-full">
 							Not Available
 						</span>
-					</div>
-				)}
+					)}
+				</div>
 			</div>
 
 			{/* Content Section */}
@@ -566,21 +672,37 @@ const DishCard = ({ dish, onViewDetails }) => {
 				<div className="flex items-start justify-between mb-2">
 					<h3 className="text-lg font-bold text-white flex-1">{dish.name}</h3>
 					<span className="text-xl font-bold text-[#4ade80] ml-2">
-						${dish.price.toFixed(2)}
+						${typeof dish.price === 'number' ? dish.price.toFixed(2) : dish.price}
 					</span>
 				</div>
 
-				<p className="text-sm text-[#9dabb9] mb-3 line-clamp-2">{dish.description}</p>
+				{dish.description && (
+					<p className="text-sm text-[#9dabb9] mb-3 line-clamp-2">{dish.description}</p>
+				)}
 
 				{/* Meta Info */}
-				{hasModifiers && (
-					<div className="flex items-center gap-3 mb-3 text-xs text-[#9dabb9]">
+				<div className="flex flex-wrap items-center gap-3 mb-3 text-xs text-[#9dabb9]">
+					{hasModifiers && (
 						<span className="flex items-center gap-1">
 							<span className="material-symbols-outlined text-sm">tune</span>
 							Customizable
 						</span>
-					</div>
-				)}
+					)}
+					{dish.preparationTime && (
+						<span className="flex items-center gap-1">
+							<span className="material-symbols-outlined text-sm">schedule</span>
+							{dish.preparationTime} min
+						</span>
+					)}
+					{dish.spicyLevel > 0 && (
+						<span className="flex items-center gap-1">
+							<span className="material-symbols-outlined text-sm">
+								local_fire_department
+							</span>
+							{'🌶️'.repeat(dish.spicyLevel)}
+						</span>
+					)}
+				</div>
 
 				{/* Spacer to push button to bottom */}
 				<div className="flex-grow"></div>
@@ -588,14 +710,14 @@ const DishCard = ({ dish, onViewDetails }) => {
 				{/* Action Button */}
 				<button
 					onClick={() => onViewDetails(dish)}
-					disabled={!dish.available}
+					disabled={!isAvailable}
 					className={`w-full py-2 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2 mt-3 ${
-						dish.available
+						isAvailable
 							? 'bg-[#137fec] text-white hover:bg-blue-600'
 							: 'bg-gray-600/50 text-gray-400 cursor-not-allowed'
 					}`}
 				>
-					{dish.available ? (
+					{isAvailable ? (
 						<>
 							<span className="material-symbols-outlined text-sm">add_shopping_cart</span>
 							{hasModifiers ? 'Customize & Add' : 'Add to Cart'}
@@ -613,23 +735,41 @@ const DishCard = ({ dish, onViewDetails }) => {
 // 🚨 COMPONENT: DishListItem (Horizontal Layout)
 // =========================================================
 const DishListItem = ({ dish, onViewDetails }) => {
-	const hasModifiers = dish.modifiers && dish.modifiers.length > 0
+	// Handle API data structure
+	const imageUrl =
+		dish.photos?.[0]?.url ||
+		dish.imageUrl ||
+		dish.image ||
+		'https://via.placeholder.com/400?text=No+Image'
+	const isAvailable = dish.status === 'AVAILABLE' || dish.available === true
+	const hasModifiers = dish.modifierGroups && dish.modifierGroups.length > 0
+	const isChefRecommended = dish.isChefRecommended || dish.isChefRecommendation
 
 	return (
 		<div className="group relative overflow-hidden rounded-xl bg-[#1A202C] shadow-lg transition-all duration-300 hover:shadow-2xl border border-white/10 flex items-center gap-4 p-4">
 			{/* Image Section */}
 			<div className="w-32 h-32 rounded-lg overflow-hidden flex-shrink-0 relative">
 				<img
-					src={dish.imageUrl}
+					src={imageUrl}
 					alt={dish.name}
 					className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+					onError={(e) => {
+						e.target.src = 'https://via.placeholder.com/400?text=No+Image'
+					}}
 				/>
 
-				{/* Availability Badge */}
-				{!dish.available && (
+				{/* Availability/Chef Badge */}
+				{!isAvailable && (
 					<div className="absolute inset-0 bg-black/60 flex items-center justify-center">
 						<span className="px-2 py-1 bg-red-500/90 text-white text-xs font-bold rounded-full">
 							Not Available
+						</span>
+					</div>
+				)}
+				{isChefRecommended && isAvailable && (
+					<div className="absolute top-2 right-2">
+						<span className="material-symbols-outlined text-yellow-400 text-xl">
+							star
 						</span>
 					</div>
 				)}
@@ -637,38 +777,58 @@ const DishListItem = ({ dish, onViewDetails }) => {
 
 			{/* Info Section */}
 			<div className="flex-grow min-w-0">
-				<h3 className="text-lg font-bold text-white mb-2">{dish.name}</h3>
-				<p className="text-sm text-[#9dabb9] line-clamp-2">{dish.description}</p>
+				<div className="flex items-center gap-2 mb-1">
+					<h3 className="text-lg font-bold text-white">{dish.name}</h3>
+					{isChefRecommended && (
+						<span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs font-bold rounded">
+							Chef's Choice
+						</span>
+					)}
+				</div>
+				{dish.description && (
+					<p className="text-sm text-[#9dabb9] line-clamp-2 mb-2">{dish.description}</p>
+				)}
 
 				{/* Meta Info */}
-				{hasModifiers && (
-					<div className="flex items-center gap-3 mt-2 text-xs text-[#9dabb9]">
+				<div className="flex flex-wrap items-center gap-3 text-xs text-[#9dabb9]">
+					{hasModifiers && (
 						<span className="flex items-center gap-1">
 							<span className="material-symbols-outlined text-sm">tune</span>
 							Customizable
 						</span>
-					</div>
-				)}
+					)}
+					{dish.preparationTime && (
+						<span className="flex items-center gap-1">
+							<span className="material-symbols-outlined text-sm">schedule</span>
+							{dish.preparationTime} min
+						</span>
+					)}
+					{dish.spicyLevel > 0 && (
+						<span className="flex items-center gap-1">
+							{'🌶️'.repeat(dish.spicyLevel)}
+						</span>
+					)}
+				</div>
 			</div>
 
 			{/* Price Section - Fixed Width */}
 			<div className="w-24 flex-shrink-0 text-right">
 				<span className="text-xl font-bold text-[#4ade80] whitespace-nowrap">
-					${dish.price.toFixed(2)}
+					${typeof dish.price === 'number' ? dish.price.toFixed(2) : dish.price}
 				</span>
 			</div>
 
 			{/* Action Button - Fixed Width */}
 			<button
 				onClick={() => onViewDetails(dish)}
-				disabled={!dish.available}
+				disabled={!isAvailable}
 				className={`w-48 py-2 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap flex-shrink-0 ${
-					dish.available
+					isAvailable
 						? 'bg-[#137fec] text-white hover:bg-blue-600'
 						: 'bg-gray-600/50 text-gray-400 cursor-not-allowed'
 				}`}
 			>
-				{dish.available ? (
+				{isAvailable ? (
 					<>
 						<span className="material-symbols-outlined text-sm">add_shopping_cart</span>
 						{hasModifiers ? 'Customize & Add' : 'Add to Cart'}
@@ -918,57 +1078,175 @@ const CartModal = ({ isOpen, onClose, cartItems, onClearCart }) => {
 // ----------------------------------------------------
 // 🚨 COMPONENT 4: Main Interface (Controller)
 // ----------------------------------------------------
-const OrderManagementInterface = ({ categorySlug = 'noodle-dishes' }) => {
-	// 🚨 Chú ý: Component này sẽ thay thế CategoryDishes
-	const [dishes, setDishes] = useState(mockDishesData[categorySlug] || [])
+const OrderManagementInterface = () => {
+	// Get tenantId and tableId from URL params
+	const { tenantId, tableId } = useParams()
+
+	// State management
+	const [categories, setCategories] = useState([])
+	const [dishes, setDishes] = useState([])
+	const [selectedCategory, setSelectedCategory] = useState(null)
 	const [cartItems, setCartItems] = useState([]) // { id, name, price, qty, totalPrice, modifiers, specialNotes, image }
 	const [isCartOpen, setIsCartOpen] = useState(false)
 	const [view, setView] = useState('CATEGORIES') // CATEGORIES | DISHES
 	const [layoutView, setLayoutView] = useState('grid') // grid | list
 
+	// Loading states
+	const [loading, setLoading] = useState(true)
+	const [loadingDishes, setLoadingDishes] = useState(false)
+	const [error, setError] = useState(null)
+
 	// --- Search, Filter, Sort States ---
 	const [categorySearch, setCategorySearch] = useState('')
 	const [dishSearch, setDishSearch] = useState('')
-	const [availableFilter, setAvailableFilter] = useState('all') // 'all' | 'active'
-	const [sortBy, setSortBy] = useState('none') // 'none' | 'price-asc' | 'price-desc'
+	const [availableFilter, setAvailableFilter] = useState('all') // 'all' | 'available'
+	const [sortBy, setSortBy] = useState('none') // 'none' | 'price-asc' | 'price-desc' | 'name'
+
+	// Pagination for dishes
+	const [currentPage, setCurrentPage] = useState(1)
+	const [totalPages, setTotalPages] = useState(1)
+	const [totalItems, setTotalItems] = useState(0)
+	const itemsPerPage = 20
 
 	// --- State for Customization Modal ---
 	const [selectedDish, setSelectedDish] = useState(null)
 	const [isCustomizationOpen, setIsCustomizationOpen] = useState(false)
 
+	// Fetch categories when component mounts
+	useEffect(() => {
+		if (!tenantId) {
+			console.error('❌ Missing tenantId in URL')
+			setError('Invalid URL: Missing restaurant identifier')
+			setLoading(false)
+			return
+		}
+
+		console.log('🔍 OrderingInterface mounted with params:', { tenantId, tableId })
+		fetchCategories()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [tenantId, tableId])
+
+	// Fetch categories from API
+	const fetchCategories = async () => {
+		try {
+			setLoading(true)
+			setError(null)
+			console.log('📥 Fetching categories for tenant:', tenantId)
+
+			const response = await getPublicMenuAPI(tenantId, {
+				// Get grouped by categories without pagination
+			})
+
+			if (response.success && response.categories) {
+				console.log('✅ Categories loaded:', response.categories.length)
+				setCategories(response.categories)
+			} else {
+				console.warn('⚠️ No categories found:', response.message)
+				setCategories([])
+				setError(response.message || 'No menu available')
+			}
+		} catch (err) {
+			console.error('❌ Error fetching categories:', err)
+			setError('Failed to load menu. Please try again.')
+			setCategories([])
+		} finally {
+			setLoading(false)
+		}
+	}
+
+	// Fetch dishes for selected category
+	const fetchDishes = async (categoryId) => {
+		try {
+			setLoadingDishes(true)
+			setError(null)
+			console.log('📥 Fetching dishes for category:', categoryId)
+
+			// Build params for API call
+			const params = {
+				categoryId,
+				page: currentPage,
+				limit: itemsPerPage,
+			}
+
+			// Add search if present
+			if (dishSearch.trim()) {
+				params.search = dishSearch.trim()
+			}
+
+			// Add sort parameters
+			if (sortBy !== 'none') {
+				if (sortBy === 'price-asc') {
+					params.sortBy = 'price'
+					params.sortOrder = 'ASC'
+				} else if (sortBy === 'price-desc') {
+					params.sortBy = 'price'
+					params.sortOrder = 'DESC'
+				} else if (sortBy === 'name') {
+					params.sortBy = 'name'
+					params.sortOrder = 'ASC'
+				}
+			}
+
+			const response = await getPublicMenuAPI(tenantId, params)
+
+			if (response.success && response.items) {
+				console.log('✅ Dishes loaded:', response.items.length)
+
+				// Filter by availability on frontend if needed
+				let filteredItems = response.items
+				if (availableFilter === 'available') {
+					filteredItems = filteredItems.filter(
+						(item) => item.status === 'AVAILABLE' || item.isAvailable === true,
+					)
+				}
+
+				setDishes(filteredItems)
+
+				// Update pagination info
+				if (response.pagination) {
+					setTotalPages(response.pagination.totalPages || 1)
+					setTotalItems(response.pagination.total || filteredItems.length)
+				} else {
+					setTotalPages(1)
+					setTotalItems(filteredItems.length)
+				}
+			} else {
+				console.warn('⚠️ No dishes found:', response.message)
+				setDishes([])
+				setTotalPages(1)
+				setTotalItems(0)
+			}
+		} catch (err) {
+			console.error('❌ Error fetching dishes:', err)
+			setError('Failed to load dishes. Please try again.')
+			setDishes([])
+		} finally {
+			setLoadingDishes(false)
+		}
+	}
+
+	// Refetch dishes when filters change
+	useEffect(() => {
+		if (selectedCategory && view === 'DISHES') {
+			fetchDishes(selectedCategory.id)
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [selectedCategory, currentPage, dishSearch, sortBy, availableFilter, view])
+
+	// Reset to page 1 when filters change
+	useEffect(() => {
+		if (selectedCategory && view === 'DISHES') {
+			setCurrentPage(1)
+		}
+	}, [dishSearch, sortBy, availableFilter, selectedCategory, view])
+
 	// --- Filter categories by search ---
 	const filteredCategories = useMemo(() => {
-		if (!categorySearch.trim()) return mockCategories
-		return mockCategories.filter((cat) =>
+		if (!categorySearch.trim()) return categories
+		return categories.filter((cat) =>
 			cat.name.toLowerCase().includes(categorySearch.toLowerCase()),
 		)
-	}, [categorySearch])
-
-	// --- Filter and Sort Dishes ---
-	const filteredAndSortedDishes = useMemo(() => {
-		let result = [...dishes]
-
-		// Filter by search
-		if (dishSearch.trim()) {
-			result = result.filter((dish) =>
-				dish.name.toLowerCase().includes(dishSearch.toLowerCase()),
-			)
-		}
-
-		// Filter by availability
-		if (availableFilter === 'active') {
-			result = result.filter((dish) => dish.available)
-		}
-
-		// Sort by price
-		if (sortBy === 'price-asc') {
-			result.sort((a, b) => a.price - b.price)
-		} else if (sortBy === 'price-desc') {
-			result.sort((a, b) => b.price - a.price)
-		}
-
-		return result
-	}, [dishes, dishSearch, availableFilter, sortBy])
+	}, [categories, categorySearch])
 
 	// --- Tính toán tổng Cart ---
 	const totalItemsInCart = cartItems.reduce((acc, item) => acc + item.qty, 0)
@@ -1024,25 +1302,75 @@ const OrderManagementInterface = ({ categorySlug = 'noodle-dishes' }) => {
 		setCartItems([])
 	}
 
-	const handleCategorySelect = (slug) => {
-		// Lấy dishes theo category và chuyển view
-		setDishes(mockDishesData[slug] || [])
+	const handleCategorySelect = (categoryData) => {
+		console.log('📂 Category selected:', categoryData)
+		setSelectedCategory(categoryData)
 		setView('DISHES')
+		setCurrentPage(1)
+		setDishSearch('')
+		// Fetch will be triggered by useEffect
 	}
 
 	const handleBack = () => {
 		setView('CATEGORIES')
+		setSelectedCategory(null)
+		setDishes([])
+		setDishSearch('')
+		setCurrentPage(1)
 	}
 
 	// ----------------------------------------------------
 	// 🚨 RENDER
 	// ----------------------------------------------------
 
+	// Loading state for initial categories load
+	if (loading) {
+		return (
+			<div className="w-full min-h-screen bg-[#101922] font-['Work_Sans',_sans-serif] flex items-center justify-center">
+				<div className="text-center">
+					<div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#137fec] mx-auto mb-4"></div>
+					<p className="text-white text-lg">Loading menu...</p>
+				</div>
+			</div>
+		)
+	}
+
+	// Error state
+	if (error && !categories.length) {
+		return (
+			<div className="w-full min-h-screen bg-[#101922] font-['Work_Sans',_sans-serif] flex items-center justify-center">
+				<div className="text-center p-8">
+					<span className="material-symbols-outlined text-6xl text-red-400 mb-4 block">
+						error
+					</span>
+					<h2 className="text-2xl font-bold text-white mb-2">Unable to Load Menu</h2>
+					<p className="text-[#9dabb9] mb-6">{error}</p>
+					<button
+						onClick={() => {
+							setError(null)
+							fetchCategories()
+						}}
+						className="px-6 py-3 bg-[#137fec] text-white rounded-lg hover:bg-blue-600 transition-colors"
+					>
+						Try Again
+					</button>
+				</div>
+			</div>
+		)
+	}
+
 	return (
 		<div className="w-full min-h-screen bg-[#101922] font-['Work_Sans',_sans-serif]">
 			{/* TOP HEADER (CART BUTTON) */}
 			<div className="sticky top-0 z-40 bg-[#1A202C] p-4 flex justify-between items-center shadow-lg">
-				<h1 className="text-xl font-bold text-white">Restaurant Menu</h1>
+				<div className="flex items-center gap-3">
+					<h1 className="text-xl font-bold text-white">Restaurant Menu</h1>
+					{tenantId && (
+						<span className="text-xs text-[#9dabb9] hidden sm:inline">
+							{tenantId.slice(0, 8)}...
+						</span>
+					)}
+				</div>
 				<button
 					onClick={handleOpenCart}
 					className="relative py-2 px-4 mr-4 rounded-xl text-white hover:bg-blue-600 transition-colors flex justify-center"
@@ -1097,7 +1425,13 @@ const OrderManagementInterface = ({ categorySlug = 'noodle-dishes' }) => {
 							))
 						) : (
 							<div className="col-span-full text-center py-12">
+								<span className="material-symbols-outlined text-6xl text-[#9dabb9] mb-4 block">
+									category
+								</span>
 								<p className="text-[#9dabb9] text-lg">No categories found</p>
+								{categorySearch && (
+									<p className="text-[#9dabb9] text-sm mt-2">Try adjusting your search</p>
+								)}
 							</div>
 						)}
 					</div>
@@ -1114,7 +1448,7 @@ const OrderManagementInterface = ({ categorySlug = 'noodle-dishes' }) => {
 								<span className="material-symbols-outlined">arrow_back</span>
 							</button>
 							<h2 className="text-2xl font-bold text-white">
-								{formatCategoryName(categorySlug)}
+								{selectedCategory?.name || 'Menu Items'}
 							</h2>
 						</div>
 
@@ -1177,10 +1511,11 @@ const OrderManagementInterface = ({ categorySlug = 'noodle-dishes' }) => {
 								<select
 									value={availableFilter}
 									onChange={(e) => setAvailableFilter(e.target.value)}
-									className="px-4 py-2 rounded-lg bg-[#2D3748] text-white border border-white/10 focus:border-[#137fec] focus:outline-none cursor-pointer"
+									disabled={loadingDishes}
+									className="px-4 py-2 rounded-lg bg-[#2D3748] text-white border border-white/10 focus:border-[#137fec] focus:outline-none cursor-pointer disabled:opacity-50"
 								>
-									<option value="all">All</option>
-									<option value="active">Active Only</option>
+									<option value="all">All Items</option>
+									<option value="available">Available Only</option>
 								</select>
 							</div>
 
@@ -1190,9 +1525,11 @@ const OrderManagementInterface = ({ categorySlug = 'noodle-dishes' }) => {
 								<select
 									value={sortBy}
 									onChange={(e) => setSortBy(e.target.value)}
-									className="px-4 py-2 rounded-lg bg-[#2D3748] text-white border border-white/10 focus:border-[#137fec] focus:outline-none cursor-pointer"
+									disabled={loadingDishes}
+									className="px-4 py-2 rounded-lg bg-[#2D3748] text-white border border-white/10 focus:border-[#137fec] focus:outline-none cursor-pointer disabled:opacity-50"
 								>
 									<option value="none">Default</option>
+									<option value="name">Name (A-Z)</option>
 									<option value="price-asc">Price: Low to High</option>
 									<option value="price-desc">Price: High to Low</option>
 								</select>
@@ -1202,32 +1539,98 @@ const OrderManagementInterface = ({ categorySlug = 'noodle-dishes' }) => {
 							<div className="flex items-center gap-2 px-4 py-2 bg-[#2D3748] rounded-lg text-[#9dabb9] text-sm ml-auto">
 								<span className="material-symbols-outlined text-sm">restaurant</span>
 								<span>
-									{filteredAndSortedDishes.length}{' '}
-									{filteredAndSortedDishes.length === 1 ? 'dish' : 'dishes'}
+									{loadingDishes ? (
+										'Loading...'
+									) : (
+										<>
+											{dishes.length} {dishes.length === 1 ? 'dish' : 'dishes'}
+											{totalItems > dishes.length && ` of ${totalItems}`}
+										</>
+									)}
 								</span>
 							</div>
 						</div>
 					</div>
 
 					{/* Dishes Grid or List */}
-					{filteredAndSortedDishes.length > 0 ? (
-						layoutView === 'grid' ? (
-							<div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-								{filteredAndSortedDishes.map((dish) => (
-									<DishCard key={dish.id} dish={dish} onViewDetails={handleViewDetails} />
-								))}
+					{loadingDishes ? (
+						<div className="flex items-center justify-center py-12">
+							<div className="text-center">
+								<div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-[#137fec] mx-auto mb-4"></div>
+								<p className="text-[#9dabb9]">Loading dishes...</p>
 							</div>
-						) : (
-							<div className="space-y-4">
-								{filteredAndSortedDishes.map((dish) => (
-									<DishListItem
-										key={dish.id}
-										dish={dish}
-										onViewDetails={handleViewDetails}
-									/>
-								))}
-							</div>
-						)
+						</div>
+					) : dishes.length > 0 ? (
+						<>
+							{layoutView === 'grid' ? (
+								<div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+									{dishes.map((dish) => (
+										<DishCard
+											key={dish.id}
+											dish={dish}
+											onViewDetails={handleViewDetails}
+										/>
+									))}
+								</div>
+							) : (
+								<div className="space-y-4">
+									{dishes.map((dish) => (
+										<DishListItem
+											key={dish.id}
+											dish={dish}
+											onViewDetails={handleViewDetails}
+										/>
+									))}
+								</div>
+							)}
+
+							{/* Pagination Controls */}
+							{totalPages > 1 && (
+								<div className="mt-8 flex justify-center gap-2">
+									<button
+										onClick={() => setCurrentPage(1)}
+										disabled={currentPage === 1}
+										className="px-4 py-2 rounded-lg bg-[#2D3748] text-white hover:bg-[#4A5568] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+										title="First Page"
+									>
+										<span className="material-symbols-outlined text-sm">first_page</span>
+									</button>
+									<button
+										onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+										disabled={currentPage === 1}
+										className="px-4 py-2 rounded-lg bg-[#2D3748] text-white hover:bg-[#4A5568] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+										title="Previous Page"
+									>
+										<span className="material-symbols-outlined text-sm">
+											chevron_left
+										</span>
+									</button>
+									<span className="px-4 py-2 bg-[#2D3748] text-white rounded-lg">
+										Page {currentPage} of {totalPages}
+									</span>
+									<button
+										onClick={() =>
+											setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+										}
+										disabled={currentPage === totalPages}
+										className="px-4 py-2 rounded-lg bg-[#2D3748] text-white hover:bg-[#4A5568] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+										title="Next Page"
+									>
+										<span className="material-symbols-outlined text-sm">
+											chevron_right
+										</span>
+									</button>
+									<button
+										onClick={() => setCurrentPage(totalPages)}
+										disabled={currentPage === totalPages}
+										className="px-4 py-2 rounded-lg bg-[#2D3748] text-white hover:bg-[#4A5568] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+										title="Last Page"
+									>
+										<span className="material-symbols-outlined text-sm">last_page</span>
+									</button>
+								</div>
+							)}
+						</>
 					) : (
 						<div className="text-center py-12">
 							<span className="material-symbols-outlined text-6xl text-[#9dabb9] mb-4 block">
@@ -1235,7 +1638,9 @@ const OrderManagementInterface = ({ categorySlug = 'noodle-dishes' }) => {
 							</span>
 							<p className="text-[#9dabb9] text-lg">No dishes found</p>
 							<p className="text-[#9dabb9] text-sm mt-2">
-								Try adjusting your search or filters
+								{dishSearch || availableFilter !== 'all'
+									? 'Try adjusting your search or filters'
+									: 'This category has no items'}
 							</p>
 						</div>
 					)}
