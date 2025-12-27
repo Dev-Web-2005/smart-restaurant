@@ -748,6 +748,13 @@ export const regenerateTableQRAPI = async (tableId) => {
 export const downloadTableQRCodeAPI = async (tableId, format = 'png') => {
 	try {
 		const tenantId = getTenantId()
+		console.log('📥 [downloadTableQRCodeAPI] Request:', {
+			tenantId,
+			tableId,
+			format,
+			url: `/tenants/${tenantId}/tables/${tableId}/qrcode/download?format=${format}`,
+		})
+
 		const response = await apiClient.get(
 			`/tenants/${tenantId}/tables/${tableId}/qrcode/download`,
 			{
@@ -755,6 +762,13 @@ export const downloadTableQRCodeAPI = async (tableId, format = 'png') => {
 				responseType: 'blob', // Important for file download
 			},
 		)
+
+		console.log('✅ [downloadTableQRCodeAPI] Response received:', {
+			status: response.status,
+			contentType: response.headers['content-type'],
+			contentDisposition: response.headers['content-disposition'],
+			dataSize: response.data?.size,
+		})
 
 		// Create download link
 		const blob = new Blob([response.data])
@@ -779,6 +793,8 @@ export const downloadTableQRCodeAPI = async (tableId, format = 'png') => {
 			}
 		}
 
+		console.log('💾 [downloadTableQRCodeAPI] Downloading file:', filename)
+
 		link.download = filename
 		document.body.appendChild(link)
 		link.click()
@@ -790,10 +806,32 @@ export const downloadTableQRCodeAPI = async (tableId, format = 'png') => {
 			message: 'QR code downloaded successfully',
 		}
 	} catch (error) {
-		console.error('? Error downloading QR code:', error)
+		console.error('❌ [downloadTableQRCodeAPI] Error:', {
+			message: error.message,
+			status: error.response?.status,
+			statusText: error.response?.statusText,
+			data: error.response?.data,
+			headers: error.response?.headers,
+		})
+
+		// If error response is blob, try to read it as text
+		if (error.response?.data instanceof Blob) {
+			try {
+				const text = await error.response.data.text()
+				console.error('❌ [downloadTableQRCodeAPI] Error blob content:', text)
+				const errorData = JSON.parse(text)
+				return {
+					success: false,
+					message: errorData.message || 'Failed to download QR code',
+				}
+			} catch (parseError) {
+				console.error('❌ [downloadTableQRCodeAPI] Failed to parse error blob')
+			}
+		}
+
 		return {
 			success: false,
-			message: error?.response?.data?.message || 'Network error',
+			message: error?.response?.data?.message || error.message || 'Network error',
 		}
 	}
 }
