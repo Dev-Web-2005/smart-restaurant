@@ -177,94 +177,114 @@ jobs:
             cd /home/${{ secrets.VPS_USER }}/projects/result
             pm2 delete all || true
 
-            # Start api-gateway
+            # Setup api-gateway
             cd api-gateway
-            PORT=8888 \
-            MOD=production \
-            HOST_DB=${{ secrets.HOST_DB }} \
-            PORT_DB=${{ secrets.PORT_DB }} \
-            USERNAME_DB=${{ secrets.USERNAME_DB }} \
-            PASSWORD_DB=${{ secrets.PASSWORD_DB }} \
-            DATABASE_DB=${{ secrets.DATABASE_DB }} \
-            X_API_KEY=${{ secrets.X_API_KEY }} \
-            IDENTITY_API_KEY=${{ secrets.IDENTITY_API_KEY }} \
-            PROFILE_API_KEY=${{ secrets.PROFILE_API_KEY }} \
-            PRODUCT_API_KEY=${{ secrets.PRODUCT_API_KEY }} \
-            TABLE_API_KEY=${{ secrets.TABLE_API_KEY }} \
-            IDENTITY_SERVICE_URL=${{ vars.IDENTITY_SERVICE_URL }} \
-            HOST_IDENTITY_SERVICE=${{ vars.HOST_IDENTITY_SERVICE }} \
-            PORT_IDENTITY_SERVICE=${{ vars.PORT_IDENTITY_SERVICE }} \
-            PROFILE_SERVICE_URL=${{ vars.PROFILE_SERVICE_URL }} \
-            HOST_PROFILE_SERVICE=${{ vars.HOST_PROFILE_SERVICE }} \
-            PORT_PROFILE_SERVICE=${{ vars.PORT_PROFILE_SERVICE }} \
-            PRODUCT_SERVICE_URL=${{ vars.PRODUCT_SERVICE_URL }} \
-            HOST_PRODUCT_SERVICE=${{ vars.HOST_PRODUCT_SERVICE }} \
-            PORT_PRODUCT_SERVICE=${{ vars.PORT_PRODUCT_SERVICE }} \
-            TABLE_SERVICE_URL=${{ vars.TABLE_SERVICE_URL }} \
-            HOST_TABLE_SERVICE=${{ vars.HOST_TABLE_SERVICE }} \
-            PORT_TABLE_SERVICE=${{ vars.PORT_TABLE_SERVICE }} \
-            REFRESH_TOKEN_EXPIRES_IN=${{ vars.REFRESH_TOKEN_EXPIRES_IN }} \
-            FRONTEND_URL=${{ vars.FRONTEND_URL }} \
+            cat > .env << 'EOF'
+            PORT=8888
+            MOD=production
+            HOST_DB=${{ secrets.HOST_DB }}
+            PORT_DB=${{ secrets.PORT_DB }}
+            USERNAME_DB=${{ secrets.USERNAME_DB }}
+            PASSWORD_DB=${{ secrets.PASSWORD_DB }}
+            DATABASE_DB=${{ secrets.DATABASE_DB }}
+            X_API_KEY=${{ secrets.X_API_KEY }}
+            IDENTITY_API_KEY=${{ secrets.IDENTITY_API_KEY }}
+            PROFILE_API_KEY=${{ secrets.PROFILE_API_KEY }}
+            PRODUCT_API_KEY=${{ secrets.PRODUCT_API_KEY }}
+            TABLE_API_KEY=${{ secrets.TABLE_API_KEY }}
+            IDENTITY_SERVICE_URL=${{ vars.IDENTITY_SERVICE_URL }}
+            HOST_IDENTITY_SERVICE=${{ vars.HOST_IDENTITY_SERVICE }}
+            PORT_IDENTITY_SERVICE=${{ vars.PORT_IDENTITY_SERVICE }}
+            PROFILE_SERVICE_URL=${{ vars.PROFILE_SERVICE_URL }}
+            HOST_PROFILE_SERVICE=${{ vars.HOST_PROFILE_SERVICE }}
+            PORT_PROFILE_SERVICE=${{ vars.PORT_PROFILE_SERVICE }}
+            PRODUCT_SERVICE_URL=${{ vars.PRODUCT_SERVICE_URL }}
+            HOST_PRODUCT_SERVICE=${{ vars.HOST_PRODUCT_SERVICE }}
+            PORT_PRODUCT_SERVICE=${{ vars.PORT_PRODUCT_SERVICE }}
+            TABLE_SERVICE_URL=${{ vars.TABLE_SERVICE_URL }}
+            HOST_TABLE_SERVICE=${{ vars.HOST_TABLE_SERVICE }}
+            PORT_TABLE_SERVICE=${{ vars.PORT_TABLE_SERVICE }}
+            REFRESH_TOKEN_EXPIRES_IN=${{ vars.REFRESH_TOKEN_EXPIRES_IN }}
+            FRONTEND_URL=${{ vars.FRONTEND_URL }}
+            EOF
+            echo "✓ Api-gateway .env created"
+            cat .env
             pm2 start dist/api-gateway/src/main.js --name api-gateway
             cd ..
 
-            # Start identity
+            # Setup identity
             cd identity
-            PORT=8080 \
-            HOST_DB=${{ secrets.HOST_DB }} \
-            PORT_DB=${{ secrets.PORT_DB }} \
-            USERNAME_DB=${{ secrets.USERNAME_DB }} \
-            PASSWORD_DB=${{ secrets.PASSWORD_DB }} \
-            DATABASE_DB=${{ secrets.DATABASE_DB }} \
-            X_API_KEY=${{ secrets.X_API_KEY }} \
-            IDENTITY_API_KEY=${{ secrets.IDENTITY_API_KEY }} \
-            HOST_PROFILE_SERVICE=${{ vars.HOST_PROFILE_SERVICE }} \
-            PORT_PROFILE_SERVICE=${{ vars.PORT_PROFILE_SERVICE }} \
-            ACCESS_TOKEN_EXPIRY=5m \
-            REFRESH_TOKEN_EXPIRY=7d \
-            JWT_SECRET_KEY_ACCESS=${{ secrets.JWT_SECRET_KEY_ACCESS }} \
-            JWT_SECRET_KEY_REFRESH=${{ secrets.JWT_SECRET_KEY_REFRESH }} \
+            cat > .env << 'EOF'
+            PORT=8080
+            HOST_DB=${{ secrets.HOST_DB }}
+            PORT_DB=${{ secrets.PORT_DB }}
+            USERNAME_DB=${{ secrets.USERNAME_DB }}
+            PASSWORD_DB=${{ secrets.PASSWORD_DB }}
+            DATABASE_DB=${{ secrets.DATABASE_DB }}
+            X_API_KEY=${{ secrets.X_API_KEY }}
+            IDENTITY_API_KEY=${{ secrets.IDENTITY_API_KEY }}
+            HOST_PROFILE_SERVICE=${{ vars.HOST_PROFILE_SERVICE }}
+            PORT_PROFILE_SERVICE=${{ vars.PORT_PROFILE_SERVICE }}
+            ACCESS_TOKEN_EXPIRY=5m
+            REFRESH_TOKEN_EXPIRY=7d
+            JWT_SECRET_KEY_ACCESS=${{ secrets.JWT_SECRET_KEY_ACCESS }}
+            JWT_SECRET_KEY_REFRESH=${{ secrets.JWT_SECRET_KEY_REFRESH }}
+            EOF
+            echo "✓ Identity .env created"
+            cat .env
             pm2 start dist/identity/src/main.js --name identity
             cd ..
 
-            # Start product
+            # Setup product
             cd product
-            PORT=8082 \
-            HOST_DB=${{ secrets.HOST_DB }} \
-            PORT_DB=${{ secrets.PORT_DB }} \
-            USERNAME_DB=${{ secrets.USERNAME_DB }} \
-            PASSWORD_DB=${{ secrets.PASSWORD_DB }} \
-            DATABASE_DB=${{ secrets.DATABASE_DB }} \
-            X_API_KEY=${{ secrets.X_API_KEY }} \
-            PRODUCT_API_KEY=${{ secrets.PRODUCT_API_KEY }} \
+            cat > .env << 'EOF'
+            PORT=8082
+            HOST_DB=${{ secrets.HOST_DB }}
+            PORT_DB=${{ secrets.PORT_DB }}
+            USERNAME_DB=${{ secrets.USERNAME_DB }}
+            PASSWORD_DB=${{ secrets.PASSWORD_DB }}
+            DATABASE_DB=${{ secrets.DATABASE_DB }}
+            X_API_KEY=${{ secrets.X_API_KEY }}
+            PRODUCT_API_KEY=${{ secrets.PRODUCT_API_KEY }}
+            EOF
+            echo "✓ Product .env created"
+            cat .env
             pm2 start dist/product/src/main.js --name product
             cd ..
 
-            # Start profile
+            # Setup profile
             cd profile
-            PORT=8081 \
-            HOST_DB=${{ secrets.HOST_DB }} \
-            PORT_DB=${{ secrets.PORT_DB }} \
-            USERNAME_DB=${{ secrets.USERNAME_DB }} \
-            PASSWORD_DB=${{ secrets.PASSWORD_DB }} \
-            DATABASE_DB=${{ secrets.DATABASE_DB }} \
-            X_API_KEY=${{ secrets.X_API_KEY }} \
-            PROFILE_API_KEY=${{ secrets.PROFILE_API_KEY }} \
+            cat > .env << 'EOF'
+            PORT=8081
+            HOST_DB=${{ secrets.HOST_DB }}
+            PORT_DB=${{ secrets.PORT_DB }}
+            USERNAME_DB=${{ secrets.USERNAME_DB }}
+            PASSWORD_DB=${{ secrets.PASSWORD_DB }}
+            DATABASE_DB=${{ secrets.DATABASE_DB }}
+            X_API_KEY=${{ secrets.X_API_KEY }}
+            PROFILE_API_KEY=${{ secrets.PROFILE_API_KEY }}
+            EOF
+            echo "✓ Profile .env created"
+            cat .env
             pm2 start dist/profile/src/main.js --name profile
             cd ..
 
-            # Start table
+            # Setup table
             cd table
-            PORT=8083 \
-            HOST_DB=${{ secrets.HOST_DB }} \
-            PORT_DB=${{ secrets.PORT_DB }} \
-            USERNAME_DB=${{ secrets.USERNAME_DB }} \
-            PASSWORD_DB=${{ secrets.PASSWORD_DB }} \
-            DATABASE_DB=${{ secrets.DATABASE_DB }} \
-            X_API_KEY=${{ secrets.X_API_KEY }} \
-            TABLE_API_KEY=${{ secrets.TABLE_API_KEY }} \
-            QR_SECRET_KEY=${{ secrets.QR_SECRET_KEY }} \
-            QR_BASE_URL=${{ vars.QR_BASE_URL }} \
+            cat > .env << 'EOF'
+            PORT=8083
+            HOST_DB=${{ secrets.HOST_DB }}
+            PORT_DB=${{ secrets.PORT_DB }}
+            USERNAME_DB=${{ secrets.USERNAME_DB }}
+            PASSWORD_DB=${{ secrets.PASSWORD_DB }}
+            DATABASE_DB=${{ secrets.DATABASE_DB }}
+            X_API_KEY=${{ secrets.X_API_KEY }}
+            TABLE_API_KEY=${{ secrets.TABLE_API_KEY }}
+            QR_SECRET_KEY=${{ secrets.QR_SECRET_KEY }}
+            QR_BASE_URL=${{ vars.QR_BASE_URL }}
+            EOF
+            echo "✓ Table .env created"
+            cat .env
             pm2 start dist/table/src/main.js --name table
             cd ..
 
