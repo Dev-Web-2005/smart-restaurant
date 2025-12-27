@@ -459,7 +459,18 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 				<div className="flex items-center justify-between p-6 border-b border-white/10">
 					<div>
 						<h2 className="text-2xl font-bold text-white m-0">{dish.name}</h2>
-						<p className="text-[#9dabb9] text-sm mt-1">${dish.price.toFixed(2)}</p>
+						<div className="flex items-center gap-3 mt-1">
+							<p className="text-[#9dabb9] text-sm">${dish.price.toFixed(2)}</p>
+							{(dish.prepTimeMinutes || dish.preparationTime) && (
+								<>
+									<span className="text-[#9dabb9]">•</span>
+									<span className="flex items-center gap-1 text-[#9dabb9] text-sm">
+										<span className="material-symbols-outlined text-sm">schedule</span>
+										{dish.prepTimeMinutes || dish.preparationTime} min
+									</span>
+								</>
+							)}
+						</div>
 					</div>
 					<button
 						onClick={onClose}
@@ -667,6 +678,8 @@ const DishCard = ({ dish, onViewDetails }) => {
 	const isAvailable = dish.status === 'AVAILABLE' || dish.available === true
 	const hasModifiers = dish.modifierGroups && dish.modifierGroups.length > 0
 	const isChefRecommended = dish.isChefRecommended || dish.isChefRecommendation
+	// 🕒 Backend returns prepTimeMinutes
+	const prepTime = dish.prepTimeMinutes || dish.preparationTime
 
 	return (
 		<div className="group relative overflow-hidden rounded-xl bg-[#1A202C] shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl border border-white/10 flex flex-col h-full">
@@ -718,10 +731,10 @@ const DishCard = ({ dish, onViewDetails }) => {
 							Customizable
 						</span>
 					)}
-					{dish.preparationTime && (
+					{prepTime && (
 						<span className="flex items-center gap-1">
 							<span className="material-symbols-outlined text-sm">schedule</span>
-							{dish.preparationTime} min
+							{prepTime} min
 						</span>
 					)}
 					{dish.spicyLevel > 0 && (
@@ -774,6 +787,8 @@ const DishListItem = ({ dish, onViewDetails }) => {
 	const isAvailable = dish.status === 'AVAILABLE' || dish.available === true
 	const hasModifiers = dish.modifierGroups && dish.modifierGroups.length > 0
 	const isChefRecommended = dish.isChefRecommended || dish.isChefRecommendation
+	// 🕒 Backend returns prepTimeMinutes
+	const prepTime = dish.prepTimeMinutes || dish.preparationTime
 
 	return (
 		<div className="group relative overflow-hidden rounded-xl bg-[#1A202C] shadow-lg transition-all duration-300 hover:shadow-2xl border border-white/10 flex items-center gap-4 p-4">
@@ -827,10 +842,10 @@ const DishListItem = ({ dish, onViewDetails }) => {
 							Customizable
 						</span>
 					)}
-					{dish.preparationTime && (
+					{prepTime && (
 						<span className="flex items-center gap-1">
 							<span className="material-symbols-outlined text-sm">schedule</span>
-							{dish.preparationTime} min
+							{prepTime} min
 						</span>
 					)}
 					{dish.spicyLevel > 0 && (
