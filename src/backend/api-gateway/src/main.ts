@@ -4,9 +4,15 @@ import express from 'express';
 import { RpcExceptionFilter } from './common/filters/rpc-exception.filter';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { TransformResponseInterceptor } from './common/interceptors/transform-response.interceptor';
-import CookieParser from 'cookie-parser';
+import * as cookieParser from 'cookie-parser'; 
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
+
+	// Register Cookie Parser middleware
+	app.use(cookieParser());
+	// Trust proxy - Cách 1: Get Express instance
+	const expressApp = app.getHttpAdapter().getInstance();
+	expressApp.set('trust proxy', 1); // hoặc true
 
 	// Set global prefix nhưng exclude health routes và QR scan routes
 	app.setGlobalPrefix('api/v1', {
@@ -57,9 +63,7 @@ async function bootstrap() {
 		exposedHeaders: 'Set-Cookie',
 	});
 
-	// Register Cookie Parser middleware
-	app.use(CookieParser());
-	app.set("trust proxy", true); // trust first proxy
+	
 
 	await app.listen(parseInt(process.env.PORT, 10) ?? 8888);
 
