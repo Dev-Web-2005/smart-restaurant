@@ -59,6 +59,7 @@ async function bootstrap() {
 
 	// Register Cookie Parser middleware
 	app.use(CookieParser());
+	app.set("trust proxy", true); // trust first proxy
 
 	await app.listen(parseInt(process.env.PORT, 10) ?? 8888);
 
