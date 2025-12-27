@@ -90,6 +90,7 @@ jobs:
           HOST_PROFILE_SERVICE: ${{ vars.HOST_PROFILE_SERVICE }}
           PORT_PROFILE_SERVICE: ${{ vars.PORT_PROFILE_SERVICE }}
           ACCESS_TOKEN_EXPIRY: 5m
+          PROFILE_API_KEY: ${{ secrets.PROFILE_API_KEY }}
           REFRESH_TOKEN_EXPIRY: 7d
           JWT_SECRET_KEY_ACCESS: ${{ secrets.JWT_SECRET_KEY_ACCESS }}
           JWT_SECRET_KEY_REFRESH: ${{ secrets.JWT_SECRET_KEY_REFRESH }}
@@ -229,6 +230,7 @@ jobs:
             PORT_PROFILE_SERVICE=${{ vars.PORT_PROFILE_SERVICE }}
             ACCESS_TOKEN_EXPIRY=5m
             REFRESH_TOKEN_EXPIRY=7d
+            PROFILE_API_KEY=${{ secrets.PROFILE_API_KEY }}
             JWT_SECRET_KEY_ACCESS=${{ secrets.JWT_SECRET_KEY_ACCESS }}
             JWT_SECRET_KEY_REFRESH=${{ secrets.JWT_SECRET_KEY_REFRESH }}
             EOF
