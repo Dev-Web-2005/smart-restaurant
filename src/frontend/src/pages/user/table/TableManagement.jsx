@@ -253,6 +253,8 @@ const TableStatusModal = ({
 	showConfirm,
 	showSuccess,
 	showError,
+	showLoading,
+	hideLoading,
 }) => {
 	const modalRef = React.useRef(null)
 	const nameInputRef = React.useRef(null)
@@ -495,8 +497,35 @@ const TableStatusModal = ({
 								<div className="grid grid-cols-3 gap-2">
 									<button
 										onClick={async () => {
-											const result = await downloadTableQRCodeAPI(table.id, 'png')
-											if (!result.success) showError('Lỗi tải PNG', result.message)
+											showLoading('Đang tải PNG...')
+											try {
+												console.log('📥 Downloading PNG for table:', table.id, table.name)
+												// Try backend API first
+												const result = await downloadTableQRCodeAPI(table.id, 'png')
+												hideLoading()
+												if (!result.success) {
+													console.error('❌ Backend download failed:', result.message)
+													// Fallback: Download from base64 if backend fails
+													console.warn('⚠️ Using fallback: downloading from base64 cache')
+													if (table.qrCodeUrl) {
+														const link = document.createElement('a')
+														link.href = table.qrCodeUrl
+														link.download = `${table.name}_QR.png`
+														document.body.appendChild(link)
+														link.click()
+														document.body.removeChild(link)
+														showSuccess('✅ Đã tải PNG từ cache')
+													} else {
+														showError('❌ Lỗi tải PNG', result.message)
+													}
+												} else {
+													showSuccess('✅ Đã tải PNG thành công')
+												}
+											} catch (error) {
+												hideLoading()
+												console.error('❌ Download PNG error:', error)
+												showError('❌ Lỗi tải PNG', error.message || 'Lỗi không xác định')
+											}
 										}}
 										className="flex flex-col items-center justify-center gap-1 px-2 py-2 bg-blue-600/20 border border-blue-600/30 text-blue-400 rounded-lg hover:bg-blue-600/40 hover:border-blue-500 transition-all duration-200 text-xs"
 										title="Tải QR PNG"
@@ -506,8 +535,27 @@ const TableStatusModal = ({
 									</button>
 									<button
 										onClick={async () => {
-											const result = await downloadTableQRCodeAPI(table.id, 'pdf')
-											if (!result.success) showError('Lỗi tải PDF', result.message)
+											showLoading('Đang tải PDF...')
+											try {
+												console.log('📥 Downloading PDF for table:', table.id, table.name)
+												// Try backend API first
+												const result = await downloadTableQRCodeAPI(table.id, 'pdf')
+												hideLoading()
+												if (!result.success) {
+													console.error('❌ Backend download failed:', result.message)
+													showError(
+														'❌ Lỗi tải PDF',
+														result.message ||
+															'Backend chưa hỗ trợ tải PDF. Vui lòng sử dụng In QR Code hoặc tải PNG.',
+													)
+												} else {
+													showSuccess('✅ Đã tải PDF thành công')
+												}
+											} catch (error) {
+												hideLoading()
+												console.error('❌ Download PDF error:', error)
+												showError('❌ Lỗi tải PDF', error.message || 'Lỗi không xác định')
+											}
 										}}
 										className="flex flex-col items-center justify-center gap-1 px-2 py-2 bg-red-600/20 border border-red-600/30 text-red-400 rounded-lg hover:bg-red-600/40 hover:border-red-500 transition-all duration-200 text-xs"
 										title="Tải QR PDF"
@@ -517,8 +565,27 @@ const TableStatusModal = ({
 									</button>
 									<button
 										onClick={async () => {
-											const result = await downloadTableQRCodeAPI(table.id, 'svg')
-											if (!result.success) showError('Lỗi tải SVG', result.message)
+											showLoading('Đang tải SVG...')
+											try {
+												console.log('📥 Downloading SVG for table:', table.id, table.name)
+												// Try backend API first
+												const result = await downloadTableQRCodeAPI(table.id, 'svg')
+												hideLoading()
+												if (!result.success) {
+													console.error('❌ Backend download failed:', result.message)
+													showError(
+														'❌ Lỗi tải SVG',
+														result.message ||
+															'Backend chưa hỗ trợ tải SVG. Vui lòng sử dụng PNG.',
+													)
+												} else {
+													showSuccess('✅ Đã tải SVG thành công')
+												}
+											} catch (error) {
+												hideLoading()
+												console.error('❌ Download SVG error:', error)
+												showError('❌ Lỗi tải SVG', error.message || 'Lỗi không xác định')
+											}
 										}}
 										className="flex flex-col items-center justify-center gap-1 px-2 py-2 bg-purple-600/20 border border-purple-600/30 text-purple-400 rounded-lg hover:bg-purple-600/40 hover:border-purple-500 transition-all duration-200 text-xs"
 										title="Tải QR SVG"
@@ -786,8 +853,47 @@ const RestaurantTableManagement = () => {
 		Occupied: 0,
 		Cleaning: 0,
 	})
+	// 🚀 QR Code cache to prevent re-fetching
+	const [qrCodeCache, setQrCodeCache] = useState(new Map())
 
 	const currentFloor = currentPage
+
+	// 🚀 Lazy load QR code for a specific table (with caching)
+	const fetchTableQRCode = async (tableId) => {
+		// Check cache first
+		if (qrCodeCache.has(tableId)) {
+			console.log('✅ QR code found in cache for table:', tableId)
+			return qrCodeCache.get(tableId)
+		}
+
+		try {
+			const qrResult = await getTableQRCodeAPI(tableId)
+			if (qrResult.success && qrResult.image) {
+				const qrDataUrl = qrResult.image.startsWith('data:')
+					? qrResult.image
+					: `data:image/png;base64,${qrResult.image}`
+
+				// Cache the QR code
+				setQrCodeCache((prev) => new Map(prev).set(tableId, qrDataUrl))
+
+				// Update rawTablesData
+				const tableIndex = rawTablesData.findIndex((t) => t.id === tableId)
+				if (tableIndex !== -1) {
+					rawTablesData[tableIndex].qrCodeUrl = qrDataUrl
+				}
+
+				// Update tables state
+				setTables((prev) =>
+					prev.map((t) => (t.id === tableId ? { ...t, qrCodeUrl: qrDataUrl } : t)),
+				)
+
+				return qrDataUrl
+			}
+		} catch (error) {
+			console.warn(`⚠️ Failed to fetch QR for table ${tableId}:`, error)
+		}
+		return null
+	}
 
 	// ✅ Fetch floors from API when component mounts
 	useEffect(() => {
@@ -873,7 +979,7 @@ const RestaurantTableManagement = () => {
 						// Add frontend-only fields if not present
 						floor: currentFloor, // Infer from current floor
 						location: table.location || 'Trong nhà', // Default if missing
-						qrCodeUrl: null, // Will be fetched from backend
+						qrCodeUrl: null, // Will be lazy-loaded when modal opens
 					}))
 
 					// Ensure location field exists in state tables
@@ -881,45 +987,13 @@ const RestaurantTableManagement = () => {
 						result.tables.map((table) => ({
 							...table,
 							location: table.location || 'Trong nhà', // Default if missing
+							qrCodeUrl: null, // Lazy load QR codes to prevent rate limiting
 						})),
 					)
 
-					// ✅ Fetch real QR codes from backend for all tables
-					const qrPromises = result.tables.map(async (table) => {
-						try {
-							const qrResult = await getTableQRCodeAPI(table.id)
-							if (qrResult.success && qrResult.image) {
-								// Backend returns base64 without prefix, need to add data URL prefix for <img> tag
-								const qrDataUrl = qrResult.image.startsWith('data:')
-									? qrResult.image
-									: `data:image/png;base64,${qrResult.image}`
-
-								// Update both rawTablesData and tables state with real QR
-								const tableIndex = rawTablesData.findIndex((t) => t.id === table.id)
-								if (tableIndex !== -1) {
-									rawTablesData[tableIndex].qrCodeUrl = qrDataUrl
-								}
-								return { id: table.id, qrCodeUrl: qrDataUrl }
-							}
-						} catch (error) {
-							console.warn(`⚠️ Failed to fetch QR for table ${table.id}:`, error)
-						}
-						return null
-					})
-
-					// Wait for all QR codes to be fetched
-					const qrResults = await Promise.all(qrPromises)
-
-					// Update tables state with QR codes
-					setTables((prevTables) =>
-						prevTables.map((table) => {
-							const qrData = qrResults.find((qr) => qr && qr.id === table.id)
-							return {
-								...table,
-								qrCodeUrl: qrData ? qrData.qrCodeUrl : null,
-							}
-						}),
-					)
+					// 🚀 OPTIMIZATION: Remove automatic QR fetching to prevent rate limiting
+					// QR codes will be fetched on-demand when user opens table modal
+					// This prevents 429 Too Many Requests errors from backend
 
 					// Update total floors
 					if (result.totalFloors) {
@@ -1109,11 +1183,21 @@ const RestaurantTableManagement = () => {
 		[applyFiltersAndSort],
 	)
 
-	const handleTableClick = (table) => {
-		// Find the latest table data with QR code from tables state
+	const handleTableClick = async (table) => {
+		// Find the latest table data from tables state
 		const latestTable = tables.find((t) => t.id === table.id) || table
 		setSelectedTable(latestTable)
 		setIsStatusModalOpen(true)
+
+		// 🚀 Lazy load QR code if not already loaded
+		if (!latestTable.qrCodeUrl) {
+			console.log('🔄 Fetching QR code for table:', latestTable.id)
+			const qrCodeUrl = await fetchTableQRCode(latestTable.id)
+			if (qrCodeUrl) {
+				// Update selected table with QR code
+				setSelectedTable((prev) => (prev ? { ...prev, qrCodeUrl } : prev))
+			}
+		}
 	}
 
 	// ✅ Sync selectedTable with latest table data when tables update
@@ -2055,6 +2139,8 @@ const RestaurantTableManagement = () => {
 				showConfirm={showConfirm}
 				showSuccess={showSuccess}
 				showError={showError}
+				showLoading={showLoading}
+				hideLoading={hideLoading}
 			/>
 
 			<AddTableModal
