@@ -132,19 +132,26 @@ export class IdentityController {
 		res.cookie('refreshToken', convertData.data.refreshToken, {
 			httpOnly: true,
 			maxAge: refreshTokenExpiry,
-			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
+			sameSite: process.env.MOD === 'production' ? 'None' : 'Lax',
 			secure: process.env.MOD === 'production' ? true : false,
 			path: '/',
+			...(process.env.MOD === 'production' && { 
+				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site' // thêm domain cho production
+			})
 		});
 
 		const type = convertData.data.roles.includes('ADMIN') ? 'admin' : 'user';
 		res.cookie('type', type, {
 			httpOnly: false,
 			maxAge: refreshTokenExpiry,
-			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
+			sameSite: process.env.MOD === 'production' ? 'None' : 'Lax',
 			secure: process.env.MOD === 'production' ? true : false,
 			path: '/',
+			...(process.env.MOD === 'production' && { 
+				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site'
+			})
 		});
+
 
 		return res.status(HttpStatus.OK).json(
 			new ApiResponse<any>({
@@ -249,16 +256,24 @@ export class IdentityController {
 
 		res.clearCookie('refreshToken', {
 			httpOnly: true,
-			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
+			maxAge: refreshTokenExpiry,
+			sameSite: process.env.MOD === 'production' ? 'None' : 'Lax',
 			secure: process.env.MOD === 'production' ? true : false,
 			path: '/',
+			...(process.env.MOD === 'production' && { 
+				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site' // thêm domain cho production
+			})
 		});
 
 		res.clearCookie('type', {
 			httpOnly: false,
-			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
+			maxAge: refreshTokenExpiry,
+			sameSite: process.env.MOD === 'production' ? 'None' : 'Lax',
 			secure: process.env.MOD === 'production' ? true : false,
 			path: '/',
+			...(process.env.MOD === 'production' && { 
+				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site'
+			})
 		});
 
 		return res.status(HttpStatus.OK).json(
