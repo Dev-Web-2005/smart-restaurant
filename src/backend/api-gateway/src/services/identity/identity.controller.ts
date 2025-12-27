@@ -132,7 +132,7 @@ export class IdentityController {
 		res.cookie('refreshToken', convertData.data.refreshToken, {
 			httpOnly: true,
 			maxAge: refreshTokenExpiry,
-			sameSite: process.env.MOD === 'production' ? 'None' : 'Lax',
+			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
 			secure: process.env.MOD === 'production' ? true : false,
 			path: '/',
 			...(process.env.MOD === 'production' && { 
@@ -144,7 +144,7 @@ export class IdentityController {
 		res.cookie('type', type, {
 			httpOnly: false,
 			maxAge: refreshTokenExpiry,
-			sameSite: process.env.MOD === 'production' ? 'None' : 'Lax',
+			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
 			secure: process.env.MOD === 'production' ? true : false,
 			path: '/',
 			...(process.env.MOD === 'production' && { 
@@ -257,7 +257,7 @@ export class IdentityController {
 		res.clearCookie('refreshToken', {
 			httpOnly: true,
 			maxAge: refreshTokenExpiry,
-			sameSite: process.env.MOD === 'production' ? 'None' : 'Lax',
+			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
 			secure: process.env.MOD === 'production' ? true : false,
 			path: '/',
 			...(process.env.MOD === 'production' && { 
@@ -268,7 +268,7 @@ export class IdentityController {
 		res.clearCookie('type', {
 			httpOnly: false,
 			maxAge: refreshTokenExpiry,
-			sameSite: process.env.MOD === 'production' ? 'None' : 'Lax',
+			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
 			secure: process.env.MOD === 'production' ? true : false,
 			path: '/',
 			...(process.env.MOD === 'production' && { 
