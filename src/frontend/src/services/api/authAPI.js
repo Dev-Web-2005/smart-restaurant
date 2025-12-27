@@ -80,6 +80,20 @@ export const loginAPI = async (username, password) => {
  * @param {Object} onboardingData - Restaurant + payment data from RestaurantSetupWizard
  * @returns {Promise} Response with user data
  */
+/**
+ * Register new user with profile information
+ * @param {Object} signupData - User signup data from SignUp form
+ * @param {string} signupData.username - Required: 4-20 characters
+ * @param {string} signupData.email - Required: valid email format
+ * @param {string} signupData.password - Required: min 8 characters
+ * @param {string} signupData.confirmPassword - Required: must match password
+ * @param {string} signupData.fullName - Optional
+ * @param {number} signupData.yearOfBirth - Optional
+ * @param {string} signupData.phoneNumber - Optional
+ * @param {string} signupData.address - Optional
+ * @param {Object} onboardingData - Onboarding data (restaurant info, payment, CCCD)
+ * @returns {Promise<{success: boolean, user?: Object, message: string}>}
+ */
 export const registerAPI = async (signupData, onboardingData) => {
 	try {
 		// Check if KYC URLs are provided (new flow) or need to upload files (old flow)
@@ -113,7 +127,7 @@ export const registerAPI = async (signupData, onboardingData) => {
 			username: signupData.username,
 			email: signupData.email,
 			password: signupData.password,
-			confirmPassword: signupData.password,
+			confirmPassword: signupData.confirmPassword || signupData.password, // ✅ Use confirmPassword from form, fallback to password
 
 			// Optional profile data
 			fullName: signupData.fullName || onboardingData.citizenInfo?.fullName || '',
@@ -147,6 +161,8 @@ export const registerAPI = async (signupData, onboardingData) => {
 			username: payload.username,
 			email: payload.email,
 			hasPassword: !!payload.password,
+			hasConfirmPassword: !!payload.confirmPassword,
+			passwordsMatch: payload.password === payload.confirmPassword,
 			restaurantName: payload.restaurantName,
 			frontImage: payload.frontImage ? '✅ Present' : '❌ Missing',
 			backImage: payload.backImage ? '✅ Present' : '❌ Missing',

@@ -125,6 +125,7 @@ const SignUp = () => {
 			username: formData.username.trim(),
 			email: formData.email.trim().toLowerCase(), // Normalize email
 			password: formData.password,
+			confirmPassword: formData.confirmPassword, // ✅ Backend requires this field
 			// OPTIONAL PROFILE FIELDS
 			fullName: formData.fullName?.trim() || '',
 			yearOfBirth: formData.birthYear ? parseInt(formData.birthYear) : null,
