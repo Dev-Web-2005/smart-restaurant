@@ -173,11 +173,26 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 	const [loading, setLoading] = useState(false)
 	const [saving, setSaving] = useState(false)
 	const [isFetching, setIsFetching] = useState(false) // Guard against duplicate fetches
+	const fetchTimeoutRef = useRef(null) // For debouncing
 
 	// Fetch modifier groups and attached groups when modal opens
 	useEffect(() => {
 		if (isOpen && dish && user?.userId) {
-			fetchModifierData()
+			// Clear any pending fetch
+			if (fetchTimeoutRef.current) {
+				clearTimeout(fetchTimeoutRef.current)
+			}
+			// Debounce fetch to prevent rapid consecutive calls
+			fetchTimeoutRef.current = setTimeout(() => {
+				fetchModifierData()
+			}, 100) // 100ms debounce
+		}
+
+		return () => {
+			// Cleanup on unmount
+			if (fetchTimeoutRef.current) {
+				clearTimeout(fetchTimeoutRef.current)
+			}
 		}
 	}, [isOpen, dish?.id, user?.userId])
 
@@ -376,8 +391,30 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 				}
 			}
 
-			// Refresh data only on success
-			await fetchModifierData()
+			// ✅ Optimize: Update local state instead of fetching all data
+			if (isAddingNew) {
+				// Fetch the newly created group with its options
+				try {
+					const optionsResponse = await getModifierOptionsAPI(user.userId, newGroupId, {
+						isActive: true,
+					})
+					const newGroupWithOptions = {
+						...group,
+						id: newGroupId,
+						options: optionsResponse.data || [],
+					}
+					setModifierGroups((prev) => [...prev, newGroupWithOptions])
+				} catch (fetchError) {
+					console.error('Failed to fetch new group options:', fetchError)
+					// Fallback to full fetch if something goes wrong
+					await fetchModifierData()
+				}
+			} else {
+				// Update existing group in local state
+				setModifierGroups((prev) =>
+					prev.map((g) => (g.id === group.id ? { ...g, ...group } : g)),
+				)
+			}
 			setEditingGroup(null)
 			setIsAddingNew(false)
 			showSuccess('Success', 'Modifier group saved successfully!')
@@ -513,7 +550,20 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 		setSaving(true)
 		try {
 			await deleteModifierOptionAPI(user.userId, groupId, optionId)
-			await fetchModifierData()
+
+			// ✅ Optimize: Update local state instead of fetching
+			setModifierGroups((prev) =>
+				prev.map((group) => {
+					if (group.id === groupId) {
+						return {
+							...group,
+							options: group.options.filter((opt) => opt.id !== optionId),
+						}
+					}
+					return group
+				}),
+			)
+			showSuccess('Success', 'Option đã được xóa thành công!')
 		} catch (error) {
 			console.error('Error deleting option:', error)
 			showError('Failed to delete option', error.response?.data?.message || error.message)
@@ -943,14 +993,24 @@ const ModifierGroupEditor = ({ group, onSave, onCancel, saving }) => {
 								<input
 									type="number"
 									step="0.01"
-									value={option.priceDelta || option.priceAdjustment || 0}
-									onChange={(e) =>
+									value={
+										option.priceDelta !== undefined && option.priceDelta !== null
+											? option.priceDelta
+											: option.priceAdjustment !== undefined && option.priceAdjustment !== null
+											? option.priceAdjustment
+											: ''
+									}
+									onChange={(e) => {
+										const value = e.target.value
+										// Allow empty string, otherwise parse to float
+										const numValue = value === '' ? 0 : parseFloat(value)
 										handleUpdateOption(
 											option.id,
 											'priceDelta',
-											parseFloat(e.target.value) || 0,
+											isNaN(numValue) ? 0 : numValue,
 										)
-									}
+									}}
+									placeholder="0.00"
 									className="w-20 px-2 py-2 bg-[#2D3748] text-white rounded border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#137fec] text-sm"
 									disabled={saving}
 								/>
