@@ -72,10 +72,9 @@ jobs:
           HOST_TABLE_SERVICE: ${{ vars.HOST_TABLE_SERVICE }}
           PORT_TABLE_SERVICE: ${{ vars.PORT_TABLE_SERVICE }}
 
-          REFRESH_TOKEN_EXPIRES_IN: ${{ secrets.REFRESH_TOKEN_EXPIRES_IN }}
+          REFRESH_TOKEN_EXPIRES_IN: ${{ vars.REFRESH_TOKEN_EXPIRES_IN }}
 
           FRONTEND_URL: ${{ vars.FRONTEND_URL }}
-
           COOKIE_DOMAIN: ${{ vars.COOKIE_DOMAIN }}
         run: |
           cd src/backend/api-gateway
@@ -206,9 +205,9 @@ jobs:
             TABLE_SERVICE_URL=${{ vars.TABLE_SERVICE_URL }}
             HOST_TABLE_SERVICE=${{ vars.HOST_TABLE_SERVICE }}
             PORT_TABLE_SERVICE=${{ vars.PORT_TABLE_SERVICE }}
-            REFRESH_TOKEN_EXPIRES_IN=${{ secrets.REFRESH_TOKEN_EXPIRES_IN }}
+            REFRESH_TOKEN_EXPIRES_IN=${{ vars.REFRESH_TOKEN_EXPIRES_IN }}
             FRONTEND_URL=${{ vars.FRONTEND_URL }}
-            COOKIE_DOMAIN=${{ vars.COOKIE_DOMAIN }}
+            COOKIE_DOMAIN: ${{ vars.COOKIE_DOMAIN }}
             EOF
             echo "✓ Api-gateway .env created"
             cat .env
