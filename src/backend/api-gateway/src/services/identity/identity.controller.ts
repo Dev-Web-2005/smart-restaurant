@@ -256,7 +256,6 @@ export class IdentityController {
 
 		res.clearCookie('refreshToken', {
 			httpOnly: true,
-			maxAge: refreshTokenExpiry,
 			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
 			secure: process.env.MOD === 'production' ? true : false,
 			path: '/',
@@ -267,7 +266,6 @@ export class IdentityController {
 
 		res.clearCookie('type', {
 			httpOnly: false,
-			maxAge: refreshTokenExpiry,
 			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
 			secure: process.env.MOD === 'production' ? true : false,
 			path: '/',
