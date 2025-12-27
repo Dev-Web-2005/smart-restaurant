@@ -4,7 +4,7 @@ import express from 'express';
 import { RpcExceptionFilter } from './common/filters/rpc-exception.filter';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { TransformResponseInterceptor } from './common/interceptors/transform-response.interceptor';
-import * as cookieParser from 'cookie-parser'; 
+import cookieParser from 'cookie-parser'; 
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
 
