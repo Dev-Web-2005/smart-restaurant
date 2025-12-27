@@ -253,7 +253,444 @@ const formatCategoryName = (slug) => {
 }
 
 // =========================================================
-// 🚨 MODAL: Dish Customization Modal (Modifiers)
+// 🚨 MODAL: Dish Details Modal (Enhanced with full info display)
+// =========================================================
+const DishDetailsModal = ({ dish, onClose, onAddToCart }) => {
+	const modalRef = useRef(null)
+	const [isVisible, setIsVisible] = useState(false)
+	const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0)
+
+	// Handle API data structure for modifiers
+	const modifierGroups = useMemo(() => {
+		if (!dish) return []
+
+		// Backend returns modifierGroups array directly
+		if (Array.isArray(dish.modifierGroups)) {
+			return dish.modifierGroups.map((group) => ({
+				id: group.id,
+				name: group.name,
+				isRequired: group.isRequired || false,
+				minSelections: group.minSelections || 0,
+				maxSelections: group.maxSelections || 1,
+				displayOrder: group.displayOrder || 0,
+				options: Array.isArray(group.options)
+					? group.options.map((opt) => ({
+							id: opt.id,
+							label: opt.label,
+							priceDelta: opt.priceDelta || 0,
+							displayOrder: opt.displayOrder || 0,
+					  }))
+					: [],
+			}))
+		}
+
+		// Fallback for mock/legacy data structure
+		if (!dish.modifiers || dish.modifiers.length === 0) return []
+
+		// Group modifiers by groupName
+		const groupsMap = new Map()
+		dish.modifiers.forEach((mod) => {
+			if (!groupsMap.has(mod.groupName)) {
+				groupsMap.set(mod.groupName, {
+					name: mod.groupName,
+					type: mod.type || 'single',
+					options: [],
+				})
+			}
+			groupsMap.get(mod.groupName).options.push(mod)
+		})
+		return Array.from(groupsMap.values())
+	}, [dish])
+
+	const [selectedModifiers, setSelectedModifiers] = useState([])
+	const [quantity, setQuantity] = useState(1)
+	const [specialNotes, setSpecialNotes] = useState('')
+
+	// Handle modal open animation and body overflow
+	useEffect(() => {
+		if (dish) {
+			setIsVisible(true)
+			document.body.style.overflow = 'hidden'
+			return () => {
+				document.body.style.overflow = ''
+			}
+		}
+	}, [dish])
+
+	if (!dish) return null
+
+	// Prepare photos array (from backend or fallback)
+	const photos = useMemo(() => {
+		if (dish.photos && dish.photos.length > 0) {
+			// Sort by primary first, then displayOrder
+			return [...dish.photos].sort((a, b) => {
+				if (a.isPrimary && !b.isPrimary) return -1
+				if (!a.isPrimary && b.isPrimary) return 1
+				return (a.displayOrder || 0) - (b.displayOrder || 0)
+			})
+		}
+		// Fallback to single imageUrl
+		if (dish.imageUrl) {
+			return [{ id: 'main', url: dish.imageUrl, isPrimary: true, displayOrder: 0 }]
+		}
+		return []
+	}, [dish])
+
+	const handleOptionSelect = (modifierId, groupName, type) => {
+		setSelectedModifiers((prev) => {
+			if (type === 'single') {
+				return [
+					...prev.filter((m) => m.groupName !== groupName),
+					{ modifierId, groupName },
+				]
+			} else {
+				const exists = prev.find((m) => m.modifierId === modifierId)
+				if (exists) {
+					return prev.filter((m) => m.modifierId !== modifierId)
+				}
+				return [...prev, { modifierId, groupName }]
+			}
+		})
+	}
+
+	const calculateTotalPrice = () => {
+		let total = dish.price
+
+		selectedModifiers.forEach((selected) => {
+			// Check in grouped modifiers (backend)
+			for (const group of modifierGroups) {
+				const option = group.options.find((opt) => opt.id === selected.modifierId)
+				if (option) {
+					total += option.priceDelta
+					break
+				}
+			}
+
+			// Check in flat modifiers (legacy/mock)
+			if (dish.modifiers) {
+				const modifier = dish.modifiers.find((m) => m.id === selected.modifierId)
+				if (modifier) {
+					total += modifier.priceDelta
+				}
+			}
+		})
+
+		return total * quantity
+	}
+
+	const handleAddToCart = () => {
+		const selectedModifierDetails = []
+
+		selectedModifiers.forEach((selected) => {
+			// Try to find in grouped modifiers (backend)
+			for (const group of modifierGroups) {
+				const option = group.options.find((opt) => opt.id === selected.modifierId)
+				if (option) {
+					selectedModifierDetails.push({
+						id: option.id,
+						label: option.label,
+						priceDelta: option.priceDelta,
+						groupName: selected.groupName,
+					})
+					return
+				}
+			}
+
+			// Fallback to flat modifiers (legacy)
+			if (dish.modifiers) {
+				const modifier = dish.modifiers.find((m) => m.id === selected.modifierId)
+				if (modifier) {
+					selectedModifierDetails.push({
+						id: modifier.id,
+						label: modifier.label,
+						priceDelta: modifier.priceDelta,
+						groupName: selected.groupName,
+					})
+				}
+			}
+		})
+
+		onAddToCart({
+			...dish,
+			quantity,
+			selectedModifiers: selectedModifierDetails,
+			specialNotes,
+			totalPrice: calculateTotalPrice(),
+		})
+
+		onClose()
+	}
+
+	if (!isVisible) return null
+
+	return ReactDOM.createPortal(
+		<div
+			className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/80 backdrop-blur-sm transition-all duration-300 overflow-y-auto p-4"
+			onClick={(e) => {
+				if (e.target === e.currentTarget) onClose()
+			}}
+		>
+			<div
+				ref={modalRef}
+				className="relative bg-gradient-to-br from-[#1A202C] to-[#2D3748] rounded-2xl shadow-2xl w-full max-w-5xl mx-auto border border-white/20 transition-all duration-300 transform scale-100 opacity-100 my-8"
+				style={{ maxHeight: 'calc(100vh - 4rem)' }}
+			>
+				{/* Close Button */}
+				<button
+					onClick={onClose}
+					className="absolute top-4 right-4 z-50 p-2 rounded-full bg-black/50 backdrop-blur-md text-white hover:bg-black/70 transition-all duration-200 border border-white/20 hover:scale-110"
+				>
+					<span className="material-symbols-outlined text-2xl">close</span>
+				</button>
+
+				<div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 4rem)' }}>
+					{/* Photo Gallery Section */}
+					{photos.length > 0 && (
+						<div className="relative">
+							{/* Main Photo */}
+							<div className="relative w-full h-96 overflow-hidden rounded-t-2xl bg-gradient-to-br from-gray-800 to-gray-900">
+								<img
+									src={photos[selectedPhotoIndex]?.url}
+									alt={dish.name}
+									className="w-full h-full object-cover"
+									onError={(e) => {
+										e.target.src =
+											'https://via.placeholder.com/800x400?text=No+Image+Available'
+									}}
+								/>
+								{/* Gradient Overlay */}
+								<div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+
+								{/* Status Badge */}
+								{dish.isChefRecommended && (
+									<div className="absolute top-4 left-4 px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold rounded-full shadow-lg flex items-center gap-2">
+										<span className="material-symbols-outlined">star</span>
+										<span>Chef's Recommend</span>
+									</div>
+								)}
+
+								{/* Prep Time Badge */}
+								{dish.prepTimeMinutes && (
+									<div className="absolute top-4 right-20 px-4 py-2 bg-black/60 backdrop-blur-md text-white rounded-full shadow-lg flex items-center gap-2 border border-white/20">
+										<span className="material-symbols-outlined">schedule</span>
+										<span className="font-semibold">{dish.prepTimeMinutes} phút</span>
+									</div>
+								)}
+
+								{/* Dish Name Overlay */}
+								<div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+									<h2 className="text-4xl font-bold mb-2 drop-shadow-lg">{dish.name}</h2>
+									<div className="flex items-center gap-4">
+										<span className="text-3xl font-bold text-green-400">
+											${dish.price.toFixed(2)}
+										</span>
+										{dish.currency && dish.currency !== 'USD' && (
+											<span className="text-lg text-gray-300">({dish.currency})</span>
+										)}
+									</div>
+								</div>
+							</div>
+
+							{/* Thumbnail Gallery */}
+							{photos.length > 1 && (
+								<div className="flex gap-2 p-4 overflow-x-auto bg-black/30 backdrop-blur-md">
+									{photos.map((photo, index) => (
+										<button
+											key={photo.id}
+											onClick={() => setSelectedPhotoIndex(index)}
+											className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+												index === selectedPhotoIndex
+													? 'border-blue-500 scale-110 shadow-lg shadow-blue-500/50'
+													: 'border-white/20 hover:border-white/50'
+											}`}
+										>
+											<img
+												src={photo.url}
+												alt={`${dish.name} ${index + 1}`}
+												className="w-full h-full object-cover"
+											/>
+										</button>
+									))}
+								</div>
+							)}
+						</div>
+					)}
+
+					{/* Content Section */}
+					<div className="p-6 space-y-6">
+						{/* Description */}
+						{dish.description && (
+							<div className="bg-white/5 backdrop-blur-md rounded-xl p-5 border border-white/10">
+								<h3 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
+									<span className="material-symbols-outlined text-blue-400">
+										restaurant_menu
+									</span>
+									Mô tả món ăn
+								</h3>
+								<p className="text-gray-300 leading-relaxed text-base">
+									{dish.description}
+								</p>
+							</div>
+						)}
+
+						{/* Modifiers */}
+						{modifierGroups.length > 0 && (
+							<div className="space-y-4">
+								<h3 className="text-xl font-bold text-white flex items-center gap-2">
+									<span className="material-symbols-outlined text-blue-400">tune</span>
+									Tùy chỉnh món ăn
+								</h3>
+								{modifierGroups.map((group) => {
+									const groupType = group.maxSelections === 1 ? 'single' : 'multiple'
+									return (
+										<div
+											key={group.id}
+											className="bg-white/5 backdrop-blur-md rounded-xl p-5 border border-white/10"
+										>
+											<div className="flex items-center justify-between mb-4">
+												<h4 className="text-lg font-semibold text-white flex items-center gap-2">
+													{group.name}
+													{group.isRequired && (
+														<span className="text-xs px-2 py-1 bg-red-500/20 text-red-400 rounded-full border border-red-500/30">
+															Bắt buộc
+														</span>
+													)}
+												</h4>
+												<span className="text-sm text-gray-400">
+													{groupType === 'single'
+														? 'Chọn 1'
+														: `Chọn tối đa ${group.maxSelections}`}
+												</span>
+											</div>
+											<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+												{group.options.map((option) => {
+													const isSelected = selectedModifiers.some(
+														(m) => m.modifierId === option.id,
+													)
+													return (
+														<button
+															key={option.id}
+															onClick={() =>
+																handleOptionSelect(option.id, group.name, groupType)
+															}
+															className={`flex items-center justify-between p-4 rounded-lg border-2 transition-all duration-200 ${
+																isSelected
+																	? 'border-blue-500 bg-blue-500/20 shadow-lg shadow-blue-500/30'
+																	: 'border-white/10 bg-white/5 hover:border-white/30 hover:bg-white/10'
+															}`}
+														>
+															<div className="flex items-center gap-3">
+																<div
+																	className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+																		isSelected
+																			? 'border-blue-500 bg-blue-500'
+																			: 'border-white/30'
+																	}`}
+																>
+																	{isSelected && (
+																		<span className="text-white text-xs">✓</span>
+																	)}
+																</div>
+																<span className="text-white font-medium">
+																	{option.label}
+																</span>
+															</div>
+															{option.priceDelta !== 0 && (
+																<span
+																	className={`font-bold ${
+																		option.priceDelta > 0
+																			? 'text-green-400'
+																			: 'text-red-400'
+																	}`}
+																>
+																	{option.priceDelta > 0 ? '+' : ''}$
+																	{option.priceDelta.toFixed(2)}
+																</span>
+															)}
+														</button>
+													)
+												})}
+											</div>
+										</div>
+									)
+								})}
+							</div>
+						)}
+
+						{/* Special Instructions */}
+						<div className="bg-white/5 backdrop-blur-md rounded-xl p-5 border border-white/10">
+							<label className="text-white font-semibold text-base mb-3 block flex items-center gap-2">
+								<span className="material-symbols-outlined text-blue-400">edit_note</span>
+								Ghi chú đặc biệt (Không bắt buộc)
+							</label>
+							<textarea
+								value={specialNotes}
+								onChange={(e) => setSpecialNotes(e.target.value)}
+								placeholder="VD: Không hành, thêm ớt..."
+								className="w-full px-4 py-3 rounded-lg bg-[#2D3748] text-white border border-white/10 focus:border-blue-500 focus:outline-none resize-none placeholder-gray-500"
+								rows="3"
+							/>
+						</div>
+
+						{/* Quantity Control */}
+						<div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-md rounded-xl p-5 border border-white/20">
+							<div className="flex items-center justify-between">
+								<span className="text-white font-semibold text-lg flex items-center gap-2">
+									<span className="material-symbols-outlined text-blue-400">
+										shopping_cart
+									</span>
+									Số lượng
+								</span>
+								<div className="flex items-center gap-4">
+									<button
+										onClick={() => setQuantity(Math.max(1, quantity - 1))}
+										className="w-12 h-12 flex items-center justify-center bg-white/10 text-white rounded-full hover:bg-white/20 transition-all duration-200 font-bold text-xl border border-white/20 hover:scale-110"
+									>
+										−
+									</button>
+									<span className="text-white font-bold text-2xl w-16 text-center">
+										{quantity}
+									</span>
+									<button
+										onClick={() => setQuantity(quantity + 1)}
+										className="w-12 h-12 flex items-center justify-center bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-all duration-200 font-bold text-xl shadow-lg hover:shadow-blue-500/50 hover:scale-110"
+									>
+										+
+									</button>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					{/* Footer: Add to Cart */}
+					<div className="sticky bottom-0 p-6 border-t border-white/10 bg-gradient-to-r from-[#1A202C] to-[#2D3748] backdrop-blur-xl">
+						<div className="flex items-center justify-between gap-4">
+							<div>
+								<p className="text-gray-400 text-sm mb-1">Tổng cộng</p>
+								<p className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">
+									${calculateTotalPrice().toFixed(2)}
+								</p>
+							</div>
+							<button
+								onClick={handleAddToCart}
+								className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-blue-500/50 hover:scale-105 flex items-center gap-3 text-lg"
+							>
+								<span className="material-symbols-outlined text-2xl">
+									add_shopping_cart
+								</span>
+								Thêm vào giỏ
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>,
+		document.body,
+	)
+}
+
+// =========================================================
+// 🚨 MODAL: Legacy Dish Customization Modal (Keep for backward compatibility)
 // =========================================================
 const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 	const modalRef = useRef(null)
