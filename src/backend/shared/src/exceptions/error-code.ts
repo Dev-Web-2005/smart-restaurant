@@ -264,6 +264,18 @@ export default class ErrorCode {
 
 	// ==================== NOTIFICATION (6000-6999) ====================
 	// Reserved for notification service
+	/** Failed to send email */
+	static readonly SENDMAIL_FAILED: ErrorCode = new ErrorCode(
+		6001,
+		"Failed to send email",
+		500
+	);
+	/** Base64 string is undefined or invalid */
+	static readonly DONT_CONVERT_BASE64: ErrorCode = new ErrorCode(
+		6002,
+		"Cannot convert undefined or invalid Base64 string",
+		400
+	);
 
 	// ==================== SYSTEM & INFRASTRUCTURE (9000-9999) ====================
 
