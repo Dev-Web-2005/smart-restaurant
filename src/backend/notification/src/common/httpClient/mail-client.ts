@@ -11,14 +11,17 @@ export class MailClient {
 	private readonly mailClient;
 	private readonly mailSender: string;
 	private readonly mailSenderName: string;
+	private readonly mailApiKey: string;
 
 	constructor(private readonly configService: ConfigService) {
 		const decode = decodeBase64;
+		const MAIL_API_KEY_ENCODED = this.configService.get<string>('MAIL_API_KEY');
+
 		const MAIL_URL = decode(this.configService.get<string>('MAIL_URL'));
-		const MAIL_API_KEY = decode(this.configService.get<string>('MAIL_API_KEY'));
+		const MAIL_API_KEY = decode(MAIL_API_KEY_ENCODED);
+		this.mailApiKey = MAIL_API_KEY;
 		this.mailSender = decode(this.configService.get<string>('MAIL_SENDER'));
 		this.mailSenderName = decode(this.configService.get<string>('MAIL_SENDER_NAME'));
-
 		this.mailClient = axios.create({
 			baseURL: MAIL_URL,
 			headers: {
@@ -29,7 +32,7 @@ export class MailClient {
 	}
 
 	async send(sendMail: SendMail) {
-		const response = await this.mailClient.post('/email', {
+		const requestPayload = {
 			sender: {
 				email: this.mailSender,
 				name: this.mailSenderName,
@@ -42,9 +45,17 @@ export class MailClient {
 			],
 			subject: sendMail.subject,
 			htmlContent: sendMail.content,
-		});
-		if (response.status !== 201) {
-			throw new AppException(ErrorCode.SENDMAIL_FAILED);
+		};
+
+		try {
+			const response = await this.mailClient.post('/email', requestPayload);
+
+			if (response.status !== 201) {
+				throw new AppException(ErrorCode.SENDMAIL_FAILED);
+			}
+		} catch (error) {
+			console.error('Error sending email:', error);
+			throw error;
 		}
 	}
 }

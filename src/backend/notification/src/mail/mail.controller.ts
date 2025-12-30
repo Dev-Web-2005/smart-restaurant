@@ -18,19 +18,26 @@ export class MailController {
 	@EventPattern('mail.send')
 	async handleSendMail(@Payload() data: SendMailRequestDto, @Ctx() context: RmqContext) {
 		return handleRpcCall(async () => {
-			const expectedKey = this.configService.get<string>('NOTIFICATION_API_KEY');
-			const receivedKey = data.notificationApiKey;
-			if (expectedKey && receivedKey !== expectedKey) {
-				throw new AppException(ErrorCode.UNAUTHORIZED);
+			try {
+				const expectedKey = this.configService.get<string>('NOTIFICATION_API_KEY');
+				const receivedKey = data.notificationApiKey;
+
+				if (expectedKey && receivedKey !== expectedKey) {
+					console.log('Invalid API key provided');
+					throw new AppException(ErrorCode.UNAUTHORIZED);
+				}
+
+				const channel = context.getChannelRef();
+				const message = context.getMessage();
+				await wrapHandleMessage<void>(channel, message, async () => {
+					return await this.mailService.sendMail(data);
+				});
+
+				return new HttpResponse(200, 'Mail sent successfully', null);
+			} catch (error) {
+				console.log('Error in handleSendMail:', error);
+				throw error;
 			}
-			const channel = context.getChannelRef();
-			const message = context.getMessage();
-
-			await wrapHandleMessage<void>(channel, message, async () => {
-				return await this.mailService.sendMail(data);
-			});
-
-			return new HttpResponse(200, 'Mail sent successfully', null);
 		});
 	}
 }

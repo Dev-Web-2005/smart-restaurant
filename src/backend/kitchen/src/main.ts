@@ -13,18 +13,17 @@ async function bootstrap() {
 	const channel = await connection.createChannel();
 
 	try {
-		await channel.assertExchange('dlx_exchange', 'direct', { durable: true });
-		await channel.assertQueue('notification_dlq', {
+		await channel.assertExchange('dlx_exchange_kitchen', 'direct', { durable: true });
+		await channel.assertQueue('kitchen_dlq', {
 			durable: true,
 		});
 
-		await channel.bindQueue('notification_dlq', 'dlx_exchange', 'notification_dlq');
-
-		await channel.assertQueue('notification_queue', {
+		await channel.bindQueue('kitchen_dlq', 'dlx_exchange_kitchen', 'kitchen_dlq');
+		await channel.assertQueue('kitchen_queue', {
 			durable: true,
 			arguments: {
-				'x-dead-letter-exchange': 'dlx_exchange',
-				'x-dead-letter-routing-key': 'notification_dlq',
+				'x-dead-letter-exchange': 'dlx_exchange_kitchen',
+				'x-dead-letter-routing-key': 'kitchen_dlq',
 			},
 		});
 	} finally {
@@ -37,13 +36,13 @@ async function bootstrap() {
 		transport: Transport.RMQ,
 		options: {
 			urls: [process.env.CONNECTION_AMQP],
-			queue: 'notification_queue',
+			queue: 'kitchen_queue',
 			queueOptions: {
 				durable: true,
 				noAck: false,
 				arguments: {
-					'x-dead-letter-exchange': 'dlx_exchange',
-					'x-dead-letter-routing-key': 'notification_dlq',
+					'x-dead-letter-exchange': 'dlx_exchange_kitchen',
+					'x-dead-letter-routing-key': 'kitchen_dlq',
 				},
 			},
 		},
@@ -53,7 +52,7 @@ async function bootstrap() {
 		transport: Transport.RMQ,
 		options: {
 			urls: [process.env.CONNECTION_AMQP],
-			queue: 'notification_dlq',
+			queue: 'kitchen_dlq',
 			queueOptions: {
 				durable: true,
 				noAck: false,

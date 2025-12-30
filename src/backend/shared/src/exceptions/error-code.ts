@@ -276,7 +276,12 @@ export default class ErrorCode {
 		"Cannot convert undefined or invalid Base64 string",
 		400
 	);
-
+	/** Error communicating with notification service */
+	static readonly NOTIFICATION_SERVICE_ERROR: ErrorCode = new ErrorCode(
+		6003,
+		"Notification service error",
+		500
+	);
 	// ==================== SYSTEM & INFRASTRUCTURE (9000-9999) ====================
 
 	/** Unexpected server error */

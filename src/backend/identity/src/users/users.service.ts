@@ -18,6 +18,7 @@ import { Inject } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 import RegisterUserWithProfileRequestDto from 'src/users/dtos/request/register-user-with-profile-request.dto';
 import { extractFields } from '@shared/utils/utils';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UsersService {
@@ -41,6 +42,8 @@ export class UsersService {
 		@InjectRepository(User) private readonly userRepository: Repository<User>,
 		private readonly rolesService: RolesService,
 		@Inject('PROFILE_SERVICE') private readonly profileClient: ClientProxy,
+		@Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
+		private readonly configService: ConfigService,
 	) {}
 
 	async Register(
@@ -107,6 +110,34 @@ export class UsersService {
 				}
 				console.error('Error calling profile service:', err);
 				throw new AppException(ErrorCode.PROFILE_SERVICE_ERROR);
+			}
+
+			const subject = rolesString.includes('CUSTOMER')
+				? 'Welcome to Smart Restaurant - Customer'
+				: 'Welcome to Smart Restaurant';
+			const variables = new Map<string, string>();
+			variables.set('NAME', savedUser.username);
+
+			const variablesObject: Record<string, string> = {};
+			variables.forEach((value, key) => {
+				variablesObject[key] = value;
+			});
+
+			const notificationApiKey = this.configService.get<string>('NOTIFICATION_API_KEY');
+			const notificationRequest = {
+				to: {
+					email: savedUser.email,
+					name: savedUser.username,
+				},
+				subject,
+				variables: variablesObject,
+				notificationApiKey: notificationApiKey,
+			};
+			try {
+				this.notificationClient.emit('mail.send', notificationRequest);
+			} catch (emitError) {
+				console.error('Error emitting notification event:', emitError);
+				throw new AppException(ErrorCode.NOTIFICATION_SERVICE_ERROR);
 			}
 
 			return response;

@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Welcome to Smart Restaurant</title>
+		<style>
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+
+			body {
+				font-family:
+					-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+					sans-serif;
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				padding: 40px 20px;
+				line-height: 1.6;
+			}
+
+			.email-container {
+				max-width: 600px;
+				margin: 0 auto;
+				background: #ffffff;
+				border-radius: 16px;
+				overflow: hidden;
+				box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+			}
+
+			.header {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				padding: 50px 40px;
+				text-align: center;
+				color: #ffffff;
+			}
+
+			.logo {
+				font-size: 48px;
+				margin-bottom: 10px;
+			}
+
+			.header h1 {
+				font-size: 28px;
+				font-weight: 700;
+				margin-bottom: 10px;
+			}
+
+			.header p {
+				font-size: 16px;
+				opacity: 0.95;
+			}
+
+			.content {
+				padding: 50px 40px;
+			}
+
+			.greeting {
+				font-size: 24px;
+				color: #2d3748;
+				margin-bottom: 20px;
+				font-weight: 600;
+			}
+
+			.message {
+				color: #4a5568;
+				font-size: 16px;
+				margin-bottom: 30px;
+				line-height: 1.8;
+			}
+
+			.message p {
+				margin-bottom: 15px;
+			}
+
+			.features {
+				background: #f7fafc;
+				border-radius: 12px;
+				padding: 30px;
+				margin: 30px 0;
+			}
+
+			.features h2 {
+				color: #2d3748;
+				font-size: 20px;
+				margin-bottom: 20px;
+				text-align: center;
+			}
+
+			.feature-list {
+				list-style: none;
+			}
+
+			.feature-item {
+				display: flex;
+				align-items: start;
+				margin-bottom: 15px;
+				color: #4a5568;
+			}
+
+			.feature-icon {
+				font-size: 24px;
+				margin-right: 15px;
+				flex-shrink: 0;
+			}
+
+			.cta-button {
+				display: inline-block;
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				color: #ffffff;
+				padding: 16px 40px;
+				border-radius: 8px;
+				text-decoration: none;
+				font-weight: 600;
+				font-size: 16px;
+				margin: 20px 0;
+				transition: transform 0.2s;
+				box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+			}
+
+			.cta-button:hover {
+				transform: translateY(-2px);
+				box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+			}
+
+			.divider {
+				height: 1px;
+				background: linear-gradient(to right, transparent, #e2e8f0, transparent);
+				margin: 30px 0;
+			}
+
+			.support {
+				background: #edf2f7;
+				border-left: 4px solid #667eea;
+				padding: 20px;
+				border-radius: 8px;
+				margin: 30px 0;
+			}
+
+			.support h3 {
+				color: #2d3748;
+				font-size: 16px;
+				margin-bottom: 10px;
+			}
+
+			.support p {
+				color: #4a5568;
+				font-size: 14px;
+				margin: 5px 0;
+			}
+
+			.support-common {
+				margin-top: 30px;
+				background: #fff;
+				border-left: 4px solid #48bb78;
+			}
+
+			.support a {
+				color: #667eea;
+				text-decoration: none;
+			}
+
+			.footer {
+				background: #2d3748;
+				color: #a0aec0;
+				padding: 30px 40px;
+				text-align: center;
+				font-size: 14px;
+			}
+
+			.footer a {
+				color: #667eea;
+				text-decoration: none;
+			}
+
+			.social-links {
+				margin: 20px 0;
+			}
+
+			.social-links a {
+				display: inline-block;
+				margin: 0 10px;
+				font-size: 24px;
+				color: #a0aec0;
+				text-decoration: none;
+				transition: color 0.2s;
+			}
+
+			.social-links a:hover {
+				color: #667eea;
+			}
+
+			.footer-text {
+				margin-top: 10px;
+			}
+
+			.footer-small {
+				margin-top: 15px;
+				font-size: 12px;
+				color: #718096;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="email-container">
+			<!-- Header -->
+			<div class="header">
+				<div class="logo">🍽️</div>
+				<h1>Smart Restaurant</h1>
+				<p>Welcome to the Future of Dining</p>
+			</div>
+
+			<!-- Content -->
+			<div class="content">
+				<div class="greeting">Hello {{NAME}}! 👋</div>
+
+				<!-- Tenant Welcome Message -->
+				<div class="message">
+					<p>
+						Congratulations on taking the first step towards transforming your restaurant
+						business! We're thrilled to have you join the Smart Restaurant platform.
+					</p>
+					<p>
+						Your journey to modernize and streamline your restaurant operations starts
+						now. Our platform is designed to help you manage everything from orders to
+						analytics with ease.
+					</p>
+				</div>
+
+				<div class="features">
+					<h2>🚀 What You Can Do Now</h2>
+					<ul class="feature-list">
+						<li class="feature-item">
+							<span class="feature-icon">📊</span>
+							<span
+								><strong>Dashboard Analytics:</strong> Track your restaurant's performance
+								in real-time with comprehensive insights</span
+							>
+						</li>
+						<li class="feature-item">
+							<span class="feature-icon">🍕</span>
+							<span
+								><strong>Menu Management:</strong> Create and update your menu items,
+								pricing, and availability instantly</span
+							>
+						</li>
+						<li class="feature-item">
+							<span class="feature-icon">📱</span>
+							<span
+								><strong>Order Management:</strong> Handle orders efficiently from
+								multiple channels in one place</span
+							>
+						</li>
+						<li class="feature-item">
+							<span class="feature-icon">👥</span>
+							<span
+								><strong>Staff Management:</strong> Manage your team, roles, and
+								permissions seamlessly</span
+							>
+						</li>
+						<li class="feature-item">
+							<span class="feature-icon">💳</span>
+							<span
+								><strong>Payment Integration:</strong> Accept payments securely with
+								multiple payment options</span
+							>
+						</li>
+						<li class="feature-item">
+							<span class="feature-icon">📈</span>
+							<span
+								><strong>Reports & Insights:</strong> Generate detailed reports to make
+								data-driven decisions</span
+							>
+						</li>
+					</ul>
+				</div>
+
+				<div style="text-align: center">
+					<a href="{{DASHBOARD_URL}}" class="cta-button">Access Your Dashboard</a>
+				</div>
+
+				<div class="divider"></div>
+
+				<div class="support">
+					<h3>🎯 Getting Started</h3>
+					<p>1. Complete your restaurant profile and upload your logo</p>
+					<p>2. Set up your menu items and categories</p>
+					<p>3. Configure your payment methods and delivery options</p>
+					<p>4. Invite your staff members to join</p>
+				</div>
+
+				<!-- Common Support Section -->
+				<div class="support support-common">
+					<h3>💬 Need Help?</h3>
+					<p>Our support team is here for you 24/7:</p>
+					<p>📧 Email: <a href="mailto:{{SUPPORT_EMAIL}}">{{SUPPORT_EMAIL}}</a></p>
+					<p>📞 Phone: {{SUPPORT_PHONE}}</p>
+					<p>💬 Live Chat: Available in your dashboard</p>
+				</div>
+			</div>
+
+			<!-- Footer -->
+			<div class="footer">
+				<div class="social-links">
+					<a href="{{FACEBOOK_URL}}" title="Facebook">📘</a>
+					<a href="{{INSTAGRAM_URL}}" title="Instagram">📷</a>
+					<a href="{{TWITTER_URL}}" title="Twitter">🐦</a>
+				</div>
+				<p>© 2025 Smart Restaurant. All rights reserved.</p>
+				<p class="footer-text">
+					<a href="{{WEBSITE_URL}}">Visit our website</a> |
+					<a href="{{PRIVACY_URL}}">Privacy Policy</a> |
+					<a href="{{TERMS_URL}}">Terms of Service</a>
+				</p>
+				<p class="footer-small">
+					You're receiving this email because you signed up for Smart Restaurant.<br />
+					If you didn't create this account, please
+					<a href="mailto:{{SUPPORT_EMAIL}}">contact us</a>.
+				</p>
+			</div>
+		</div>
+	</body>
+</html>
