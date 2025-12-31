@@ -12,6 +12,7 @@ import { FloorController } from './services/table/floor.controller';
 import { ProductController } from './services/product/product.controller';
 import { PublicUrlMiddleware } from 'src/common/middleware/public-url/public-url.middleware';
 import { HealthController } from './health.controller';
+import { OrderController } from './services/order/order.controller';
 
 @Module({
 	imports: [
@@ -49,6 +50,14 @@ import { HealthController } from './health.controller';
 					port: +process.env.PORT_TABLE_SERVICE || 8083,
 				},
 			},
+			{
+				name: 'ORDER_SERVICE',
+				transport: Transport.TCP,
+				options: {
+					host: process.env.HOST_ORDER_SERVICE || 'localhost',
+					port: +process.env.PORT_ORDER_SERVICE || 8084,
+				},
+			},
 		]),
 	],
 	controllers: [
@@ -59,6 +68,7 @@ import { HealthController } from './health.controller';
 		TableController,
 		FloorController,
 		ProductController,
+		OrderController,
 	],
 	providers: [AppService],
 })
