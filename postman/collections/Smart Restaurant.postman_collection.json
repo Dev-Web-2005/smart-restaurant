@@ -427,7 +427,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "m",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NjgwMzg5NSwiZXhwIjoxNzY2ODA0MTk1fQ.XAXyM8gXluawMkGyhOnG8va4-vLRrzd7B5gIoSz68XY",
                   "type": "string"
                 }
               ]
@@ -470,13 +470,7 @@
           },
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "url": {
               "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/scan/eyJ0YWJsZUlkIjoiZmYwOWM3OWQtZmNlZS00OTg5LWJlMGUtNThkODliYTI1MjQzIiwidGVuYW50SWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ0b2tlblZlcnNpb24iOjMsImlzc3VlZEF0IjoxNzY2MjIxNTc5MzAyfQ.SWQZgcp8FVvC1ZIJwdwQM-ZKINCLAgtf_y-ejO2djqU",
               "host": [
@@ -504,7 +498,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "m",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NjgwMTA3MywiZXhwIjoxNzY2ODAxMzczfQ.ox2Gwi0jpusKn8I1f8_2YiNu-DNKf1Bmj5q-yPLprRw",
                   "type": "string"
                 }
               ]
@@ -548,7 +542,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "m",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NjgwMTA3MywiZXhwIjoxNzY2ODAxMzczfQ.ox2Gwi0jpusKn8I1f8_2YiNu-DNKf1Bmj5q-yPLprRw",
                   "type": "string"
                 }
               ]
@@ -583,7 +577,8 @@
               "query": [
                 {
                   "key": "format",
-                  "value": "svg"
+                  "value": "svg",
+                  "uuid": "d12fc78a-6ca1-4e82-8f85-3f489dc1a4f3"
                 }
               ]
             }
@@ -599,7 +594,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "m",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NjgwNDM4OSwiZXhwIjoxNzY2ODA0Njg5fQ.6Od-0nEXaIgWTKT8sNQfbw_v-z2fzoV6VTdc7fFaZZs",
                   "type": "string"
                 }
               ]
@@ -633,7 +628,8 @@
               "query": [
                 {
                   "key": "format",
-                  "value": "combined-pdf"
+                  "value": "combined-pdf",
+                  "uuid": "a6f5331a-2415-4f01-9ad2-a7416e0619c2"
                 }
               ]
             }
@@ -750,7 +746,7 @@
                   "bearer": [
                     {
                       "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NjgwMTA3MywiZXhwIjoxNzY2ODAxMzczfQ.ox2Gwi0jpusKn8I1f8_2YiNu-DNKf1Bmj5q-yPLprRw",
                       "type": "string"
                     }
                   ]
@@ -765,7 +761,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Beverages v2\",\n  \"description\": \"Enjoy meals with wonderful drinks\",\n  \"displayOrder\": 2,\n  \"imageUrl\": \"example-image.com\",\n  \"status\": \"ACTIVE\"\n}",
+                  "raw": "{\n  \"name\": \"Beverages v4\",\n  \"description\": \"Enjoy meals with wonderful drinks\",\n  \"displayOrder\": 3,\n  \"imageUrl\": \"example-image.com\",\n  \"status\": \"ACTIVE\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -792,16 +788,6 @@
               "name": "Get All Categories",
               "id": "7b515daa-e631-448c-a402-45c7f498b50a",
               "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
                 "method": "GET",
                 "header": [
                   {
@@ -2466,7 +2452,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"birthDay\": \"1999-10-15\",\r\n  \"phoneNumber\": \"0987654321\",\r\n  \"address\": \"123 đường ABC, TP HCM\",\r\n  \"restaurantName\": \"Nhà hàng Đỉnh Cao\",\r\n  \"businessAddress\": \"456 đường XYZ, Hà Nội\",\r\n  \"contractNumber\": \"0123456789\",\r\n  \"contractEmail\": \"contract@example.com\",\r\n  \"cardHolderName\": \"Nguyen Van A\",\r\n  \"accountNumber\": \"9876543210123\",\r\n  \"expirationDate\": \"12/28\",\r\n  \"cvv\": \"456\",\r\n  \"frontImage\": \"base64_front_image\",\r\n  \"backImage\": \"base64_back_image\",\r\n  \"username\": \"test1\",\r\n  \"email\": \"test1@example.com\",\r\n  \"password\": \"StrongPassword!123\",\r\n  \"confirmPassword\": \"StrongPassword!123\",\r\n  \"fullName\": \"Nguyen Hung Thinh\",\r\n  \"roles\": [\"ADMIN\"]\r\n}\r\n",
+          "raw": "{\r\n  \"birthDay\": \"1999-10-15\",\r\n  \"phoneNumber\": \"0987654321\",\r\n  \"address\": \"123 đường ABC, TP HCM\",\r\n  \"restaurantName\": \"Nhà hàng Đỉnh Cao\",\r\n  \"businessAddress\": \"456 đường XYZ, Hà Nội\",\r\n  \"contractNumber\": \"0123456789\",\r\n  \"contractEmail\": \"contract@example.com\",\r\n  \"cardHolderName\": \"Nguyen Van A\",\r\n  \"accountNumber\": \"9876543210123\",\r\n  \"expirationDate\": \"12/28\",\r\n  \"cvv\": \"456\",\r\n  \"frontImage\": \"base64_front_image\",\r\n  \"backImage\": \"base64_back_image\",\r\n  \"username\": \"admin_t1\",\r\n  \"email\": \"admin_t1@example.com\",\r\n  \"password\": \"StrongPassword!123\",\r\n  \"confirmPassword\": \"StrongPassword!123\",\r\n  \"fullName\": \"Nguyen Hung Thinh\",\r\n  \"roles\": [\"ADMIN\"]\r\n}\r\n",
           "options": {
             "raw": {
               "language": "json"
