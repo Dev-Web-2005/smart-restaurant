@@ -135,6 +135,9 @@ export class IdentityController {
 			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
 			secure: process.env.MOD === 'production' ? true : false,
 			path: '/',
+			...(process.env.MOD === 'production' && { 
+				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site' // thêm domain cho production
+			})
 		});
 
 		const type = convertData.data.roles.includes('ADMIN') ? 'admin' : 'user';
@@ -144,7 +147,11 @@ export class IdentityController {
 			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
 			secure: process.env.MOD === 'production' ? true : false,
 			path: '/',
+			...(process.env.MOD === 'production' && { 
+				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site'
+			})
 		});
+
 
 		return res.status(HttpStatus.OK).json(
 			new ApiResponse<any>({
@@ -252,6 +259,9 @@ export class IdentityController {
 			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
 			secure: process.env.MOD === 'production' ? true : false,
 			path: '/',
+			...(process.env.MOD === 'production' && { 
+				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site' // thêm domain cho production
+			})
 		});
 
 		res.clearCookie('type', {
@@ -259,6 +269,9 @@ export class IdentityController {
 			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
 			secure: process.env.MOD === 'production' ? true : false,
 			path: '/',
+			...(process.env.MOD === 'production' && { 
+				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site'
+			})
 		});
 
 		return res.status(HttpStatus.OK).json(

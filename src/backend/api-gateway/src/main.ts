@@ -8,6 +8,12 @@ import CookieParser from 'cookie-parser';
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
 
+	// Register Cookie Parser middleware
+	app.use(CookieParser());
+	// Trust proxy - Cách 1: Get Express instance
+	const expressApp = app.getHttpAdapter().getInstance();
+	expressApp.set('trust proxy', 1); // hoặc true
+
 	// Set global prefix nhưng exclude health routes và QR scan routes
 	app.setGlobalPrefix('api/v1', {
 		exclude: [
@@ -60,9 +66,6 @@ async function bootstrap() {
 		allowedHeaders: 'Content-Type,Authorization,x-api-key',
 		exposedHeaders: 'Set-Cookie',
 	});
-
-	// Register Cookie Parser middleware
-	app.use(CookieParser());
 
 	await app.listen(parseInt(process.env.PORT, 10) ?? 8888);
 
