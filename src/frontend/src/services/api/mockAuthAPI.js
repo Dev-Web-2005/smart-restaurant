@@ -112,7 +112,11 @@ export const loginAPI = async (username, password) => {
 // ============================================================================
 export const registerAPI = async (signupData, onboardingData) => {
 	console.log('🔧 MOCK: Register API called')
-	console.log('Signup data:', { ...signupData, password: '***' })
+	console.log('Signup data:', {
+		...signupData,
+		password: '***',
+		confirmPassword: signupData.confirmPassword ? '***' : undefined,
+	})
 	console.log('Onboarding data:', onboardingData)
 
 	// Simulate network delay
