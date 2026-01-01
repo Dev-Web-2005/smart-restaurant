@@ -11,6 +11,9 @@ import {
 	orderStatusToString,
 	orderTypeToString,
 	paymentStatusToString,
+	orderStatusFromString,
+	orderTypeFromString,
+	paymentStatusFromString,
 } from '../common/enums';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
@@ -92,13 +95,18 @@ export class OrderService {
 			throw new AppException(ErrorCode.ORDER_ALREADY_EXISTS);
 		}
 
+		// Convert string status to enum
+		const orderType = dto.orderType
+			? orderTypeFromString(dto.orderType)
+			: OrderType.DINE_IN;
+
 		// Create order
 		const order = this.orderRepository.create({
 			tenantId: dto.tenantId,
 			tableId: dto.tableId,
 			customerId: dto.customerId,
 			customerName: dto.customerName,
-			orderType: dto.orderType || OrderType.DINE_IN,
+			orderType: orderType,
 			status: OrderStatus.PENDING,
 			paymentStatus: PaymentStatus.PENDING,
 			notes: dto.notes,
@@ -176,12 +184,14 @@ export class OrderService {
 		}
 
 		if (dto.status) {
-			queryBuilder.andWhere('order.status = :status', { status: dto.status });
+			const statusEnum = orderStatusFromString(dto.status);
+			queryBuilder.andWhere('order.status = :status', { status: statusEnum });
 		}
 
 		if (dto.paymentStatus) {
+			const paymentStatusEnum = paymentStatusFromString(dto.paymentStatus);
 			queryBuilder.andWhere('order.paymentStatus = :paymentStatus', {
-				paymentStatus: dto.paymentStatus,
+				paymentStatus: paymentStatusEnum,
 			});
 		}
 
@@ -267,6 +277,9 @@ export class OrderService {
 	async updateOrderStatus(dto: UpdateOrderStatusRequestDto): Promise<OrderResponseDto> {
 		this.validateApiKey(dto.orderApiKey);
 
+		// Convert string status to enum
+		const newStatus = orderStatusFromString(dto.status);
+
 		const order = await this.orderRepository.findOne({
 			where: {
 				id: dto.orderId,
@@ -280,19 +293,19 @@ export class OrderService {
 		}
 
 		// Validate status transition
-		if (!isValidStatusTransition(order.status, dto.status)) {
+		if (!isValidStatusTransition(order.status, newStatus)) {
 			throw new AppException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
 		}
 
 		// Validate rejection reason
-		if (dto.status === OrderStatus.REJECTED && !dto.rejectionReason) {
+		if (newStatus === OrderStatus.REJECTED && !dto.rejectionReason) {
 			throw new AppException(ErrorCode.VALIDATION_FAILED);
 		}
 
 		// Update status and timestamps
-		order.status = dto.status;
+		order.status = newStatus;
 
-		switch (dto.status) {
+		switch (newStatus) {
 			case OrderStatus.ACCEPTED:
 				order.acceptedAt = new Date();
 				order.waiterId = dto.waiterId;
@@ -317,7 +330,7 @@ export class OrderService {
 		const updatedOrder = await this.orderRepository.save(order);
 
 		this.logger.log(
-			`Order ${order.id} status updated from ${order.status} to ${dto.status}`,
+			`Order ${order.id} status updated from ${orderStatusToString(order.status)} to ${orderStatusToString(newStatus)}`,
 		);
 
 		// TODO: Send notification via RabbitMQ
@@ -373,6 +386,9 @@ export class OrderService {
 	): Promise<OrderResponseDto> {
 		this.validateApiKey(dto.orderApiKey);
 
+		// Convert string status to enum
+		const newPaymentStatus = paymentStatusFromString(dto.paymentStatus);
+
 		const order = await this.orderRepository.findOne({
 			where: {
 				id: dto.orderId,
@@ -385,7 +401,7 @@ export class OrderService {
 			throw new AppException(ErrorCode.ORDER_NOT_FOUND);
 		}
 
-		order.paymentStatus = dto.paymentStatus;
+		order.paymentStatus = newPaymentStatus;
 
 		if (dto.paymentMethod) {
 			order.paymentMethod = dto.paymentMethod;
@@ -396,7 +412,7 @@ export class OrderService {
 		}
 
 		// If payment is successful, mark order as completed
-		if (dto.paymentStatus === PaymentStatus.PAID && order.status === OrderStatus.SERVED) {
+		if (newPaymentStatus === PaymentStatus.PAID && order.status === OrderStatus.SERVED) {
 			order.status = OrderStatus.COMPLETED;
 			order.completedAt = new Date();
 		}

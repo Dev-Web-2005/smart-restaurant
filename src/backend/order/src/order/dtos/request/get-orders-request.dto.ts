@@ -2,13 +2,11 @@ import {
 	IsString,
 	IsNotEmpty,
 	IsOptional,
-	IsEnum,
+	IsIn,
 	IsNumber,
 	Min,
 	IsUUID,
 } from 'class-validator';
-import { OrderStatus } from '../../../common/enums/order-status.enum';
-import { PaymentStatus } from '../../../common/enums/payment-status.enum';
 
 /**
  * DTO for listing orders with filtering, sorting, and pagination
@@ -31,25 +29,38 @@ export class GetOrdersRequestDto {
 	@IsOptional()
 	customerId?: string; // Filter by customer
 
-	@IsEnum(OrderStatus)
+	@IsString()
 	@IsOptional()
-	status?: OrderStatus; // Filter by status
+	@IsIn([
+		'PENDING',
+		'ACCEPTED',
+		'REJECTED',
+		'PREPARING',
+		'READY',
+		'SERVED',
+		'COMPLETED',
+		'CANCELLED',
+	])
+	status?: string; // Filter by status
 
-	@IsEnum(PaymentStatus)
+	@IsString()
 	@IsOptional()
-	paymentStatus?: PaymentStatus; // Filter by payment status
+	@IsIn(['PENDING', 'PROCESSING', 'PAID', 'FAILED', 'REFUNDED'])
+	paymentStatus?: string; // Filter by payment status
 
 	@IsUUID()
 	@IsOptional()
 	waiterId?: string; // Filter by waiter
 
 	// Sorting
-	@IsEnum(['createdAt', 'updatedAt', 'total'])
+	@IsString()
 	@IsOptional()
+	@IsIn(['createdAt', 'updatedAt', 'total'])
 	sortBy?: string; // Field to sort by
 
-	@IsEnum(['ASC', 'DESC'])
+	@IsString()
 	@IsOptional()
+	@IsIn(['ASC', 'DESC'])
 	sortOrder?: 'ASC' | 'DESC'; // Sort direction
 
 	// Pagination

@@ -1,5 +1,4 @@
-import { IsString, IsNotEmpty, IsEnum, IsOptional, IsUUID } from 'class-validator';
-import { OrderStatus } from '../../../common/enums/order-status.enum';
+import { IsString, IsNotEmpty, IsIn, IsOptional, IsUUID } from 'class-validator';
 
 /**
  * DTO for updating order status
@@ -22,9 +21,19 @@ export class UpdateOrderStatusRequestDto {
 	@IsNotEmpty()
 	orderId: string;
 
-	@IsEnum(OrderStatus)
+	@IsString()
 	@IsNotEmpty()
-	status: OrderStatus;
+	@IsIn([
+		'PENDING',
+		'ACCEPTED',
+		'REJECTED',
+		'PREPARING',
+		'READY',
+		'SERVED',
+		'COMPLETED',
+		'CANCELLED',
+	])
+	status: string;
 
 	@IsUUID()
 	@IsOptional()

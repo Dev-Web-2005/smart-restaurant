@@ -6,11 +6,10 @@ import {
 	ValidateNested,
 	IsNumber,
 	Min,
-	IsEnum,
+	IsIn,
 	IsUUID,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { OrderType } from '../../../common/enums/order-type.enum';
 
 /**
  * DTO for creating a new order
@@ -42,9 +41,10 @@ export class CreateOrderRequestDto {
 	@IsOptional()
 	customerName?: string;
 
-	@IsEnum(OrderType)
+	@IsString()
 	@IsOptional()
-	orderType?: OrderType; // Defaults to DINE_IN
+	@IsIn(['DINE_IN', 'TAKEAWAY', 'DELIVERY'])
+	orderType?: string; // Defaults to DINE_IN
 
 	@IsArray()
 	@ValidateNested({ each: true })

@@ -1,5 +1,4 @@
-import { IsString, IsNotEmpty, IsEnum, IsOptional, IsUUID } from 'class-validator';
-import { PaymentStatus } from '../../../common/enums/payment-status.enum';
+import { IsString, IsNotEmpty, IsIn, IsOptional, IsUUID } from 'class-validator';
 
 /**
  * DTO for updating payment status
@@ -21,9 +20,10 @@ export class UpdatePaymentStatusRequestDto {
 	@IsNotEmpty()
 	orderId: string;
 
-	@IsEnum(PaymentStatus)
+	@IsString()
 	@IsNotEmpty()
-	paymentStatus: PaymentStatus;
+	@IsIn(['PENDING', 'PROCESSING', 'PAID', 'FAILED', 'REFUNDED'])
+	paymentStatus: string;
 
 	@IsString()
 	@IsOptional()
