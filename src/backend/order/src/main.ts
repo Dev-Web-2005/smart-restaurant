@@ -3,11 +3,11 @@ import { AppModule } from './app.module';
 import { MicroserviceOptions, Transport, RpcException } from '@nestjs/microservices';
 import { ValidationPipe } from '@nestjs/common';
 import ErrorCode from '@shared/exceptions/error-code';
-import { GlobalExceptionFilter } from 'src/common/filters/global-exception/global-exception.filter';
+import { GlobalExceptionFilter } from './common/filters/global-exception/global-exception.filter';
 
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
-	const port = parseInt(process.env.PORT, 10);
+	const port = parseInt(process.env.PORT, 10) || 8083;
 
 	app.connectMicroservice<MicroserviceOptions>({
 		transport: Transport.TCP,
@@ -54,10 +54,12 @@ async function bootstrap() {
 		app.close().then(() => process.exit(0));
 	});
 }
+
 bootstrap()
 	.then(() => {
-		console.log(`Microservice is running on port ${process.env.PORT}`);
+		console.log(`Order Service is running on port ${process.env.PORT}`);
 	})
 	.catch((err) => {
-		console.error('Error starting the microservice', err);
+		console.error('Failed to start Order Service:', err);
+		process.exit(1);
 	});

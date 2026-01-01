@@ -259,6 +259,48 @@ export default class ErrorCode {
 		409
 	);
 
+	/** Order not found */
+	static readonly ORDER_NOT_FOUND: ErrorCode = new ErrorCode(
+		4010,
+		"Order not found",
+		404
+	);
+
+	/** Invalid order status transition */
+	static readonly INVALID_ORDER_STATUS_TRANSITION: ErrorCode = new ErrorCode(
+		4011,
+		"Invalid order status transition",
+		400
+	);
+
+	/** Order already exists for this table session */
+	static readonly ORDER_ALREADY_EXISTS: ErrorCode = new ErrorCode(
+		4012,
+		"An active order already exists for this table",
+		409
+	);
+
+	/** Cannot modify completed order */
+	static readonly ORDER_ALREADY_COMPLETED: ErrorCode = new ErrorCode(
+		4013,
+		"Cannot modify a completed order",
+		400
+	);
+
+	/** Order items cannot be empty */
+	static readonly ORDER_ITEMS_REQUIRED: ErrorCode = new ErrorCode(
+		4014,
+		"Order must contain at least one item",
+		400
+	);
+
+	/** Order item not found */
+	static readonly ORDER_ITEM_NOT_FOUND: ErrorCode = new ErrorCode(
+		4015,
+		"Order item not found",
+		404
+	);
+
 	// ==================== PAYMENT (5000-5999) ====================
 	// Reserved for payment service
 
