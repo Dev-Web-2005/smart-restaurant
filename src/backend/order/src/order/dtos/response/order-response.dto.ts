@@ -1,6 +1,3 @@
-import { OrderStatus } from '../../../common/enums/order-status.enum';
-import { OrderType } from '../../../common/enums/order-type.enum';
-import { PaymentStatus } from '../../../common/enums/payment-status.enum';
 import { OrderItemModifier } from '../../../common/entities/order-item.entity';
 
 /**
@@ -26,6 +23,7 @@ export class OrderItemResponseDto {
 
 /**
  * Response DTO for order
+ * Note: Status fields are returned as strings for client compatibility
  */
 export class OrderResponseDto {
 	id: string;
@@ -33,9 +31,9 @@ export class OrderResponseDto {
 	tableId: string;
 	customerId: string;
 	customerName: string;
-	orderType: OrderType;
-	status: OrderStatus;
-	paymentStatus: PaymentStatus;
+	orderType: string; // Converted to string from OrderType enum
+	status: string; // Converted to string from OrderStatus enum
+	paymentStatus: string; // Converted to string from PaymentStatus enum
 	paymentMethod: string;
 	paymentTransactionId: string;
 	subtotal: number;

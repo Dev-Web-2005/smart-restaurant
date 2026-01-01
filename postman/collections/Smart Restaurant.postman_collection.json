@@ -285,6 +285,54 @@
           "response": []
         },
         {
+          "name": "Update Floor",
+          "id": "a38bbc0a-015b-460a-88ed-4febe00affb5",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    // All is optional\r\n    \"name\": \"Tầng 1 (Update)\"\r\n    // \"floorNumber\": 2,\r\n    // \"gridWidth\": 10,\r\n    // \"gridHeight\": 10,\r\n    // \"description\": \"hehe\",\r\n    // \"isActive\": true\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors/3ac7df6b-de49-45f5-9ddd-8c24dc8ad309",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "floors",
+                "3ac7df6b-de49-45f5-9ddd-8c24dc8ad309"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Get All Floors",
           "id": "fe8e47f4-1abe-4e86-910e-e0d23bdac0f2",
           "request": {
@@ -635,54 +683,6 @@
                   "key": "format",
                   "value": "combined-pdf"
                 }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update Floor",
-          "id": "a38bbc0a-015b-460a-88ed-4febe00affb5",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n    // All is optional\r\n    \"name\": \"Tầng 1 (Update)\"\r\n    // \"floorNumber\": 2,\r\n    // \"gridWidth\": 10,\r\n    // \"gridHeight\": 10,\r\n    // \"description\": \"hehe\",\r\n    // \"isActive\": true\r\n\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors/3ac7df6b-de49-45f5-9ddd-8c24dc8ad309",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "tenants",
-                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                "floors",
-                "3ac7df6b-de49-45f5-9ddd-8c24dc8ad309"
               ]
             }
           },
@@ -2279,6 +2279,468 @@
       "id": "8ab72cfb-05a5-48fc-bc3b-0dd9bb65b6ec"
     },
     {
+      "name": "Current User",
+      "item": [
+        {
+          "name": "login",
+          "id": "4976ee0f-eb78-469e-926b-df0edbfd9d16",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"username\": \"user123456\",\r\n    \"password\": \"StrongPassword!123\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/identity/auth/login",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "identity",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "logout",
+          "id": "bff09ec7-0431-4fcc-bee3-f9082ca07ad0",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzN2M4MmE1ZC00NGM2LTQ4YWItYjhjYi04MzYwM2JhODE3YmYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NSIsImVtYWlsIjoidXNlcjEyMzQ1QGV4YW1wbGUuY29tIiwicm9sZXMiOlsiQURNSU4iXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTYxMywiZXhwIjoxNzY1MDIxOTEzfQ.LcUhkzH8CWHoLsT75EY6ywgBcWoQQ1_fr3Jg0qIRCa8",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8888/api/v1/identity/auth/logout",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "identity",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "register user",
+          "id": "a7835302-c2eb-49cd-b7ec-81ac8f4d6607",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"birthDay\": \"1999-10-15\",\r\n  \"phoneNumber\": \"0987654321\",\r\n  \"address\": \"123 đường ABC, TP HCM\",\r\n  \"restaurantName\": \"Nhà hàng Đỉnh Cao\",\r\n  \"businessAddress\": \"456 đường XYZ, Hà Nội\",\r\n  \"contractNumber\": \"0123456789\",\r\n  \"contractEmail\": \"contract@example.com\",\r\n  \"cardHolderName\": \"Nguyen Van A\",\r\n  \"accountNumber\": \"9876543210123\",\r\n  \"expirationDate\": \"12/28\",\r\n  \"cvv\": \"456\",\r\n  \"frontImage\": \"base64_front_image\",\r\n  \"backImage\": \"base64_back_image\",\r\n  \"username\": \"test1\",\r\n  \"email\": \"test1@example.com\",\r\n  \"password\": \"StrongPassword!123\",\r\n  \"confirmPassword\": \"StrongPassword!123\",\r\n  \"fullName\": \"Nguyen Hung Thinh\",\r\n  \"roles\": [\"ADMIN\"]\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/identity/users/register",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "identity",
+                "users",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "my profile",
+          "id": "62426c60-81de-4ff1-8de4-0adef71dcf5c",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8888/api/v1/profiles/my-profile",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "profiles",
+                "my-profile"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "update profile",
+          "id": "1f14838b-625e-400e-80c1-3e656b16cdf3",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"verified\": true\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8888/api/v1/profiles/modify",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "profiles",
+                "modify"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "check verify account",
+          "id": "210ba3de-b922-4f6f-86c9-a426e7c39431",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8888/api/v1/profiles/verify-state",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "profiles",
+                "verify-state"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "705989e3-bd25-4f35-9b68-0a3093c081dc"
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "create authority",
+          "id": "9f11d17b-ccb5-45e3-a00c-61d37c30626e",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"WRITE\",\r\n    \"description\": \"aaaa\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8888/api/v1/identity/authorities/create-authority",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "identity",
+                "authorities",
+                "create-authority"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get authorities",
+          "id": "99849822-a4ee-4b03-9d86-2f7e8d010115",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8888/api/v1/identity/authorities/get-all-authorities",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "identity",
+                "authorities",
+                "get-all-authorities"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get all role",
+          "id": "daa0b0b6-9e60-4d24-9cff-0019538a3bf5",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8888/api/v1/identity/roles/get-all-roles",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "identity",
+                "roles",
+                "get-all-roles"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "craete role",
+          "id": "518994cf-21e4-4a5e-9c63-f84fe8390abd",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\" :\"USER\",\r\n    \"description\": \"user permission\",\r\n    \"authorities\": [\"READ\"]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8888/api/v1/identity/roles/create-role",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "identity",
+                "roles",
+                "create-role"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get profile (admin)",
+          "id": "29c9c291-e778-4bec-9f01-83c563df6b3b",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzN2M4MmE1ZC00NGM2LTQ4YWItYjhjYi04MzYwM2JhODE3YmYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NSIsImVtYWlsIjoidXNlcjEyMzQ1QGV4YW1wbGUuY29tIiwicm9sZXMiOlsiQURNSU4iXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTYxMywiZXhwIjoxNzY1MDIxOTEzfQ.LcUhkzH8CWHoLsT75EY6ywgBcWoQQ1_fr3Jg0qIRCa8",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8888/api/v1/profiles/00f6ce01-fb86-4056-86c8-cd90e52b0f73",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "profiles",
+                "00f6ce01-fb86-4056-86c8-cd90e52b0f73"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get all users",
+          "id": "0e22c202-61fa-40b1-9cce-5ea223287f8c",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzN2M4MmE1ZC00NGM2LTQ4YWItYjhjYi04MzYwM2JhODE3YmYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NSIsImVtYWlsIjoidXNlcjEyMzQ1QGV4YW1wbGUuY29tIiwicm9sZXMiOlsiQURNSU4iXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTYxMywiZXhwIjoxNzY1MDIxOTEzfQ.LcUhkzH8CWHoLsT75EY6ywgBcWoQQ1_fr3Jg0qIRCa8",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8888/api/v1/identity/users/get-all-users",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "identity",
+                "users",
+                "get-all-users"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "f6da9c92-ccdd-4e2f-915a-854adde5c72c"
+    },
+    {
+      "name": "Order",
+      "item": [],
+      "id": "96d51aaf-d0f5-4156-a4b9-2f72854f97e9"
+    },
+    {
       "name": "Update Floor",
       "id": "a38bbc0a-015b-460a-88ed-4febe00affb5",
       "request": {
@@ -2327,412 +2789,6 @@
       "response": []
     },
     {
-      "name": "create authority",
-      "id": "9f11d17b-ccb5-45e3-a00c-61d37c30626e",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n    \"name\": \"WRITE\",\r\n    \"description\": \"aaaa\"\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "http://localhost:8888/api/v1/identity/authorities/create-authority",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "identity",
-            "authorities",
-            "create-authority"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "get authorities",
-      "id": "99849822-a4ee-4b03-9d86-2f7e8d010115",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "http://localhost:8888/api/v1/identity/authorities/get-all-authorities",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "identity",
-            "authorities",
-            "get-all-authorities"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "craete role",
-      "id": "518994cf-21e4-4a5e-9c63-f84fe8390abd",
-      "request": {
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n    \"name\" :\"USER\",\r\n    \"description\": \"user permission\",\r\n    \"authorities\": [\"READ\"]\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "http://localhost:8888/api/v1/identity/roles/create-role",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "identity",
-            "roles",
-            "create-role"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "get all role",
-      "id": "daa0b0b6-9e60-4d24-9cff-0019538a3bf5",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "http://localhost:8888/api/v1/identity/roles/get-all-roles",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "identity",
-            "roles",
-            "get-all-roles"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "register user",
-      "id": "a7835302-c2eb-49cd-b7ec-81ac8f4d6607",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"birthDay\": \"1999-10-15\",\r\n  \"phoneNumber\": \"0987654321\",\r\n  \"address\": \"123 đường ABC, TP HCM\",\r\n  \"restaurantName\": \"Nhà hàng Đỉnh Cao\",\r\n  \"businessAddress\": \"456 đường XYZ, Hà Nội\",\r\n  \"contractNumber\": \"0123456789\",\r\n  \"contractEmail\": \"contract@example.com\",\r\n  \"cardHolderName\": \"Nguyen Van A\",\r\n  \"accountNumber\": \"9876543210123\",\r\n  \"expirationDate\": \"12/28\",\r\n  \"cvv\": \"456\",\r\n  \"frontImage\": \"base64_front_image\",\r\n  \"backImage\": \"base64_back_image\",\r\n  \"username\": \"test1\",\r\n  \"email\": \"test1@example.com\",\r\n  \"password\": \"StrongPassword!123\",\r\n  \"confirmPassword\": \"StrongPassword!123\",\r\n  \"fullName\": \"Nguyen Hung Thinh\",\r\n  \"roles\": [\"ADMIN\"]\r\n}\r\n",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{baseURL}}/api/v1/identity/users/register",
-          "host": [
-            "{{baseURL}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "identity",
-            "users",
-            "register"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "get all users",
-      "id": "0e22c202-61fa-40b1-9cce-5ea223287f8c",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzN2M4MmE1ZC00NGM2LTQ4YWItYjhjYi04MzYwM2JhODE3YmYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NSIsImVtYWlsIjoidXNlcjEyMzQ1QGV4YW1wbGUuY29tIiwicm9sZXMiOlsiQURNSU4iXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTYxMywiZXhwIjoxNzY1MDIxOTEzfQ.LcUhkzH8CWHoLsT75EY6ywgBcWoQQ1_fr3Jg0qIRCa8",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "GET",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "http://localhost:8888/api/v1/identity/users/get-all-users",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "identity",
-            "users",
-            "get-all-users"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "login",
-      "id": "4976ee0f-eb78-469e-926b-df0edbfd9d16",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n    \"username\": \"user123456\",\r\n    \"password\": \"StrongPassword!123\"\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{baseURL}}/api/v1/identity/auth/login",
-          "host": [
-            "{{baseURL}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "identity",
-            "auth",
-            "login"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "logout",
-      "id": "bff09ec7-0431-4fcc-bee3-f9082ca07ad0",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzN2M4MmE1ZC00NGM2LTQ4YWItYjhjYi04MzYwM2JhODE3YmYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NSIsImVtYWlsIjoidXNlcjEyMzQ1QGV4YW1wbGUuY29tIiwicm9sZXMiOlsiQURNSU4iXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTYxMywiZXhwIjoxNzY1MDIxOTEzfQ.LcUhkzH8CWHoLsT75EY6ywgBcWoQQ1_fr3Jg0qIRCa8",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "GET",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "http://localhost:8888/api/v1/identity/auth/logout",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "identity",
-            "auth",
-            "logout"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "get profile (admin)",
-      "id": "29c9c291-e778-4bec-9f01-83c563df6b3b",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzN2M4MmE1ZC00NGM2LTQ4YWItYjhjYi04MzYwM2JhODE3YmYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NSIsImVtYWlsIjoidXNlcjEyMzQ1QGV4YW1wbGUuY29tIiwicm9sZXMiOlsiQURNSU4iXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTYxMywiZXhwIjoxNzY1MDIxOTEzfQ.LcUhkzH8CWHoLsT75EY6ywgBcWoQQ1_fr3Jg0qIRCa8",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "GET",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "http://localhost:8888/api/v1/profiles/00f6ce01-fb86-4056-86c8-cd90e52b0f73",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "profiles",
-            "00f6ce01-fb86-4056-86c8-cd90e52b0f73"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "my profile",
-      "id": "62426c60-81de-4ff1-8de4-0adef71dcf5c",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "GET",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "http://localhost:8888/api/v1/profiles/my-profile",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "profiles",
-            "my-profile"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "update profile",
-      "id": "1f14838b-625e-400e-80c1-3e656b16cdf3",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "PATCH",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n    \"verified\": true\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "http://localhost:8888/api/v1/profiles/modify",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "profiles",
-            "modify"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
       "name": "my user",
       "id": "6599b8d2-beea-4f7b-bfef-7c8478f97878",
       "request": {
@@ -2767,45 +2823,6 @@
             "identity",
             "users",
             "my-user"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "check verify account",
-      "id": "210ba3de-b922-4f6f-86c9-a426e7c39431",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "GET",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "http://localhost:8888/api/v1/profiles/verify-state",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "profiles",
-            "verify-state"
           ]
         }
       },

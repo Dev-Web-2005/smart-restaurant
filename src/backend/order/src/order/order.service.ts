@@ -8,6 +8,9 @@ import {
 	isValidStatusTransition,
 	OrderType,
 	PaymentStatus,
+	orderStatusToString,
+	orderTypeToString,
+	paymentStatusToString,
 } from '../common/enums';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
@@ -506,8 +509,8 @@ export class OrderService {
 			subtotal += item.total;
 		}
 
-		// Calculate tax (e.g., 10% VAT)
-		const taxRate = 0.1;
+		// Calculate tax from environment variable (e.g., 0.1 = 10% VAT)
+		const taxRate = this.configService.get<number>('TAX_RATE', 0.1);
 		const tax = subtotal * taxRate;
 
 		order.subtotal = subtotal;
@@ -525,9 +528,9 @@ export class OrderService {
 			tableId: order.tableId,
 			customerId: order.customerId,
 			customerName: order.customerName,
-			orderType: order.orderType,
-			status: order.status,
-			paymentStatus: order.paymentStatus,
+			orderType: orderTypeToString(order.orderType),
+			status: orderStatusToString(order.status),
+			paymentStatus: paymentStatusToString(order.paymentStatus),
 			paymentMethod: order.paymentMethod,
 			paymentTransactionId: order.paymentTransactionId,
 			subtotal: order.subtotal,

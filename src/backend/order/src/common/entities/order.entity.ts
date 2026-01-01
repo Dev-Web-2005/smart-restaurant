@@ -46,14 +46,14 @@ export class Order {
 	@Column({ type: 'varchar', length: 50, nullable: true })
 	customerName: string; // Optional customer name for the order
 
-	@Column({ type: 'varchar', length: 20, default: OrderType.DINE_IN })
+	@Column({ type: 'int', default: OrderType.DINE_IN })
 	orderType: OrderType;
 
-	@Column({ type: 'varchar', length: 20, default: OrderStatus.PENDING })
+	@Column({ type: 'int', default: OrderStatus.PENDING })
 	@Index()
 	status: OrderStatus;
 
-	@Column({ type: 'varchar', length: 20, default: PaymentStatus.PENDING })
+	@Column({ type: 'int', default: PaymentStatus.PENDING })
 	paymentStatus: PaymentStatus;
 
 	@Column({ type: 'varchar', length: 50, nullable: true })
