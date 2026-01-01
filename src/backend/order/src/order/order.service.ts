@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -26,6 +26,8 @@ import {
 	PaginatedOrdersResponseDto,
 	OrderItemResponseDto,
 } from './dtos/response';
+import { ClientProxy } from '@nestjs/microservices/client/client-proxy';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class OrderService {
@@ -36,6 +38,7 @@ export class OrderService {
 		private readonly orderRepository: Repository<Order>,
 		@InjectRepository(OrderItem)
 		private readonly orderItemRepository: Repository<OrderItem>,
+		@Inject('PRODUCT_SERVICE') private readonly productClient: ClientProxy,
 		private readonly configService: ConfigService,
 	) {}
 
@@ -413,45 +416,71 @@ export class OrderService {
 		const items: OrderItem[] = [];
 
 		for (const itemDto of itemDtos) {
-			// TODO: Fetch menu item details from product service
-			// For now, using mock data
-			const menuItemSnapshot = {
-				id: itemDto.menuItemId,
-				name: 'Menu Item Name', // Should fetch from product service
-				description: 'Menu item description',
-				price: 100000, // Should fetch from product service
+			// DONE: Fetch menu item details from product service
+			const getMenuItemRequest = {
+				productApiKey: this.configService.get<string>('PRODUCT_API_KEY'),
+				tenantId: order.tenantId,
+				menuItemId: itemDto.menuItemId,
 			};
+
+			const menuItem = await firstValueFrom(
+				this.productClient.send('menu-items:get', getMenuItemRequest),
+			);
 
 			// Calculate modifiers total
 			let modifiersTotal = 0;
 			const modifiers = [];
 
 			if (itemDto.modifiers && itemDto.modifiers.length > 0) {
-				// TODO: Fetch modifier details from product service
+				// DONE: Fetch modifier details from product service
 				for (const modDto of itemDto.modifiers) {
-					const modifierSnapshot = {
+					// const modifierSnapshot = {
+					// 	modifierGroupId: modDto.modifierGroupId,
+					// 	modifierGroupName: 'Modifier Group', // Fetch from product service
+					// 	modifierOptionId: modDto.modifierOptionId,
+					// 	optionName: 'Modifier Option', // Fetch from product service
+					// 	price: 5000, // Fetch from product service
+					// 	currency: 'VND',
+					// };
+					const modifierGroup = await firstValueFrom(
+						this.productClient.send('modifier-groups:get', {
+							productApiKey: this.configService.get<string>('PRODUCT_API_KEY'),
+							tenantId: order.tenantId,
+							modifierGroupId: modDto.modifierGroupId,
+						}),
+					);
+					const modifierOption = await firstValueFrom(
+						this.productClient.send('modifier-options:get', {
+							productApiKey: this.configService.get<string>('PRODUCT_API_KEY'),
+							tenantId: order.tenantId,
+							modifierGroupId: modDto.modifierGroupId,
+							modifierOptionId: modDto.modifierOptionId,
+						}),
+					);
+
+					const orderItemModifier = {
 						modifierGroupId: modDto.modifierGroupId,
-						modifierGroupName: 'Modifier Group', // Fetch from product service
+						modifierGroupName: modifierGroup.name,
 						modifierOptionId: modDto.modifierOptionId,
-						optionName: 'Modifier Option', // Fetch from product service
-						price: 5000, // Fetch from product service
+						optionName: modifierOption.name,
+						price: modifierOption.price,
 						currency: 'VND',
 					};
 
-					modifiers.push(modifierSnapshot);
-					modifiersTotal += modifierSnapshot.price * itemDto.quantity;
+					modifiers.push(orderItemModifier);
+					modifiersTotal += orderItemModifier.price * itemDto.quantity;
 				}
 			}
 
-			const subtotal = menuItemSnapshot.price * itemDto.quantity;
+			const subtotal = menuItem.price * itemDto.quantity;
 			const total = subtotal + modifiersTotal;
 
 			const orderItem = this.orderItemRepository.create({
 				order: order,
 				menuItemId: itemDto.menuItemId,
-				name: menuItemSnapshot.name,
-				description: menuItemSnapshot.description,
-				unitPrice: menuItemSnapshot.price,
+				name: menuItem.name,
+				description: menuItem.description,
+				unitPrice: menuItem.price,
 				quantity: itemDto.quantity,
 				subtotal: subtotal,
 				modifiersTotal: modifiersTotal,
