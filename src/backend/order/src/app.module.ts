@@ -8,7 +8,7 @@ import { Order, OrderItem } from './common/entities';
 
 @Module({
 	imports: [
-		ConfigModule.forRoot({ 
+		ConfigModule.forRoot({
 			isGlobal: true,
 			envFilePath: '.env',
 		}),

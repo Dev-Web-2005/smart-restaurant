@@ -12,10 +12,7 @@ import { Order, OrderItem } from '../common/entities';
  * Provides CRUD operations and order lifecycle management
  */
 @Module({
-	imports: [
-		ConfigModule,
-		TypeOrmModule.forFeature([Order, OrderItem]),
-	],
+	imports: [ConfigModule, TypeOrmModule.forFeature([Order, OrderItem])],
 	controllers: [OrderController],
 	providers: [OrderService],
 	exports: [OrderService],
