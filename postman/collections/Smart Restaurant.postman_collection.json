@@ -2737,7 +2737,304 @@
     },
     {
       "name": "Order",
-      "item": [],
+      "item": [
+        {
+          "name": "Create Order",
+          "id": "create-order-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tableId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n  \"customerId\": \"b2c3d4e5-f6a7-8901-bcde-f12345678901\",\n  \"customerName\": \"John Doe\",\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": \"c3d4e5f6-a7b8-9012-cdef-123456789012\",\n      \"quantity\": 2,\n      \"notes\": \"Extra spicy\",\n      \"modifiers\": [\n        {\n          \"modifierGroupId\": \"d4e5f6a7-b8c9-0123-def1-234567890123\",\n          \"modifierOptionId\": \"e5f6a7b8-c9d0-1234-ef12-345678901234\"\n        }\n      ]\n    },\n    {\n      \"menuItemId\": \"f6a7b8c9-d0e1-2345-f123-456789012345\",\n      \"quantity\": 1,\n      \"notes\": \"No ice\"\n    }\n  ],\n  \"notes\": \"Please serve quickly\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/orders",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "orders"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order By ID",
+          "id": "get-order-by-id-002",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "orders", "a1b2c3d4-e5f6-7890-abcd-ef1234567890"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Orders",
+          "id": "get-all-orders-003",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/orders?status=PENDING&paymentStatus=PENDING&page=1&limit=10&sortBy=createdAt&sortOrder=DESC",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "orders"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING"
+                },
+                {
+                  "key": "paymentStatus",
+                  "value": "PENDING"
+                },
+                {
+                  "key": "tableId",
+                  "value": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                  "disabled": true
+                },
+                {
+                  "key": "customerId",
+                  "value": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                  "disabled": true
+                },
+                {
+                  "key": "waiterId",
+                  "value": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "DESC"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Items to Order",
+          "id": "add-items-to-order-004",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"menuItemId\": \"g7h8i9j0-k1l2-3456-m789-012345678901\",\n      \"quantity\": 1,\n      \"notes\": \"Medium rare\",\n      \"modifiers\": [\n        {\n          \"modifierGroupId\": \"h8i9j0k1-l2m3-4567-n890-123456789012\",\n          \"modifierOptionId\": \"i9j0k1l2-m3n4-5678-o901-234567890123\"\n        }\n      ]\n    }\n  ],\n  \"notes\": \"Additional order from table\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/items",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "orders", "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "items"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Order Status",
+          "id": "update-order-status-005",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ACCEPTED\",\n  \"waiterId\": \"c3d4e5f6-a7b8-9012-cdef-123456789012\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/status",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "orders", "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Order",
+          "id": "cancel-order-006",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Customer changed mind\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "orders", "a1b2c3d4-e5f6-7890-abcd-ef1234567890"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Payment Status",
+          "id": "update-payment-status-007",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentStatus\": \"PAID\",\n  \"paymentMethod\": \"CARD\",\n  \"paymentTransactionId\": \"txn_1234567890abcdef\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/payment",
+              "host": ["{{baseURL}}"],
+              "path": ["api", "v1", "orders", "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "payment"]
+            }
+          },
+          "response": []
+        }
+      ],
       "id": "96d51aaf-d0f5-4156-a4b9-2f72854f97e9"
     },
     {
