@@ -1,3143 +1,2992 @@
 {
-  "info": {
-    "_postman_id": "00525d80-50e7-4e71-b3fe-1d10a5d8fd3c",
-    "name": "Smart Restaurant",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "item": [
-    {
-      "name": "Table",
-      "item": [
-        {
-          "name": "Create Table",
-          "id": "3bc6c980-9003-449d-8f7c-722378baa28e",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n  \"name\": \"Table 2\",\r\n  \"capacity\": 4,\r\n//   \"status\": \"AVAILABLE\", // default\r\n  \"floorId\": \"3ac7df6b-de49-45f5-9ddd-8c24dc8ad309\", // optional\r\n  \"gridX\": 0, // optional\r\n  \"gridY\": 0 // optional\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "tenants",
-                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                "tables"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Table By Id",
-          "id": "adf0cb7c-0971-462b-acbe-6e7a7a5f29ca",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/4e40e08c-675a-4825-af78-7028ac86fe69",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "tenants",
-                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                "tables",
-                "4e40e08c-675a-4825-af78-7028ac86fe69"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get List Table",
-          "id": "cfed1774-c30d-4887-98c8-85b66a383bee",
-          "protocolProfileBehavior": {
-            "disableBodyPruning": true
-          },
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "tenants",
-                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                "tables"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update Table",
-          "id": "42074d61-e049-4b45-9f63-ab689b961ba0",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n    // All is optional\r\n    \"name\": \"Table 1 (Update)\"\r\n    // \"capacity\": 10,\r\n    // \"status\": \"AVAILABLE\",\r\n    // \"floorId\": \"4e40e08c-675a-4825-af78-7028ac86fe69\",\r\n    // \"gridX\": \"1\",\r\n    // \"gridY\": \"1\",\r\n    // \"isActive\": \"true\"\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/4e40e08c-675a-4825-af78-7028ac86fe69",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "tenants",
-                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                "tables",
-                "4e40e08c-675a-4825-af78-7028ac86fe69"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Table",
-          "id": "c2dcc627-eea7-4541-818a-046c188ce0cf",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n    \r\n}"
-            },
-            "url": {
-              "raw": "http://localhost:8888/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/b325d227-0739-44c8-a6cd-441f29b5d227",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "8888",
-              "path": [
-                "api",
-                "v1",
-                "tenants",
-                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                "tables",
-                "b325d227-0739-44c8-a6cd-441f29b5d227"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create Floor",
-          "id": "c57a138f-cd6a-49bd-a316-97207f890bee",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n    \"name\": \"Tầng 2\",\r\n    \"floorNumber\": 2,\r\n    \"gridWidth\": 10,\r\n    \"gridHeight\": 10\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "tenants",
-                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                "floors"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update Floor",
-          "id": "a38bbc0a-015b-460a-88ed-4febe00affb5",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n    // All is optional\r\n    \"name\": \"Tầng 1 (Update)\"\r\n    // \"floorNumber\": 2,\r\n    // \"gridWidth\": 10,\r\n    // \"gridHeight\": 10,\r\n    // \"description\": \"hehe\",\r\n    // \"isActive\": true\r\n\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors/3ac7df6b-de49-45f5-9ddd-8c24dc8ad309",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "tenants",
-                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                "floors",
-                "3ac7df6b-de49-45f5-9ddd-8c24dc8ad309"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get All Floors",
-          "id": "fe8e47f4-1abe-4e86-910e-e0d23bdac0f2",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "tenants",
-                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                "floors"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Floor By Id",
-          "id": "18ecb4be-14bd-4666-8368-f6af8ca6196a",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors/3ac7df6b-de49-45f5-9ddd-8c24dc8ad309",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "tenants",
-                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                "floors",
-                "3ac7df6b-de49-45f5-9ddd-8c24dc8ad309"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Floor",
-          "id": "a434f3f8-2f6a-47d1-b92d-8a36ff929638",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors/3ac7df6b-de49-45f5-9ddd-8c24dc8ad309",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "tenants",
-                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                "floors",
-                "3ac7df6b-de49-45f5-9ddd-8c24dc8ad309"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Generate QR Code",
-          "id": "a5057cfc-2b9f-4bd4-9b12-034d64d8c359",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": ""
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/0e4d0676-a58f-4946-be23-df9e3f95ce0e/qrcode",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "tenants",
-                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                "tables",
-                "0e4d0676-a58f-4946-be23-df9e3f95ce0e",
-                "qrcode"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Validate QR Token",
-          "id": "6b09f957-1cc0-488b-9ed1-98eef313d9d2",
-          "protocolProfileBehavior": {
-            "disableBodyPruning": true
-          },
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/scan/eyJ0YWJsZUlkIjoiZmYwOWM3OWQtZmNlZS00OTg5LWJlMGUtNThkODliYTI1MjQzIiwidGVuYW50SWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ0b2tlblZlcnNpb24iOjMsImlzc3VlZEF0IjoxNzY2MjIxNTc5MzAyfQ.SWQZgcp8FVvC1ZIJwdwQM-ZKINCLAgtf_y-ejO2djqU",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "tenants",
-                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                "tables",
-                "scan",
-                "eyJ0YWJsZUlkIjoiZmYwOWM3OWQtZmNlZS00OTg5LWJlMGUtNThkODliYTI1MjQzIiwidGVuYW50SWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ0b2tlblZlcnNpb24iOjMsImlzc3VlZEF0IjoxNzY2MjIxNTc5MzAyfQ.SWQZgcp8FVvC1ZIJwdwQM-ZKINCLAgtf_y-ejO2djqU"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get QR Code",
-          "id": "1d3c915f-3536-4a9a-a08e-fb0a9bcbdd92",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": ""
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/ff09c79d-fcee-4989-be0e-58d89ba25243/qrcode",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "tenants",
-                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                "tables",
-                "ff09c79d-fcee-4989-be0e-58d89ba25243",
-                "qrcode"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Download QR Code",
-          "id": "4aa98de1-e643-4559-86b1-32ab61794c7f",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": ""
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/4e40e08c-675a-4825-af78-7028ac86fe69/qrcode/download?format=svg",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "tenants",
-                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                "tables",
-                "4e40e08c-675a-4825-af78-7028ac86fe69",
-                "qrcode",
-                "download"
-              ],
-              "query": [
-                {
-                  "key": "format",
-                  "value": "svg"
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Batch QR Code Download",
-          "id": "975fd6a5-241b-402d-875e-00c1f5d1d629",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": ""
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/qrcode/batch-download?format=combined-pdf",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "tenants",
-                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                "tables",
-                "qrcode",
-                "batch-download"
-              ],
-              "query": [
-                {
-                  "key": "format",
-                  "value": "combined-pdf"
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Bulk Regeneration For All QR Code",
-          "id": "74a49e7b-6864-4c11-bc7f-33a6cfa605a1",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n    \r\n}"
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/qrcode/bulk-regenerate",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "tenants",
-                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                "tables",
-                "qrcode",
-                "bulk-regenerate"
-              ]
-            }
-          },
-          "response": []
-        }
-      ],
-      "id": "39d654e7-9f52-4748-884b-2ba4e16960dd"
-    },
-    {
-      "name": "Product",
-      "item": [
-        {
-          "name": "Categories",
-          "item": [
-            {
-              "name": "Create Category",
-              "id": "c170c631-2f7b-4998-b78b-fb32366196f7",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"Beverages v2\",\n  \"description\": \"Enjoy meals with wonderful drinks\",\n  \"displayOrder\": 2,\n  \"imageUrl\": \"example-image.com\",\n  \"status\": \"ACTIVE\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/categories",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "categories"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get All Categories",
-              "id": "7b515daa-e631-448c-a402-45c7f498b50a",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/categories?status=ACTIVE&sortBy=displayOrder&sortOrder=ASC",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "categories"
-                  ],
-                  "query": [
-                    {
-                      "key": "status",
-                      "value": "ACTIVE",
-                      "uuid": "88728e08-9935-4fc9-98d6-7efa187b442c"
-                    },
-                    {
-                      "key": "search",
-                      "value": "",
-                      "disabled": true
-                    },
-                    {
-                      "key": "sortBy",
-                      "value": "displayOrder",
-                      "uuid": "1cd1a146-02b5-4fb4-b020-9d21726ed9ec"
-                    },
-                    {
-                      "key": "sortOrder",
-                      "value": "ASC",
-                      "uuid": "2cbebb06-54ce-4f12-b752-8b08eaed3f23"
-                    }
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get Detail Category",
-              "id": "10601e30-79f3-4fd4-aa07-9cfef33f6a0a",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/categories/7bb4c5d3-208c-4853-967f-eefef0d53ef9",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "categories",
-                    "7bb4c5d3-208c-4853-967f-eefef0d53ef9"
-                  ],
-                  "query": [
-                    {
-                      "key": "search",
-                      "value": "",
-                      "disabled": true
-                    }
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Update Category",
-              "id": "a08bde04-4672-404a-8106-508eb8838383",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"Updated Appetizers\",\n  \"description\": \"New description for appetizers\",\n  \"displayOrder\": 1\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/categories/5f6f6d52-d12c-485d-aa98-b624f2a27329",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "categories",
-                    "5f6f6d52-d12c-485d-aa98-b624f2a27329"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Update Category Status",
-              "id": "7f999180-291f-4493-8d5e-1a3609c6ecbc",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"status\": \"INACTIVE\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/categories/5f6f6d52-d12c-485d-aa98-b624f2a27329/status",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "categories",
-                    "5f6f6d52-d12c-485d-aa98-b624f2a27329",
-                    "status"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Delete Category",
-              "id": "069277ad-3396-4533-a8f4-3a52f604ac78",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/categories/5f6f6d52-d12c-485d-aa98-b624f2a27329",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "categories",
-                    "5f6f6d52-d12c-485d-aa98-b624f2a27329"
-                  ]
-                }
-              },
-              "response": []
-            }
-          ],
-          "id": "aa4e33ad-adab-4413-bd1f-7caec7c73a27"
-        },
-        {
-          "name": "Menu Items",
-          "item": [
-            {
-              "name": "Create Menu Item",
-              "id": "6588ff3f-4ab8-4720-b331-0b1162613cee",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"categoryId\": \"5f6f6d52-d12c-485d-aa98-b624f2a27329\",\n  \"name\": \"Caesar Salad\",\n  \"description\": \"Fresh romaine lettuce with Caesar dressing, parmesan cheese, and croutons\",\n  \"price\": 12.99,\n  \"currency\": \"VND\",\n  \"prepTimeMinutes\": 15,\n  \"status\": \"AVAILABLE\",\n  \"isChefRecommended\": true\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "items"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get All Menu Items",
-              "id": "f7326aba-ea9d-48bd-b713-4c71e172d729",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items?page=1&limit=20",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "items"
-                  ],
-                  "query": [
-                    {
-                      "key": "status",
-                      "value": "SOLD_OUT",
-                      "uuid": "649a4ae6-7010-4498-b63f-d791a26468df",
-                      "disabled": true
-                    },
-                    {
-                      "key": "isChefRecommended",
-                      "value": "true",
-                      "uuid": "87e400b2-f72a-4ac4-9878-39f416f956ae",
-                      "disabled": true
-                    },
-                    {
-                      "key": "search",
-                      "value": "",
-                      "disabled": true
-                    },
-                    {
-                      "key": "sortBy",
-                      "value": "createdAt",
-                      "disabled": true
-                    },
-                    {
-                      "key": "sortOrder",
-                      "value": "DESC",
-                      "disabled": true
-                    },
-                    {
-                      "key": "page",
-                      "value": "1",
-                      "uuid": "99f24279-4e43-4914-aa2f-d30aafed398b"
-                    },
-                    {
-                      "key": "limit",
-                      "value": "20",
-                      "uuid": "6ed75dab-531e-4d4e-bc1f-4736d1d06800"
-                    },
-                    {
-                      "key": "categoryId",
-                      "value": "5f6f6d52-d12c-485d-aa98-b624f2a27329",
-                      "uuid": "c02b79b4-59e1-4868-a837-262de4e15619",
-                      "disabled": true
-                    }
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get Detail Menu Item",
-              "id": "657627f4-f0e9-42a2-96ae-812b3c2a3b8f",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "items",
-                    "2dc1b28b-76d6-4ee4-935c-8741157d60c6"
-                  ],
-                  "query": [
-                    {
-                      "key": "search",
-                      "value": "",
-                      "disabled": true
-                    },
-                    {
-                      "key": "sortBy",
-                      "value": "createdAt",
-                      "disabled": true
-                    },
-                    {
-                      "key": "sortOrder",
-                      "value": "DESC",
-                      "disabled": true
-                    }
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Update Menu Item",
-              "id": "815fa6cb-c317-4259-b836-4e8a630e839e",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"Updated Caesar Salad\",\n  \"description\": \"Fresh romaine lettuce with homemade Caesar dressing\",\n  \"price\": 14.99,\n  \"prepTimeMinutes\": 20,\n  \"isChefRecommended\": false\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "items",
-                    "2dc1b28b-76d6-4ee4-935c-8741157d60c6"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Update Menu Item Status",
-              "id": "660629e9-f112-4ad3-bf58-1d37353ad251",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"status\": \"SOLD_OUT\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/status",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "items",
-                    "2dc1b28b-76d6-4ee4-935c-8741157d60c6",
-                    "status"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Delete Menu Item",
-              "id": "31a592ff-0517-499b-a3ae-4f92d5053aaf",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "items",
-                    "2dc1b28b-76d6-4ee4-935c-8741157d60c6"
-                  ]
-                }
-              },
-              "response": []
-            }
-          ],
-          "id": "35cbdd74-9336-401c-8b41-ce20cd24c45d"
-        },
-        {
-          "name": "Menu Item Photos",
-          "item": [
-            {
-              "name": "Add Photo to Menu Item",
-              "id": "a1adfb6f-467c-4459-9775-cac42ea378bc",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"url\": \"https://storage.example.com/photos/caesar-salad-two.jpg\",\n  \"displayOrder\": 2,\n  \"isPrimary\": false\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/photos",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "items",
-                    "2dc1b28b-76d6-4ee4-935c-8741157d60c6",
-                    "photos"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get All Photos for Menu Item",
-              "id": "5b109554-50f7-42ea-a7df-e436ca0c9157",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/photos",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "items",
-                    "2dc1b28b-76d6-4ee4-935c-8741157d60c6",
-                    "photos"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Update Photo",
-              "id": "0b7c738f-e90d-4f3c-8ae2-fa625db69aa2",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"displayOrder\": 2,\n  \"isPrimary\": false\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/photos/02895a1b-fc7f-4302-8eda-62ef92efee8f",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "items",
-                    "2dc1b28b-76d6-4ee4-935c-8741157d60c6",
-                    "photos",
-                    "02895a1b-fc7f-4302-8eda-62ef92efee8f"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Set Primary Photo",
-              "id": "16ae3390-d7d8-4339-8f28-9666ea766765",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/photos/02895a1b-fc7f-4302-8eda-62ef92efee8f/primary",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "items",
-                    "2dc1b28b-76d6-4ee4-935c-8741157d60c6",
-                    "photos",
-                    "02895a1b-fc7f-4302-8eda-62ef92efee8f",
-                    "primary"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Delete Photo",
-              "id": "445a6e55-384f-496d-8ffa-825aa78fe9fa",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/photos/02895a1b-fc7f-4302-8eda-62ef92efee8f",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "items",
-                    "2dc1b28b-76d6-4ee4-935c-8741157d60c6",
-                    "photos",
-                    "02895a1b-fc7f-4302-8eda-62ef92efee8f"
-                  ]
-                }
-              },
-              "response": []
-            }
-          ],
-          "id": "f9da6be7-b44c-4456-8db8-96a3216ebd26"
-        },
-        {
-          "name": "Modifier Groups",
-          "item": [
-            {
-              "name": "Create Modifier Group",
-              "id": "9f2f9dc6-6553-45d2-9821-4df1a8e9aae5",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"Size\",\n  \"description\": \"Choose your size\",\n  \"displayOrder\": 0,\n  \"isActive\": true\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "modifier-groups"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get All Modifier Groups",
-              "id": "86bca97d-539c-42d6-a730-4069d33ef1f5",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups?isActive=true",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "modifier-groups"
-                  ],
-                  "query": [
-                    {
-                      "key": "isActive",
-                      "value": "true",
-                      "uuid": "d6d73368-2505-4977-bc11-1cc0722ee02a"
-                    },
-                    {
-                      "key": "search",
-                      "value": "",
-                      "disabled": true
-                    }
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get Detail Modifier Group",
-              "id": "386e3b3f-8d87-4c19-816e-3ccc1de2522e",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "modifier-groups",
-                    "3b6f04c5-8517-42ff-ab76-8cb2d5c04abe"
-                  ],
-                  "query": [
-                    {
-                      "key": "search",
-                      "value": "",
-                      "disabled": true
-                    }
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Update Modifier Group",
-              "id": "69e87266-243e-4b4a-aa6d-41c7d75624a3",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"Updated Size\",\n  \"description\": \"New description\",\n  \"displayOrder\": 1,\n  \"isActive\": false\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "modifier-groups",
-                    "3b6f04c5-8517-42ff-ab76-8cb2d5c04abe"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Delete Modifier Group",
-              "id": "e6c31668-0771-42d5-bdda-3d1dd49e064e",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "modifier-groups",
-                    "3b6f04c5-8517-42ff-ab76-8cb2d5c04abe"
-                  ]
-                }
-              },
-              "response": []
-            }
-          ],
-          "id": "2851e86c-10a2-489e-bc95-9213d87db718"
-        },
-        {
-          "name": "Modifier Options",
-          "item": [
-            {
-              "name": "Create Modifier Option",
-              "id": "d7959258-a35d-4429-8b19-6315d1173885",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"label\": \"Large\",\n  \"priceDelta\": 2.00,\n  \"displayOrder\": 2,\n  \"isActive\": true\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe/options",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "modifier-groups",
-                    "3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
-                    "options"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get All Modifier Options",
-              "id": "3f93f56f-60ef-461f-97f9-d06a40a96b2c",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe/options?isActive=true",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "modifier-groups",
-                    "3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
-                    "options"
-                  ],
-                  "query": [
-                    {
-                      "key": "isActive",
-                      "value": "true",
-                      "uuid": "ebe3897f-dfe1-447c-b707-777a37576c09"
-                    }
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get Detail Modifier Option",
-              "id": "31a5c16e-f3a3-4d49-ba9d-7f30aa5cea27",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe/options/f4c25b7d-233c-4e98-98fe-5bf33aa11244",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "modifier-groups",
-                    "3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
-                    "options",
-                    "f4c25b7d-233c-4e98-98fe-5bf33aa11244"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Update Modifier Option",
-              "id": "02275c34-d6a7-42bb-8ec1-7623385d2832",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"label\": \"Extra Large\",\n  \"priceDelta\": 3.00,\n  \"displayOrder\": 3\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe/options/f4c25b7d-233c-4e98-98fe-5bf33aa11244",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "modifier-groups",
-                    "3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
-                    "options",
-                    "f4c25b7d-233c-4e98-98fe-5bf33aa11244"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Delete Modifier Option",
-              "id": "33b54e5a-b88b-4419-afc8-98440074001d",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/modifier-groups/{{groupId}}/options/{{optionId}}",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "{{tenantId}}",
-                    "modifier-groups",
-                    "{{groupId}}",
-                    "options",
-                    "{{optionId}}"
-                  ]
-                }
-              },
-              "response": []
-            }
-          ],
-          "id": "14b629c2-9db3-4d63-815b-34f9f98a05fd"
-        },
-        {
-          "name": "Menu Item Modifiers",
-          "item": [
-            {
-              "name": "Attach Modifier Groups to Item",
-              "id": "a6ab2879-f2ea-47b9-98bf-be2534b2d9d4",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"modifierGroups\": [\n    {\n      \"modifierGroupId\": \"3b6f04c5-8517-42ff-ab76-8cb2d5c04abe\",\n      \"displayOrder\": 0,\n      \"isRequired\": true,\n      \"minSelections\": 1,\n      \"maxSelections\": 1\n    }\n    // {\n    //   \"modifierGroupId\": \"{{groupId2}}\",\n    //   \"displayOrder\": 1,\n    //   \"isRequired\": false,\n    //   \"minSelections\": 0,\n    //   \"maxSelections\": 5\n    // }\n  ]\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/modifiers",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "items",
-                    "2dc1b28b-76d6-4ee4-935c-8741157d60c6",
-                    "modifiers"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Get Menu Item Modifier Groups",
-              "id": "91aebee3-8769-4ba3-ad36-6e4325ab9875",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/modifiers",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "items",
-                    "2dc1b28b-76d6-4ee4-935c-8741157d60c6",
-                    "modifiers"
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "Detach Modifier Group from Item",
-              "id": "a9ee2d6a-21d3-4072-804b-640bdc675a13",
-              "request": {
-                "auth": {
-                  "type": "bearer",
-                  "bearer": [
-                    {
-                      "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
-                      "type": "string"
-                    }
-                  ]
-                },
-                "method": "DELETE",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/modifiers/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "tenants",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                    "items",
-                    "2dc1b28b-76d6-4ee4-935c-8741157d60c6",
-                    "modifiers",
-                    "3b6f04c5-8517-42ff-ab76-8cb2d5c04abe"
-                  ]
-                }
-              },
-              "response": []
-            }
-          ],
-          "id": "cdbee070-6318-44ce-809d-6da1cf62a2c3"
-        },
-        {
-          "name": "Public Menu",
-          "item": [
-            {
-              "name": "Get Public Menu (No Auth)",
-              "id": "b8b39e37-344a-4673-8ed5-8c578417c972",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "x-api-key",
-                    "value": "{{x-api-key}}",
-                    "type": "text",
-                    "uuid": "a7bb6685-9440-458c-8db4-f60cbbffc531"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseURL}}/api/v1/public/menu/d95e73fb-b861-40eb-ba09-eff4b79084ef?search=salad&page=1&limit=10",
-                  "host": [
-                    "{{baseURL}}"
-                  ],
-                  "path": [
-                    "api",
-                    "v1",
-                    "public",
-                    "menu",
-                    "d95e73fb-b861-40eb-ba09-eff4b79084ef"
-                  ],
-                  "query": [
-                    {
-                      "key": "categoryId",
-                      "value": null,
-                      "type": "text",
-                      "uuid": "337b98ff-f6de-4f6f-b337-eb0c6dd564dc",
-                      "disabled": true
-                    },
-                    {
-                      "key": "search",
-                      "value": "salad",
-                      "uuid": "9cd87ce9-05dc-4184-9f69-3e5c26153491"
-                    },
-                    {
-                      "key": "isChefRecommended",
-                      "value": null,
-                      "type": "text",
-                      "uuid": "b790cddd-3882-481a-90b6-84e46750d359",
-                      "disabled": true
-                    },
-                    {
-                      "key": "sortBy",
-                      "value": null,
-                      "type": "text",
-                      "uuid": "cef7bd57-935c-40bd-8160-3934f5b002ab",
-                      "disabled": true
-                    },
-                    {
-                      "key": "sortOrder",
-                      "value": null,
-                      "type": "text",
-                      "uuid": "e03bd29a-611b-4831-8812-3e14f1a2edeb",
-                      "disabled": true
-                    },
-                    {
-                      "key": "page",
-                      "value": "1",
-                      "uuid": "735ea369-ae3b-41d1-9638-e8bf7a54e1b2"
-                    },
-                    {
-                      "key": "limit",
-                      "value": "10",
-                      "uuid": "30b2333c-4872-49e0-a962-b3088150bafb"
-                    }
-                  ]
-                }
-              },
-              "response": []
-            }
-          ],
-          "id": "d7f09ab3-8d2e-45e5-bc51-b58902cbda94"
-        }
-      ],
-      "id": "8ab72cfb-05a5-48fc-bc3b-0dd9bb65b6ec"
-    },
-    {
-      "name": "Current User",
-      "item": [
-        {
-          "name": "login",
-          "id": "4976ee0f-eb78-469e-926b-df0edbfd9d16",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n    \"username\": \"user123456\",\r\n    \"password\": \"StrongPassword!123\"\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/identity/auth/login",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "identity",
-                "auth",
-                "login"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "logout",
-          "id": "bff09ec7-0431-4fcc-bee3-f9082ca07ad0",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzN2M4MmE1ZC00NGM2LTQ4YWItYjhjYi04MzYwM2JhODE3YmYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NSIsImVtYWlsIjoidXNlcjEyMzQ1QGV4YW1wbGUuY29tIiwicm9sZXMiOlsiQURNSU4iXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTYxMywiZXhwIjoxNzY1MDIxOTEzfQ.LcUhkzH8CWHoLsT75EY6ywgBcWoQQ1_fr3Jg0qIRCa8",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8888/api/v1/identity/auth/logout",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "8888",
-              "path": [
-                "api",
-                "v1",
-                "identity",
-                "auth",
-                "logout"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "register user",
-          "id": "a7835302-c2eb-49cd-b7ec-81ac8f4d6607",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n  \"birthDay\": \"1999-10-15\",\r\n  \"phoneNumber\": \"0987654321\",\r\n  \"address\": \"123 đường ABC, TP HCM\",\r\n  \"restaurantName\": \"Nhà hàng Đỉnh Cao\",\r\n  \"businessAddress\": \"456 đường XYZ, Hà Nội\",\r\n  \"contractNumber\": \"0123456789\",\r\n  \"contractEmail\": \"contract@example.com\",\r\n  \"cardHolderName\": \"Nguyen Van A\",\r\n  \"accountNumber\": \"9876543210123\",\r\n  \"expirationDate\": \"12/28\",\r\n  \"cvv\": \"456\",\r\n  \"frontImage\": \"base64_front_image\",\r\n  \"backImage\": \"base64_back_image\",\r\n  \"username\": \"test1\",\r\n  \"email\": \"test1@example.com\",\r\n  \"password\": \"StrongPassword!123\",\r\n  \"confirmPassword\": \"StrongPassword!123\",\r\n  \"fullName\": \"Nguyen Hung Thinh\",\r\n  \"roles\": [\"ADMIN\"]\r\n}\r\n",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/identity/users/register",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "identity",
-                "users",
-                "register"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "my profile",
-          "id": "62426c60-81de-4ff1-8de4-0adef71dcf5c",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8888/api/v1/profiles/my-profile",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "8888",
-              "path": [
-                "api",
-                "v1",
-                "profiles",
-                "my-profile"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "update profile",
-          "id": "1f14838b-625e-400e-80c1-3e656b16cdf3",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n    \"verified\": true\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "http://localhost:8888/api/v1/profiles/modify",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "8888",
-              "path": [
-                "api",
-                "v1",
-                "profiles",
-                "modify"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "check verify account",
-          "id": "210ba3de-b922-4f6f-86c9-a426e7c39431",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8888/api/v1/profiles/verify-state",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "8888",
-              "path": [
-                "api",
-                "v1",
-                "profiles",
-                "verify-state"
-              ]
-            }
-          },
-          "response": []
-        }
-      ],
-      "id": "705989e3-bd25-4f35-9b68-0a3093c081dc"
-    },
-    {
-      "name": "Admin",
-      "item": [
-        {
-          "name": "create authority",
-          "id": "9f11d17b-ccb5-45e3-a00c-61d37c30626e",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n    \"name\": \"WRITE\",\r\n    \"description\": \"aaaa\"\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "http://localhost:8888/api/v1/identity/authorities/create-authority",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "8888",
-              "path": [
-                "api",
-                "v1",
-                "identity",
-                "authorities",
-                "create-authority"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "get authorities",
-          "id": "99849822-a4ee-4b03-9d86-2f7e8d010115",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8888/api/v1/identity/authorities/get-all-authorities",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "8888",
-              "path": [
-                "api",
-                "v1",
-                "identity",
-                "authorities",
-                "get-all-authorities"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "get all role",
-          "id": "daa0b0b6-9e60-4d24-9cff-0019538a3bf5",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:8888/api/v1/identity/roles/get-all-roles",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "8888",
-              "path": [
-                "api",
-                "v1",
-                "identity",
-                "roles",
-                "get-all-roles"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "craete role",
-          "id": "518994cf-21e4-4a5e-9c63-f84fe8390abd",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n    \"name\" :\"USER\",\r\n    \"description\": \"user permission\",\r\n    \"authorities\": [\"READ\"]\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "http://localhost:8888/api/v1/identity/roles/create-role",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "8888",
-              "path": [
-                "api",
-                "v1",
-                "identity",
-                "roles",
-                "create-role"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "get profile (admin)",
-          "id": "29c9c291-e778-4bec-9f01-83c563df6b3b",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzN2M4MmE1ZC00NGM2LTQ4YWItYjhjYi04MzYwM2JhODE3YmYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NSIsImVtYWlsIjoidXNlcjEyMzQ1QGV4YW1wbGUuY29tIiwicm9sZXMiOlsiQURNSU4iXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTYxMywiZXhwIjoxNzY1MDIxOTEzfQ.LcUhkzH8CWHoLsT75EY6ywgBcWoQQ1_fr3Jg0qIRCa8",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8888/api/v1/profiles/00f6ce01-fb86-4056-86c8-cd90e52b0f73",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "8888",
-              "path": [
-                "api",
-                "v1",
-                "profiles",
-                "00f6ce01-fb86-4056-86c8-cd90e52b0f73"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "get all users",
-          "id": "0e22c202-61fa-40b1-9cce-5ea223287f8c",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzN2M4MmE1ZC00NGM2LTQ4YWItYjhjYi04MzYwM2JhODE3YmYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NSIsImVtYWlsIjoidXNlcjEyMzQ1QGV4YW1wbGUuY29tIiwicm9sZXMiOlsiQURNSU4iXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTYxMywiZXhwIjoxNzY1MDIxOTEzfQ.LcUhkzH8CWHoLsT75EY6ywgBcWoQQ1_fr3Jg0qIRCa8",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8888/api/v1/identity/users/get-all-users",
-              "protocol": "http",
-              "host": [
-                "localhost"
-              ],
-              "port": "8888",
-              "path": [
-                "api",
-                "v1",
-                "identity",
-                "users",
-                "get-all-users"
-              ]
-            }
-          },
-          "response": []
-        }
-      ],
-      "id": "f6da9c92-ccdd-4e2f-915a-854adde5c72c"
-    },
-    {
-      "name": "Order",
-      "item": [
-        {
-          "name": "Create Order",
-          "id": "create-order-001",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"tableId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n  \"customerId\": \"b2c3d4e5-f6a7-8901-bcde-f12345678901\",\n  \"customerName\": \"John Doe\",\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": \"c3d4e5f6-a7b8-9012-cdef-123456789012\",\n      \"quantity\": 2,\n      \"notes\": \"Extra spicy\",\n      \"modifiers\": [\n        {\n          \"modifierGroupId\": \"d4e5f6a7-b8c9-0123-def1-234567890123\",\n          \"modifierOptionId\": \"e5f6a7b8-c9d0-1234-ef12-345678901234\"\n        }\n      ]\n    },\n    {\n      \"menuItemId\": \"f6a7b8c9-d0e1-2345-f123-456789012345\",\n      \"quantity\": 1,\n      \"notes\": \"No ice\"\n    }\n  ],\n  \"notes\": \"Please serve quickly\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/orders",
-              "host": ["{{baseURL}}"],
-              "path": ["api", "v1", "orders"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Order By ID",
-          "id": "get-order-by-id-002",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-              "host": ["{{baseURL}}"],
-              "path": ["api", "v1", "orders", "a1b2c3d4-e5f6-7890-abcd-ef1234567890"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get All Orders",
-          "id": "get-all-orders-003",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseURL}}/api/v1/orders?status=PENDING&paymentStatus=PENDING&page=1&limit=10&sortBy=createdAt&sortOrder=DESC",
-              "host": ["{{baseURL}}"],
-              "path": ["api", "v1", "orders"],
-              "query": [
-                {
-                  "key": "status",
-                  "value": "PENDING"
-                },
-                {
-                  "key": "paymentStatus",
-                  "value": "PENDING"
-                },
-                {
-                  "key": "tableId",
-                  "value": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-                  "disabled": true
-                },
-                {
-                  "key": "customerId",
-                  "value": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
-                  "disabled": true
-                },
-                {
-                  "key": "waiterId",
-                  "value": "c3d4e5f6-a7b8-9012-cdef-123456789012",
-                  "disabled": true
-                },
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "10"
-                },
-                {
-                  "key": "sortBy",
-                  "value": "createdAt"
-                },
-                {
-                  "key": "sortOrder",
-                  "value": "DESC"
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Add Items to Order",
-          "id": "add-items-to-order-004",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"items\": [\n    {\n      \"menuItemId\": \"g7h8i9j0-k1l2-3456-m789-012345678901\",\n      \"quantity\": 1,\n      \"notes\": \"Medium rare\",\n      \"modifiers\": [\n        {\n          \"modifierGroupId\": \"h8i9j0k1-l2m3-4567-n890-123456789012\",\n          \"modifierOptionId\": \"i9j0k1l2-m3n4-5678-o901-234567890123\"\n        }\n      ]\n    }\n  ],\n  \"notes\": \"Additional order from table\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/items",
-              "host": ["{{baseURL}}"],
-              "path": ["api", "v1", "orders", "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "items"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update Order Status",
-          "id": "update-order-status-005",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"ACCEPTED\",\n  \"waiterId\": \"c3d4e5f6-a7b8-9012-cdef-123456789012\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/status",
-              "host": ["{{baseURL}}"],
-              "path": ["api", "v1", "orders", "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "status"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Cancel Order",
-          "id": "cancel-order-006",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"reason\": \"Customer changed mind\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-              "host": ["{{baseURL}}"],
-              "path": ["api", "v1", "orders", "a1b2c3d4-e5f6-7890-abcd-ef1234567890"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update Payment Status",
-          "id": "update-payment-status-007",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"paymentStatus\": \"PAID\",\n  \"paymentMethod\": \"CARD\",\n  \"paymentTransactionId\": \"txn_1234567890abcdef\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/payment",
-              "host": ["{{baseURL}}"],
-              "path": ["api", "v1", "orders", "a1b2c3d4-e5f6-7890-abcd-ef1234567890", "payment"]
-            }
-          },
-          "response": []
-        }
-      ],
-      "id": "96d51aaf-d0f5-4156-a4b9-2f72854f97e9"
-    },
-    {
-      "name": "Update Floor",
-      "id": "a38bbc0a-015b-460a-88ed-4febe00affb5",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "m",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "PATCH",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n    // All is optional\r\n    \"name\": \"Tầng 1 (Update)\"\r\n    // \"floorNumber\": 2,\r\n    // \"gridWidth\": 10,\r\n    // \"gridHeight\": 10,\r\n    // \"description\": \"hehe\",\r\n    // \"isActive\": true\r\n\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors/3ac7df6b-de49-45f5-9ddd-8c24dc8ad309",
-          "host": [
-            "{{baseURL}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "tenants",
-            "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-            "floors",
-            "3ac7df6b-de49-45f5-9ddd-8c24dc8ad309"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "my user",
-      "id": "6599b8d2-beea-4f7b-bfef-7c8478f97878",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "GET",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "http://localhost:8888/api/v1/identity/users/my-user",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "identity",
-            "users",
-            "my-user"
-          ]
-        }
-      },
-      "response": []
-    }
-  ],
-  "variable": [
-    {
-      "id": "1ac03aa8-4482-416b-aca2-18af20b617cd",
-      "key": "baseURL",
-      "value": "",
-      "type": "default"
-    },
-    {
-      "id": "00bd3de6-aeae-4170-851a-851811be9e73",
-      "key": "baseURL",
-      "value": "",
-      "type": "default"
-    }
-  ]
+	"info": {
+		"_postman_id": "00525d80-50e7-4e71-b3fe-1d10a5d8fd3c",
+		"name": "Smart Restaurant",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Table",
+			"item": [
+				{
+					"name": "Create Table",
+					"id": "3bc6c980-9003-449d-8f7c-722378baa28e",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"name\": \"Table 2\",\r\n  \"capacity\": 4,\r\n//   \"status\": \"AVAILABLE\", // default\r\n  \"floorId\": \"3ac7df6b-de49-45f5-9ddd-8c24dc8ad309\", // optional\r\n  \"gridX\": 0, // optional\r\n  \"gridY\": 0 // optional\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"tables"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Table By Id",
+					"id": "adf0cb7c-0971-462b-acbe-6e7a7a5f29ca",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/4e40e08c-675a-4825-af78-7028ac86fe69",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"tables",
+								"4e40e08c-675a-4825-af78-7028ac86fe69"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get List Table",
+					"id": "cfed1774-c30d-4887-98c8-85b66a383bee",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"tables"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Table",
+					"id": "42074d61-e049-4b45-9f63-ab689b961ba0",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    // All is optional\r\n    \"name\": \"Table 1 (Update)\"\r\n    // \"capacity\": 10,\r\n    // \"status\": \"AVAILABLE\",\r\n    // \"floorId\": \"4e40e08c-675a-4825-af78-7028ac86fe69\",\r\n    // \"gridX\": \"1\",\r\n    // \"gridY\": \"1\",\r\n    // \"isActive\": \"true\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/4e40e08c-675a-4825-af78-7028ac86fe69",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"tables",
+								"4e40e08c-675a-4825-af78-7028ac86fe69"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Table",
+					"id": "c2dcc627-eea7-4541-818a-046c188ce0cf",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \r\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8888/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/b325d227-0739-44c8-a6cd-441f29b5d227",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8888",
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"tables",
+								"b325d227-0739-44c8-a6cd-441f29b5d227"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Floor",
+					"id": "c57a138f-cd6a-49bd-a316-97207f890bee",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"Tầng 2\",\r\n    \"floorNumber\": 2,\r\n    \"gridWidth\": 10,\r\n    \"gridHeight\": 10\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"floors"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Floor",
+					"id": "a38bbc0a-015b-460a-88ed-4febe00affb5",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    // All is optional\r\n    \"name\": \"Tầng 1 (Update)\"\r\n    // \"floorNumber\": 2,\r\n    // \"gridWidth\": 10,\r\n    // \"gridHeight\": 10,\r\n    // \"description\": \"hehe\",\r\n    // \"isActive\": true\r\n\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors/3ac7df6b-de49-45f5-9ddd-8c24dc8ad309",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"floors",
+								"3ac7df6b-de49-45f5-9ddd-8c24dc8ad309"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Floors",
+					"id": "fe8e47f4-1abe-4e86-910e-e0d23bdac0f2",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"floors"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Floor By Id",
+					"id": "18ecb4be-14bd-4666-8368-f6af8ca6196a",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors/3ac7df6b-de49-45f5-9ddd-8c24dc8ad309",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"floors",
+								"3ac7df6b-de49-45f5-9ddd-8c24dc8ad309"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Floor",
+					"id": "a434f3f8-2f6a-47d1-b92d-8a36ff929638",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors/3ac7df6b-de49-45f5-9ddd-8c24dc8ad309",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"floors",
+								"3ac7df6b-de49-45f5-9ddd-8c24dc8ad309"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Generate QR Code",
+					"id": "a5057cfc-2b9f-4bd4-9b12-034d64d8c359",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/0e4d0676-a58f-4946-be23-df9e3f95ce0e/qrcode",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"tables",
+								"0e4d0676-a58f-4946-be23-df9e3f95ce0e",
+								"qrcode"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Validate QR Token",
+					"id": "6b09f957-1cc0-488b-9ed1-98eef313d9d2",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/scan/eyJ0YWJsZUlkIjoiZmYwOWM3OWQtZmNlZS00OTg5LWJlMGUtNThkODliYTI1MjQzIiwidGVuYW50SWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ0b2tlblZlcnNpb24iOjMsImlzc3VlZEF0IjoxNzY2MjIxNTc5MzAyfQ.SWQZgcp8FVvC1ZIJwdwQM-ZKINCLAgtf_y-ejO2djqU",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"tables",
+								"scan",
+								"eyJ0YWJsZUlkIjoiZmYwOWM3OWQtZmNlZS00OTg5LWJlMGUtNThkODliYTI1MjQzIiwidGVuYW50SWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ0b2tlblZlcnNpb24iOjMsImlzc3VlZEF0IjoxNzY2MjIxNTc5MzAyfQ.SWQZgcp8FVvC1ZIJwdwQM-ZKINCLAgtf_y-ejO2djqU"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get QR Code",
+					"id": "1d3c915f-3536-4a9a-a08e-fb0a9bcbdd92",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/ff09c79d-fcee-4989-be0e-58d89ba25243/qrcode",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"tables",
+								"ff09c79d-fcee-4989-be0e-58d89ba25243",
+								"qrcode"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Download QR Code",
+					"id": "4aa98de1-e643-4559-86b1-32ab61794c7f",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/4e40e08c-675a-4825-af78-7028ac86fe69/qrcode/download?format=svg",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"tables",
+								"4e40e08c-675a-4825-af78-7028ac86fe69",
+								"qrcode",
+								"download"
+							],
+							"query": [
+								{
+									"key": "format",
+									"value": "svg"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Batch QR Code Download",
+					"id": "975fd6a5-241b-402d-875e-00c1f5d1d629",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/qrcode/batch-download?format=combined-pdf",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"tables",
+								"qrcode",
+								"batch-download"
+							],
+							"query": [
+								{
+									"key": "format",
+									"value": "combined-pdf"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Bulk Regeneration For All QR Code",
+					"id": "74a49e7b-6864-4c11-bc7f-33a6cfa605a1",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \r\n}"
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/qrcode/bulk-regenerate",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"tables",
+								"qrcode",
+								"bulk-regenerate"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "39d654e7-9f52-4748-884b-2ba4e16960dd"
+		},
+		{
+			"name": "Product",
+			"item": [
+				{
+					"name": "Categories",
+					"item": [
+						{
+							"name": "Create Category",
+							"id": "c170c631-2f7b-4998-b78b-fb32366196f7",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Beverages v2\",\n  \"description\": \"Enjoy meals with wonderful drinks\",\n  \"displayOrder\": 2,\n  \"imageUrl\": \"example-image.com\",\n  \"status\": \"ACTIVE\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/categories",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"categories"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get All Categories",
+							"id": "7b515daa-e631-448c-a402-45c7f498b50a",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/categories?status=ACTIVE&sortBy=displayOrder&sortOrder=ASC",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"categories"
+									],
+									"query": [
+										{
+											"key": "status",
+											"value": "ACTIVE",
+											"uuid": "88728e08-9935-4fc9-98d6-7efa187b442c"
+										},
+										{
+											"key": "search",
+											"value": "",
+											"disabled": true
+										},
+										{
+											"key": "sortBy",
+											"value": "displayOrder",
+											"uuid": "1cd1a146-02b5-4fb4-b020-9d21726ed9ec"
+										},
+										{
+											"key": "sortOrder",
+											"value": "ASC",
+											"uuid": "2cbebb06-54ce-4f12-b752-8b08eaed3f23"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Detail Category",
+							"id": "10601e30-79f3-4fd4-aa07-9cfef33f6a0a",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/categories/7bb4c5d3-208c-4853-967f-eefef0d53ef9",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"categories",
+										"7bb4c5d3-208c-4853-967f-eefef0d53ef9"
+									],
+									"query": [
+										{
+											"key": "search",
+											"value": "",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Category",
+							"id": "a08bde04-4672-404a-8106-508eb8838383",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Updated Appetizers\",\n  \"description\": \"New description for appetizers\",\n  \"displayOrder\": 1\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/categories/5f6f6d52-d12c-485d-aa98-b624f2a27329",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"categories",
+										"5f6f6d52-d12c-485d-aa98-b624f2a27329"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Category Status",
+							"id": "7f999180-291f-4493-8d5e-1a3609c6ecbc",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"status\": \"INACTIVE\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/categories/5f6f6d52-d12c-485d-aa98-b624f2a27329/status",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"categories",
+										"5f6f6d52-d12c-485d-aa98-b624f2a27329",
+										"status"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Category",
+							"id": "069277ad-3396-4533-a8f4-3a52f604ac78",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/categories/5f6f6d52-d12c-485d-aa98-b624f2a27329",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"categories",
+										"5f6f6d52-d12c-485d-aa98-b624f2a27329"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"id": "aa4e33ad-adab-4413-bd1f-7caec7c73a27"
+				},
+				{
+					"name": "Menu Items",
+					"item": [
+						{
+							"name": "Create Menu Item",
+							"id": "6588ff3f-4ab8-4720-b331-0b1162613cee",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"categoryId\": \"5f6f6d52-d12c-485d-aa98-b624f2a27329\",\n  \"name\": \"Caesar Salad\",\n  \"description\": \"Fresh romaine lettuce with Caesar dressing, parmesan cheese, and croutons\",\n  \"price\": 12.99,\n  \"currency\": \"VND\",\n  \"prepTimeMinutes\": 15,\n  \"status\": \"AVAILABLE\",\n  \"isChefRecommended\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"items"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get All Menu Items",
+							"id": "f7326aba-ea9d-48bd-b713-4c71e172d729",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items?page=1&limit=20",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"items"
+									],
+									"query": [
+										{
+											"key": "status",
+											"value": "SOLD_OUT",
+											"uuid": "649a4ae6-7010-4498-b63f-d791a26468df",
+											"disabled": true
+										},
+										{
+											"key": "isChefRecommended",
+											"value": "true",
+											"uuid": "87e400b2-f72a-4ac4-9878-39f416f956ae",
+											"disabled": true
+										},
+										{
+											"key": "search",
+											"value": "",
+											"disabled": true
+										},
+										{
+											"key": "sortBy",
+											"value": "createdAt",
+											"disabled": true
+										},
+										{
+											"key": "sortOrder",
+											"value": "DESC",
+											"disabled": true
+										},
+										{
+											"key": "page",
+											"value": "1",
+											"uuid": "99f24279-4e43-4914-aa2f-d30aafed398b"
+										},
+										{
+											"key": "limit",
+											"value": "20",
+											"uuid": "6ed75dab-531e-4d4e-bc1f-4736d1d06800"
+										},
+										{
+											"key": "categoryId",
+											"value": "5f6f6d52-d12c-485d-aa98-b624f2a27329",
+											"uuid": "c02b79b4-59e1-4868-a837-262de4e15619",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Detail Menu Item",
+							"id": "657627f4-f0e9-42a2-96ae-812b3c2a3b8f",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"items",
+										"2dc1b28b-76d6-4ee4-935c-8741157d60c6"
+									],
+									"query": [
+										{
+											"key": "search",
+											"value": "",
+											"disabled": true
+										},
+										{
+											"key": "sortBy",
+											"value": "createdAt",
+											"disabled": true
+										},
+										{
+											"key": "sortOrder",
+											"value": "DESC",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Menu Item",
+							"id": "815fa6cb-c317-4259-b836-4e8a630e839e",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Updated Caesar Salad\",\n  \"description\": \"Fresh romaine lettuce with homemade Caesar dressing\",\n  \"price\": 14.99,\n  \"prepTimeMinutes\": 20,\n  \"isChefRecommended\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"items",
+										"2dc1b28b-76d6-4ee4-935c-8741157d60c6"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Menu Item Status",
+							"id": "660629e9-f112-4ad3-bf58-1d37353ad251",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"status\": \"SOLD_OUT\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/status",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"items",
+										"2dc1b28b-76d6-4ee4-935c-8741157d60c6",
+										"status"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Menu Item",
+							"id": "31a592ff-0517-499b-a3ae-4f92d5053aaf",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"items",
+										"2dc1b28b-76d6-4ee4-935c-8741157d60c6"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"id": "35cbdd74-9336-401c-8b41-ce20cd24c45d"
+				},
+				{
+					"name": "Menu Item Photos",
+					"item": [
+						{
+							"name": "Add Photo to Menu Item",
+							"id": "a1adfb6f-467c-4459-9775-cac42ea378bc",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"url\": \"https://storage.example.com/photos/caesar-salad-two.jpg\",\n  \"displayOrder\": 2,\n  \"isPrimary\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/photos",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"items",
+										"2dc1b28b-76d6-4ee4-935c-8741157d60c6",
+										"photos"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get All Photos for Menu Item",
+							"id": "5b109554-50f7-42ea-a7df-e436ca0c9157",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/photos",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"items",
+										"2dc1b28b-76d6-4ee4-935c-8741157d60c6",
+										"photos"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Photo",
+							"id": "0b7c738f-e90d-4f3c-8ae2-fa625db69aa2",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"displayOrder\": 2,\n  \"isPrimary\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/photos/02895a1b-fc7f-4302-8eda-62ef92efee8f",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"items",
+										"2dc1b28b-76d6-4ee4-935c-8741157d60c6",
+										"photos",
+										"02895a1b-fc7f-4302-8eda-62ef92efee8f"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Set Primary Photo",
+							"id": "16ae3390-d7d8-4339-8f28-9666ea766765",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/photos/02895a1b-fc7f-4302-8eda-62ef92efee8f/primary",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"items",
+										"2dc1b28b-76d6-4ee4-935c-8741157d60c6",
+										"photos",
+										"02895a1b-fc7f-4302-8eda-62ef92efee8f",
+										"primary"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Photo",
+							"id": "445a6e55-384f-496d-8ffa-825aa78fe9fa",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/photos/02895a1b-fc7f-4302-8eda-62ef92efee8f",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"items",
+										"2dc1b28b-76d6-4ee4-935c-8741157d60c6",
+										"photos",
+										"02895a1b-fc7f-4302-8eda-62ef92efee8f"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"id": "f9da6be7-b44c-4456-8db8-96a3216ebd26"
+				},
+				{
+					"name": "Modifier Groups",
+					"item": [
+						{
+							"name": "Create Modifier Group",
+							"id": "9f2f9dc6-6553-45d2-9821-4df1a8e9aae5",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Size\",\n  \"description\": \"Choose your size\",\n  \"displayOrder\": 0,\n  \"isActive\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"modifier-groups"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get All Modifier Groups",
+							"id": "86bca97d-539c-42d6-a730-4069d33ef1f5",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups?isActive=true",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"modifier-groups"
+									],
+									"query": [
+										{
+											"key": "isActive",
+											"value": "true",
+											"uuid": "d6d73368-2505-4977-bc11-1cc0722ee02a"
+										},
+										{
+											"key": "search",
+											"value": "",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Detail Modifier Group",
+							"id": "386e3b3f-8d87-4c19-816e-3ccc1de2522e",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"modifier-groups",
+										"3b6f04c5-8517-42ff-ab76-8cb2d5c04abe"
+									],
+									"query": [
+										{
+											"key": "search",
+											"value": "",
+											"disabled": true
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Modifier Group",
+							"id": "69e87266-243e-4b4a-aa6d-41c7d75624a3",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Updated Size\",\n  \"description\": \"New description\",\n  \"displayOrder\": 1,\n  \"isActive\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"modifier-groups",
+										"3b6f04c5-8517-42ff-ab76-8cb2d5c04abe"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Modifier Group",
+							"id": "e6c31668-0771-42d5-bdda-3d1dd49e064e",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"modifier-groups",
+										"3b6f04c5-8517-42ff-ab76-8cb2d5c04abe"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"id": "2851e86c-10a2-489e-bc95-9213d87db718"
+				},
+				{
+					"name": "Modifier Options",
+					"item": [
+						{
+							"name": "Create Modifier Option",
+							"id": "d7959258-a35d-4429-8b19-6315d1173885",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"label\": \"Large\",\n  \"priceDelta\": 2.00,\n  \"displayOrder\": 2,\n  \"isActive\": true\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe/options",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"modifier-groups",
+										"3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
+										"options"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get All Modifier Options",
+							"id": "3f93f56f-60ef-461f-97f9-d06a40a96b2c",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe/options?isActive=true",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"modifier-groups",
+										"3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
+										"options"
+									],
+									"query": [
+										{
+											"key": "isActive",
+											"value": "true",
+											"uuid": "ebe3897f-dfe1-447c-b707-777a37576c09"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Detail Modifier Option",
+							"id": "31a5c16e-f3a3-4d49-ba9d-7f30aa5cea27",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe/options/f4c25b7d-233c-4e98-98fe-5bf33aa11244",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"modifier-groups",
+										"3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
+										"options",
+										"f4c25b7d-233c-4e98-98fe-5bf33aa11244"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Update Modifier Option",
+							"id": "02275c34-d6a7-42bb-8ec1-7623385d2832",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"label\": \"Extra Large\",\n  \"priceDelta\": 3.00,\n  \"displayOrder\": 3\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe/options/f4c25b7d-233c-4e98-98fe-5bf33aa11244",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"modifier-groups",
+										"3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
+										"options",
+										"f4c25b7d-233c-4e98-98fe-5bf33aa11244"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Delete Modifier Option",
+							"id": "33b54e5a-b88b-4419-afc8-98440074001d",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/{{tenantId}}/modifier-groups/{{groupId}}/options/{{optionId}}",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"{{tenantId}}",
+										"modifier-groups",
+										"{{groupId}}",
+										"options",
+										"{{optionId}}"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"id": "14b629c2-9db3-4d63-815b-34f9f98a05fd"
+				},
+				{
+					"name": "Menu Item Modifiers",
+					"item": [
+						{
+							"name": "Attach Modifier Groups to Item",
+							"id": "a6ab2879-f2ea-47b9-98bf-be2534b2d9d4",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"modifierGroups\": [\n    {\n      \"modifierGroupId\": \"3b6f04c5-8517-42ff-ab76-8cb2d5c04abe\",\n      \"displayOrder\": 0,\n      \"isRequired\": true,\n      \"minSelections\": 1,\n      \"maxSelections\": 1\n    }\n    // {\n    //   \"modifierGroupId\": \"{{groupId2}}\",\n    //   \"displayOrder\": 1,\n    //   \"isRequired\": false,\n    //   \"minSelections\": 0,\n    //   \"maxSelections\": 5\n    // }\n  ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/modifiers",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"items",
+										"2dc1b28b-76d6-4ee4-935c-8741157d60c6",
+										"modifiers"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Menu Item Modifier Groups",
+							"id": "91aebee3-8769-4ba3-ad36-6e4325ab9875",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/modifiers",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"items",
+										"2dc1b28b-76d6-4ee4-935c-8741157d60c6",
+										"modifiers"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Detach Modifier Group from Item",
+							"id": "a9ee2d6a-21d3-4072-804b-640bdc675a13",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+											"type": "string"
+										}
+									]
+								},
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/modifiers/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+										"items",
+										"2dc1b28b-76d6-4ee4-935c-8741157d60c6",
+										"modifiers",
+										"3b6f04c5-8517-42ff-ab76-8cb2d5c04abe"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"id": "cdbee070-6318-44ce-809d-6da1cf62a2c3"
+				},
+				{
+					"name": "Public Menu",
+					"item": [
+						{
+							"name": "Get Public Menu (No Auth)",
+							"id": "b8b39e37-344a-4673-8ed5-8c578417c972",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text",
+										"uuid": "a7bb6685-9440-458c-8db4-f60cbbffc531"
+									}
+								],
+								"url": {
+									"raw": "{{baseURL}}/api/v1/public/menu/d95e73fb-b861-40eb-ba09-eff4b79084ef?search=salad&page=1&limit=10",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"public",
+										"menu",
+										"d95e73fb-b861-40eb-ba09-eff4b79084ef"
+									],
+									"query": [
+										{
+											"key": "categoryId",
+											"value": null,
+											"type": "text",
+											"uuid": "337b98ff-f6de-4f6f-b337-eb0c6dd564dc",
+											"disabled": true
+										},
+										{
+											"key": "search",
+											"value": "salad",
+											"uuid": "9cd87ce9-05dc-4184-9f69-3e5c26153491"
+										},
+										{
+											"key": "isChefRecommended",
+											"value": null,
+											"type": "text",
+											"uuid": "b790cddd-3882-481a-90b6-84e46750d359",
+											"disabled": true
+										},
+										{
+											"key": "sortBy",
+											"value": null,
+											"type": "text",
+											"uuid": "cef7bd57-935c-40bd-8160-3934f5b002ab",
+											"disabled": true
+										},
+										{
+											"key": "sortOrder",
+											"value": null,
+											"type": "text",
+											"uuid": "e03bd29a-611b-4831-8812-3e14f1a2edeb",
+											"disabled": true
+										},
+										{
+											"key": "page",
+											"value": "1",
+											"uuid": "735ea369-ae3b-41d1-9638-e8bf7a54e1b2"
+										},
+										{
+											"key": "limit",
+											"value": "10",
+											"uuid": "30b2333c-4872-49e0-a962-b3088150bafb"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"id": "d7f09ab3-8d2e-45e5-bc51-b58902cbda94"
+				}
+			],
+			"id": "8ab72cfb-05a5-48fc-bc3b-0dd9bb65b6ec"
+		},
+		{
+			"name": "Current User",
+			"item": [
+				{
+					"name": "login",
+					"id": "4976ee0f-eb78-469e-926b-df0edbfd9d16",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"username\": \"user123456\",\r\n    \"password\": \"StrongPassword!123\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/identity/auth/login",
+							"host": ["{{baseURL}}"],
+							"path": ["api", "v1", "identity", "auth", "login"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "logout",
+					"id": "bff09ec7-0431-4fcc-bee3-f9082ca07ad0",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzN2M4MmE1ZC00NGM2LTQ4YWItYjhjYi04MzYwM2JhODE3YmYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NSIsImVtYWlsIjoidXNlcjEyMzQ1QGV4YW1wbGUuY29tIiwicm9sZXMiOlsiQURNSU4iXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTYxMywiZXhwIjoxNzY1MDIxOTEzfQ.LcUhkzH8CWHoLsT75EY6ywgBcWoQQ1_fr3Jg0qIRCa8",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8888/api/v1/identity/auth/logout",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8888",
+							"path": ["api", "v1", "identity", "auth", "logout"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "register user",
+					"id": "a7835302-c2eb-49cd-b7ec-81ac8f4d6607",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"birthDay\": \"1999-10-15\",\r\n  \"phoneNumber\": \"0987654321\",\r\n  \"address\": \"123 đường ABC, TP HCM\",\r\n  \"restaurantName\": \"Nhà hàng Đỉnh Cao\",\r\n  \"businessAddress\": \"456 đường XYZ, Hà Nội\",\r\n  \"contractNumber\": \"0123456789\",\r\n  \"contractEmail\": \"contract@example.com\",\r\n  \"cardHolderName\": \"Nguyen Van A\",\r\n  \"accountNumber\": \"9876543210123\",\r\n  \"expirationDate\": \"12/28\",\r\n  \"cvv\": \"456\",\r\n  \"frontImage\": \"base64_front_image\",\r\n  \"backImage\": \"base64_back_image\",\r\n  \"username\": \"test1\",\r\n  \"email\": \"test1@example.com\",\r\n  \"password\": \"StrongPassword!123\",\r\n  \"confirmPassword\": \"StrongPassword!123\",\r\n  \"fullName\": \"Nguyen Hung Thinh\",\r\n  \"roles\": [\"ADMIN\"]\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/identity/users/register",
+							"host": ["{{baseURL}}"],
+							"path": ["api", "v1", "identity", "users", "register"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "my profile",
+					"id": "62426c60-81de-4ff1-8de4-0adef71dcf5c",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8888/api/v1/profiles/my-profile",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8888",
+							"path": ["api", "v1", "profiles", "my-profile"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update profile",
+					"id": "1f14838b-625e-400e-80c1-3e656b16cdf3",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"verified\": true\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8888/api/v1/profiles/modify",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8888",
+							"path": ["api", "v1", "profiles", "modify"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "check verify account",
+					"id": "210ba3de-b922-4f6f-86c9-a426e7c39431",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8888/api/v1/profiles/verify-state",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8888",
+							"path": ["api", "v1", "profiles", "verify-state"]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "705989e3-bd25-4f35-9b68-0a3093c081dc"
+		},
+		{
+			"name": "Admin",
+			"item": [
+				{
+					"name": "create authority",
+					"id": "9f11d17b-ccb5-45e3-a00c-61d37c30626e",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\": \"WRITE\",\r\n    \"description\": \"aaaa\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8888/api/v1/identity/authorities/create-authority",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8888",
+							"path": [
+								"api",
+								"v1",
+								"identity",
+								"authorities",
+								"create-authority"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get authorities",
+					"id": "99849822-a4ee-4b03-9d86-2f7e8d010115",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8888/api/v1/identity/authorities/get-all-authorities",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8888",
+							"path": [
+								"api",
+								"v1",
+								"identity",
+								"authorities",
+								"get-all-authorities"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get all role",
+					"id": "daa0b0b6-9e60-4d24-9cff-0019538a3bf5",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8888/api/v1/identity/roles/get-all-roles",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8888",
+							"path": ["api", "v1", "identity", "roles", "get-all-roles"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "craete role",
+					"id": "518994cf-21e4-4a5e-9c63-f84fe8390abd",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"name\" :\"USER\",\r\n    \"description\": \"user permission\",\r\n    \"authorities\": [\"READ\"]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8888/api/v1/identity/roles/create-role",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8888",
+							"path": ["api", "v1", "identity", "roles", "create-role"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get profile (admin)",
+					"id": "29c9c291-e778-4bec-9f01-83c563df6b3b",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzN2M4MmE1ZC00NGM2LTQ4YWItYjhjYi04MzYwM2JhODE3YmYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NSIsImVtYWlsIjoidXNlcjEyMzQ1QGV4YW1wbGUuY29tIiwicm9sZXMiOlsiQURNSU4iXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTYxMywiZXhwIjoxNzY1MDIxOTEzfQ.LcUhkzH8CWHoLsT75EY6ywgBcWoQQ1_fr3Jg0qIRCa8",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8888/api/v1/profiles/00f6ce01-fb86-4056-86c8-cd90e52b0f73",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8888",
+							"path": [
+								"api",
+								"v1",
+								"profiles",
+								"00f6ce01-fb86-4056-86c8-cd90e52b0f73"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get all users",
+					"id": "0e22c202-61fa-40b1-9cce-5ea223287f8c",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzN2M4MmE1ZC00NGM2LTQ4YWItYjhjYi04MzYwM2JhODE3YmYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NSIsImVtYWlsIjoidXNlcjEyMzQ1QGV4YW1wbGUuY29tIiwicm9sZXMiOlsiQURNSU4iXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTYxMywiZXhwIjoxNzY1MDIxOTEzfQ.LcUhkzH8CWHoLsT75EY6ywgBcWoQQ1_fr3Jg0qIRCa8",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:8888/api/v1/identity/users/get-all-users",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "8888",
+							"path": ["api", "v1", "identity", "users", "get-all-users"]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "f6da9c92-ccdd-4e2f-915a-854adde5c72c"
+		},
+		{
+			"name": "Order",
+			"item": [
+				{
+					"name": "Create Order",
+					"id": "create-order-001",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"tableId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n  \"customerId\": \"b2c3d4e5-f6a7-8901-bcde-f12345678901\",\n  \"customerName\": \"John Doe\",\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": \"c3d4e5f6-a7b8-9012-cdef-123456789012\",\n      \"quantity\": 2,\n      \"notes\": \"Extra spicy\",\n      \"modifiers\": [\n        {\n          \"modifierGroupId\": \"d4e5f6a7-b8c9-0123-def1-234567890123\",\n          \"modifierOptionId\": \"e5f6a7b8-c9d0-1234-ef12-345678901234\"\n        }\n      ]\n    },\n    {\n      \"menuItemId\": \"f6a7b8c9-d0e1-2345-f123-456789012345\",\n      \"quantity\": 1,\n      \"notes\": \"No ice\"\n    }\n  ],\n  \"notes\": \"Please serve quickly\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/orders",
+							"host": ["{{baseURL}}"],
+							"path": ["api", "v1", "orders"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order By ID",
+					"id": "get-order-by-id-002",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Orders",
+					"id": "get-all-orders-003",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseURL}}/api/v1/orders?status=PENDING&paymentStatus=PENDING&page=1&limit=10&sortBy=createdAt&sortOrder=DESC",
+							"host": ["{{baseURL}}"],
+							"path": ["api", "v1", "orders"],
+							"query": [
+								{
+									"key": "status",
+									"value": "PENDING"
+								},
+								{
+									"key": "paymentStatus",
+									"value": "PENDING"
+								},
+								{
+									"key": "tableId",
+									"value": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+									"disabled": true
+								},
+								{
+									"key": "customerId",
+									"value": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+									"disabled": true
+								},
+								{
+									"key": "waiterId",
+									"value": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								},
+								{
+									"key": "sortBy",
+									"value": "createdAt"
+								},
+								{
+									"key": "sortOrder",
+									"value": "DESC"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Items to Order",
+					"id": "add-items-to-order-004",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"items\": [\n    {\n      \"menuItemId\": \"g7h8i9j0-k1l2-3456-m789-012345678901\",\n      \"quantity\": 1,\n      \"notes\": \"Medium rare\",\n      \"modifiers\": [\n        {\n          \"modifierGroupId\": \"h8i9j0k1-l2m3-4567-n890-123456789012\",\n          \"modifierOptionId\": \"i9j0k1l2-m3n4-5678-o901-234567890123\"\n        }\n      ]\n    }\n  ],\n  \"notes\": \"Additional order from table\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/items",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+								"items"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Order Status",
+					"id": "update-order-status-005",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"ACCEPTED\",\n  \"waiterId\": \"c3d4e5f6-a7b8-9012-cdef-123456789012\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/status",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+								"status"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cancel Order",
+					"id": "cancel-order-006",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"reason\": \"Customer changed mind\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Payment Status",
+					"id": "update-payment-status-007",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"paymentStatus\": \"PAID\",\n  \"paymentMethod\": \"CARD\",\n  \"paymentTransactionId\": \"txn_1234567890abcdef\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/payment",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+								"payment"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"id": "96d51aaf-d0f5-4156-a4b9-2f72854f97e9"
+		},
+		{
+			"name": "Update Floor",
+			"id": "a38bbc0a-015b-460a-88ed-4febe00affb5",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "m",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "{{x-api-key}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    // All is optional\r\n    \"name\": \"Tầng 1 (Update)\"\r\n    // \"floorNumber\": 2,\r\n    // \"gridWidth\": 10,\r\n    // \"gridHeight\": 10,\r\n    // \"description\": \"hehe\",\r\n    // \"isActive\": true\r\n\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors/3ac7df6b-de49-45f5-9ddd-8c24dc8ad309",
+					"host": ["{{baseURL}}"],
+					"path": [
+						"api",
+						"v1",
+						"tenants",
+						"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+						"floors",
+						"3ac7df6b-de49-45f5-9ddd-8c24dc8ad309"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "my user",
+			"id": "6599b8d2-beea-4f7b-bfef-7c8478f97878",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "x-api-key",
+						"value": "{{x-api-key}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8888/api/v1/identity/users/my-user",
+					"protocol": "http",
+					"host": ["localhost"],
+					"port": "8888",
+					"path": ["api", "v1", "identity", "users", "my-user"]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"id": "1ac03aa8-4482-416b-aca2-18af20b617cd",
+			"key": "baseURL",
+			"value": "",
+			"type": "default"
+		},
+		{
+			"id": "00bd3de6-aeae-4170-851a-851811be9e73",
+			"key": "baseURL",
+			"value": "",
+			"type": "default"
+		}
+	]
 }
