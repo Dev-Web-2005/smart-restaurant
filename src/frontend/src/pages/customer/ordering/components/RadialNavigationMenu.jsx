@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import CustomerAuth from '../pages/CustomerAuth'
+import HelpRequestModal from './HelpRequestModal'
 
 const RadialNavigationMenu = ({
 	view,
@@ -23,6 +24,7 @@ const RadialNavigationMenu = ({
 	const [isSnapping, setIsSnapping] = useState(false)
 	const [snapTarget, setSnapTarget] = useState({ x: 0, y: 0 })
 	const [showAuthModal, setShowAuthModal] = useState(false)
+	const [showHelpModal, setShowHelpModal] = useState(false)
 	const [customerAuth, setCustomerAuth] = useState(null)
 
 	// Check customer authentication status
@@ -171,7 +173,7 @@ const RadialNavigationMenu = ({
 			icon: 'help',
 			label: 'Help',
 			action: () => {
-				console.log('Help clicked')
+				setShowHelpModal(true)
 				setIsOpen(false)
 			},
 			badge: null,
@@ -189,6 +191,49 @@ const RadialNavigationMenu = ({
 			} catch (error) {
 				console.error('Failed to parse customer auth:', error)
 			}
+		}
+	}
+
+	// Handle help request submission
+	const handleHelpRequest = async (helpData) => {
+		try {
+			// TODO: Get table info from context or props
+			const tableId = localStorage.getItem('tableId') || 'table_005'
+			const tableName = localStorage.getItem('tableName') || 'Table 5'
+
+			// TODO: Replace with actual API call
+			console.log('Sending help request:', {
+				tableId,
+				tableName,
+				...helpData,
+			})
+
+			// TODO: Implement API call
+			// const response = await fetch(`/api/v1/customer/help/:tenantId`, {
+			//   method: 'POST',
+			//   headers: {
+			//     'Authorization': `Bearer ${customerAuth?.token}`,
+			//     'Content-Type': 'application/json',
+			//   },
+			//   body: JSON.stringify({
+			//     tableId,
+			//     tableName,
+			//     message: helpData.message,
+			//     urgency: helpData.urgency,
+			//   }),
+			// })
+
+			// Simulate API delay
+			await new Promise((resolve) => setTimeout(resolve, 1000))
+
+			// TODO: Show success notification
+			alert('Help request sent successfully! Staff will assist you shortly.')
+
+			return true
+		} catch (error) {
+			console.error('Failed to send help request:', error)
+			alert('Failed to send help request. Please try again.')
+			throw error
 		}
 	}
 
@@ -490,6 +535,13 @@ const RadialNavigationMenu = ({
 					/>
 				)}
 			</AnimatePresence>
+
+			{/* Help Request Modal */}
+			<HelpRequestModal
+				isOpen={showHelpModal}
+				onClose={() => setShowHelpModal(false)}
+				onSubmit={handleHelpRequest}
+			/>
 		</>
 	)
 }
