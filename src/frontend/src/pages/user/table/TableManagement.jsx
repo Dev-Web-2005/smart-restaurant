@@ -730,6 +730,50 @@ const TableStatusModal = ({
 								))}
 							</div>
 						</div>
+
+						{/* Payment Button - Only show when table is Occupied */}
+						{table.status === 'Occupied' && (
+							<div className="mt-4 bg-gradient-to-br from-green-600/20 to-green-700/20 rounded-lg p-4 border-2 border-green-500/50">
+								<div className="flex items-center justify-between mb-3">
+									<div>
+										<p className="text-sm font-semibold text-green-400 mb-1">
+											THANH TOÁN BÀN
+										</p>
+										<p className="text-xs text-gray-400">Xử lý thanh toán và trả bàn</p>
+									</div>
+									<span className="material-symbols-outlined text-3xl text-green-400">
+										payments
+									</span>
+								</div>
+								<button
+									onClick={async () => {
+										const confirmed = await showConfirm(
+											'Xác nhận thanh toán',
+											`Bạn có chắc chắn muốn thanh toán cho ${table.name}? Bàn sẽ được chuyển sang trạng thái "Đang dọn dẹp".`,
+										)
+										if (confirmed) {
+											showLoading('Đang xử lý thanh toán...')
+											// TODO: Call payment API
+											// await axios.post(`/api/tables/${table.id}/checkout`)
+
+											// Simulate API call
+											setTimeout(async () => {
+												await onUpdateStatus(table.id, 'Cleaning')
+												hideLoading()
+												showSuccess(
+													'Thanh toán thành công',
+													'Bàn đã được chuyển sang trạng thái dọn dẹp',
+												)
+											}, 1500)
+										}
+									}}
+									className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white text-base font-bold rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-green-500/50"
+								>
+									<span className="material-symbols-outlined">paid</span>
+									<span>Thanh Toán</span>
+								</button>
+							</div>
+						)}
 					</div>
 				</div>
 

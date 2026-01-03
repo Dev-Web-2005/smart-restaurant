@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react'
 import ReactDOM from 'react-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import AddDishModal from './AddDishModal'
 import { useUser } from '../../../contexts/UserContext'
 import { useAlert } from '../../../contexts/AlertContext'
+import { useLoading } from '../../../contexts/LoadingContext'
 import {
 	createMenuItemAPI,
 	addMenuItemPhotoAPI,
@@ -31,6 +33,107 @@ import {
 	getMenuItemModifierGroupsAPI,
 	detachModifierGroupAPI,
 } from '../../../services/api/modifierAPI'
+
+// Custom Dropdown Component with Glass Morphism
+const CustomDropdown = ({ value, onChange, options, disabled, className = '' }) => {
+	const [isOpen, setIsOpen] = useState(false)
+	const dropdownRef = useRef(null)
+	const buttonRef = useRef(null)
+	const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
+
+	useEffect(() => {
+		const handleClickOutside = (event) => {
+			if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+				setIsOpen(false)
+			}
+		}
+
+		if (isOpen) {
+			document.addEventListener('mousedown', handleClickOutside)
+		}
+
+		return () => {
+			document.removeEventListener('mousedown', handleClickOutside)
+		}
+	}, [isOpen])
+
+	// Calculate dropdown position when opened
+	useEffect(() => {
+		if (isOpen && buttonRef.current) {
+			const rect = buttonRef.current.getBoundingClientRect()
+			setDropdownPosition({
+				top: rect.bottom + 4, // position: fixed uses viewport coordinates, no need for scrollY
+				left: rect.left,
+				width: rect.width,
+			})
+		}
+	}, [isOpen])
+
+	const selectedOption = options.find((opt) => opt.value === value)
+
+	const DropdownMenu = () => (
+		<AnimatePresence>
+			{isOpen && (
+				<motion.div
+					initial={{ opacity: 0, y: -10 }}
+					animate={{ opacity: 1, y: 0 }}
+					exit={{ opacity: 0, y: -10 }}
+					transition={{ duration: 0.15 }}
+					style={{
+						position: 'fixed',
+						top: `${dropdownPosition.top}px`,
+						left: `${dropdownPosition.left}px`,
+						width: `${dropdownPosition.width}px`,
+						zIndex: 99999,
+					}}
+					className="rounded-lg bg-black/60 backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden"
+				>
+					{options.map((option) => (
+						<button
+							key={option.value}
+							type="button"
+							onClick={() => {
+								onChange(option.value)
+								setIsOpen(false)
+							}}
+							className={`w-full px-4 py-2.5 text-left text-sm transition-all duration-150 ${
+								option.value === value
+									? 'bg-[#137fec]/30 text-white font-medium'
+									: 'text-[#9dabb9] hover:bg-white/10 hover:text-white'
+							}`}
+						>
+							{option.label}
+						</button>
+					))}
+				</motion.div>
+			)}
+		</AnimatePresence>
+	)
+
+	return (
+		<>
+			<div ref={dropdownRef} className={`relative ${className}`}>
+				<button
+					ref={buttonRef}
+					type="button"
+					onClick={() => !disabled && setIsOpen(!isOpen)}
+					disabled={disabled}
+					className="w-full px-4 py-2 text-sm rounded-lg bg-black/30 backdrop-blur-md text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#137fec] focus:border-[#137fec] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:bg-black/40 text-left"
+				>
+					{selectedOption?.label || 'Select...'}
+				</button>
+				<span
+					className={`material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#9dabb9] text-xl pointer-events-none transition-transform duration-200 ${
+						isOpen ? 'rotate-180' : ''
+					}`}
+				>
+					expand_more
+				</span>
+			</div>
+			{ReactDOM.createPortal(<DropdownMenu />, document.body)}
+		</>
+	)
+}
 
 // --- Helper functions for status display ---
 const getStatusColor = (status) => {
@@ -996,7 +1099,8 @@ const ModifierGroupEditor = ({ group, onSave, onCancel, saving }) => {
 									value={
 										option.priceDelta !== undefined && option.priceDelta !== null
 											? option.priceDelta
-											: option.priceAdjustment !== undefined && option.priceAdjustment !== null
+											: option.priceAdjustment !== undefined &&
+											  option.priceAdjustment !== null
 											? option.priceAdjustment
 											: ''
 									}
@@ -2418,6 +2522,7 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 	const navigate = useNavigate()
 	const { user, loading: contextLoading } = useUser()
 	const { showAlert, showSuccess, showError, showWarning, showConfirm } = useAlert()
+	const { showLoading, hideLoading } = useLoading()
 	const [dishes, setDishes] = useState([])
 	const [categoryDetail, setCategoryDetail] = useState(null) // 🆕 Store full category detail from API
 	const [categoryName, setCategoryName] = useState(category?.name || '')
@@ -2966,7 +3071,13 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 						</div>
 					</div>
 					<button
-						onClick={() => navigate('/menu')}
+						onClick={() => {
+							showLoading('Đang quay lại danh mục...')
+							setTimeout(() => {
+								navigate('/menu')
+								hideLoading()
+							}, 300)
+						}}
 						className="p-2 text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-2"
 						title="Back to categories"
 					>
@@ -2984,35 +3095,38 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 							placeholder="Search dishes..."
 							className="flex-1 px-4 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white placeholder-[#9dabb9] focus:outline-none focus:ring-2 focus:ring-[#137fec] focus:border-[#137fec] transition-all"
 						/>
-						<select
+						<CustomDropdown
 							value={statusFilter}
-							onChange={(e) => setStatusFilter(e.target.value)}
-							className="px-4 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#137fec] transition-all"
-						>
-							<option value="ALL">All Status</option>
-							<option value="AVAILABLE">Available</option>
-							<option value="UNAVAILABLE">Unavailable</option>
-							<option value="SOLD_OUT">Sold Out</option>
-						</select>
-						<select
+							onChange={setStatusFilter}
+							options={[
+								{ value: 'ALL', label: 'All Status' },
+								{ value: 'AVAILABLE', label: 'Available' },
+								{ value: 'UNAVAILABLE', label: 'Unavailable' },
+								{ value: 'SOLD_OUT', label: 'Sold Out' },
+							]}
+							className="min-w-[140px]"
+						/>
+						<CustomDropdown
 							value={chefRecommendedFilter}
-							onChange={(e) => setChefRecommendedFilter(e.target.value)}
-							className="px-4 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#137fec] transition-all"
-						>
-							<option value="ALL">All Dishes</option>
-							<option value="YES">Chef's Choice</option>
-							<option value="NO">Regular Dishes</option>
-						</select>
-						<select
+							onChange={setChefRecommendedFilter}
+							options={[
+								{ value: 'ALL', label: 'All Dishes' },
+								{ value: 'YES', label: "Chef's Choice" },
+								{ value: 'NO', label: 'Regular Dishes' },
+							]}
+							className="min-w-[150px]"
+						/>
+						<CustomDropdown
 							value={sortBy}
-							onChange={(e) => setSortBy(e.target.value)}
-							className="px-4 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#137fec] transition-all"
-						>
-							<option value="createdAt">Newest First</option>
-							<option value="name">Name A-Z</option>
-							<option value="price">Price</option>
-							<option value="popularity">Popularity</option>
-						</select>
+							onChange={setSortBy}
+							options={[
+								{ value: 'createdAt', label: 'Newest First' },
+								{ value: 'name', label: 'Name A-Z' },
+								{ value: 'price', label: 'Price' },
+								{ value: 'popularity', label: 'Popularity' },
+							]}
+							className="min-w-[150px]"
+						/>
 						<button
 							onClick={() => setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC')}
 							className="px-4 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-[#137fec] transition-all"

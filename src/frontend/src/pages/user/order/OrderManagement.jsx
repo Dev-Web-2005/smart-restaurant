@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import ReactDOM from 'react-dom'
 import { useUser } from '../../../contexts/UserContext'
 import { useLoading } from '../../../contexts/LoadingContext'
+import { useNotifications } from '../../../contexts/NotificationContext'
 import BasePageLayout from '../../../components/layout/BasePageLayout'
 import { InlineLoader, CardSkeleton } from '../../../components/common/LoadingSpinner'
 
@@ -24,6 +25,7 @@ const mockActiveOrders = [
 		items: 3,
 		totalPrice: 45.0,
 		placedTime: getMockTime(15),
+		status: 'PREPARING',
 	},
 	{
 		id: 'C1D9E',
@@ -31,6 +33,7 @@ const mockActiveOrders = [
 		items: 5,
 		totalPrice: 62.5,
 		placedTime: getMockTime(35),
+		status: 'PREPARING',
 	},
 	{
 		id: 'E4F2A',
@@ -38,6 +41,7 @@ const mockActiveOrders = [
 		items: 2,
 		totalPrice: 23.75,
 		placedTime: getMockTime(5),
+		status: 'READY',
 	},
 	{
 		id: 'B7G8H',
@@ -45,6 +49,7 @@ const mockActiveOrders = [
 		items: 1,
 		totalPrice: 15.0,
 		placedTime: getMockTime(10),
+		status: 'READY',
 	},
 	{
 		id: 'K9M2N',
@@ -52,6 +57,7 @@ const mockActiveOrders = [
 		items: 6,
 		totalPrice: 88.2,
 		placedTime: getMockTime(20),
+		status: 'PREPARING',
 	},
 	{
 		id: 'F5P6Q',
@@ -59,6 +65,7 @@ const mockActiveOrders = [
 		items: 4,
 		totalPrice: 12.75,
 		placedTime: getMockTime(30),
+		status: 'PREPARING',
 	},
 ]
 
@@ -70,6 +77,7 @@ const mockPendingOrders = [
 		time: '12:45 PM',
 		totalPrice: 45.5,
 		placedTime: getMockTime(2),
+		paymentStatus: 'PAID', // PAID hoặc UNPAID
 	},
 	{
 		id: 'R8S3Y',
@@ -78,6 +86,7 @@ const mockPendingOrders = [
 		time: '12:42 PM',
 		totalPrice: 112.0,
 		placedTime: getMockTime(3),
+		paymentStatus: 'UNPAID',
 	},
 ]
 
@@ -267,7 +276,7 @@ const OrderDetailModal = ({ isOpen, onClose, details }) => {
 }
 
 // --- Sub-component: Active Order Card ---
-const ActiveOrderCard = ({ order, onServe, onView, timeData }) => {
+const ActiveOrderCard = ({ order, onAction, onView, timeData, actionType }) => {
 	const timeBoxClass = timeData.isDelayed ? 'bg-red-600' : 'bg-black/50 backdrop-blur-md'
 	const timeBoxTextColor = timeData.isDelayed
 		? `text-[${getColor('yellow-400')}]`
@@ -276,6 +285,21 @@ const ActiveOrderCard = ({ order, onServe, onView, timeData }) => {
 		? `text-[${getColor('yellow-300')}]`
 		: 'text-white'
 	const progressBarColor = timeData.isDelayed ? getColor('red-800') : getColor('primary')
+
+	// Xác định button config dựa trên actionType
+	const buttonConfig =
+		actionType === 'COMPLETE_COOKING'
+			? {
+					text: 'Kitchen Complete',
+					icon: 'restaurant',
+					color: 'bg-blue-500/20 text-blue-400 border-blue-400/50 hover:bg-blue-600/30',
+			  }
+			: {
+					text: 'Mark as Served',
+					icon: 'check_circle',
+					color:
+						'bg-[#4ade80]/20 text-[#4ade80] border-[#4ade80]/50 hover:bg-green-600/30',
+			  }
 
 	return (
 		<div
@@ -312,11 +336,11 @@ const ActiveOrderCard = ({ order, onServe, onView, timeData }) => {
 			<button
 				onClick={(e) => {
 					e.stopPropagation()
-					onServe(order.id)
+					onAction(order.id)
 				}}
-				className="w-full h-10 rounded-lg bg-[#4ade80]/20 text-[#4ade80] text-sm font-bold transition-colors hover:bg-green-600/30 active:scale-[0.98] border border-[#4ade80]/50"
+				className={`w-full h-10 rounded-lg text-sm font-bold transition-colors active:scale-[0.98] border flex items-center justify-center gap-2 ${buttonConfig.color}`}
 			>
-				Mark as Served
+				{buttonConfig.text}
 			</button>
 		</div>
 	)
@@ -327,16 +351,28 @@ const PendingOrderItem = ({ order, onApprove, onDecline, onView }) => {
 	const handleApproveClick = () => onApprove(order.id)
 	const handleDeclineClick = () => onDecline(order.id)
 
+	const isPaid = order.paymentStatus === 'PAID'
+
 	return (
 		<div
 			onClick={() => onView(order.id)}
 			className="bg-black/30 backdrop-blur-md rounded-lg m-4 p-4 flex items-center justify-between transition-all duration-200 hover:bg-black/40 hover:shadow-md cursor-pointer border border-white/10"
 		>
 			<div className="flex flex-col gap-1">
-				<p className="text-white font-semibold m-0">{order.destination}</p>
+				<div className="flex items-center gap-2">
+					<p className="text-white font-semibold m-0">{order.destination}</p>
+					<span
+						className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+							isPaid
+								? 'bg-green-500/20 text-green-400 border border-green-400/50'
+								: 'bg-yellow-500/20 text-yellow-400 border border-yellow-400/50'
+						}`}
+					>
+						{isPaid ? 'Paid' : 'Unpaid'}
+					</span>
+				</div>
 				<div className="flex items-center gap-4 text-sm text-gray-300">
 					<span className="flex items-center">
-						<span className="material-symbols-outlined text-sm mr-1">schedule</span>
 						{new Date(order.placedTime).toLocaleTimeString('en-US', {
 							hour: '2-digit',
 							minute: '2-digit',
@@ -374,13 +410,19 @@ const PendingOrderItem = ({ order, onApprove, onDecline, onView }) => {
 
 const OrderManagement = () => {
 	const { user, loading: contextLoading } = useUser()
+	const { decrementPendingOrders } = useNotifications()
 
+	const [activeTab, setActiveTab] = useState('PREPARING') // 'PREPARING' hoặc 'READY'
 	const [activeOrders, setActiveOrders] = useState([])
 	const [pendingOrders, setPendingOrders] = useState([])
 	const [loading, setLoading] = useState(true)
 	const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
 	const [orderDetails, setOrderDetails] = useState(null)
 	const [tick, setTick] = useState(0)
+
+	// Lọc orders theo status
+	const preparingOrders = activeOrders.filter((order) => order.status === 'PREPARING')
+	const readyOrders = activeOrders.filter((order) => order.status === 'READY')
 
 	const fetchOrders = async () => {
 		console.log('Fetching active and pending orders...')
@@ -409,6 +451,13 @@ const OrderManagement = () => {
 		}, 300)
 	}
 
+	const handleCompleteCooking = async (orderId) => {
+		console.log(`Marking order ${orderId} as cooking completed.`)
+		setActiveOrders((prev) =>
+			prev.map((order) => (order.id === orderId ? { ...order, status: 'READY' } : order)),
+		)
+	}
+
 	const handleServe = async (orderId) => {
 		console.log(`Marking order ${orderId} as served.`)
 		setActiveOrders((prev) => prev.filter((order) => order.id !== orderId))
@@ -420,15 +469,14 @@ const OrderManagement = () => {
 		const approvedOrder = pendingOrders.find((o) => o.id === orderId)
 		if (approvedOrder) {
 			setPendingOrders((prev) => prev.filter((o) => o.id !== orderId))
-			const currentTimeData = calculateTimeData(approvedOrder.placedTime)
+			decrementPendingOrders() // Update sidebar notification
 
 			setActiveOrders((prev) =>
 				[
 					...prev,
 					{
 						...approvedOrder,
-						destination: approvedOrder.destination,
-						...currentTimeData,
+						status: 'PREPARING',
 					},
 				].sort((a, b) => (a.placedTime || 0) - (b.placedTime || 0)),
 			)
@@ -438,6 +486,7 @@ const OrderManagement = () => {
 	const handleDecline = async (orderId) => {
 		console.log(`Declining order: ${orderId}`)
 		setPendingOrders((prev) => prev.filter((o) => o.id !== orderId))
+		decrementPendingOrders() // Update sidebar notification
 	}
 
 	useEffect(() => {
@@ -481,8 +530,42 @@ const OrderManagement = () => {
 							<div className="section-header mb-6">
 								<h2 className="text-2xl font-bold text-white m-0">Active Orders</h2>
 								<p className="text-gray-300 text-sm">
-									Orders currently in preparation or delivery.
+									Manage orders in preparation and ready to serve.
 								</p>
+							</div>
+
+							{/* Tab Switcher */}
+							<div className="flex gap-2 mb-6 bg-black/40 backdrop-blur-md rounded-lg p-1 border border-white/10">
+								<button
+									onClick={() => setActiveTab('PREPARING')}
+									className={`relative flex-1 py-3 px-4 rounded-md font-semibold transition-all flex items-center justify-center gap-2 ${
+										activeTab === 'PREPARING'
+											? 'bg-blue-500 text-white shadow-lg'
+											: 'text-gray-400 hover:text-white hover:bg-white/5'
+									}`}
+								>
+									In Kitchen
+									{preparingOrders.length > 0 && (
+										<span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[24px] h-6 flex items-center justify-center px-2 shadow-lg">
+											{preparingOrders.length}
+										</span>
+									)}
+								</button>
+								<button
+									onClick={() => setActiveTab('READY')}
+									className={`relative flex-1 py-3 px-4 rounded-md font-semibold transition-all flex items-center justify-center gap-2 ${
+										activeTab === 'READY'
+											? 'bg-green-500 text-white shadow-lg'
+											: 'text-gray-400 hover:text-white hover:bg-white/5'
+									}`}
+								>
+									Ready to Serve
+									{readyOrders.length > 0 && (
+										<span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[24px] h-6 flex items-center justify-center px-2 shadow-lg">
+											{readyOrders.length}
+										</span>
+									)}
+								</button>
 							</div>
 
 							<div className="flex-1 overflow-hidden">
@@ -491,16 +574,38 @@ const OrderManagement = () => {
 										<p className="text-[#9dabb9] lg:col-span-3">
 											Loading active orders...
 										</p>
-									) : (
-										activeOrders.map((order) => (
+									) : activeTab === 'PREPARING' ? (
+										preparingOrders.length > 0 ? (
+											preparingOrders.map((order) => (
+												<ActiveOrderCard
+													key={order.id}
+													order={order}
+													onAction={handleCompleteCooking}
+													onView={handleViewDetails}
+													timeData={calculateTimeData(order.placedTime)}
+													actionType="COMPLETE_COOKING"
+												/>
+											))
+										) : (
+											<p className="text-[#9dabb9] lg:col-span-3 text-center py-10">
+												No orders being prepared.
+											</p>
+										)
+									) : readyOrders.length > 0 ? (
+										readyOrders.map((order) => (
 											<ActiveOrderCard
 												key={order.id}
 												order={order}
-												onServe={handleServe}
+												onAction={handleServe}
 												onView={handleViewDetails}
 												timeData={calculateTimeData(order.placedTime)}
+												actionType="MARK_SERVED"
 											/>
 										))
+									) : (
+										<p className="text-[#9dabb9] lg:col-span-3 text-center py-10">
+											No orders ready to serve.
+										</p>
 									)}
 								</div>
 							</div>
