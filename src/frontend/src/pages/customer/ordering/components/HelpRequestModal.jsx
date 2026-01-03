@@ -8,6 +8,20 @@ const HelpRequestModal = ({ isOpen, onClose, onSubmit }) => {
 	const modalRef = useRef(null)
 	const textareaRef = useRef(null)
 
+	// Add CSS to hide scrollbar globally for this component
+	useEffect(() => {
+		const style = document.createElement('style')
+		style.innerHTML = `
+			.scrollbar-hide::-webkit-scrollbar {
+				display: none;
+			}
+		`
+		document.head.appendChild(style)
+		return () => {
+			document.head.removeChild(style)
+		}
+	}, [])
+
 	useEffect(() => {
 		if (isOpen && textareaRef.current) {
 			// Focus on textarea when modal opens
@@ -122,20 +136,26 @@ const HelpRequestModal = ({ isOpen, onClose, onSubmit }) => {
 					>
 						<div
 							ref={modalRef}
-							className="bg-gradient-to-br from-gray-900 to-black rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto border border-white/10"
+							className="bg-gradient-to-br from-gray-900 to-black rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto border border-white/10 scrollbar-hide"
+							style={{
+								scrollbarWidth: 'none',
+								msOverflowStyle: 'none',
+							}}
 						>
 							{/* Header */}
-							<div className="sticky top-0 bg-gradient-to-br from-gray-900 to-black border-b border-white/10 p-6 rounded-t-3xl z-10">
+							<div className="sticky top-0 bg-gradient-to-br from-gray-900 to-black border-b border-white/10 p-4 sm:p-6 rounded-t-3xl z-10">
 								<div className="flex items-center justify-between mb-2">
-									<div className="flex items-center gap-3">
-										<div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-											<span className="material-symbols-outlined text-white text-2xl">
+									<div className="flex items-center gap-2 sm:gap-3">
+										<div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+											<span className="material-symbols-outlined text-white text-xl sm:text-2xl">
 												support_agent
 											</span>
 										</div>
 										<div>
-											<h2 className="text-2xl font-black text-white m-0">Request Help</h2>
-											<p className="text-sm text-gray-400 m-0">
+											<h2 className="text-lg sm:text-2xl font-black text-white m-0">
+												Request Help
+											</h2>
+											<p className="text-xs sm:text-sm text-gray-400 m-0">
 												We're here to assist you
 											</p>
 										</div>
@@ -143,9 +163,9 @@ const HelpRequestModal = ({ isOpen, onClose, onSubmit }) => {
 									<button
 										onClick={onClose}
 										disabled={isSending}
-										className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors disabled:opacity-50"
+										className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors disabled:opacity-50 flex-shrink-0"
 									>
-										<span className="material-symbols-outlined text-gray-400 text-xl">
+										<span className="material-symbols-outlined text-gray-400 text-lg sm:text-xl">
 											close
 										</span>
 									</button>
@@ -153,29 +173,33 @@ const HelpRequestModal = ({ isOpen, onClose, onSubmit }) => {
 							</div>
 
 							{/* Content */}
-							<form onSubmit={handleSubmit} className="p-6 space-y-6">
+							<form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6">
 								{/* Urgency Level */}
 								<div>
-									<label className="block text-sm font-bold text-gray-300 mb-3">
+									<label className="block text-xs sm:text-sm font-bold text-gray-300 mb-2 sm:mb-3">
 										Urgency Level
 									</label>
-									<div className="grid grid-cols-3 gap-3">
+									<div className="grid grid-cols-3 gap-2 sm:gap-3">
 										{urgencyOptions.map((option) => (
 											<button
 												key={option.value}
 												type="button"
 												onClick={() => setUrgency(option.value)}
 												disabled={isSending}
-												className={`relative p-4 rounded-xl border-2 transition-all duration-200 disabled:opacity-50 ${
+												className={`relative p-3 sm:p-4 rounded-xl border-2 transition-all duration-200 disabled:opacity-50 ${
 													urgency === option.value
 														? 'border-white bg-white/10 shadow-lg'
 														: 'border-white/10 bg-white/5 hover:bg-white/10'
 												}`}
 											>
 												<span
-													className={`material-symbols-outlined block mb-2 ${
+													className={`material-symbols-outlined block mb-1 sm:mb-2 ${
 														option.color
-													} ${urgency === option.value ? 'text-2xl' : 'text-xl'}`}
+													} ${
+														urgency === option.value
+															? 'text-xl sm:text-2xl'
+															: 'text-lg sm:text-xl'
+													}`}
 												>
 													{option.icon}
 												</span>
@@ -204,7 +228,7 @@ const HelpRequestModal = ({ isOpen, onClose, onSubmit }) => {
 
 								{/* Quick Messages */}
 								<div>
-									<label className="block text-sm font-bold text-gray-300 mb-3">
+									<label className="block text-xs sm:text-sm font-bold text-gray-300 mb-2 sm:mb-3">
 										Quick Messages (Optional)
 									</label>
 									<div className="grid grid-cols-2 gap-2">
@@ -214,7 +238,7 @@ const HelpRequestModal = ({ isOpen, onClose, onSubmit }) => {
 												type="button"
 												onClick={() => setMessage(quickMsg)}
 												disabled={isSending}
-												className="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-gray-300 text-left transition-colors disabled:opacity-50"
+												className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] sm:text-xs text-gray-300 text-left transition-colors disabled:opacity-50"
 											>
 												{quickMsg}
 											</button>
@@ -224,7 +248,7 @@ const HelpRequestModal = ({ isOpen, onClose, onSubmit }) => {
 
 								{/* Message Input */}
 								<div>
-									<label className="block text-sm font-bold text-gray-300 mb-3">
+									<label className="block text-xs sm:text-sm font-bold text-gray-300 mb-2 sm:mb-3">
 										Your Message *
 									</label>
 									<textarea
@@ -235,11 +259,11 @@ const HelpRequestModal = ({ isOpen, onClose, onSubmit }) => {
 										disabled={isSending}
 										rows={5}
 										maxLength={500}
-										className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none disabled:opacity-50"
+										className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-white/5 border border-white/10 rounded-xl text-sm sm:text-base text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none disabled:opacity-50"
 										required
 									/>
 									<div className="flex justify-between items-center mt-2">
-										<span className="text-xs text-gray-500">
+										<span className="text-[10px] sm:text-xs text-gray-500">
 											{message.length}/500 characters
 										</span>
 										{message.trim() && (
@@ -247,7 +271,7 @@ const HelpRequestModal = ({ isOpen, onClose, onSubmit }) => {
 												type="button"
 												onClick={() => setMessage('')}
 												disabled={isSending}
-												className="text-xs text-gray-400 hover:text-white transition-colors disabled:opacity-50"
+												className="text-[10px] sm:text-xs text-gray-400 hover:text-white transition-colors disabled:opacity-50"
 											>
 												Clear
 											</button>
@@ -256,11 +280,11 @@ const HelpRequestModal = ({ isOpen, onClose, onSubmit }) => {
 								</div>
 
 								{/* Info Box */}
-								<div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 flex items-start gap-3">
-									<span className="material-symbols-outlined text-blue-400 flex-shrink-0 text-xl">
+								<div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 sm:p-4 flex items-start gap-2 sm:gap-3">
+									<span className="material-symbols-outlined text-blue-400 flex-shrink-0 text-lg sm:text-xl">
 										info
 									</span>
-									<div className="text-sm text-blue-300">
+									<div className="text-xs sm:text-sm text-blue-300">
 										<p className="font-semibold mb-1">Response Time</p>
 										<p className="text-blue-400/80">
 											Our staff will receive your request immediately and will assist you
@@ -270,28 +294,30 @@ const HelpRequestModal = ({ isOpen, onClose, onSubmit }) => {
 								</div>
 
 								{/* Action Buttons */}
-								<div className="flex gap-3 pt-2">
+								<div className="flex gap-2 sm:gap-3 pt-2">
 									<button
 										type="button"
 										onClick={onClose}
 										disabled={isSending}
-										className="flex-1 px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold transition-colors disabled:opacity-50"
+										className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm sm:text-base font-bold transition-colors disabled:opacity-50"
 									>
 										Cancel
 									</button>
 									<button
 										type="submit"
 										disabled={!message.trim() || isSending}
-										className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+										className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-sm sm:text-base font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
 									>
 										{isSending ? (
 											<>
-												<div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+												<div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
 												<span>Sending...</span>
 											</>
 										) : (
 											<>
-												<span className="material-symbols-outlined text-xl">send</span>
+												<span className="material-symbols-outlined text-lg sm:text-xl">
+													send
+												</span>
 												<span>Send Request</span>
 											</>
 										)}
