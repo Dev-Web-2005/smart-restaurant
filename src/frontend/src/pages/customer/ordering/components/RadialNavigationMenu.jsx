@@ -52,55 +52,66 @@ const RadialNavigationMenu = ({
 
 	// Handle drag end - snap to nearest edge
 	const handleDragEnd = (event, info) => {
-		const windowWidth = window.innerWidth
-		const windowHeight = window.innerHeight
+		// Use clientWidth/clientHeight to get viewport without scrollbar
+		const windowWidth = document.documentElement.clientWidth
+		const windowHeight = document.documentElement.clientHeight
 		const buttonSize = isMobile ? 56 : 64
 		const padding = 20
+		const scrollY = window.scrollY || window.pageYOffset
 
+		// Use point coordinates for accurate position (relative to viewport)
 		const buttonCenterX = info.point.x
-		const buttonCenterY = info.point.y
+		const buttonCenterY = info.point.y - scrollY // Subtract scroll to get viewport-relative position
 
+		// Determine which side is closer
 		const isLeftCloser = buttonCenterX < windowWidth / 2
 
-		const maxBottom = windowHeight - buttonSize - padding
-		const minBottom = padding
-		const currentBottom = windowHeight - buttonCenterY - buttonSize / 2
-		const clampedBottom = Math.max(minBottom, Math.min(maxBottom, currentBottom))
+		// Calculate the snap position (relative to viewport)
+		const snapX = isLeftCloser ? padding : windowWidth - buttonSize - padding
+		const snapY = buttonCenterY - buttonSize / 2
 
-		// Tính toán vị trí snap chính xác (pixel values)
-		const snapLeft = isLeftCloser ? padding : windowWidth - buttonSize - padding
+		// Clamp Y position to stay within viewport
+		const maxY = windowHeight - buttonSize - padding
+		const minY = padding
+		const clampedY = Math.max(minY, Math.min(maxY, snapY))
 
+		// Calculate bottom for React state (distance from bottom of viewport)
+		const bottomValue = windowHeight - clampedY - buttonSize
+
+		// Update FAB position state
 		setFabPosition({
 			side: isLeftCloser ? 'left' : 'right',
-			bottom: clampedBottom,
+			bottom: bottomValue,
 		})
 
+		// Set snap target with exact pixel coordinates
 		setIsSnapping(true)
 		setSnapTarget({
 			side: isLeftCloser ? 'left' : 'right',
-			bottom: clampedBottom,
-			left: snapLeft,
+			left: snapX,
+			top: clampedY, // Use top instead of bottom for consistency
 		})
 
-		// Nút ảo dừng hoàn toàn (spring animation settle) sau 450ms
-		// Nút thật xuất hiện ngay sau đó
+		// Hide dragging button and show snapping animation
 		setTimeout(() => {
-			setIsDragging(false) // Nút thật bắt đầu fade in
+			setIsDragging(false) // Real button starts to fade in
 		}, 450)
 
-		// Nút ảo fade out sau khi nút thật đã hiện hoàn toàn (450ms + 250ms fade in)
+		// Remove snapping button after real button is visible
 		setTimeout(() => {
-			setIsSnapping(false) // Nút ảo bắt đầu fade out
+			setIsSnapping(false) // Snapping button fades out
 		}, 700)
 	}
 
 	const handleDragStart = (event, info) => {
 		setIsDragging(true)
-		setDragPosition({ x: info.point.x, y: info.point.y })
+		const scrollY = window.scrollY || window.pageYOffset
+		setDragPosition({ x: info.point.x, y: info.point.y - scrollY })
 	}
 
 	const handleDrag = (event, info) => {
-		setDragPosition({ x: info.point.x, y: info.point.y })
+		const scrollY = window.scrollY || window.pageYOffset
+		setDragPosition({ x: info.point.x, y: info.point.y - scrollY })
 	}
 
 	// Menu items configuration
@@ -334,20 +345,20 @@ const RadialNavigationMenu = ({
 							initial={{
 								scale: 1.15,
 								left: dragPosition.x - (isMobile ? 28 : 32),
-								bottom: window.innerHeight - dragPosition.y - (isMobile ? 28 : 32),
+								top: dragPosition.y - (isMobile ? 28 : 32),
 							}}
 							animate={
 								isSnapping
 									? {
 											scale: 1,
 											left: snapTarget.left,
-											bottom: snapTarget.bottom,
+											top: snapTarget.top,
 											opacity: 1,
 									  }
 									: {
 											scale: 1.15,
 											left: dragPosition.x - (isMobile ? 28 : 32),
-											bottom: window.innerHeight - dragPosition.y - (isMobile ? 28 : 32),
+											top: dragPosition.y - (isMobile ? 28 : 32),
 									  }
 							}
 							transition={{
