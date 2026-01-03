@@ -40,9 +40,12 @@ export const createKYCSession = async (userId, email, phone) => {
 			},
 		}
 
-		// X-Api-Key header auto-injected by Vite proxy in dev, manually added in prod
+		// ✅ Direct API call with X-Api-Key header
 		const response = await axios.post(`${DIDIT_API_BASE}/session/`, payload, {
-			headers: { 'Content-Type': 'application/json' },
+			headers: {
+				'Content-Type': 'application/json',
+				'X-Api-Key': DIDIT_API_KEY,
+			},
 			timeout: 15000,
 		})
 
@@ -78,7 +81,7 @@ export const createKYCSession = async (userId, email, phone) => {
  */
 export const getKYCResult = async (sessionId) => {
 	try {
-		// X-Api-Key header auto-injected by Vite proxy in dev, manually added in prod
+		// ✅ Direct API call with X-Api-Key header
 		const response = await axios.get(`${DIDIT_API_BASE}/session/${sessionId}/decision/`, {
 			headers: {
 				'X-Api-Key': DIDIT_API_KEY,
