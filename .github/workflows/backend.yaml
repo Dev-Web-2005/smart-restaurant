@@ -5,14 +5,14 @@ on:
     branches: ["master", "release", "develop"]
     paths:
       - "src/backend/**"
-      - ".github/workflows/backend-smart.yaml"
+      - ".github/workflows/backend.yaml"
     tags:
       - "v*"
   pull_request:
     branches: ["master", "release", "develop"]
     paths:
       - "src/backend/**"
-      - ".github/workflows/backend-smart.yaml"
+      - ".github/workflows/backend.yaml"
   workflow_dispatch:
 
 env:
