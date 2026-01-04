@@ -24,9 +24,31 @@ import { RolesModule } from 'src/roles/roles.module';
 					},
 				}),
 			},
+			{
+				name: 'NOTIFICATION_SERVICE',
+				imports: [ConfigModule],
+				inject: [ConfigService],
+				useFactory: (configService: ConfigService) => ({
+					transport: Transport.RMQ,
+					options: {
+						urls: [
+							configService.get<string>('CONNECTION_AMQP') || 'amqp://localhost:5672',
+						],
+						queue: 'notification_queue',
+						queueOptions: {
+							durable: true,
+							arguments: {
+								'x-dead-letter-exchange': 'dlx_exchange',
+								'x-dead-letter-routing-key': 'notification_dlq',
+							},
+						},
+					},
+				}),
+			},
 		]),
 	],
 	controllers: [UsersController],
 	providers: [UsersService],
+	exports: [UsersService],
 })
 export class UsersModule {}
