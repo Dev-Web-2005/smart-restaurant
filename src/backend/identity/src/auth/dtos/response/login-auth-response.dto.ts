@@ -5,4 +5,5 @@ export default class LoginAuthResponseDto {
 	roles: string[];
 	accessToken: string;
 	refreshToken: string;
+	ownerId?: string; // For CUSTOMER/STAFF/CHEF - the restaurant owner's userId
 }

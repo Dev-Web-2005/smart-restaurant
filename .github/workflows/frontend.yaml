@@ -17,6 +17,7 @@ on:
 env:
   # General Env vars
   VITE_API_GATEWAY_URL: ${{ vars.VITE_API_GATEWAY_URL }}
+  VITE_API_URL: ${{ vars.VITE_API_URL }}
   VITE_FILE_SERVICE_URL: ${{ vars.VITE_FILE_SERVICE_URL }}
   VITE_API_KEY: ${{ vars.VITE_API_KEY }}
   VITE_PROD: "true"
@@ -38,6 +39,7 @@ jobs:
       - name: Build frontend
         env:
           VITE_API_GATEWAY_URL: ${{ vars.VITE_API_GATEWAY_URL }}
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
           VITE_FILE_SERVICE_URL: ${{ vars.VITE_FILE_SERVICE_URL }}
           VITE_API_KEY: ${{ vars.VITE_API_KEY }}
           VITE_DIDIT_API_KEY: ${{ secrets.VITE_DIDIT_API_KEY }}

@@ -1,0 +1,20 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 7
+    },
+    "auditLog": "logs-failure-notification\\.3dc0018c9392f900642901be9cf7589236f4356a-audit.json",
+    "files": [
+        {
+            "date": 1767037872061,
+            "name": "logs-failure-notification\\app-2025-12-30.log",
+            "hash": "1defde5eb6de3d8a2348070e03d24187bb68fe1251e4232653abe536a89b529f"
+        },
+        {
+            "date": 1767521169663,
+            "name": "logs-failure-notification\\app-2026-01-04.log",
+            "hash": "5dc0fabcfcef17dd1a36e79c3b6f50cefce654f1cb5da8fa2793ba277047e41f"
+        }
+    ],
+    "hashType": "sha256"
+}

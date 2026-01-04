@@ -31,10 +31,28 @@ env: # Global environment variables shared across services
   PROFILE_API_KEY: ${{ secrets.PROFILE_API_KEY }}
   PRODUCT_API_KEY: ${{ secrets.PRODUCT_API_KEY }}
   TABLE_API_KEY: ${{ secrets.TABLE_API_KEY }}
+  KITCHEN_API_KEY: ${{ secrets.KITCHEN_API_KEY }}
+  NOTIFICATION_API_KEY: ${{ secrets.NOTIFICATION_API_KEY }}
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    
+    services:
+      rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+          - 5672:5672
+          - 15672:15672
+        env:
+          RABBITMQ_DEFAULT_USER: supper
+          RABBITMQ_DEFAULT_PASS: supper
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -94,6 +112,7 @@ jobs:
           REFRESH_TOKEN_EXPIRY: 7d
           JWT_SECRET_KEY_ACCESS: ${{ secrets.JWT_SECRET_KEY_ACCESS }}
           JWT_SECRET_KEY_REFRESH: ${{ secrets.JWT_SECRET_KEY_REFRESH }}
+          CONNECTION_AMQP: amqp://supper:supper@localhost:5672
 
         run: |
           cd src/backend/identity
@@ -104,7 +123,7 @@ jobs:
           cp -r . ../../../result/identity/
 
       - name: Product services
-        env: # Product service environment variables
+        env: 
           PORT: 8082
 
         run: |
@@ -116,7 +135,7 @@ jobs:
           cp -r . ../../../result/product/
 
       - name: Profile services
-        env: # Profile service environment variables
+        env: 
           PORT: 8081
 
         run: |
@@ -128,7 +147,7 @@ jobs:
           cp -r . ../../../result/profile/
 
       - name: Table services
-        env: # Table service environment variables
+        env: 
           PORT: 8083
           QR_SECRET_KEY: ${{ secrets.QR_SECRET_KEY }}
           QR_BASE_URL: ${{ vars.QR_BASE_URL }}
@@ -140,6 +159,32 @@ jobs:
           rm -rf src test
           mkdir -p ../../../result/table
           cp -r . ../../../result/table/
+
+      - name: Kitchen services
+        env:
+          PORT: 8086
+          CONNECTION_AMQP: amqp://supper:supper@localhost:5672
+
+        run: |
+          cd src/backend/kitchen
+          npm ci
+          npm run build
+          rm -rf src test
+          mkdir -p ../../../result/kitchen
+          cp -r . ../../../result/kitchen/
+
+      - name: Notification services
+        env:
+          PORT: 8085
+          CONNECTION_AMQP: amqp://supper:supper@localhost:5672
+
+        run: |
+          cd src/backend/notification
+          npm ci
+          npm run build
+          rm -rf src test
+          mkdir -p ../../../result/notification
+          cp -r . ../../../result/notification/
 
       - uses: actions/upload-artifact@v4
         with:
@@ -206,6 +251,9 @@ jobs:
             TABLE_SERVICE_URL=${{ vars.TABLE_SERVICE_URL }}
             HOST_TABLE_SERVICE=${{ vars.HOST_TABLE_SERVICE }}
             PORT_TABLE_SERVICE=${{ vars.PORT_TABLE_SERVICE }}
+            HOST_NOTIFICATION_SERVICE=${{ vars.HOST_NOTIFICATION_SERVICE }}
+            PORT_NOTIFICATION_SERVICE=${{ vars.PORT_NOTIFICATION_SERVICE }}
+            NOTIFICATION_API_KEY=${{ secrets.NOTIFICATION_API_KEY }}
             REFRESH_TOKEN_EXPIRES_IN=${{ secrets.REFRESH_TOKEN_EXPIRES_IN }}
             FRONTEND_URL=${{ vars.FRONTEND_URL }}
             COOKIE_DOMAIN=${{ vars.COOKIE_DOMAIN }}
@@ -233,6 +281,10 @@ jobs:
             PROFILE_API_KEY=${{ secrets.PROFILE_API_KEY }}
             JWT_SECRET_KEY_ACCESS=${{ secrets.JWT_SECRET_KEY_ACCESS }}
             JWT_SECRET_KEY_REFRESH=${{ secrets.JWT_SECRET_KEY_REFRESH }}
+            JWT_SECRET_KEY_RESET_PASSWORD=${{ secrets.JWT_SECRET_KEY_RESET_PASSWORD }}
+            FRONTEND_URL=${{ vars.FRONTEND_URL }}
+            CONNECTION_AMQP=${{ secrets.CONNECTION_AMQP }}
+            NOTIFICATION_API_KEY=${{ secrets.NOTIFICATION_API_KEY }}
             EOF
             echo "✓ Identity .env created"
             cat .env
@@ -290,6 +342,52 @@ jobs:
             echo "✓ Table .env created"
             cat .env
             pm2 start dist/table/src/main.js --name table
+            cd ..
+
+            # Setup kitchen
+            cd kitchen
+            cat > .env << 'EOF'
+            PORT=8086
+            HOST_DB=${{ secrets.HOST_DB }}
+            PORT_DB=${{ secrets.PORT_DB }}
+            USERNAME_DB=${{ secrets.USERNAME_DB }}
+            PASSWORD_DB=${{ secrets.PASSWORD_DB }}
+            DATABASE_DB=${{ secrets.DATABASE_DB }}
+            X_API_KEY=${{ secrets.X_API_KEY }}
+            KITCHEN_API_KEY=${{ secrets.KITCHEN_API_KEY }}
+            CONNECTION_AMQP=${{ secrets.CONNECTION_AMQP }}
+            LIMIT_REQUEUE=10
+            EOF
+            echo "✓ Kitchen .env created"
+            cat .env
+            pm2 start dist/kitchen/src/main.js --name kitchen
+            cd ..
+
+            # Setup notification
+            cd notification
+            cat > .env << 'EOF'
+            PORT=8085
+            HOST=localhost
+            HOST_DB=${{ secrets.HOST_DB }}
+            PORT_DB=${{ secrets.PORT_DB }}
+            USERNAME_DB=${{ secrets.USERNAME_DB }}
+            PASSWORD_DB=${{ secrets.PASSWORD_DB }}
+            DATABASE_DB=${{ secrets.DATABASE_DB }}
+            X_API_KEY=${{ secrets.X_API_KEY }}
+            NOTIFICATION_API_KEY=${{ secrets.NOTIFICATION_API_KEY }}
+            CONNECTION_AMQP=${{ secrets.CONNECTION_AMQP }}
+            LIMIT_REQUEUE=5
+            TCP_PORT=8086
+            TCP_HOST=localhost
+            MAIL_URL=${{ secrets.MAIL_URL }}
+            MAIL_API_KEY=${{ secrets.MAIL_API_KEY }}
+            MAIL_SENDER=${{ secrets.MAIL_SENDER }}
+            MAIL_SENDER_NAME=${{ secrets.MAIL_SENDER_NAME }}
+            TTS_API_KEY=${{ secrets.TTS_API_KEY }}
+            EOF
+            echo "✓ Notification .env created"
+            cat .env
+            pm2 start dist/notification/src/main.js --name notification
             cd ..
 
             pm2 save
