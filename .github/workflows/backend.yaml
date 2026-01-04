@@ -37,7 +37,7 @@ env: # Global environment variables shared across services
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     services:
       rabbitmq:
         image: rabbitmq:3-management
@@ -52,7 +52,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -123,7 +123,7 @@ jobs:
           cp -r . ../../../result/identity/
 
       - name: Product services
-        env: 
+        env:
           PORT: 8082
 
         run: |
@@ -135,7 +135,7 @@ jobs:
           cp -r . ../../../result/product/
 
       - name: Profile services
-        env: 
+        env:
           PORT: 8081
 
         run: |
@@ -147,7 +147,7 @@ jobs:
           cp -r . ../../../result/profile/
 
       - name: Table services
-        env: 
+        env:
           PORT: 8083
           QR_SECRET_KEY: ${{ secrets.QR_SECRET_KEY }}
           QR_BASE_URL: ${{ vars.QR_BASE_URL }}
@@ -221,6 +221,16 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           username: ${{ secrets.VPS_USER }}
           script: |
+
+            # Backup 
+            cp -r /home/${{ secrets.VPS_USER }}/projects/result/* /home/${{ secrets.VPS_USER }}/projects/backup/container
+            cd /home/${{ secrets.VPS_USER }}/projects/backup
+            TIMESTAMP=$(date +"%Y%m%d%H%M%S")
+            zip -r backend_$TIMESTAMP.zip container/
+            sudo rm -rf container/*
+            echo "✓ Backup completed"
+
+            # Stop all services
             cd /home/${{ secrets.VPS_USER }}/projects/result
             pm2 delete all || true
 
