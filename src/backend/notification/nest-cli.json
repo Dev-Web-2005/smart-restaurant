@@ -9,7 +9,8 @@
     "webpack": false,
     "assets": [
       {
-        "include": "resources/**/*",
+        "include": "**/*.html",
+        "watchAssets": true,
         "outDir": "dist"
       }
     ]
