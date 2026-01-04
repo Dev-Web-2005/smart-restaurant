@@ -193,11 +193,7 @@ jobs:
         with:
           name: backend-build
           path: result
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: backend-build
-          path: backend-build
+          if-no-files-found: error
 
       - name: Deploy to server
         uses: appleboy/scp-action@v0.1.6
@@ -206,7 +202,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
           port: ${{ secrets.VPS_PORT }}
-          source: "backend-build/*"
+          source: "result/*"
           target: "/home/${{ secrets.VPS_USER }}/projects/result/"
           strip_components: 1
           overwrite: true
@@ -407,4 +403,3 @@ jobs:
             pm2 save
             echo "✓ Restarted services:$SERVICES_TO_RESTART"
             pm2 list
-
