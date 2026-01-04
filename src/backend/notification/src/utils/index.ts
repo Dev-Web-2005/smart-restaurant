@@ -72,18 +72,36 @@ export function getTemplateString(fileName: string, variables: Map<string, strin
 		),
 	];
 
+	console.log(`[Template Search] Looking for template: ${fileName}.html`);
+	console.log(`[Template Search] __dirname: ${__dirname}`);
+	console.log(`[Template Search] process.cwd(): ${process.cwd()}`);
+
 	let filePath: string | null = null;
 	for (const possiblePath of possiblePaths) {
-		if (fs.existsSync(possiblePath)) {
+		const exists = fs.existsSync(possiblePath);
+		console.log(
+			`[Template Search] Checking: ${possiblePath} - ${exists ? 'FOUND' : 'NOT FOUND'}`,
+		);
+		if (exists) {
 			filePath = possiblePath;
 			break;
 		}
 	}
 
 	if (!filePath) {
+		console.error(`[Template Error] Template not found: ${fileName}.html`);
+		console.error(`[Template Error] Checked paths:`, possiblePaths);
+		console.error(
+			`[Template Error] Available templates in cwd:`,
+			fs.existsSync(path.join(process.cwd(), 'src', 'resources', 'templates'))
+				? fs.readdirSync(path.join(process.cwd(), 'src', 'resources', 'templates'))
+				: 'Directory not exists',
+		);
 		throw new AppException(ErrorCode.SENDMAIL_FAILED);
 	}
+
 	try {
+		console.log(`[Template Success] Using template: ${filePath}`);
 		let template = fs.readFileSync(filePath, 'utf-8');
 		variables.forEach((value, key) => {
 			const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
@@ -91,7 +109,7 @@ export function getTemplateString(fileName: string, variables: Map<string, strin
 		});
 		return template;
 	} catch (error) {
-		console.error('Error reading template file:', error);
+		console.error(`[Template Error] Failed to read template: ${filePath}`, error);
 		throw error;
 	}
 }
