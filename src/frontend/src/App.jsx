@@ -10,6 +10,8 @@ import ProtectedRoute from './routes/ProtectedRoute'
 // Import pages
 import Login from './pages/auth/Login'
 import SignUp from './pages/auth/SignUp'
+import ForgotPassword from './pages/auth/ForgotPassword'
+import ResetPassword from './pages/auth/ResetPassword'
 import RestaurantSetupWizard from './pages/onboarding/RestaurantSetupWizard'
 import KYCCallback from './pages/kyc/KYCCallback'
 
@@ -68,6 +70,8 @@ function App() {
 									{/* Public routes */}
 									<Route path="/login" element={<Login />} />
 									<Route path="/signup" element={<SignUp />} />
+									<Route path="/forgot-password" element={<ForgotPassword />} />
+									<Route path="/reset-password" element={<ResetPassword />} />
 									<Route path="/onboarding" element={<RestaurantSetupWizard />} />
 									<Route path="/kyc/callback" element={<KYCCallback />} />
 

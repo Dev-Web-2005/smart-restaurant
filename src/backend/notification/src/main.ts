@@ -60,9 +60,9 @@ async function bootstrap() {
 		},
 	});
 
-	const port = parseInt(process.env.PORT, 10);
-
-	app.connectMicroservice({
+	// TCP transport for synchronous request-response (e.g., TTS API)
+	const port = parseInt(process.env.PORT, 10) || 8085;
+	app.connectMicroservice<MicroserviceOptions>({
 		transport: Transport.TCP,
 		options: {
 			port: port,
@@ -91,10 +91,15 @@ async function bootstrap() {
 	);
 
 	await app.startAllMicroservices();
-	console.log(`Notification Service is running on port ${port}`);
+	console.log(`Notification Service RMQ is running`);
+	console.log(
+		`Notification Service TCP is running on port ${parseInt(process.env.PORT, 10) || 8085}`,
+	);
 
-	await app.listen(port, '127.0.0.1');
-	console.log(`HTTP Health endpoint listening on 127.0.0.1:${port}`);
+	await app.listen(parseInt(process.env.PORT, 10) || 8085, '127.0.0.1');
+	console.log(
+		`HTTP Health endpoint listening on 127.0.0.1:${parseInt(process.env.PORT, 10) || 8085}`,
+	);
 
 	process.on('SIGINT', () => {
 		console.log('SIGINT received. Shutting down gracefully...');

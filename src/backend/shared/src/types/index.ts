@@ -6,6 +6,7 @@ export interface JwtPayload {
 	username: string;
 	email: string;
 	roles?: string[];
+	ownerId?: string; // For CUSTOMER/STAFF/CHEF - the restaurant owner's userId
 	type?: "access" | "refresh";
 	iat?: number;
 	exp?: number;

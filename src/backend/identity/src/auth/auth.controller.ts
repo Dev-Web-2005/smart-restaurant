@@ -10,6 +10,8 @@ import ErrorCode from '@shared/exceptions/error-code';
 import { AuthMeRequestDto } from 'src/auth/dtos/request/auth-me-request.dto';
 import { ValidateTokenRequestDto } from 'src/auth/dtos/request/validate-token-request.dto';
 import { handleRpcCall } from '@shared/utils/rpc-error-handler';
+import { ForgotPasswordRequestDto } from 'src/auth/dtos/request/forgot-password-request.dto';
+import { ResetPasswordRequestDto } from 'src/auth/dtos/request/reset-password-request.dto';
 
 @Controller()
 export class AuthController {
@@ -26,6 +28,18 @@ export class AuthController {
 				throw new AppException(ErrorCode.UNAUTHORIZED);
 			}
 			const result = await this.authService.login(data);
+			return new HttpResponse(200, 'Login successful', result);
+		});
+	}
+
+	@MessagePattern('auth:login-with-owner')
+	async loginWithOwner(data: LoginAuthRequestDto & { ownerId: string }) {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			const result = await this.authService.loginWithOwner(data, data.ownerId);
 			return new HttpResponse(200, 'Login successful', result);
 		});
 	}
@@ -92,6 +106,30 @@ export class AuthController {
 			}
 			await this.authService.logout(data);
 			return new HttpResponse(200, 'Logout successful', null);
+		});
+	}
+
+	@MessagePattern('auth:forgot-password')
+	async forgotPassword(data: ForgotPasswordRequestDto) {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			await this.authService.forgotPassword(data);
+			return new HttpResponse(200, 'Password reset email sent successfully', null);
+		});
+	}
+
+	@MessagePattern('auth:reset-password')
+	async resetPassword(data: ResetPasswordRequestDto) {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			await this.authService.resetPassword(data);
+			return new HttpResponse(200, 'Password reset successfully', null);
 		});
 	}
 }

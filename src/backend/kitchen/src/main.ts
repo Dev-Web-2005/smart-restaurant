@@ -82,7 +82,7 @@ async function bootstrap() {
 	);
 
 	await app.startAllMicroservices();
-	console.log(`Notification Service is running on port ${port}`);
+	console.log(`Kitchen Service is running on port ${port}`);
 
 	await app.listen(port, '127.0.0.1');
 	console.log(`HTTP Health endpoint listening on 127.0.0.1:${port}`);

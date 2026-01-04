@@ -35,6 +35,28 @@ export class IdentityController {
 		});
 	}
 
+	@Post('users/register/:ownerId')
+	registerCustomer(@Body() data: any, @Param('ownerId') ownerId: string) {
+		return this.identityClient.send('users:register-customer', {
+			...data,
+			ownerId,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+	}
+	@UseGuards(AuthGuard, Role('USER'))
+	@Post('users/generate-account')
+	generateStaffChef(@Body() data: { role: 'STAFF' | 'CHEF' }, @Req() req: Request) {
+		const userId = (req as any).user?.userId;
+		if (!userId) {
+			throw new AppException(ErrorCode.UNAUTHORIZED);
+		}
+		return this.identityClient.send('users:generate-staff-chef', {
+			ownerId: userId,
+			role: data.role,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+	}
+
 	@UseGuards(AuthGuard)
 	@Get('users/my-user')
 	getMyUser(@Req() req: Request) {
@@ -124,6 +146,7 @@ export class IdentityController {
 				roles: string[];
 				accessToken: string;
 				refreshToken: string;
+				ownerId?: string;
 			};
 		} = response;
 
@@ -135,9 +158,9 @@ export class IdentityController {
 			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
 			secure: process.env.MOD === 'production' ? true : false,
 			path: '/',
-			...(process.env.MOD === 'production' && { 
-				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site' // thêm domain cho production
-			})
+			...(process.env.MOD === 'production' && {
+				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site', // thêm domain cho production
+			}),
 		});
 
 		const type = convertData.data.roles.includes('ADMIN') ? 'admin' : 'user';
@@ -147,11 +170,10 @@ export class IdentityController {
 			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
 			secure: process.env.MOD === 'production' ? true : false,
 			path: '/',
-			...(process.env.MOD === 'production' && { 
-				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site'
-			})
+			...(process.env.MOD === 'production' && {
+				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site',
+			}),
 		});
-
 
 		return res.status(HttpStatus.OK).json(
 			new ApiResponse<any>({
@@ -163,6 +185,92 @@ export class IdentityController {
 					email: convertData.data.email,
 					roles: convertData.data.roles,
 					accessToken: convertData.data.accessToken,
+					ownerId: convertData.data.ownerId,
+				},
+			}),
+		);
+	}
+
+	/**
+	 * Login for CUSTOMER/STAFF/CHEF under a specific restaurant
+	 * @param ownerId - The userId of the restaurant owner
+	 */
+	@Post('auth/login/:ownerId')
+	async loginWithOwner(
+		@Body() data: any,
+		@Param('ownerId') ownerId: string,
+		@Res() res: Response,
+	) {
+		const observableResponse = this.identityClient.send('auth:login-with-owner', {
+			...data,
+			ownerId,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+		const response = await firstValueFrom(observableResponse);
+
+		if (!response || !response.code || response.code !== HttpStatus.OK) {
+			const statusCode =
+				typeof response?.code === 'number' ? response.code : HttpStatus.UNAUTHORIZED;
+			return res.status(statusCode).json(response);
+		}
+
+		const convertData: {
+			code: number;
+			message: string;
+			data: {
+				userId: string;
+				username: string;
+				email: string;
+				roles: string[];
+				accessToken: string;
+				refreshToken: string;
+				ownerId?: string;
+			};
+		} = response;
+
+		const refreshTokenExpiry = this.configService.get<number>('REFRESH_TOKEN_EXPIRES_IN');
+
+		res.cookie('refreshToken', convertData.data.refreshToken, {
+			httpOnly: true,
+			maxAge: refreshTokenExpiry,
+			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
+			secure: process.env.MOD === 'production' ? true : false,
+			path: '/',
+			...(process.env.MOD === 'production' && {
+				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site',
+			}),
+		});
+
+		// Determine user type based on roles
+		let type = 'customer';
+		if (convertData.data.roles.includes('STAFF')) {
+			type = 'staff';
+		} else if (convertData.data.roles.includes('CHEF')) {
+			type = 'chef';
+		}
+
+		res.cookie('type', type, {
+			httpOnly: false,
+			maxAge: refreshTokenExpiry,
+			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
+			secure: process.env.MOD === 'production' ? true : false,
+			path: '/',
+			...(process.env.MOD === 'production' && {
+				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site',
+			}),
+		});
+
+		return res.status(HttpStatus.OK).json(
+			new ApiResponse<any>({
+				code: 1000,
+				message: response.message,
+				data: {
+					userId: convertData.data.userId,
+					username: convertData.data.username,
+					email: convertData.data.email,
+					roles: convertData.data.roles,
+					accessToken: convertData.data.accessToken,
+					ownerId: convertData.data.ownerId,
 				},
 			}),
 		);
@@ -259,9 +367,9 @@ export class IdentityController {
 			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
 			secure: process.env.MOD === 'production' ? true : false,
 			path: '/',
-			...(process.env.MOD === 'production' && { 
-				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site' // thêm domain cho production
-			})
+			...(process.env.MOD === 'production' && {
+				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site', // thêm domain cho production
+			}),
 		});
 
 		res.clearCookie('type', {
@@ -269,9 +377,9 @@ export class IdentityController {
 			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
 			secure: process.env.MOD === 'production' ? true : false,
 			path: '/',
-			...(process.env.MOD === 'production' && { 
-				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site'
-			})
+			...(process.env.MOD === 'production' && {
+				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site',
+			}),
 		});
 
 		return res.status(HttpStatus.OK).json(
@@ -280,5 +388,66 @@ export class IdentityController {
 				message: 'Logout successful',
 			}),
 		);
+	}
+
+	@Post('auth/forgot-password')
+	async forgotPassword(@Body() data: { email: string }, @Res() res: Response) {
+		try {
+			const observableResponse = this.identityClient.send('auth:forgot-password', {
+				...data,
+				identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+			});
+			const response = await firstValueFrom(observableResponse);
+
+			const statusCode =
+				response && typeof response.code === 'number' ? response.code : HttpStatus.OK;
+
+			return res.status(statusCode).json(
+				new ApiResponse<any>({
+					code: response?.code || 1000,
+					message: response?.message || 'Password reset email sent successfully',
+				}),
+			);
+		} catch (error) {
+			console.error('Error in forgot password:', error);
+			return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(
+				new ApiResponse<any>({
+					code: 9999,
+					message: 'Failed to process forgot password request',
+				}),
+			);
+		}
+	}
+
+	@Post('auth/reset-password')
+	async resetPassword(
+		@Body() data: { resetToken: string; password: string; confirmPassword: string },
+		@Res() res: Response,
+	) {
+		try {
+			const observableResponse = this.identityClient.send('auth:reset-password', {
+				...data,
+				identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+			});
+			const response = await firstValueFrom(observableResponse);
+
+			const statusCode =
+				response && typeof response.code === 'number' ? response.code : HttpStatus.OK;
+
+			return res.status(statusCode).json(
+				new ApiResponse<any>({
+					code: response?.code || 1000,
+					message: response?.message || 'Password reset successfully',
+				}),
+			);
+		} catch (error) {
+			console.error('Error in reset password:', error);
+			return res.status(HttpStatus.BAD_REQUEST).json(
+				new ApiResponse<any>({
+					code: 9999,
+					message: 'Failed to reset password. Token may be invalid or expired.',
+				}),
+			);
+		}
 	}
 }
