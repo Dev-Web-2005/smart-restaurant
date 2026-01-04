@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MailModule } from './mail/mail.module';
+import { TtsModule } from './tts/tts.module';
 
 @Module({
 	imports: [
@@ -10,6 +11,7 @@ import { MailModule } from './mail/mail.module';
 			isGlobal: true,
 		}),
 		MailModule,
+		TtsModule,
 	],
 	controllers: [AppController],
 	providers: [AppService],

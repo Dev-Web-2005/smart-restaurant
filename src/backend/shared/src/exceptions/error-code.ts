@@ -50,6 +50,13 @@ export default class ErrorCode {
 		403
 	);
 
+	/** Invalid or malformed token */
+	static readonly INVALID_TOKEN: ErrorCode = new ErrorCode(
+		1006,
+		"Invalid or malformed token",
+		401
+	);
+
 	// ==================== USER & PROFILE (2000-2999) ====================
 
 	/** User not found in database */

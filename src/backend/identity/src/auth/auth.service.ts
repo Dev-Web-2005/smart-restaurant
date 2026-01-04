@@ -1,5 +1,5 @@
 import { User } from 'src/common/entities/user';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import LoginAuthRequestDto from 'src/auth/dtos/request/login-auth-request.dto';
@@ -17,6 +17,9 @@ import { ValidateTokenRequestDto } from 'src/auth/dtos/request/validate-token-re
 import { ValidateTokenResponseDto } from 'src/auth/dtos/response/validate-token-response.dto';
 import { RefreshTokenResponseDto } from 'src/auth/dtos/response/refresh-token-response.dto';
 import { JwtPayload } from '@shared/types';
+import { ForgotPasswordRequestDto } from 'src/auth/dtos/request/forgot-password-request.dto';
+import { ResetPasswordRequestDto } from 'src/auth/dtos/request/reset-password-request.dto';
+import { ClientProxy } from '@nestjs/microservices';
 
 @Injectable()
 export class AuthService {
@@ -26,9 +29,11 @@ export class AuthService {
 		private readonly removeTokenRepository: Repository<RemoveToken>,
 		private readonly jwtService: JwtService,
 		private readonly configService: ConfigService,
+		@Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
 	) {}
 	private readonly ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || '5m'; // 15 phút
 	private readonly REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || '7d'; // 7 ngày
+	private readonly RESET_PASSWORD_TOKEN_EXPIRY = '5m'; // 5 phút cho reset password
 
 	async login(data: LoginAuthRequestDto): Promise<LoginAuthResponseDto> {
 		const user = await this.userRepository.findOne({
@@ -52,6 +57,7 @@ export class AuthService {
 			username: user.username,
 			email: user.email,
 			roles,
+			ownerId: user.ownerId,
 		});
 
 		const refreshToken = this.generateRefreshToken({
@@ -59,6 +65,7 @@ export class AuthService {
 			username: user.username,
 			email: user.email,
 			roles,
+			ownerId: user.ownerId,
 		});
 
 		const response = new LoginAuthResponseDto();
@@ -68,6 +75,61 @@ export class AuthService {
 		response.roles = roles;
 		response.accessToken = accessToken;
 		response.refreshToken = refreshToken;
+
+		return response;
+	}
+
+	/**
+	 * Login for CUSTOMER/STAFF/CHEF under a specific restaurant
+	 * Username is stored as: username_ownerId
+	 */
+	async loginWithOwner(
+		data: LoginAuthRequestDto,
+		ownerId: string,
+	): Promise<LoginAuthResponseDto> {
+		// Construct the unique username
+		const uniqueUsername = `${data.username}_${ownerId}`;
+
+		const user = await this.userRepository.findOne({
+			where: { username: uniqueUsername, ownerId: ownerId },
+			relations: ['roles'],
+		});
+
+		if (!user) {
+			throw new AppException(ErrorCode.LOGIN_FAILED);
+		}
+
+		const isPasswordValid = await bcrypt.compare(data.password, user.password);
+		if (!isPasswordValid) {
+			throw new AppException(ErrorCode.LOGIN_FAILED);
+		}
+
+		const roles = user.roles.map((role) => RoleEnum[role.name]);
+
+		const accessToken = this.generateAccessToken({
+			userId: user.userId,
+			username: data.username, // Return original username
+			email: user.email,
+			roles,
+			ownerId: user.ownerId,
+		});
+
+		const refreshToken = this.generateRefreshToken({
+			userId: user.userId,
+			username: data.username,
+			email: user.email,
+			roles,
+			ownerId: user.ownerId,
+		});
+
+		const response = new LoginAuthResponseDto();
+		response.userId = user.userId;
+		response.username = data.username; // Return original username to user
+		response.email = user.email;
+		response.roles = roles;
+		response.accessToken = accessToken;
+		response.refreshToken = refreshToken;
+		response.ownerId = user.ownerId;
 
 		return response;
 	}
@@ -284,6 +346,112 @@ export class AuthService {
 		} catch (err) {
 			console.error('Error during logout:', err);
 			throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	/**
+	 * Forgot password - Send reset password email with JWT token
+	 */
+	async forgotPassword(data: ForgotPasswordRequestDto): Promise<void> {
+		const user = await this.userRepository.findOne({
+			where: { email: data.email },
+		});
+
+		if (!user) {
+			// Không throw error để tránh user enumeration attack
+			// Chỉ log và return success
+			console.log(`Forgot password requested for non-existent email: ${data.email}`);
+			return;
+		}
+
+		// Tạo JWT token độc lập cho reset password
+		const resetToken = this.jwtService.sign(
+			{
+				userId: user.userId,
+				email: user.email,
+				purpose: 'password-reset',
+			},
+			{
+				secret: this.configService.get<string>('JWT_SECRET_KEY_RESET_PASSWORD'),
+				expiresIn: this.RESET_PASSWORD_TOKEN_EXPIRY,
+			},
+		);
+
+		// Tạo URL reset password
+		const frontendUrl =
+			this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+		const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+
+		// Gửi email qua notification service
+		const variables = new Map<string, string>();
+		variables.set('username', user.username);
+		variables.set('resetUrl', resetUrl);
+		variables.set('expiryMinutes', '5');
+
+		const variablesObject: Record<string, string> = {};
+		variables.forEach((value, key) => {
+			variablesObject[key] = value;
+		});
+
+		const notificationApiKey = this.configService.get<string>('NOTIFICATION_API_KEY');
+		const notificationRequest = {
+			to: {
+				email: user.email,
+				name: user.username,
+			},
+			subject: 'Reset Your Password',
+			variables: variablesObject,
+			notificationApiKey: notificationApiKey,
+		};
+
+		try {
+			this.notificationClient.emit('mail.send', notificationRequest);
+			console.log(`Password reset email sent to: ${user.email}`);
+		} catch (emitError) {
+			console.error('Error emitting password reset notification:', emitError);
+			throw new AppException(ErrorCode.NOTIFICATION_SERVICE_ERROR);
+		}
+	}
+
+	/**
+	 * Reset password using token
+	 */
+	async resetPassword(data: ResetPasswordRequestDto): Promise<void> {
+		try {
+			// Verify reset token
+			const decoded = await this.jwtService.verifyAsync(data.resetToken, {
+				secret: this.configService.get<string>('JWT_SECRET_KEY_RESET_PASSWORD'),
+			});
+
+			if (decoded.purpose !== 'password-reset') {
+				throw new AppException(ErrorCode.INVALID_TOKEN);
+			}
+
+			// Tìm user
+			const user = await this.userRepository.findOne({
+				where: { userId: decoded.userId },
+			});
+
+			if (!user) {
+				throw new AppException(ErrorCode.USER_NOT_FOUND);
+			}
+
+			// Hash password mới
+			const hashedPassword = await bcrypt.hash(data.password, 10);
+
+			// Cập nhật password
+			user.password = hashedPassword;
+			await this.userRepository.save(user);
+
+			console.log(`Password reset successfully for user: ${user.userId}`);
+		} catch (error) {
+			if (error.name === 'TokenExpiredError') {
+				throw new AppException(ErrorCode.TOKEN_EXPIRED);
+			}
+			if (error.name === 'JsonWebTokenError') {
+				throw new AppException(ErrorCode.INVALID_TOKEN);
+			}
+			throw error;
 		}
 	}
 }
