@@ -5,7 +5,8 @@ export enum RoleEnum {
   ADMIN = 1,
   USER = 2,
   STAFF = 3,
-  MANAGER = 4,
+  CHEF = 4,
+  CUSTOMER = 5,
 }
 
 /**

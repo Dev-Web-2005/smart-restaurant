@@ -50,6 +50,13 @@ export default class ErrorCode {
 		403
 	);
 
+	/** Invalid or malformed token */
+	static readonly INVALID_TOKEN: ErrorCode = new ErrorCode(
+		1006,
+		"Invalid or malformed token",
+		401
+	);
+
 	// ==================== USER & PROFILE (2000-2999) ====================
 
 	/** User not found in database */
@@ -264,7 +271,24 @@ export default class ErrorCode {
 
 	// ==================== NOTIFICATION (6000-6999) ====================
 	// Reserved for notification service
-
+	/** Failed to send email */
+	static readonly SENDMAIL_FAILED: ErrorCode = new ErrorCode(
+		6001,
+		"Failed to send email",
+		500
+	);
+	/** Base64 string is undefined or invalid */
+	static readonly DONT_CONVERT_BASE64: ErrorCode = new ErrorCode(
+		6002,
+		"Cannot convert undefined or invalid Base64 string",
+		400
+	);
+	/** Error communicating with notification service */
+	static readonly NOTIFICATION_SERVICE_ERROR: ErrorCode = new ErrorCode(
+		6003,
+		"Notification service error",
+		500
+	);
 	// ==================== SYSTEM & INFRASTRUCTURE (9000-9999) ====================
 
 	/** Unexpected server error */

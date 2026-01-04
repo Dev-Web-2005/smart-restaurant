@@ -1,0 +1,303 @@
+{
+    "info": {
+        "name": "Identity - New Features",
+        "description": "Collection for forgot password, reset password, multi-tenant auth, and TTS API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Auth",
+            "item": [
+                {
+                    "name": "Forgot Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"user@example.com\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/auth/forgot-password",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "auth",
+                                "forgot-password"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Reset Password",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"newPassword\": \"NewPassword123!\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/auth/reset-password",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "auth",
+                                "reset-password"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Login with Owner (Customer/Staff/Chef)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    const response = pm.response.json();",
+                                    "    pm.environment.set('accessToken', response.data.accessToken);",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"staff_username\",\n  \"password\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/auth/login/:ownerId",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "auth",
+                                "login",
+                                ":ownerId"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "ownerId",
+                                    "value": "{{ownerId}}",
+                                    "description": "Restaurant owner's userId"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Users",
+            "item": [
+                {
+                    "name": "Register Customer",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"customer1\",\n  \"password\": \"Pass123!\",\n  \"email\": \"customer@example.com\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/users/register/:ownerId",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "users",
+                                "register",
+                                ":ownerId"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "ownerId",
+                                    "value": "{{ownerId}}",
+                                    "description": "Restaurant owner's userId"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Generate Staff Account",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"role\": \"STAFF\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/users/generate-account",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "users",
+                                "generate-account"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Generate Chef Account",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"role\": \"CHEF\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/users/generate-account",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "users",
+                                "generate-account"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Notification",
+            "item": [
+                {
+                    "name": "Text to Speech",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"text\": \"Đơn hàng bàn số 5 đã sẵn sàng\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/notification/tts",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notification",
+                                "tts"
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "baseURL",
+            "value": "http://localhost:8888"
+        },
+        {
+            "key": "ownerId",
+            "value": ""
+        },
+        {
+            "key": "accessToken",
+            "value": ""
+        },
+        {
+            "key": "resetToken",
+            "value": ""
+        }
+    ]
+}

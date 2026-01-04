@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useNotifications } from '../../contexts/NotificationContext'
 
 // Menu cho Super Admin (Ví dụ)
 const adminNavItems = [
@@ -20,6 +21,7 @@ const tenantNavItems = [
 	{ icon: 'menu_book', label: 'Menu', route: '/user/menu' },
 	{ icon: 'table_restaurant', label: 'Table', route: '/user/table' },
 	{ icon: 'receipt_long', label: 'Order', route: '/user/order' },
+	{ icon: 'notifications_active', label: 'Help Requests', route: '/user/help-requests' },
 	{ icon: 'analytics', label: 'Analytics', route: '/user/analytics' },
 	{ icon: 'settings', label: 'Setting', route: '/user/settings' },
 ]
@@ -27,6 +29,7 @@ const tenantNavItems = [
 const Sidebar = ({ activeRoute, userProfile, handleLogout, isCollapsed, onToggle }) => {
 	const navigate = useNavigate()
 	const location = useLocation()
+	const { pendingOrdersCount, newHelpRequestsCount } = useNotifications()
 
 	// Comment: Mặc định, nếu userProfile là null (chưa load hoặc chưa đăng nhập), sử dụng giá trị placeholder
 	const userName = userProfile?.name || 'Guest'
@@ -35,6 +38,13 @@ const Sidebar = ({ activeRoute, userProfile, handleLogout, isCollapsed, onToggle
 	// 💡 LOGIC QUYẾT ĐỊNH MENU DỰA TRÊN VAI TRÒ
 	const isSuperAdmin = userRole.toLowerCase().includes('super administrator')
 	const currentNavItems = isSuperAdmin ? adminNavItems : tenantNavItems
+
+	// Get notification count for a specific route
+	const getNotificationCount = (route) => {
+		if (route === '/user/order') return pendingOrdersCount
+		if (route === '/user/help-requests') return newHelpRequestsCount
+		return 0
+	}
 
 	// 🆕 Hàm xử lý click menu item để navigate
 	const handleNavClick = (route) => {
@@ -75,26 +85,34 @@ const Sidebar = ({ activeRoute, userProfile, handleLogout, isCollapsed, onToggle
 				{/* Navigation Menu - Scrollable */}
 				<div className="flex-1 overflow-y-auto">
 					<nav className="flex flex-col p-2">
-						{currentNavItems.map((item) => (
-							<button
-								key={item.label}
-								onClick={() => handleNavClick(item.route)}
-								className={`flex items-center space-x-3 p-2 rounded-sm text-sm font-medium transition-colors w-full text-left ${
-									isActiveRoute(item.route)
-										? 'bg-white/20 text-white fill-1'
-										: 'text-gray-300 hover:bg-white/10 hover:text-white'
-								}`}
-							>
-								<span
-									className={`material-symbols-outlined flex-shrink-0 ${
-										isActiveRoute(item.route) ? 'fill-1' : ''
+						{currentNavItems.map((item) => {
+							const notificationCount = getNotificationCount(item.route)
+							return (
+								<button
+									key={item.label}
+									onClick={() => handleNavClick(item.route)}
+									className={`relative flex items-center space-x-3 p-2 rounded-sm text-sm font-medium transition-colors w-full text-left ${
+										isActiveRoute(item.route)
+											? 'bg-white/20 text-white fill-1'
+											: 'text-gray-300 hover:bg-white/10 hover:text-white'
 									}`}
 								>
-									{item.icon}
-								</span>
-								<p className="truncate">{item.label}</p>
-							</button>
-						))}
+									<span
+										className={`material-symbols-outlined flex-shrink-0 ${
+											isActiveRoute(item.route) ? 'fill-1' : ''
+										}`}
+									>
+										{item.icon}
+									</span>
+									<p className="truncate flex-1">{item.label}</p>
+									{notificationCount > 0 && (
+										<span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-red-500 text-white text-xs font-bold rounded-full shadow-lg">
+											{notificationCount}
+										</span>
+									)}
+								</button>
+							)
+						})}
 					</nav>
 				</div>
 			</div>

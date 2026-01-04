@@ -5,24 +5,12 @@ import { useTheme } from '../../../contexts/ThemeContext' // 👈 IMPORT THEME C
 import { useLoading } from '../../../contexts/LoadingContext'
 import BasePageLayout from '../../../components/layout/BasePageLayout' // 👈 IMPORT LAYOUT CHUNG
 import { ButtonLoader, InlineLoader } from '../../../components/common/LoadingSpinner'
+import AccountManagement from './AccountManagement' // 👈 IMPORT ACCOUNT MANAGEMENT
 
 // --- Dữ liệu Mock Cài đặt Hiện tại ---
 const mockSettings = {
 	theme: 'dark', // 'dark' or 'light'
-	currency: 'VND - Vietnamese Dong',
-	language: 'Vietnamese (Tiếng Việt)',
 }
-
-// --- Currency Options ---
-const currencyOptions = [
-	'VND - Vietnamese Dong',
-	'USD - US Dollar',
-	'EUR - Euro',
-	'GBP - British Pound',
-]
-
-// --- Language Options ---
-const languageOptions = ['Vietnamese (Tiếng Việt)', 'English', 'Spanish', 'French']
 
 const ApplicationSettings = () => {
 	const { user, loading: contextLoading } = useUser()
@@ -34,6 +22,8 @@ const ApplicationSettings = () => {
 	const [formLoading, setFormLoading] = useState(false)
 	const [uploadingBackground, setUploadingBackground] = useState(false)
 	const [backgroundPreview, setBackgroundPreview] = useState(null)
+	const [regeneratingQR, setRegeneratingQR] = useState(false)
+	const [qrCodeUrl, setQrCodeUrl] = useState('/api/placeholder-qr.png') // Mock QR code URL
 
 	// 2. Hàm Fetch Settings (GET)
 	const fetchSettings = async () => {
@@ -88,6 +78,32 @@ const ApplicationSettings = () => {
 			setBackgroundPreview(null)
 			alert('✅ Background reset to default!')
 		}
+	}
+
+	// 3d. Hàm regenerate QR code
+	const handleRegenerateQR = async () => {
+		if (!confirm('Regenerate QR code? The old QR code will no longer work.')) return
+
+		setRegeneratingQR(true)
+		console.log('Regenerating QR code...')
+
+		// try {
+		//     const response = await axios.post('/api/tenant/qr-code/regenerate');
+		//     setQrCodeUrl(response.data.qrCodeUrl);
+		//     alert('✅ QR code regenerated successfully!');
+		// } catch (error) {
+		//     alert('❌ Failed to regenerate QR code');
+		//     console.error('Regenerate error:', error);
+		// } finally {
+		//     setRegeneratingQR(false);
+		// }
+
+		// Mock: Simulate QR regeneration
+		setTimeout(() => {
+			setQrCodeUrl(`/api/qr-code-${Date.now()}.png`) // Mock new QR URL
+			alert('✅ QR code regenerated successfully! (Simulated)')
+			setRegeneratingQR(false)
+		}, 1000)
 	}
 
 	// 4. Hàm Xử lý Lưu (POST/PUT)
@@ -283,89 +299,88 @@ const ApplicationSettings = () => {
 						</div>
 					</div>
 
-					{/* 2. Currency Unit (Đơn vị tiền tệ) */}
+					{/* 2. QR Code for Login */}
 					<div className="settings-card bg-black/40 backdrop-blur-md rounded-xl border border-white/10">
 						<div className="card-header p-6 border-b border-white/10">
-							<h2 className="text-xl font-bold text-white m-0">Currency Unit</h2>
+							<h2 className="text-xl font-bold text-white m-0 flex items-center gap-2">
+								<span className="material-symbols-outlined">qr_code_2</span>
+								Login QR Code
+							</h2>
 							<p className="text-sm text-gray-300 mt-1">
-								Select the default currency for financial displays.
+								QR code for customer login with your restaurant's Tenant ID.
 							</p>
 						</div>
-						<div className="card-body p-6">
-							<div className="select-group-wrapper relative max-w-sm">
-								<label className="sr-only" htmlFor="currency">
-									Currency Unit
-								</label>
-								<select
-									className="select-input appearance-none w-full h-10 px-4 rounded-lg bg-black/40 backdrop-blur-md text-white border border-white/20 focus:ring-2 focus:ring-[#137fec] focus:ring-offset-2 focus:ring-offset-transparent"
-									id="currency"
-									name="currency"
-									value={settings.currency}
-									onChange={handleChange}
-								>
-									{currencyOptions.map((option) => (
-										<option key={option} value={option}>
-											{option}
-										</option>
-									))}
-								</select>
-								<div className="select-icon-addon pointer-events-none absolute inset-y-0 right-0 flex items-center px-3">
-									<span className="material-symbols-outlined text-gray-300">
-										expand_more
-									</span>
+						<div className="card-body p-6 space-y-4">
+							{/* QR Code Display */}
+							<div className="flex flex-col items-center space-y-4">
+								<div className="bg-white p-6 rounded-xl border-2 border-white/20">
+									<img
+										src={qrCodeUrl}
+										alt="Login QR Code"
+										className="w-64 h-64 object-contain"
+										onError={(e) => {
+											// Fallback to placeholder if image fails to load
+											e.target.src =
+												'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"%3E%3Crect width="256" height="256" fill="%23e5e7eb"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%239ca3af" font-family="system-ui" font-size="24"%3EQR Code%3C/text%3E%3C/svg%3E'
+										}}
+									/>
+								</div>
+
+								{/* QR Info */}
+								<div className="text-center space-y-2">
+									<p className="text-sm text-gray-300">
+										Scan this QR code to access the login page
+									</p>
+									<p className="text-xs text-gray-400">
+										QR code includes your Tenant ID for automatic configuration
+									</p>
 								</div>
 							</div>
-						</div>
-					</div>
 
-					{/* 3. Language (Ngôn ngữ) */}
-					<div className="settings-card bg-black/40 backdrop-blur-md rounded-xl border border-white/10">
-						<div className="card-header p-6 border-b border-white/10">
-							<h2 className="text-xl font-bold text-white m-0">Language</h2>
-							<p className="text-sm text-gray-300 mt-1">
-								Choose your preferred language for the interface.
-							</p>
-						</div>
-						<div className="card-body p-6">
-							<div className="select-group-wrapper relative max-w-sm">
-								<label className="sr-only" htmlFor="language">
-									Language
-								</label>
-								<select
-									className="select-input appearance-none w-full h-10 px-4 rounded-lg bg-black/40 backdrop-blur-md text-white border border-white/20 focus:ring-2 focus:ring-[#137fec] focus:ring-offset-2 focus:ring-offset-transparent"
-									id="language"
-									name="language"
-									value={settings.language}
-									onChange={handleChange}
+							{/* Regenerate Button */}
+							<div className="flex justify-center">
+								<button
+									type="button"
+									onClick={handleRegenerateQR}
+									disabled={regeneratingQR}
+									className="flex items-center justify-center gap-2 px-6 py-3 bg-[#137fec] hover:bg-[#1068c4] text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 								>
-									{languageOptions.map((option) => (
-										<option key={option} value={option}>
-											{option}
-										</option>
-									))}
-								</select>
-								<div className="select-icon-addon pointer-events-none absolute inset-y-0 right-0 flex items-center px-3">
-									<span className="material-symbols-outlined text-gray-300">
-										expand_more
+									<span className="material-symbols-outlined">
+										{regeneratingQR ? 'progress_activity' : 'refresh'}
 									</span>
-								</div>
+									<span>{regeneratingQR ? 'Regenerating...' : 'Regenerate QR Code'}</span>
+								</button>
+							</div>
+
+							{/* Warning */}
+							<div className="text-xs text-amber-400 flex items-start gap-2 bg-amber-400/10 p-3 rounded-lg border border-amber-400/20">
+								<span className="material-symbols-outlined text-sm">warning</span>
+								<span>
+									Warning: Regenerating the QR code will invalidate the previous one. Make
+									sure to update any printed materials.
+								</span>
 							</div>
 						</div>
-					</div>
-
-					{/* 🚨 Form Footer (Save Button) */}
-					<div className="form-footer-actions flex justify-end pt-4">
-						<button
-							type="submit"
-							disabled={formLoading}
-							className="save-button flex min-w-[120px] max-w-xs cursor-pointer items-center justify-center rounded-lg h-10 px-6 bg-[#137fec] text-white text-sm font-bold gap-2 transition-colors hover:bg-[#137fec]/90 disabled:opacity-50"
-						>
-							<span className="material-symbols-outlined">save</span>
-							<span className="truncate">Save Changes</span>
-						</button>
 					</div>
 				</div>
 			</form>
+
+			{/* 🆕 Account Management Section - Outside form to prevent unwanted submissions */}
+			<div className="mt-12">
+				<AccountManagement />
+			</div>
+
+			{/* Save Changes Button - At the bottom of the page */}
+			<div className="form-footer-actions flex justify-end pt-6 mt-8">
+				<button
+					onClick={handleSave}
+					disabled={formLoading}
+					className="save-button flex min-w-[120px] max-w-xs cursor-pointer items-center justify-center rounded-lg h-10 px-6 bg-[#137fec] text-white text-sm font-bold gap-2 transition-colors hover:bg-[#137fec]/90 disabled:opacity-50"
+				>
+					<span className="material-symbols-outlined">save</span>
+					<span className="truncate">Save Changes</span>
+				</button>
+			</div>
 		</div>
 	)
 

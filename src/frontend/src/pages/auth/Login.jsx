@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 // import axios from 'axios'; // Import Axios khi bạn sẵn sàng tích hợp API
 import { useUser } from '../../contexts/UserContext' // Giả định đã có UserContext
 import { useLoading } from '../../contexts/LoadingContext'
@@ -156,6 +156,16 @@ const AdminLogin = () => {
 									{passwordVisible ? 'visibility_off' : 'visibility'}
 								</span>
 							</button>
+						</div>
+
+						{/* Forgot Password Link */}
+						<div className="text-right">
+							<Link
+								to="/forgot-password"
+								className="text-sm text-[#137fec] hover:text-white transition-colors"
+							>
+								Forgot password?
+							</Link>
 						</div>
 
 						{/* Login Button */}

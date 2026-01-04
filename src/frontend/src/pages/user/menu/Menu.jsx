@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useUser } from '../../../contexts/UserContext'
 import { useLoading } from '../../../contexts/LoadingContext'
 import { useAlert } from '../../../contexts/AlertContext'
@@ -13,6 +14,80 @@ import {
 	updateCategoryStatusAPI,
 	deleteCategoryAPI,
 } from '../../../services/api/categoryAPI'
+
+// Custom Dropdown Component with Glass Morphism
+const CustomDropdown = ({ value, onChange, options, disabled, className = '' }) => {
+	const [isOpen, setIsOpen] = useState(false)
+	const dropdownRef = useRef(null)
+
+	useEffect(() => {
+		const handleClickOutside = (event) => {
+			if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+				setIsOpen(false)
+			}
+		}
+
+		if (isOpen) {
+			document.addEventListener('mousedown', handleClickOutside)
+		}
+
+		return () => {
+			document.removeEventListener('mousedown', handleClickOutside)
+		}
+	}, [isOpen])
+
+	const selectedOption = options.find((opt) => opt.value === value)
+
+	return (
+		<div ref={dropdownRef} className={`relative ${className}`}>
+			<button
+				type="button"
+				onClick={() => !disabled && setIsOpen(!isOpen)}
+				disabled={disabled}
+				className="w-full h-10 px-4 pr-10 text-sm rounded-lg bg-black/30 backdrop-blur-md text-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#137fec] focus:border-[#137fec] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:bg-black/40 text-left"
+			>
+				{selectedOption?.label || 'Select...'}
+			</button>
+			<span
+				className={`material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#9dabb9] text-xl pointer-events-none transition-transform duration-200 ${
+					isOpen ? 'rotate-180' : ''
+				}`}
+			>
+				expand_more
+			</span>
+
+			<AnimatePresence>
+				{isOpen && (
+					<motion.div
+						initial={{ opacity: 0, y: -10 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: -10 }}
+						transition={{ duration: 0.15 }}
+						className="absolute z-50 w-full mt-1 rounded-lg bg-black/60 backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden"
+					>
+						{options.map((option) => (
+							<button
+								key={option.value}
+								type="button"
+								onClick={() => {
+									onChange(option.value)
+									setIsOpen(false)
+								}}
+								className={`w-full px-4 py-2.5 text-left text-sm transition-all duration-150 ${
+									option.value === value
+										? 'bg-[#137fec]/30 text-white font-medium'
+										: 'text-[#9dabb9] hover:bg-white/10 hover:text-white'
+								}`}
+							>
+								{option.label}
+							</button>
+						))}
+					</motion.div>
+				)}
+			</AnimatePresence>
+		</div>
+	)
+}
 
 // --- Sub-component: Delete Confirmation Modal (ĐÃ SỬA VỚI PORTAL) ---
 const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, categoryName }) => {
@@ -539,29 +614,31 @@ const MenuCategoryManagement = () => {
 					{/* Status Filter */}
 					<div className="flex items-center gap-2">
 						<span className="text-[#9dabb9] text-sm font-medium">Status:</span>
-						<select
+						<CustomDropdown
 							value={statusFilter}
-							onChange={(e) => setStatusFilter(e.target.value)}
-							className="h-10 px-4 bg-black/30 backdrop-blur-md text-white rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#137fec] focus:border-[#137fec] transition-all cursor-pointer"
-						>
-							<option value="ALL">All</option>
-							<option value="ACTIVE">Active</option>
-							<option value="INACTIVE">Inactive</option>
-						</select>
+							onChange={setStatusFilter}
+							options={[
+								{ value: 'ALL', label: 'All' },
+								{ value: 'ACTIVE', label: 'Active' },
+								{ value: 'INACTIVE', label: 'Inactive' },
+							]}
+							className="min-w-[120px]"
+						/>
 					</div>
 
 					{/* Sort By */}
 					<div className="flex items-center gap-2">
 						<span className="text-[#9dabb9] text-sm font-medium">Sort:</span>
-						<select
+						<CustomDropdown
 							value={sortBy}
-							onChange={(e) => setSortBy(e.target.value)}
-							className="h-10 px-4 bg-black/30 backdrop-blur-md text-white rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#137fec] focus:border-[#137fec] transition-all cursor-pointer"
-						>
-							<option value="displayOrder">Display Order</option>
-							<option value="name">Name</option>
-							<option value="createdAt">Created Date</option>
-						</select>
+							onChange={setSortBy}
+							options={[
+								{ value: 'displayOrder', label: 'Display Order' },
+								{ value: 'name', label: 'Name' },
+								{ value: 'createdAt', label: 'Created Date' },
+							]}
+							className="min-w-[150px]"
+						/>
 					</div>
 
 					{/* Sort Order Toggle */}
@@ -673,19 +750,20 @@ const MenuCategoryManagement = () => {
 								<span className="material-symbols-outlined">last_page</span>
 							</button>
 						</div>
-						<select
+						<CustomDropdown
 							value={itemsPerPage}
-							onChange={(e) => {
-								setItemsPerPage(Number(e.target.value))
+							onChange={(val) => {
+								setItemsPerPage(Number(val))
 								setCurrentPage(1)
 							}}
-							className="px-3 py-2 bg-black/30 backdrop-blur-sm border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#137fec] transition-all"
-						>
-							<option value="8">8 per page</option>
-							<option value="12">12 per page</option>
-							<option value="20">20 per page</option>
-							<option value="50">50 per page</option>
-						</select>
+							options={[
+								{ value: 8, label: '8 per page' },
+								{ value: 12, label: '12 per page' },
+								{ value: 20, label: '20 per page' },
+								{ value: 50, label: '50 per page' },
+							]}
+							className="min-w-[140px]"
+						/>
 					</div>
 				)}
 				{/* MODALS - Được render ở ngoài BasePageLayout */}

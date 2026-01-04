@@ -15,6 +15,9 @@ export class User {
 	@Column({ nullable: false })
 	password: string;
 
+	@Column({ nullable: true })
+	ownerId?: string;
+
 	@ManyToMany(() => Role, (role) => role.users, { cascade: true })
 	@JoinTable()
 	roles: Role[];
