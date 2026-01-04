@@ -349,22 +349,16 @@ export class AuthService {
 		}
 	}
 
-	/**
-	 * Forgot password - Send reset password email with JWT token
-	 */
 	async forgotPassword(data: ForgotPasswordRequestDto): Promise<void> {
 		const user = await this.userRepository.findOne({
 			where: { email: data.email },
 		});
 
 		if (!user) {
-			// Không throw error để tránh user enumeration attack
-			// Chỉ log và return success
 			console.log(`Forgot password requested for non-existent email: ${data.email}`);
 			return;
 		}
 
-		// Tạo JWT token độc lập cho reset password
 		const resetToken = this.jwtService.sign(
 			{
 				userId: user.userId,
@@ -377,12 +371,10 @@ export class AuthService {
 			},
 		);
 
-		// Tạo URL reset password
 		const frontendUrl =
-			this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+			this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
 		const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
 
-		// Gửi email qua notification service
 		const variables = new Map<string, string>();
 		variables.set('username', user.username);
 		variables.set('resetUrl', resetUrl);
@@ -413,12 +405,8 @@ export class AuthService {
 		}
 	}
 
-	/**
-	 * Reset password using token
-	 */
 	async resetPassword(data: ResetPasswordRequestDto): Promise<void> {
 		try {
-			// Verify reset token
 			const decoded = await this.jwtService.verifyAsync(data.resetToken, {
 				secret: this.configService.get<string>('JWT_SECRET_KEY_RESET_PASSWORD'),
 			});
@@ -426,8 +414,6 @@ export class AuthService {
 			if (decoded.purpose !== 'password-reset') {
 				throw new AppException(ErrorCode.INVALID_TOKEN);
 			}
-
-			// Tìm user
 			const user = await this.userRepository.findOne({
 				where: { userId: decoded.userId },
 			});
@@ -436,10 +422,7 @@ export class AuthService {
 				throw new AppException(ErrorCode.USER_NOT_FOUND);
 			}
 
-			// Hash password mới
 			const hashedPassword = await bcrypt.hash(data.password, 10);
-
-			// Cập nhật password
 			user.password = hashedPassword;
 			await this.userRepository.save(user);
 
