@@ -41,12 +41,20 @@ jobs:
       table: ${{ steps.filter.outputs.table }}
       kitchen: ${{ steps.filter.outputs.kitchen }}
       notification: ${{ steps.filter.outputs.notification }}
+      build-all: ${{ steps.filter.outputs.build-all }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
       - id: filter
         run: |
+          BUILD_ALL="false"
+
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            BUILD_ALL="true"
+            echo "Manual trigger - building all services"
+          fi
+
           if git diff --name-only HEAD~1 HEAD | grep -q "src/backend/shared/"; then
             echo "shared=true" >> $GITHUB_OUTPUT
           else
@@ -87,6 +95,8 @@ jobs:
           else
             echo "notification=false" >> $GITHUB_OUTPUT
           fi
+
+          echo "build-all=$BUILD_ALL" >> $GITHUB_OUTPUT
 
   backup:
     needs: detect-changes
@@ -129,49 +139,51 @@ jobs:
         run: |
           mkdir -p result
 
-          if [ "${{ needs.detect-changes.outputs.shared }}" == "true" ]; then
+          BUILD_ALL="${{ needs.detect-changes.outputs.build-all }}"
+
+          if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.shared }}" == "true" ]; then
             echo "Building shared..."
             cd src/backend/shared && npm ci && npm run build && rm -rf test
             mkdir -p ../../../result/shared && cp -r . ../../../result/shared/ && cd ../../..
           fi
 
-          if [ "${{ needs.detect-changes.outputs.api-gateway }}" == "true" ]; then
+          if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.api-gateway }}" == "true" ]; then
             echo "Building api-gateway..."
             cd src/backend/api-gateway && npm ci && npm run build && rm -rf src test
             mkdir -p ../../../result/api-gateway && cp -r . ../../../result/api-gateway/ && cd ../../..
           fi
 
-          if [ "${{ needs.detect-changes.outputs.identity }}" == "true" ]; then
+          if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.identity }}" == "true" ]; then
             echo "Building identity..."
             cd src/backend/identity && npm ci && npm run build && rm -rf src test
             mkdir -p ../../../result/identity && cp -r . ../../../result/identity/ && cd ../../..
           fi
 
-          if [ "${{ needs.detect-changes.outputs.product }}" == "true" ]; then
+          if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.product }}" == "true" ]; then
             echo "Building product..."
             cd src/backend/product && npm ci && npm run build && rm -rf src test
             mkdir -p ../../../result/product && cp -r . ../../../result/product/ && cd ../../..
           fi
 
-          if [ "${{ needs.detect-changes.outputs.profile }}" == "true" ]; then
+          if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.profile }}" == "true" ]; then
             echo "Building profile..."
             cd src/backend/profile && npm ci && npm run build && rm -rf src test
             mkdir -p ../../../result/profile && cp -r . ../../../result/profile/ && cd ../../..
           fi
 
-          if [ "${{ needs.detect-changes.outputs.table }}" == "true" ]; then
+          if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.table }}" == "true" ]; then
             echo "Building table..."
             cd src/backend/table && npm ci && npm run build && rm -rf src test
             mkdir -p ../../../result/table && cp -r . ../../../result/table/ && cd ../../..
           fi
 
-          if [ "${{ needs.detect-changes.outputs.kitchen }}" == "true" ]; then
+          if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.kitchen }}" == "true" ]; then
             echo "Building kitchen..."
             cd src/backend/kitchen && npm ci && npm run build && rm -rf src test
             mkdir -p ../../../result/kitchen && cp -r . ../../../result/kitchen/ && cd ../../..
           fi
 
-          if [ "${{ needs.detect-changes.outputs.notification }}" == "true" ]; then
+          if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.notification }}" == "true" ]; then
             echo "Building notification..."
             cd src/backend/notification && npm ci && npm run build && rm -rf src test
             mkdir -p ../../../result/notification && cp -r . ../../../result/notification/ && cd ../../..
@@ -209,9 +221,10 @@ jobs:
           script: |
             cd /home/${{ secrets.VPS_USER }}/projects/result
 
+            BUILD_ALL="${{ needs.detect-changes.outputs.build-all }}"
             SERVICES_TO_RESTART=""
 
-            if [ "${{ needs.detect-changes.outputs.api-gateway }}" == "true" ]; then
+            if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.api-gateway }}" == "true" ]; then
               echo "Restarting api-gateway..."
               cd api-gateway
               cat > .env << 'EOF'
@@ -252,7 +265,7 @@ jobs:
               cd ..
             fi
 
-            if [ "${{ needs.detect-changes.outputs.identity }}" == "true" ]; then
+            if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.identity }}" == "true" ]; then
               echo "Restarting identity..."
               cd identity
               cat > .env << 'EOF'
@@ -282,7 +295,7 @@ jobs:
               cd ..
             fi
 
-            if [ "${{ needs.detect-changes.outputs.product }}" == "true" ]; then
+            if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.product }}" == "true" ]; then
               echo "Restarting product..."
               cd product
               cat > .env << 'EOF'
@@ -301,7 +314,7 @@ jobs:
               cd ..
             fi
 
-            if [ "${{ needs.detect-changes.outputs.profile }}" == "true" ]; then
+            if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.profile }}" == "true" ]; then
               echo "Restarting profile..."
               cd profile
               cat > .env << 'EOF'
@@ -320,7 +333,7 @@ jobs:
               cd ..
             fi
 
-            if [ "${{ needs.detect-changes.outputs.table }}" == "true" ]; then
+            if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.table }}" == "true" ]; then
               echo "Restarting table..."
               cd table
               cat > .env << 'EOF'
@@ -341,7 +354,7 @@ jobs:
               cd ..
             fi
 
-            if [ "${{ needs.detect-changes.outputs.kitchen }}" == "true" ]; then
+            if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.kitchen }}" == "true" ]; then
               echo "Restarting kitchen..."
               cd kitchen
               cat > .env << 'EOF'
@@ -362,7 +375,7 @@ jobs:
               cd ..
             fi
 
-            if [ "${{ needs.detect-changes.outputs.notification }}" == "true" ]; then
+            if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.notification }}" == "true" ]; then
               echo "Restarting notification..."
               cd notification
               cat > .env << 'EOF'
@@ -394,3 +407,4 @@ jobs:
             pm2 save
             echo "✓ Restarted services:$SERVICES_TO_RESTART"
             pm2 list
+
