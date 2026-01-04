@@ -6,6 +6,12 @@
   "compilerOptions": {
     "deleteOutDir": true,
     "tsConfigPath": "tsconfig.build.json",
-    "webpack": false
+    "webpack": false,
+    "assets": [
+      {
+        "include": "resources/**/*",
+        "outDir": "dist"
+      }
+    ]
   }
 }
