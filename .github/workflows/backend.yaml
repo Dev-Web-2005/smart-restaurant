@@ -1,32 +1,27 @@
-name: "deploy-backend"
+name: "deploy-backend-smart"
 
 on:
   push:
     branches: ["master", "release", "develop"]
-    tags:
-      - "v*"
     paths:
       - "src/backend/**"
-      - ".github/workflows/backend.yaml"
-      - "package*.json"
+      - ".github/workflows/backend-smart.yaml"
+    tags:
+      - "v*"
   pull_request:
     branches: ["master", "release", "develop"]
     paths:
       - "src/backend/**"
-      - ".github/workflows/backend.yaml"
-      - "package*.json"
-
+      - ".github/workflows/backend-smart.yaml"
   workflow_dispatch:
 
-env: # Global environment variables shared across services
+env:
   HOST_DB: ${{ secrets.HOST_DB }}
   PORT_DB: ${{ secrets.PORT_DB }}
   USERNAME_DB: ${{ secrets.USERNAME_DB }}
   PASSWORD_DB: ${{ secrets.PASSWORD_DB }}
   DATABASE_DB: ${{ secrets.DATABASE_DB }}
-
   X_API_KEY: ${{ secrets.X_API_KEY }}
-
   IDENTITY_API_KEY: ${{ secrets.IDENTITY_API_KEY }}
   PROFILE_API_KEY: ${{ secrets.PROFILE_API_KEY }}
   PRODUCT_API_KEY: ${{ secrets.PRODUCT_API_KEY }}
@@ -35,185 +30,176 @@ env: # Global environment variables shared across services
   NOTIFICATION_API_KEY: ${{ secrets.NOTIFICATION_API_KEY }}
 
 jobs:
-  test:
+  detect-changes:
     runs-on: ubuntu-latest
+    outputs:
+      shared: ${{ steps.filter.outputs.shared }}
+      api-gateway: ${{ steps.filter.outputs.api-gateway }}
+      identity: ${{ steps.filter.outputs.identity }}
+      product: ${{ steps.filter.outputs.product }}
+      profile: ${{ steps.filter.outputs.profile }}
+      table: ${{ steps.filter.outputs.table }}
+      kitchen: ${{ steps.filter.outputs.kitchen }}
+      notification: ${{ steps.filter.outputs.notification }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: filter
+        run: |
+          if git diff --name-only HEAD~1 HEAD | grep -q "src/backend/shared/"; then
+            echo "shared=true" >> $GITHUB_OUTPUT
+          else
+            echo "shared=false" >> $GITHUB_OUTPUT
+          fi
+          if git diff --name-only HEAD~1 HEAD | grep -q "src/backend/api-gateway/"; then
+            echo "api-gateway=true" >> $GITHUB_OUTPUT
+          else
+            echo "api-gateway=false" >> $GITHUB_OUTPUT
+          fi
+          if git diff --name-only HEAD~1 HEAD | grep -q "src/backend/identity/"; then
+            echo "identity=true" >> $GITHUB_OUTPUT
+          else
+            echo "identity=false" >> $GITHUB_OUTPUT
+          fi
+          if git diff --name-only HEAD~1 HEAD | grep -q "src/backend/product/"; then
+            echo "product=true" >> $GITHUB_OUTPUT
+          else
+            echo "product=false" >> $GITHUB_OUTPUT
+          fi
+          if git diff --name-only HEAD~1 HEAD | grep -q "src/backend/profile/"; then
+            echo "profile=true" >> $GITHUB_OUTPUT
+          else
+            echo "profile=false" >> $GITHUB_OUTPUT
+          fi
+          if git diff --name-only HEAD~1 HEAD | grep -q "src/backend/table/"; then
+            echo "table=true" >> $GITHUB_OUTPUT
+          else
+            echo "table=false" >> $GITHUB_OUTPUT
+          fi
+          if git diff --name-only HEAD~1 HEAD | grep -q "src/backend/kitchen/"; then
+            echo "kitchen=true" >> $GITHUB_OUTPUT
+          else
+            echo "kitchen=false" >> $GITHUB_OUTPUT
+          fi
+          if git diff --name-only HEAD~1 HEAD | grep -q "src/backend/notification/"; then
+            echo "notification=true" >> $GITHUB_OUTPUT
+          else
+            echo "notification=false" >> $GITHUB_OUTPUT
+          fi
 
+  backup:
+    needs: detect-changes
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          key: ${{ secrets.VPS_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          username: ${{ secrets.VPS_USER }}
+          script: |
+            mkdir -p /home/${{ secrets.VPS_USER }}/projects/backup
+            TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+            cd /home/${{ secrets.VPS_USER }}/projects/result
+            tar -czf ../backup/backend_$TIMESTAMP.tar.gz .
+            echo "✓ Backup created: backend_$TIMESTAMP.tar.gz"
+            ls -lh ../backup/backend_$TIMESTAMP.tar.gz
+
+  build-and-deploy:
+    needs: [detect-changes, backup]
+    runs-on: ubuntu-latest
     services:
       rabbitmq:
         image: rabbitmq:3-management
         ports:
           - 5672:5672
-          - 15672:15672
         env:
           RABBITMQ_DEFAULT_USER: supper
           RABBITMQ_DEFAULT_PASS: supper
-        options: >-
-          --health-cmd "rabbitmq-diagnostics -q ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
+        options: --health-cmd "rabbitmq-diagnostics -q ping" --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 25
 
-      - run: mkdir result
-
-      - name: Shared services
+      - name: Build changed services
         run: |
-          cd src/backend/shared
-          npm ci
-          npm run build
-          rm -rf test
-          mkdir -p ../../../result/shared
-          cp -r . ../../../result/shared/
+          mkdir -p result
 
-      - name: Api gateway services
-        env: # Api gateway environment variables
-          PORT: 8888
-          MOD: production
-          IDENTITY_SERVICE_URL: ${{ vars.IDENTITY_SERVICE_URL }}
-          HOST_IDENTITY_SERVICE: ${{ vars.HOST_IDENTITY_SERVICE }}
-          PORT_IDENTITY_SERVICE: ${{ vars.PORT_IDENTITY_SERVICE }}
+          if [ "${{ needs.detect-changes.outputs.shared }}" == "true" ]; then
+            echo "Building shared..."
+            cd src/backend/shared && npm ci && npm run build && rm -rf test
+            mkdir -p ../../../result/shared && cp -r . ../../../result/shared/ && cd ../../..
+          fi
 
-          PROFILE_SERVICE_URL: ${{ vars.PROFILE_SERVICE_URL }}
-          HOST_PROFILE_SERVICE: ${{ vars.HOST_PROFILE_SERVICE }}
-          PORT_PROFILE_SERVICE: ${{ vars.PORT_PROFILE_SERVICE }}
+          if [ "${{ needs.detect-changes.outputs.api-gateway }}" == "true" ]; then
+            echo "Building api-gateway..."
+            cd src/backend/api-gateway && npm ci && npm run build && rm -rf src test
+            mkdir -p ../../../result/api-gateway && cp -r . ../../../result/api-gateway/ && cd ../../..
+          fi
 
-          PRODUCT_SERVICE_URL: ${{ vars.PRODUCT_SERVICE_URL }}
-          HOST_PRODUCT_SERVICE: ${{ vars.HOST_PRODUCT_SERVICE }}
-          PORT_PRODUCT_SERVICE: ${{ vars.PORT_PRODUCT_SERVICE }}
+          if [ "${{ needs.detect-changes.outputs.identity }}" == "true" ]; then
+            echo "Building identity..."
+            cd src/backend/identity && npm ci && npm run build && rm -rf src test
+            mkdir -p ../../../result/identity && cp -r . ../../../result/identity/ && cd ../../..
+          fi
 
-          TABLE_SERVICE_URL: ${{ vars.TABLE_SERVICE_URL }}
-          HOST_TABLE_SERVICE: ${{ vars.HOST_TABLE_SERVICE }}
-          PORT_TABLE_SERVICE: ${{ vars.PORT_TABLE_SERVICE }}
+          if [ "${{ needs.detect-changes.outputs.product }}" == "true" ]; then
+            echo "Building product..."
+            cd src/backend/product && npm ci && npm run build && rm -rf src test
+            mkdir -p ../../../result/product && cp -r . ../../../result/product/ && cd ../../..
+          fi
 
-          REFRESH_TOKEN_EXPIRES_IN: ${{ vars.REFRESH_TOKEN_EXPIRES_IN }}
+          if [ "${{ needs.detect-changes.outputs.profile }}" == "true" ]; then
+            echo "Building profile..."
+            cd src/backend/profile && npm ci && npm run build && rm -rf src test
+            mkdir -p ../../../result/profile && cp -r . ../../../result/profile/ && cd ../../..
+          fi
 
-          FRONTEND_URL: ${{ vars.FRONTEND_URL }}
-          COOKIE_DOMAIN: ${{ vars.COOKIE_DOMAIN }}
-        run: |
-          cd src/backend/api-gateway
-          npm ci
-          npm run build
-          rm -rf src test
-          mkdir -p ../../../result/api-gateway
-          cp -r . ../../../result/api-gateway/
+          if [ "${{ needs.detect-changes.outputs.table }}" == "true" ]; then
+            echo "Building table..."
+            cd src/backend/table && npm ci && npm run build && rm -rf src test
+            mkdir -p ../../../result/table && cp -r . ../../../result/table/ && cd ../../..
+          fi
 
-      - name: Identity services
-        env: # Identity service environment variables
-          PORT: 8080
-          HOST_PROFILE_SERVICE: ${{ vars.HOST_PROFILE_SERVICE }}
-          PORT_PROFILE_SERVICE: ${{ vars.PORT_PROFILE_SERVICE }}
-          ACCESS_TOKEN_EXPIRY: 5m
-          PROFILE_API_KEY: ${{ secrets.PROFILE_API_KEY }}
-          REFRESH_TOKEN_EXPIRY: 7d
-          JWT_SECRET_KEY_ACCESS: ${{ secrets.JWT_SECRET_KEY_ACCESS }}
-          JWT_SECRET_KEY_REFRESH: ${{ secrets.JWT_SECRET_KEY_REFRESH }}
-          CONNECTION_AMQP: amqp://supper:supper@localhost:5672
+          if [ "${{ needs.detect-changes.outputs.kitchen }}" == "true" ]; then
+            echo "Building kitchen..."
+            cd src/backend/kitchen && npm ci && npm run build && rm -rf src test
+            mkdir -p ../../../result/kitchen && cp -r . ../../../result/kitchen/ && cd ../../..
+          fi
 
-        run: |
-          cd src/backend/identity
-          npm ci
-          npm run build
-          rm -rf src test
-          mkdir -p ../../../result/identity
-          cp -r . ../../../result/identity/
-
-      - name: Product services
-        env:
-          PORT: 8082
-
-        run: |
-          cd src/backend/product
-          npm ci
-          npm run build
-          rm -rf src test
-          mkdir -p ../../../result/product
-          cp -r . ../../../result/product/
-
-      - name: Profile services
-        env:
-          PORT: 8081
-
-        run: |
-          cd src/backend/profile
-          npm ci
-          npm run build
-          rm -rf src test
-          mkdir -p ../../../result/profile
-          cp -r . ../../../result/profile/
-
-      - name: Table services
-        env:
-          PORT: 8083
-          QR_SECRET_KEY: ${{ secrets.QR_SECRET_KEY }}
-          QR_BASE_URL: ${{ vars.QR_BASE_URL }}
-
-        run: |
-          cd src/backend/table
-          npm ci
-          npm run build
-          rm -rf src test
-          mkdir -p ../../../result/table
-          cp -r . ../../../result/table/
-
-      - name: Kitchen services
-        env:
-          PORT: 8086
-          CONNECTION_AMQP: amqp://supper:supper@localhost:5672
-
-        run: |
-          cd src/backend/kitchen
-          npm ci
-          npm run build
-          rm -rf src test
-          mkdir -p ../../../result/kitchen
-          cp -r . ../../../result/kitchen/
-
-      - name: Notification services
-        env:
-          PORT: 8085
-          CONNECTION_AMQP: amqp://supper:supper@localhost:5672
-
-        run: |
-          cd src/backend/notification
-          npm ci
-          npm run build
-          rm -rf src test
-          mkdir -p ../../../result/notification
-          cp -r . ../../../result/notification/
+          if [ "${{ needs.detect-changes.outputs.notification }}" == "true" ]; then
+            echo "Building notification..."
+            cd src/backend/notification && npm ci && npm run build && rm -rf src test
+            mkdir -p ../../../result/notification && cp -r . ../../../result/notification/ && cd ../../..
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
           name: backend-build
           path: result
 
-  deploy:
-    needs: test
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-
-    steps:
       - uses: actions/download-artifact@v4
         with:
           name: backend-build
-          path: folder-contain-backend/result
+          path: backend-build
 
-      - name: Copy backend folder to server
+      - name: Deploy to server
         uses: appleboy/scp-action@v0.1.6
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
           port: ${{ secrets.VPS_PORT }}
-          source: "folder-contain-backend/result/*"
-          target: "/home/${{ secrets.VPS_USER }}/projects/"
+          source: "backend-build/*"
+          target: "/home/${{ secrets.VPS_USER }}/projects/result/"
           strip_components: 1
+          overwrite: true
 
-      - name: Connect to server and restart backend service
+      - name: Restart changed services
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -221,22 +207,14 @@ jobs:
           port: ${{ secrets.VPS_PORT }}
           username: ${{ secrets.VPS_USER }}
           script: |
-
-            # Backup 
-            cp -r /home/${{ secrets.VPS_USER }}/projects/result/* /home/${{ secrets.VPS_USER }}/projects/backup/container
-            cd /home/${{ secrets.VPS_USER }}/projects/backup
-            TIMESTAMP=$(date +"%Y%m%d%H%M%S")
-            zip -r backend_$TIMESTAMP.zip container/
-            sudo rm -rf container/*
-            echo "✓ Backup completed"
-
-            # Stop all services
             cd /home/${{ secrets.VPS_USER }}/projects/result
-            pm2 delete all || true
 
-            # Setup api-gateway
-            cd api-gateway
-            cat > .env << 'EOF'
+            SERVICES_TO_RESTART=""
+
+            if [ "${{ needs.detect-changes.outputs.api-gateway }}" == "true" ]; then
+              echo "Restarting api-gateway..."
+              cd api-gateway
+              cat > .env << 'EOF'
             PORT=8888
             MOD=production
             HOST_DB=${{ secrets.HOST_DB }}
@@ -268,14 +246,16 @@ jobs:
             FRONTEND_URL=${{ vars.FRONTEND_URL }}
             COOKIE_DOMAIN=${{ vars.COOKIE_DOMAIN }}
             EOF
-            echo "✓ Api-gateway .env created"
-            cat .env
-            pm2 start dist/api-gateway/src/main.js --name api-gateway
-            cd ..
+              pm2 delete api-gateway || true
+              pm2 start dist/api-gateway/src/main.js --name api-gateway
+              SERVICES_TO_RESTART="$SERVICES_TO_RESTART api-gateway"
+              cd ..
+            fi
 
-            # Setup identity
-            cd identity
-            cat > .env << 'EOF'
+            if [ "${{ needs.detect-changes.outputs.identity }}" == "true" ]; then
+              echo "Restarting identity..."
+              cd identity
+              cat > .env << 'EOF'
             PORT=8080
             HOST_DB=${{ secrets.HOST_DB }}
             PORT_DB=${{ secrets.PORT_DB }}
@@ -296,14 +276,16 @@ jobs:
             CONNECTION_AMQP=${{ secrets.CONNECTION_AMQP }}
             NOTIFICATION_API_KEY=${{ secrets.NOTIFICATION_API_KEY }}
             EOF
-            echo "✓ Identity .env created"
-            cat .env
-            pm2 start dist/identity/src/main.js --name identity
-            cd ..
+              pm2 delete identity || true
+              pm2 start dist/identity/src/main.js --name identity
+              SERVICES_TO_RESTART="$SERVICES_TO_RESTART identity"
+              cd ..
+            fi
 
-            # Setup product
-            cd product
-            cat > .env << 'EOF'
+            if [ "${{ needs.detect-changes.outputs.product }}" == "true" ]; then
+              echo "Restarting product..."
+              cd product
+              cat > .env << 'EOF'
             PORT=8082
             HOST_DB=${{ secrets.HOST_DB }}
             PORT_DB=${{ secrets.PORT_DB }}
@@ -313,14 +295,16 @@ jobs:
             X_API_KEY=${{ secrets.X_API_KEY }}
             PRODUCT_API_KEY=${{ secrets.PRODUCT_API_KEY }}
             EOF
-            echo "✓ Product .env created"
-            cat .env
-            pm2 start dist/product/src/main.js --name product
-            cd ..
+              pm2 delete product || true
+              pm2 start dist/product/src/main.js --name product
+              SERVICES_TO_RESTART="$SERVICES_TO_RESTART product"
+              cd ..
+            fi
 
-            # Setup profile
-            cd profile
-            cat > .env << 'EOF'
+            if [ "${{ needs.detect-changes.outputs.profile }}" == "true" ]; then
+              echo "Restarting profile..."
+              cd profile
+              cat > .env << 'EOF'
             PORT=8081
             HOST_DB=${{ secrets.HOST_DB }}
             PORT_DB=${{ secrets.PORT_DB }}
@@ -330,14 +314,16 @@ jobs:
             X_API_KEY=${{ secrets.X_API_KEY }}
             PROFILE_API_KEY=${{ secrets.PROFILE_API_KEY }}
             EOF
-            echo "✓ Profile .env created"
-            cat .env
-            pm2 start dist/profile/src/main.js --name profile
-            cd ..
+              pm2 delete profile || true
+              pm2 start dist/profile/src/main.js --name profile
+              SERVICES_TO_RESTART="$SERVICES_TO_RESTART profile"
+              cd ..
+            fi
 
-            # Setup table
-            cd table
-            cat > .env << 'EOF'
+            if [ "${{ needs.detect-changes.outputs.table }}" == "true" ]; then
+              echo "Restarting table..."
+              cd table
+              cat > .env << 'EOF'
             PORT=8083
             HOST_DB=${{ secrets.HOST_DB }}
             PORT_DB=${{ secrets.PORT_DB }}
@@ -349,14 +335,16 @@ jobs:
             QR_SECRET_KEY=${{ secrets.QR_SECRET_KEY }}
             QR_BASE_URL=${{ vars.QR_BASE_URL }}
             EOF
-            echo "✓ Table .env created"
-            cat .env
-            pm2 start dist/table/src/main.js --name table
-            cd ..
+              pm2 delete table || true
+              pm2 start dist/table/src/main.js --name table
+              SERVICES_TO_RESTART="$SERVICES_TO_RESTART table"
+              cd ..
+            fi
 
-            # Setup kitchen
-            cd kitchen
-            cat > .env << 'EOF'
+            if [ "${{ needs.detect-changes.outputs.kitchen }}" == "true" ]; then
+              echo "Restarting kitchen..."
+              cd kitchen
+              cat > .env << 'EOF'
             PORT=8086
             HOST_DB=${{ secrets.HOST_DB }}
             PORT_DB=${{ secrets.PORT_DB }}
@@ -368,14 +356,16 @@ jobs:
             CONNECTION_AMQP=${{ secrets.CONNECTION_AMQP }}
             LIMIT_REQUEUE=10
             EOF
-            echo "✓ Kitchen .env created"
-            cat .env
-            pm2 start dist/kitchen/src/main.js --name kitchen
-            cd ..
+              pm2 delete kitchen || true
+              pm2 start dist/kitchen/src/main.js --name kitchen
+              SERVICES_TO_RESTART="$SERVICES_TO_RESTART kitchen"
+              cd ..
+            fi
 
-            # Setup notification
-            cd notification
-            cat > .env << 'EOF'
+            if [ "${{ needs.detect-changes.outputs.notification }}" == "true" ]; then
+              echo "Restarting notification..."
+              cd notification
+              cat > .env << 'EOF'
             PORT=8085
             HOST=localhost
             HOST_DB=${{ secrets.HOST_DB }}
@@ -395,10 +385,12 @@ jobs:
             MAIL_SENDER_NAME=${{ secrets.MAIL_SENDER_NAME }}
             TTS_API_KEY=${{ secrets.TTS_API_KEY }}
             EOF
-            echo "✓ Notification .env created"
-            cat .env
-            pm2 start dist/notification/src/main.js --name notification
-            cd ..
+              pm2 delete notification || true
+              pm2 start dist/notification/src/main.js --name notification
+              SERVICES_TO_RESTART="$SERVICES_TO_RESTART notification"
+              cd ..
+            fi
 
             pm2 save
+            echo "✓ Restarted services:$SERVICES_TO_RESTART"
             pm2 list
