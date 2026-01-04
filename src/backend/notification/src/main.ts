@@ -32,7 +32,6 @@ async function bootstrap() {
 		await connection.close();
 	}
 
-	const port = parseInt(process.env.PORT, 10);
 	app.connectMicroservice<MicroserviceOptions>({
 		transport: Transport.RMQ,
 		options: {
@@ -58,6 +57,15 @@ async function bootstrap() {
 				durable: true,
 				noAck: false,
 			},
+		},
+	});
+
+	const port = parseInt(process.env.PORT, 10);
+
+	app.connectMicroservice({
+		transport: Transport.TCP,
+		options: {
+			port: port,
 		},
 	});
 
