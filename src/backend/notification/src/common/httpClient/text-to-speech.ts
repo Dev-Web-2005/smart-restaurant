@@ -22,12 +22,12 @@ export class TTSClient {
 
 	public synthesizeSpeech(text: string): Promise<Buffer> {
 		return this.ttsClient
-			.post('/', { text }, { responseType: 'arraybuffer' })
+			.post('', { text }, { responseType: 'arraybuffer' })
 			.then((response) => Buffer.from(response.data));
 	}
 	public synthesizeSpeechToBase64(text: string): Promise<string> {
 		return this.ttsClient
-			.post('/', { text }, { responseType: 'arraybuffer' })
+			.post('', { text }, { responseType: 'arraybuffer' })
 			.then((response) => {
 				const buffer = Buffer.from(response.data);
 				return buffer.toString('base64');

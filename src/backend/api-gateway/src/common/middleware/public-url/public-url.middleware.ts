@@ -13,6 +13,7 @@ export class PublicUrlMiddleware implements NestMiddleware {
 		'/api/v1/identity/auth/register',
 		'/api/v1/identity/auth/refresh',
 		'/api/v1/product/public/menu',
+		'/api/v1/identity/auth/forgot-password',
 	];
 
 	constructor(private readonly configService: ConfigService) {}
