@@ -14,6 +14,8 @@ export class PublicUrlMiddleware implements NestMiddleware {
 		'/api/v1/identity/auth/refresh',
 		'/api/v1/product/public/menu',
 		'/api/v1/identity/auth/forgot-password',
+		'/api/v1/identity/auth/reset-password',
+		'/api/v1/identity/users/register',
 	];
 
 	constructor(private readonly configService: ConfigService) {}
