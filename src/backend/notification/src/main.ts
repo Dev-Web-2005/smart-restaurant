@@ -37,6 +37,7 @@ async function bootstrap() {
 		options: {
 			urls: [process.env.CONNECTION_AMQP],
 			queue: 'notification_queue',
+			prefetchCount: 1,
 			queueOptions: {
 				durable: true,
 				noAck: false,
@@ -53,6 +54,7 @@ async function bootstrap() {
 		options: {
 			urls: [process.env.CONNECTION_AMQP],
 			queue: 'notification_dlq',
+			prefetchCount: 1,
 			queueOptions: {
 				durable: true,
 				noAck: false,
