@@ -32,6 +32,8 @@ out/
 
 # Logs
 logs/
+**/logs*/
+**/logs*/**
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -39,6 +41,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 **/*.log
+**/*-audit.json
 
 # PM2
 .pm2/
@@ -92,3 +95,6 @@ repomix-output.txt
 !**/README.md
 
 src/backend/api-gateway/logs/
+
+*/logs*/
+*/logs*/*.json
