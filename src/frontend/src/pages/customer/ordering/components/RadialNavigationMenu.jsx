@@ -11,6 +11,7 @@ const RadialNavigationMenu = ({
 	ordersCount,
 	cartCount,
 	setIsSettingsOpen,
+	tenantId, // Add tenantId prop
 }) => {
 	const [isOpen, setIsOpen] = useState(false)
 	const [rotation, setRotation] = useState(0)
@@ -28,7 +29,7 @@ const RadialNavigationMenu = ({
 	const [customerAuth, setCustomerAuth] = useState(null)
 
 	// Check customer authentication status
-	useEffect(() => {
+	const loadCustomerAuth = () => {
 		const auth = localStorage.getItem('customerAuth')
 		if (auth) {
 			try {
@@ -36,8 +37,15 @@ const RadialNavigationMenu = ({
 			} catch (error) {
 				console.error('Failed to parse customer auth:', error)
 				localStorage.removeItem('customerAuth')
+				setCustomerAuth(null)
 			}
+		} else {
+			setCustomerAuth(null)
 		}
+	}
+
+	useEffect(() => {
+		loadCustomerAuth()
 	}, [])
 
 	// Detect screen size
@@ -193,16 +201,13 @@ const RadialNavigationMenu = ({
 	]
 
 	// Handle successful authentication
-	const handleAuthSuccess = () => {
-		const auth = localStorage.getItem('customerAuth')
-		if (auth) {
-			try {
-				setCustomerAuth(JSON.parse(auth))
-				setView('PROFILE')
-			} catch (error) {
-				console.error('Failed to parse customer auth:', error)
-			}
-		}
+	const handleAuthSuccess = (customerData) => {
+		// Reload customer auth from localStorage
+		loadCustomerAuth()
+		// Navigate to profile page
+		setView('PROFILE')
+		// Close auth modal
+		setShowAuthModal(false)
 	}
 
 	// Handle help request submission
@@ -543,6 +548,7 @@ const RadialNavigationMenu = ({
 					<CustomerAuth
 						onClose={() => setShowAuthModal(false)}
 						onSuccess={handleAuthSuccess}
+						tenantId={tenantId}
 					/>
 				)}
 			</AnimatePresence>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { customerLogoutAPI } from '../../../../services/api/customerAPI'
 
 const ProfilePage = ({ onBack }) => {
 	const [customerAuth, setCustomerAuth] = useState(null)
@@ -16,7 +17,8 @@ const ProfilePage = ({ onBack }) => {
 	}, [])
 
 	const handleLogout = () => {
-		localStorage.removeItem('customerAuth')
+		customerLogoutAPI()
+		delete window.accessToken
 		window.location.reload() // Reload to reset auth state
 	}
 
@@ -69,27 +71,53 @@ const ProfilePage = ({ onBack }) => {
 						<span className="material-symbols-outlined text-white text-5xl">person</span>
 					</div>
 					<h2 className="text-2xl font-bold text-white mb-1">
-						{customerAuth.name || 'Customer'}
+						{customerAuth.username || customerAuth.name || 'Customer'}
 					</h2>
-					<p className="text-gray-400 text-sm">
-						Member since {new Date(customerAuth.loggedInAt).toLocaleDateString()}
-					</p>
+					{customerAuth.roles && customerAuth.roles.length > 0 && (
+						<div className="mt-2 flex gap-2">
+							{customerAuth.roles.map((role, index) => (
+								<span
+									key={index}
+									className="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs"
+								>
+									{role}
+								</span>
+							))}
+						</div>
+					)}
 				</div>
 
 				{/* Profile Information Cards */}
 				<div className="space-y-4">
-					{/* Email Card */}
-					<div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700">
-						<div className="flex items-center gap-3">
-							<div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
-								<span className="material-symbols-outlined text-blue-400">mail</span>
-							</div>
-							<div className="flex-1">
-								<p className="text-gray-400 text-sm">Email Address</p>
-								<p className="text-white font-medium">{customerAuth.email}</p>
+					{/* Username Card */}
+					{customerAuth.username && (
+						<div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700">
+							<div className="flex items-center gap-3">
+								<div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
+									<span className="material-symbols-outlined text-purple-400">badge</span>
+								</div>
+								<div className="flex-1">
+									<p className="text-gray-400 text-sm">Username</p>
+									<p className="text-white font-medium">{customerAuth.username}</p>
+								</div>
 							</div>
 						</div>
-					</div>
+					)}
+
+					{/* Email Card */}
+					{customerAuth.email && (
+						<div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700">
+							<div className="flex items-center gap-3">
+								<div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
+									<span className="material-symbols-outlined text-blue-400">mail</span>
+								</div>
+								<div className="flex-1">
+									<p className="text-gray-400 text-sm">Email Address</p>
+									<p className="text-white font-medium">{customerAuth.email}</p>
+								</div>
+							</div>
+						</div>
+					)}
 
 					{/* Phone Card */}
 					{customerAuth.phone && (
