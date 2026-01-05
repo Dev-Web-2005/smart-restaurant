@@ -12,6 +12,9 @@ import { ValidateTokenRequestDto } from 'src/auth/dtos/request/validate-token-re
 import { handleRpcCall } from '@shared/utils/rpc-error-handler';
 import { ForgotPasswordRequestDto } from 'src/auth/dtos/request/forgot-password-request.dto';
 import { ResetPasswordRequestDto } from 'src/auth/dtos/request/reset-password-request.dto';
+import { RegisterCustomerRequestDto } from 'src/auth/dtos/request/register-customer-request.dto';
+import { GoogleAuthRequestDto } from 'src/auth/dtos/request/google-auth-request.dto';
+import { SetPasswordRequestDto } from 'src/auth/dtos/request/set-password-request.dto';
 
 @Controller()
 export class AuthController {
@@ -130,6 +133,42 @@ export class AuthController {
 			}
 			await this.authService.resetPassword(data);
 			return new HttpResponse(200, 'Password reset successfully', null);
+		});
+	}
+
+	@MessagePattern('auth:register-customer')
+	async registerCustomer(data: RegisterCustomerRequestDto) {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			const result = await this.authService.registerCustomer(data);
+			return new HttpResponse(200, 'Customer registered successfully', result);
+		});
+	}
+
+	@MessagePattern('auth:google-auth')
+	async googleAuth(data: GoogleAuthRequestDto) {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			const result = await this.authService.googleAuth(data);
+			return new HttpResponse(1000, 'Google authentication successful', result);
+		});
+	}
+
+	@MessagePattern('auth:set-password')
+	async setPassword(data: SetPasswordRequestDto) {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			await this.authService.setPassword(data);
+			return new HttpResponse(200, 'Password set successfully', null);
 		});
 	}
 }

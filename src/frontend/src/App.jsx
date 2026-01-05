@@ -7,20 +7,20 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import { NotificationProvider } from './contexts/NotificationContext'
 import ProtectedRoute from './routes/ProtectedRoute'
 
-// Import pages
 import Login from './pages/auth/Login'
 import SignUp from './pages/auth/SignUp'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
 import RestaurantSetupWizard from './pages/onboarding/RestaurantSetupWizard'
 import KYCCallback from './pages/kyc/KYCCallback'
+import GoogleAuthenticate from './pages/auth/GoogleAuthenticate/GoogleAuthenticate'
+import SetPassword from './pages/auth/SetPassword/SetPassword'
+import CustomerLogin from './pages/auth/CustomerLogin/CustomerLogin'
 
-// Admin pages
 import Dashboard from './pages/admin/Dashboard'
 import TenantManagementListView from './pages/admin/tenant-management/TenantManagementListView'
 import SystemSettings from './pages/admin/settings/SystemSettings'
 
-// User pages
 import Menu from './pages/user/menu/Menu'
 import CategoryDishes from './pages/user/menu/CategoryDishes'
 import TableManagement from './pages/user/table/TableManagement'
@@ -30,9 +30,12 @@ import Reports from './pages/user/analytics/Reports'
 import Settings from './pages/user/settings/Settings'
 import Profile from './pages/profile/Profile'
 
-// Customer pages (public)
 import OrderingInterface from './pages/customer/ordering/OrderingInterface'
 import QRScanHandler from './pages/customer/scan/QRScanHandler'
+import RestaurantQRHandler from './pages/customer/scan/RestaurantQRHandler'
+import SelectTable from './pages/customer/scan/SelectTable'
+
+import RestaurantQRGenerator from './pages/user/qr/RestaurantQRGenerator'
 
 // Component chuyển hướng dựa trên role
 const RoleBasedRedirect = () => {
@@ -67,27 +70,43 @@ function App() {
 						<NotificationProvider>
 							<BrowserRouter>
 								<Routes>
-									{/* Public routes */}
-									<Route path="/login" element={<Login />} />
-									<Route path="/signup" element={<SignUp />} />
-									<Route path="/forgot-password" element={<ForgotPassword />} />
-									<Route path="/reset-password" element={<ResetPassword />} />
-									<Route path="/onboarding" element={<RestaurantSetupWizard />} />
-									<Route path="/kyc/callback" element={<KYCCallback />} />
+								<Route path="/login" element={<Login />} />
+								<Route path="/signup" element={<SignUp />} />
+								<Route path="/forgot-password" element={<ForgotPassword />} />
+								<Route path="/reset-password" element={<ResetPassword />} />
+								<Route path="/onboarding" element={<RestaurantSetupWizard />} />
+								<Route path="/kyc/callback" element={<KYCCallback />} />
+								<Route path="/google-authenticate" element={<GoogleAuthenticate />} />
+								<Route path="/set-password" element={<SetPassword />} />
+								
+								{/* Customer Login Routes */}
+								<Route path="/customer-login" element={<CustomerLogin />} />
+								<Route path="/customer-login/:ownerId" element={<CustomerLogin />} />
 
-									{/* QR Scan - Validates token and redirects to ordering */}
 									<Route
 										path="/tenants/:tenantId/tables/scan/:token"
 										element={<QRScanHandler />}
 									/>
-									{/* Customer ordering - Public route (no auth required) */}
-									<Route
-										path="/order/:tenantId/table/:tableId"
-										element={<OrderingInterface />}
-									/>
-									{/* Admin routes - Only for Super Administrator */}
-									<Route
-										path="/admin/dashboard"
+
+				<Route
+					path="/restaurant/:ownerId/:token/:tableNumber"
+					element={<RestaurantQRHandler />}
+				/>
+
+				{/* Fallback route for QR without table number */}
+				<Route
+					path="/restaurant/:ownerId/:token"
+					element={<RestaurantQRHandler />}
+				/>
+
+				{/* Table selection after restaurant QR login */}
+				<Route
+					path="/select-table/:ownerId"
+					element={<SelectTable />}
+				/>
+
+				<Route
+					path="/order/:tenantId/table/:tableId"
 										element={
 											<ProtectedRoute allowedRoles={['Super Administrator']}>
 												<Dashboard />
@@ -133,6 +152,14 @@ function App() {
 										element={
 											<ProtectedRoute allowedRoles={['User']}>
 												<TableManagement />
+											</ProtectedRoute>
+										}
+									/>
+									<Route
+										path="/user/restaurant-qr"
+										element={
+											<ProtectedRoute allowedRoles={['User']}>
+												<RestaurantQRGenerator />
 											</ProtectedRoute>
 										}
 									/>

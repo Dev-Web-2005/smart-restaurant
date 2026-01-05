@@ -57,6 +57,12 @@ export default class ErrorCode {
 		401
 	);
 
+	static readonly NOT_FOUND_RESOURCE: ErrorCode = new ErrorCode(
+		1007,
+		"Requested resource not found",
+		404
+	);
+
 	// ==================== USER & PROFILE (2000-2999) ====================
 
 	/** User not found in database */

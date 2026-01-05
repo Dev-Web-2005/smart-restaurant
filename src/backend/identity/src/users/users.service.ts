@@ -20,6 +20,8 @@ import RegisterUserWithProfileRequestDto from 'src/users/dtos/request/register-u
 import { extractFields } from '@shared/utils/utils';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
+import { RestaurantQrResponseDto } from './dtos/response/restaurant-qr-response.dto';
+import { ValidateRestaurantQrResponseDto } from './dtos/response/validate-restaurant-qr-response.dto';
 
 @Injectable()
 export class UsersService {
@@ -381,5 +383,141 @@ export class UsersService {
 			return roleDto;
 		});
 		return dto;
+	}
+
+	/**
+	 * Generate or regenerate restaurant QR code with token
+	 * Invalidates old token by incrementing version
+	 */
+	async generateRestaurantQr(userId: string): Promise<RestaurantQrResponseDto> {
+		const user = await this.userRepository.findOne({
+			where: { userId },
+			relations: ['roles'],
+		});
+
+		if (!user) {
+			throw new AppException(ErrorCode.USER_NOT_FOUND);
+		}
+
+		// Check if user has USER role (restaurant owner)
+		const hasUserRole = user.roles.some(
+			(role) => role.name.toString() === RoleEnum.USER.toString(),
+		);
+		if (!hasUserRole) {
+			throw new AppException(ErrorCode.FORBIDDEN);
+		}
+
+		// Generate new token
+		const token = crypto.randomBytes(32).toString('hex');
+
+		// Increment version to invalidate old QR codes
+		user.restaurantQrToken = token;
+		user.restaurantQrVersion = (user.restaurantQrVersion || 0) + 1;
+		user.restaurantQrGeneratedAt = new Date();
+
+		try {
+			await this.userRepository.save(user);
+		} catch (error) {
+			console.error('Error saving restaurant QR to database:', error);
+			throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+		}
+
+		// Construct URL
+		const baseUrl =
+			this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+		const url = `${baseUrl}/restaurant/${userId}/${token}`;
+
+		const response = new RestaurantQrResponseDto();
+		response.qrUrl = url;
+		response.token = token;
+		response.version = user.restaurantQrVersion;
+		response.generatedAt = user.restaurantQrGeneratedAt;
+		response.ownerId = user.userId;
+		response.ownerUsername = user.username;
+
+		return response;
+	}
+
+	/**
+	 * Validate restaurant QR token
+	 * Checks if token matches and is not invalidated
+	 */
+	async validateRestaurantQr(
+		ownerId: string,
+		token: string,
+	): Promise<ValidateRestaurantQrResponseDto> {
+		const user = await this.userRepository.findOne({
+			where: { userId: ownerId },
+		});
+
+		const response = new ValidateRestaurantQrResponseDto();
+
+		if (!user) {
+			response.valid = false;
+			response.message = 'Restaurant not found';
+			return response;
+		}
+
+		if (!user.restaurantQrToken) {
+			response.valid = false;
+			response.message = 'No QR code generated for this restaurant';
+			return response;
+		}
+
+		if (user.restaurantQrToken !== token) {
+			response.valid = false;
+			response.message = 'Invalid or expired QR code';
+			return response;
+		}
+
+		response.valid = true;
+		response.ownerId = user.userId;
+		response.ownerUsername = user.username;
+		response.qrVersion = user.restaurantQrVersion;
+		response.message = 'Valid QR code';
+
+		return response;
+	}
+
+	/**
+	 * Get current restaurant QR info without regenerating
+	 */
+	async getRestaurantQr(userId: string): Promise<RestaurantQrResponseDto | null> {
+		const user = await this.userRepository.findOne({
+			where: { userId },
+			relations: ['roles'],
+		});
+
+		if (!user) {
+			throw new AppException(ErrorCode.USER_NOT_FOUND);
+		}
+
+		// Check if user has USER role
+		const hasUserRole = user.roles.some(
+			(role) => role.name.toString() === RoleEnum.USER.toString(),
+		);
+		if (!hasUserRole) {
+			throw new AppException(ErrorCode.FORBIDDEN);
+		}
+
+		// If no QR exists, generate one automatically
+		if (!user.restaurantQrToken) {
+			console.log(`No QR found for user ${userId}, auto-generating...`);
+			return await this.generateRestaurantQr(userId);
+		}
+
+		const baseUrl =
+			this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+		const url = `${baseUrl}/restaurant/${userId}/${user.restaurantQrToken}`;
+
+		const response = new RestaurantQrResponseDto();
+		response.qrUrl = url;
+		response.token = user.restaurantQrToken;
+		response.version = user.restaurantQrVersion || 0;
+		response.generatedAt = user.restaurantQrGeneratedAt;
+		response.ownerId = user.userId;
+		response.ownerUsername = user.username;
+
+		return response;
 	}
 }

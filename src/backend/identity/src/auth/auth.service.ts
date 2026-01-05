@@ -20,6 +20,12 @@ import { JwtPayload } from '@shared/types';
 import { ForgotPasswordRequestDto } from 'src/auth/dtos/request/forgot-password-request.dto';
 import { ResetPasswordRequestDto } from 'src/auth/dtos/request/reset-password-request.dto';
 import { ClientProxy } from '@nestjs/microservices';
+import { RegisterCustomerRequestDto } from 'src/auth/dtos/request/register-customer-request.dto';
+import { RegisterCustomerResponseDto } from 'src/auth/dtos/response/register-customer-response.dto';
+import { GoogleAuthRequestDto } from 'src/auth/dtos/request/google-auth-request.dto';
+import { GoogleAuthResponseDto } from 'src/auth/dtos/response/google-auth-response.dto';
+import { SetPasswordRequestDto } from 'src/auth/dtos/request/set-password-request.dto';
+import { Role } from 'src/common/entities/role';
 
 @Injectable()
 export class AuthService {
@@ -27,6 +33,7 @@ export class AuthService {
 		@InjectRepository(User) private readonly userRepository: Repository<User>,
 		@InjectRepository(RemoveToken)
 		private readonly removeTokenRepository: Repository<RemoveToken>,
+		@InjectRepository(Role) private readonly roleRepository: Repository<Role>,
 		private readonly jwtService: JwtService,
 		private readonly configService: ConfigService,
 		@Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
@@ -436,5 +443,217 @@ export class AuthService {
 			}
 			throw error;
 		}
+	}
+
+	/**
+	 * Simple customer registration (username, password, email only)
+	 */
+	async registerCustomer(
+		data: RegisterCustomerRequestDto,
+	): Promise<RegisterCustomerResponseDto> {
+		// Get CUSTOMER role
+		const customerRole = await this.roleRepository.findOne({
+			where: { name: RoleEnum.CUSTOMER },
+			relations: ['authorities'],
+		});
+
+		if (!customerRole) {
+			throw new AppException(ErrorCode.ROLE_NOT_FOUND);
+		}
+
+		// Determine username based on ownerId
+		const username = data.ownerId ? `${data.username}_${data.ownerId}` : data.username;
+
+		// Check if user already exists
+		const existingUser = await this.userRepository.findOne({
+			where: { username },
+		});
+
+		if (existingUser) {
+			throw new AppException(ErrorCode.USER_ALREADY_EXISTS);
+		}
+
+		// Create user
+		const user = this.userRepository.create({
+			username,
+			email: data.email,
+			password: await bcrypt.hash(data.password, 10),
+			roles: [customerRole],
+			ownerId: data.ownerId || null,
+		});
+
+		try {
+			const savedUser = await this.userRepository.save(user);
+
+			// Send welcome email
+			try {
+				const notificationApiKey = this.configService.get<string>('NOTIFICATION_API_KEY');
+				const notificationRequest = {
+					to: {
+						email: savedUser.email,
+						name: data.username, // Use original username without ownerId suffix
+					},
+					subject: 'Welcome to Smart Restaurant',
+					variables: {
+						NAME: data.username,
+					},
+					notificationApiKey,
+				};
+				this.notificationClient.emit('mail.send', notificationRequest);
+			} catch (emitError) {
+				console.error('Error sending welcome email:', emitError);
+			}
+
+			const response = new RegisterCustomerResponseDto();
+			response.userId = savedUser.userId;
+			response.username = data.username; // Return original username
+			response.email = savedUser.email;
+			response.roles = ['CUSTOMER'];
+			response.ownerId = data.ownerId;
+
+			return response;
+		} catch (err) {
+			console.error('Error saving customer:', err);
+			throw new AppException(ErrorCode.USER_ALREADY_EXISTS);
+		}
+	}
+
+	async googleAuth(data: GoogleAuthRequestDto): Promise<GoogleAuthResponseDto> {
+		try {
+			const tokenParams = new URLSearchParams({
+				code: data.code,
+				client_id: this.configService.get<string>('CLIENT_ID'),
+				client_secret: this.configService.get<string>('CLIENT_SECRET'),
+				redirect_uri: this.configService.get<string>('REDIRECT_URI'),
+				grant_type: 'authorization_code',
+			});
+
+			const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+				body: tokenParams.toString(),
+			});
+
+			if (!tokenResponse.ok) {
+				const errorData = await tokenResponse.text();
+				console.error('Google token exchange failed:', errorData);
+				throw new Error('Failed to exchange code for token');
+			}
+
+			const tokenData = await tokenResponse.json();
+			const { access_token } = tokenData;
+
+			const userInfoResponse = await fetch(
+				'https://www.googleapis.com/oauth2/v2/userinfo',
+				{
+					headers: { Authorization: `Bearer ${access_token}` },
+				},
+			);
+
+			if (!userInfoResponse.ok) {
+				throw new Error('Failed to fetch user info');
+			}
+
+			const userInfoData = await userInfoResponse.json();
+
+			const { email, name } = userInfoData;
+
+			const customerRole = await this.roleRepository.findOne({
+				where: { name: RoleEnum.CUSTOMER },
+				relations: ['authorities'],
+			});
+
+			if (!customerRole) {
+				throw new AppException(ErrorCode.ROLE_NOT_FOUND);
+			}
+
+			const username = data.ownerId ? `${email}_${data.ownerId}` : email;
+
+			let user = await this.userRepository.findOne({
+				where: { username },
+				relations: ['roles'],
+			});
+
+			let isNewUser = false;
+
+			if (!user) {
+				const randomPassword = Buffer.from(
+					`${email}_${Date.now()}_${Math.random()}`,
+				).toString('base64');
+
+				user = this.userRepository.create({
+					username,
+					email,
+					password: await bcrypt.hash(randomPassword, 10),
+					roles: [customerRole],
+					ownerId: data.ownerId || null,
+					isGoogleLogin: true,
+				});
+
+				user = await this.userRepository.save(user);
+				isNewUser = true;
+
+				try {
+					const notificationApiKey =
+						this.configService.get<string>('NOTIFICATION_API_KEY');
+					const notificationRequest = {
+						to: { email, name: name || email },
+						subject: 'Welcome to Smart Restaurant',
+						variables: { NAME: name || email },
+						notificationApiKey,
+					};
+					this.notificationClient.emit('mail.send', notificationRequest);
+				} catch (emitError) {
+					console.error('Error sending welcome email:', emitError);
+				}
+			}
+
+			const roles = user.roles.map((role) => RoleEnum[role.name]);
+
+			const accessToken = this.generateAccessToken({
+				userId: user.userId,
+				username: data.ownerId ? email : username,
+				email: user.email,
+				roles,
+				ownerId: user.ownerId,
+			});
+
+			const refreshToken = this.generateRefreshToken({
+				userId: user.userId,
+				username: data.ownerId ? email : username,
+				email: user.email,
+				roles,
+				ownerId: user.ownerId,
+			});
+
+			const response = new GoogleAuthResponseDto();
+			response.userId = user.userId;
+			response.username = data.ownerId ? email : username;
+			response.email = user.email;
+			response.roles = roles;
+			response.accessToken = accessToken;
+			response.refreshToken = refreshToken;
+			response.ownerId = user.ownerId;
+			response.isGoogleLogin = user.isGoogleLogin;
+
+			return response;
+		} catch (error) {
+			console.error('Google auth error:', error);
+			throw new AppException(ErrorCode.LOGIN_FAILED);
+		}
+	}
+
+	async setPassword(data: SetPasswordRequestDto): Promise<void> {
+		const user = await this.userRepository.findOne({
+			where: { userId: data.userId },
+		});
+
+		if (!user) {
+			throw new AppException(ErrorCode.USER_NOT_FOUND);
+		}
+
+		user.password = await bcrypt.hash(data.password, 10);
+		user.isGoogleLogin = false;
+		await this.userRepository.save(user);
 	}
 }

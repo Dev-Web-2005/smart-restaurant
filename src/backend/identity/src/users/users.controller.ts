@@ -9,6 +9,7 @@ import RegisterUserWithProfileRequestDto from 'src/users/dtos/request/register-u
 import { GetAllUsersRequestDto } from 'src/users/dtos/request/get-all-users-request.dto';
 import { GetUserByIdRequestDto } from 'src/users/dtos/request/get-user-by-id-request.dto';
 import { handleRpcCall } from '@shared/utils/rpc-error-handler';
+import { ValidateRestaurantQrRequestDto } from './dtos/request/validate-restaurant-qr-request.dto';
 
 @Controller()
 export class UsersController {
@@ -94,6 +95,68 @@ export class UsersController {
 				200,
 				'Get user by id successful',
 				await this.usersService.getUserById(data.userId),
+			);
+		});
+	}
+
+	/**
+	 * Generate or regenerate restaurant QR code
+	 * Pattern: users:generate-restaurant-qr
+	 */
+	@MessagePattern('users:generate-restaurant-qr')
+	async generateRestaurantQr(data: {
+		userId: string;
+		identityApiKey?: string;
+	}): Promise<HttpResponse> {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			return new HttpResponse(
+				200,
+				'Restaurant QR code generated successfully',
+				await this.usersService.generateRestaurantQr(data.userId),
+			);
+		});
+	}
+
+	/**
+	 * Get existing restaurant QR without regenerating
+	 * Pattern: users:get-restaurant-qr
+	 */
+	@MessagePattern('users:get-restaurant-qr')
+	async getRestaurantQr(data: {
+		userId: string;
+		identityApiKey?: string;
+	}): Promise<HttpResponse> {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			const qrData = await this.usersService.getRestaurantQr(data.userId);
+			return new HttpResponse(200, 'Restaurant QR code retrieved successfully', qrData);
+		});
+	}
+
+	/**
+	 * Validate restaurant QR token
+	 * Pattern: users:validate-restaurant-qr
+	 */
+	@MessagePattern('users:validate-restaurant-qr')
+	async validateRestaurantQr(
+		data: ValidateRestaurantQrRequestDto,
+	): Promise<HttpResponse> {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			return new HttpResponse(
+				200,
+				'Restaurant QR validation completed',
+				await this.usersService.validateRestaurantQr(data.ownerId, data.token),
 			);
 		});
 	}

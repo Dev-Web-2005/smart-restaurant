@@ -36,7 +36,7 @@ export class IdentityController {
 	}
 
 	@Post('users/register/:ownerId')
-	registerCustomer(@Body() data: any, @Param('ownerId') ownerId: string) {
+	registerCustomerViaUsers(@Body() data: any, @Param('ownerId') ownerId: string) {
 		return this.identityClient.send('users:register-customer', {
 			...data,
 			ownerId,
@@ -53,6 +53,52 @@ export class IdentityController {
 		return this.identityClient.send('users:generate-staff-chef', {
 			ownerId: userId,
 			role: data.role,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+	}
+
+	/**
+	 * Generate or regenerate restaurant QR code
+	 */
+	@UseGuards(AuthGuard, Role('USER'))
+	@Post('users/restaurant-qr')
+	generateRestaurantQr(@Req() req: Request) {
+		const userId = (req as any).user?.userId;
+		if (!userId) {
+			throw new AppException(ErrorCode.UNAUTHORIZED);
+		}
+		return this.identityClient.send('users:generate-restaurant-qr', {
+			userId,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+	}
+
+	/**
+	 * Get existing restaurant QR code without regenerating
+	 */
+	@UseGuards(AuthGuard, Role('USER'))
+	@Get('users/restaurant-qr')
+	getRestaurantQr(@Req() req: Request) {
+		const userId = (req as any).user?.userId;
+		if (!userId) {
+			throw new AppException(ErrorCode.UNAUTHORIZED);
+		}
+		return this.identityClient.send('users:get-restaurant-qr', {
+			userId,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+	}
+
+	/**
+	 * Validate restaurant QR token (public endpoint)
+	 * @param ownerId - Restaurant owner's userId
+	 * @param token - The QR token to validate
+	 */
+	@Post('users/restaurant-qr/validate/:ownerId/:token')
+	validateRestaurantQr(@Param('ownerId') ownerId: string, @Param('token') token: string) {
+		return this.identityClient.send('users:validate-restaurant-qr', {
+			ownerId,
+			token,
 			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
 		});
 	}
@@ -449,5 +495,192 @@ export class IdentityController {
 				}),
 			);
 		}
+	}
+
+	@Post('auth/register-customer')
+	registerCustomer(@Body() data: { username: string; password: string; email: string }) {
+		return this.identityClient.send('auth:register-customer', {
+			...data,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+	}
+
+	@Post('auth/register-customer/:ownerId')
+	registerCustomerWithOwner(
+		@Body() data: { username: string; password: string; email: string },
+		@Param('ownerId') ownerId: string,
+	) {
+		return this.identityClient.send('auth:register-customer', {
+			...data,
+			ownerId,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+	}
+
+	@Post('auth/google-authenticate')
+	async googleAuth(@Body() data: { code: string }, @Res() res: Response) {
+		const observableResponse = this.identityClient.send('auth:google-auth', {
+			...data,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+		const response = await firstValueFrom(observableResponse);
+
+		if (!response || !response.code || response.code !== 1000) {
+			const statusCode =
+				typeof response?.code === 'number'
+					? HttpStatus.BAD_REQUEST
+					: HttpStatus.UNAUTHORIZED;
+			return res.status(statusCode).json(response);
+		}
+
+		const convertData: {
+			code: number;
+			message: string;
+			data: {
+				userId: string;
+				username: string;
+				email: string;
+				roles: string[];
+				accessToken: string;
+				refreshToken: string;
+				ownerId?: string;
+				isGoogleLogin: boolean;
+			};
+		} = response;
+
+		const refreshTokenExpiry = this.configService.get<number>('REFRESH_TOKEN_EXPIRES_IN');
+
+		res.cookie('refreshToken', convertData.data.refreshToken, {
+			httpOnly: true,
+			maxAge: refreshTokenExpiry,
+			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
+			secure: process.env.MOD === 'production' ? true : false,
+			path: '/',
+			...(process.env.MOD === 'production' && {
+				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site',
+			}),
+		});
+
+		res.cookie('type', 'customer', {
+			httpOnly: false,
+			maxAge: refreshTokenExpiry,
+			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
+			secure: process.env.MOD === 'production' ? true : false,
+			path: '/',
+			...(process.env.MOD === 'production' && {
+				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site',
+			}),
+		});
+
+		return res.status(HttpStatus.OK).json(
+			new ApiResponse<any>({
+				code: 1000,
+				message: response.message,
+				data: {
+					userId: convertData.data.userId,
+					username: convertData.data.username,
+					email: convertData.data.email,
+					roles: convertData.data.roles,
+					accessToken: convertData.data.accessToken,
+					ownerId: convertData.data.ownerId,
+					isGoogleLogin: convertData.data.isGoogleLogin,
+				},
+			}),
+		);
+	}
+
+	@Post('auth/google-authenticate/:ownerId')
+	async googleAuthWithOwner(
+		@Body() data: { code: string },
+		@Param('ownerId') ownerId: string,
+		@Res() res: Response,
+	) {
+		const observableResponse = this.identityClient.send('auth:google-auth', {
+			...data,
+			ownerId,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+		const response = await firstValueFrom(observableResponse);
+
+		if (!response || !response.code || response.code !== 1000) {
+			const statusCode =
+				typeof response?.code === 'number'
+					? HttpStatus.BAD_REQUEST
+					: HttpStatus.UNAUTHORIZED;
+			return res.status(statusCode).json(response);
+		}
+
+		const convertData: {
+			code: number;
+			message: string;
+			data: {
+				userId: string;
+				username: string;
+				email: string;
+				roles: string[];
+				accessToken: string;
+				refreshToken: string;
+				ownerId?: string;
+				isGoogleLogin: boolean;
+			};
+		} = response;
+
+		const refreshTokenExpiry = this.configService.get<number>('REFRESH_TOKEN_EXPIRES_IN');
+
+		res.cookie('refreshToken', convertData.data.refreshToken, {
+			httpOnly: true,
+			maxAge: refreshTokenExpiry,
+			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
+			secure: process.env.MOD === 'production' ? true : false,
+			path: '/',
+			...(process.env.MOD === 'production' && {
+				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site',
+			}),
+		});
+
+		res.cookie('type', 'customer', {
+			httpOnly: false,
+			maxAge: refreshTokenExpiry,
+			sameSite: process.env.MOD === 'production' ? 'none' : 'lax',
+			secure: process.env.MOD === 'production' ? true : false,
+			path: '/',
+			...(process.env.MOD === 'production' && {
+				domain: process.env.COOKIE_DOMAIN || '.lethanhcong.site',
+			}),
+		});
+
+		return res.status(HttpStatus.OK).json(
+			new ApiResponse<any>({
+				code: 1000,
+				message: response.message,
+				data: {
+					userId: convertData.data.userId,
+					username: convertData.data.username,
+					email: convertData.data.email,
+					roles: convertData.data.roles,
+					accessToken: convertData.data.accessToken,
+					ownerId: convertData.data.ownerId,
+					isGoogleLogin: convertData.data.isGoogleLogin,
+				},
+			}),
+		);
+	}
+
+	@UseGuards(AuthGuard)
+	@Post('auth/set-password')
+	setPassword(@Body() data: { password: string }, @Req() req: Request) {
+		const userId = (req as any).user?.userId;
+		console.log('🔐 Set password - User from token:', (req as any).user);
+		console.log('🔐 Set password - userId:', userId);
+
+		if (!userId) {
+			console.error('❌ No userId in request.user');
+			throw new AppException(ErrorCode.UNAUTHORIZED);
+		}
+		return this.identityClient.send('auth:set-password', {
+			userId,
+			password: data.password,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
 	}
 }

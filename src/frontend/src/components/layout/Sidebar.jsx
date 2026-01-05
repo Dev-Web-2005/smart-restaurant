@@ -20,6 +20,7 @@ const adminNavItems = [
 const tenantNavItems = [
 	{ icon: 'menu_book', label: 'Menu', route: '/user/menu' },
 	{ icon: 'table_restaurant', label: 'Table', route: '/user/table' },
+	{ icon: 'qr_code_2', label: 'Restaurant QR', route: '/user/restaurant-qr' },
 	{ icon: 'receipt_long', label: 'Order', route: '/user/order' },
 	{ icon: 'notifications_active', label: 'Help Requests', route: '/user/help-requests' },
 	{ icon: 'analytics', label: 'Analytics', route: '/user/analytics' },
