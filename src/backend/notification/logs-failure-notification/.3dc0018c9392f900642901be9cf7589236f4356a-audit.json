@@ -14,6 +14,11 @@
             "date": 1767521169663,
             "name": "logs-failure-notification\\app-2026-01-04.log",
             "hash": "5dc0fabcfcef17dd1a36e79c3b6f50cefce654f1cb5da8fa2793ba277047e41f"
+        },
+        {
+            "date": 1767595854751,
+            "name": "logs-failure-notification\\app-2026-01-05.log",
+            "hash": "9a8dcf4384f871c649f952c744a672d5fdb3004887d23e9ce646a8bdb56b8fc7"
         }
     ],
     "hashType": "sha256"
