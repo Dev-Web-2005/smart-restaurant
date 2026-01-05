@@ -5,23 +5,24 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class PublicUrlMiddleware implements NestMiddleware {
-	// Public URLs không cần API key
 	private readonly PUBLIC_URLS = [
 		'/',
 		'/health',
 		'/api/v1/identity/auth/login',
 		'/api/v1/identity/auth/register',
 		'/api/v1/identity/auth/refresh',
+		'/api/v1/identity/auth/register-customer',
+		'/api/v1/identity/auth/google-authenticate',
 		'/api/v1/product/public/menu',
 		'/api/v1/identity/auth/forgot-password',
 		'/api/v1/identity/auth/reset-password',
 		'/api/v1/identity/users/register',
+		'/api/v1/identity/users/restaurant-qr/validate',
 	];
 
 	constructor(private readonly configService: ConfigService) {}
 
 	use(req: Request, res: Response, next: NextFunction) {
-		// Set public URL header
 		const url = req.originalUrl || req.url;
 		const isPublicUrl = this.PUBLIC_URLS.some((publicUrl) => url.startsWith(publicUrl));
 

@@ -25,6 +25,19 @@ export class TableController {
 		private readonly configService: ConfigService,
 	) {}
 
+	/**
+	 * Public endpoint for customer to get available tables
+	 * No authentication required - used after scanning restaurant QR
+	 */
+	@Get('/public/tenants/:tenantId/tables')
+	listTablesPublic(@Param('tenantId') tenantId: string) {
+		return this.tableClient.send('tables:list', {
+			tenantId,
+			isActive: true,
+			tableApiKey: this.configService.get('TABLE_API_KEY'),
+		});
+	}
+
 	@UseGuards(AuthGuard, Role('USER'))
 	@Post('/tenants/:tenantId/tables')
 	createTable(@Param('tenantId') tenantId: string, @Body() data: any) {

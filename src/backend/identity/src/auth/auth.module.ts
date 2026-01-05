@@ -4,13 +4,14 @@ import { AuthService } from './auth.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/common/entities/user';
 import { RemoveToken } from 'src/common/entities/remove-token';
+import { Role } from 'src/common/entities/role';
 import { JwtConfigModule } from 'src/common/config/jwt.config.module';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
 	imports: [
-		TypeOrmModule.forFeature([User, RemoveToken]),
+		TypeOrmModule.forFeature([User, RemoveToken, Role]),
 		JwtConfigModule,
 		ClientsModule.registerAsync([
 			{
@@ -41,4 +42,3 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 	exports: [AuthService],
 })
 export class AuthModule {}
-

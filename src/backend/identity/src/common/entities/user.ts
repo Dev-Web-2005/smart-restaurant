@@ -18,6 +18,18 @@ export class User {
 	@Column({ nullable: true })
 	ownerId?: string;
 
+	@Column({ default: false })
+	isGoogleLogin: boolean;
+
+	@Column({ nullable: true })
+	restaurantQrToken?: string;
+
+	@Column({ default: 0 })
+	restaurantQrVersion: number;
+
+	@Column({ nullable: true, type: 'timestamptz' })
+	restaurantQrGeneratedAt?: Date;
+
 	@ManyToMany(() => Role, (role) => role.users, { cascade: true })
 	@JoinTable()
 	roles: Role[];

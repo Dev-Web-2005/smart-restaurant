@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import apiClient from '../../../services/apiClient'
+import CustomerAuth from '../ordering/pages/CustomerAuth'
 
 /**
- * QR Scan Handler - Validates QR token and redirects to ordering interface
+ * QR Scan Handler - Validates QR token and shows login before ordering
  * Route: /tenants/:tenantId/tables/scan/:token
  */
 const QRScanHandler = () => {
@@ -11,6 +12,8 @@ const QRScanHandler = () => {
 	const navigate = useNavigate()
 	const [error, setError] = useState(null)
 	const [validating, setValidating] = useState(true)
+	const [showAuthModal, setShowAuthModal] = useState(false)
+	const [tableInfo, setTableInfo] = useState(null)
 
 	useEffect(() => {
 		const validateToken = async () => {
@@ -21,20 +24,20 @@ const QRScanHandler = () => {
 				const response = await apiClient.get(`/tenants/${tenantId}/tables/scan/${token}`)
 
 				console.log('✅ Validation response:', response.data)
-				const { code, data, message, redirect } = response.data
+				const { code, data, message } = response.data
 
-				// Backend có thể trả về 2 format:
-				// 1. { code, data: { tableId }, message }
-				// 2. { redirect: "/order/..." }
-				if (redirect) {
-					// Format 2: Backend trả về redirect URL
-					console.log('🔀 Redirecting to:', redirect)
-					navigate(redirect, { replace: true })
-				} else if (code === 1000 || code === 200) {
-					// Format 1: Backend trả về tableId
-					const { tableId } = data
-					console.log('🔀 Redirecting to:', `/order/${tenantId}/table/${tableId}`)
-					navigate(`/order/${tenantId}/table/${tableId}`, { replace: true })
+				if (code === 1000 || code === 200) {
+					// Token valid - store info and show login
+					const { tableId, tableNumber } = data
+					setTableInfo({ tableId, tableNumber: tableNumber || tableId })
+					
+					// Store in localStorage for later use
+					localStorage.setItem('currentOwnerId', tenantId)
+					localStorage.setItem('currentTenantId', tenantId)
+					localStorage.setItem('currentTableNumber', tableNumber || tableId)
+					
+					setValidating(false)
+					setShowAuthModal(true)
 				} else {
 					console.error('❌ Validation failed:', { code, message })
 					setError(message || 'Invalid QR code')
@@ -42,7 +45,6 @@ const QRScanHandler = () => {
 				}
 			} catch (err) {
 				console.error('❌ QR validation error:', err)
-				console.error('Response:', err.response?.data)
 				setError(
 					err.response?.data?.message ||
 						'QR code không hợp lệ hoặc đã hết hạn. Vui lòng quét lại.',
@@ -52,7 +54,20 @@ const QRScanHandler = () => {
 		}
 
 		validateToken()
-	}, [tenantId, token, navigate])
+	}, [tenantId, token])
+
+	const handleAuthSuccess = (customer) => {
+		console.log('✅ Customer authenticated:', customer)
+		setShowAuthModal(false)
+		
+		// Navigate to ordering interface with table info
+		const tableNum = tableInfo?.tableNumber || localStorage.getItem('currentTableNumber') || '0'
+		navigate(`/order/${tenantId}/table/${tableNum}`, { replace: true })
+	}
+
+	const handleAuthClose = () => {
+		setShowAuthModal(false)
+	}
 
 	if (validating) {
 		return (
@@ -83,7 +98,47 @@ const QRScanHandler = () => {
 		)
 	}
 
-	return null
+	return (
+		<div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900">
+			{/* Background Pattern */}
+			<div className="absolute inset-0 opacity-10">
+				<div className="absolute inset-0" style={{
+					backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+				}}></div>
+			</div>
+
+			{/* Welcome Message when modal closed */}
+			{!showAuthModal && (
+				<div className="min-h-screen flex items-center justify-center">
+					<div className="relative z-10 text-center p-8 bg-white/10 backdrop-blur-md rounded-2xl max-w-md">
+						<div className="text-6xl mb-4">🍽️</div>
+						<h1 className="text-3xl font-bold text-white mb-4">Welcome!</h1>
+						<p className="text-white/90 mb-2">
+							You're at Table {tableInfo?.tableNumber || 'N/A'}
+						</p>
+						<p className="text-white/70 mb-6">
+							Please login to start ordering
+						</p>
+						<button
+							onClick={() => setShowAuthModal(true)}
+							className="px-8 py-3 bg-white text-purple-900 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+						>
+							Login / Sign Up
+						</button>
+					</div>
+				</div>
+			)}
+
+			{/* Auth Modal */}
+			{showAuthModal && (
+				<CustomerAuth
+					onClose={handleAuthClose}
+					onSuccess={handleAuthSuccess}
+					tenantId={tenantId}
+				/>
+			)}
+		</div>
+	)
 }
 
 export default QRScanHandler
