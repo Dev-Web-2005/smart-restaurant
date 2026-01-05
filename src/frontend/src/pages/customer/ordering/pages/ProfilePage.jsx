@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { customerLogoutAPI } from '../../../../services/api/customerAPI'
 
 const ProfilePage = ({ onBack }) => {
 	const [customerAuth, setCustomerAuth] = useState(null)
@@ -17,7 +16,10 @@ const ProfilePage = ({ onBack }) => {
 	}, [])
 
 	const handleLogout = () => {
-		customerLogoutAPI()
+		// Clear customer authentication data
+		localStorage.removeItem('customerAuth')
+		localStorage.removeItem('customer_token')
+		sessionStorage.clear()
 		delete window.accessToken
 		window.location.reload() // Reload to reset auth state
 	}
