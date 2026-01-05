@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import FloatingInputField from '../../components/form/FloatingInputField'
+import PasswordStrengthIndicator from '../../components/form/PasswordStrengthIndicator'
 import BackgroundImage from '../../components/common/BackgroundImage'
 import { useLoading } from '../../contexts/LoadingContext'
 
@@ -25,7 +26,9 @@ const ResetPassword = () => {
 	useEffect(() => {
 		if (!token) {
 			setTokenValid(false)
-			setErrorMessage('Invalid or missing reset token. Please request a new password reset link.')
+			setErrorMessage(
+				'Invalid or missing reset token. Please request a new password reset link.',
+			)
 		}
 	}, [token])
 
@@ -109,15 +112,8 @@ const ResetPassword = () => {
 				{/* Card */}
 				<div className="w-full rounded-xl bg-black/60 backdrop-blur-md p-8 shadow-lg border border-white/10">
 					<div className="text-center mb-6">
-						<div className="flex justify-center mb-4">
-							<span className="material-symbols-outlined text-5xl text-[#137fec]">
-								password
-							</span>
-						</div>
 						<h2 className="text-2xl font-bold text-white">Reset Password</h2>
-						<p className="mt-2 text-sm text-[#9dabbb]">
-							Enter your new password below.
-						</p>
+						<p className="mt-2 text-sm text-[#9dabbb]">Enter your new password below.</p>
 					</div>
 
 					{!tokenValid ? (
@@ -149,30 +145,36 @@ const ResetPassword = () => {
 							)}
 
 							{/* New Password Input */}
-							<div className="relative">
-								<FloatingInputField
-									label="New Password"
-									type={passwordVisible ? 'text' : 'password'}
-									id="password"
-									name="password"
-									value={formData.password}
-									onChange={handleChange}
-									placeholder=""
-									disabled={loading}
-									autoComplete="new-password"
-									icon={<span className="material-symbols-outlined">lock</span>}
-									iconPosition="left"
+							<div>
+								<div className="relative">
+									<FloatingInputField
+										label="New Password"
+										type={passwordVisible ? 'text' : 'password'}
+										id="password"
+										name="password"
+										value={formData.password}
+										onChange={handleChange}
+										placeholder=""
+										disabled={loading}
+										autoComplete="new-password"
+										icon={<span className="material-symbols-outlined">lock</span>}
+										iconPosition="left"
+									/>
+									<button
+										className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors focus:outline-none z-20 bg-transparent border-none cursor-pointer"
+										type="button"
+										onClick={() => setPasswordVisible(!passwordVisible)}
+										disabled={loading}
+									>
+										<span className="material-symbols-outlined text-lg">
+											{passwordVisible ? 'visibility_off' : 'visibility'}
+										</span>
+									</button>
+								</div>
+								<PasswordStrengthIndicator
+									password={formData.password}
+									showRequirements={true}
 								/>
-								<button
-									className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors focus:outline-none z-20 bg-transparent border-none cursor-pointer"
-									type="button"
-									onClick={() => setPasswordVisible(!passwordVisible)}
-									disabled={loading}
-								>
-									<span className="material-symbols-outlined text-lg">
-										{passwordVisible ? 'visibility_off' : 'visibility'}
-									</span>
-								</button>
 							</div>
 
 							{/* Confirm Password Input */}
@@ -187,7 +189,7 @@ const ResetPassword = () => {
 									placeholder=""
 									disabled={loading}
 									autoComplete="new-password"
-									icon={<span className="material-symbols-outlined">lock_check</span>}
+									icon={<span className="material-symbols-outlined">lock</span>}
 									iconPosition="left"
 								/>
 								<button
@@ -200,15 +202,6 @@ const ResetPassword = () => {
 										{confirmPasswordVisible ? 'visibility_off' : 'visibility'}
 									</span>
 								</button>
-							</div>
-
-							{/* Password Requirements */}
-							<div className="text-xs text-[#9dabbb] bg-white/5 p-3 rounded-lg">
-								<p className="font-medium mb-1">Password requirements:</p>
-								<ul className="list-disc list-inside space-y-1">
-									<li>At least 8 characters long</li>
-									<li>Must match confirm password</li>
-								</ul>
 							</div>
 
 							{/* Submit Button */}

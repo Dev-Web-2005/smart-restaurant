@@ -1,24 +1,55 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams, useParams, useLocation } from 'react-router-dom'
 import FloatingInputField from '../../../../components/form/FloatingInputField'
 import BackgroundImage from '../../../../components/common/BackgroundImage'
+import { customerLoginAPI, customerSignupAPI } from '../../../../services/api/customerAPI'
 
-const CustomerAuth = ({ onClose, onSuccess }) => {
+const CustomerAuth = ({ onClose, onSuccess, tenantId: propTenantId }) => {
 	const navigate = useNavigate()
-	const [activeTab, setActiveTab] = useState('login') // 'login' or 'signup'
+	const [searchParams] = useSearchParams()
+	const params = useParams()
+	const location = useLocation()
+	const [activeTab, setActiveTab] = useState('login') // 'login' or 'signup' or 'forgot'
 	const [loading, setLoading] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
+	const [successMessage, setSuccessMessage] = useState('')
 	const [passwordVisible, setPasswordVisible] = useState(false)
+	const [ownerId, setOwnerId] = useState('')
+
+	// Forgot password state
+	const [forgotEmail, setForgotEmail] = useState('')
+
+	// Get tenantId/ownerId from multiple sources
+	// Priority: props > URL params > searchParams > localStorage
+	useEffect(() => {
+		const tenantId =
+			propTenantId ||
+			params.tenantId ||
+			searchParams.get('tenantId') ||
+			searchParams.get('ownerId') ||
+			localStorage.getItem('currentTenantId') ||
+			localStorage.getItem('currentOwnerId')
+
+		if (tenantId) {
+			setOwnerId(tenantId)
+			localStorage.setItem('currentTenantId', tenantId)
+			localStorage.setItem('currentOwnerId', tenantId) // Keep backward compatibility
+			console.log('✅ CustomerAuth: tenantId/ownerId set to:', tenantId)
+		} else {
+			console.warn('⚠️ CustomerAuth: No tenantId found in props, params, or localStorage')
+		}
+	}, [searchParams, params, propTenantId, location])
 
 	// Login form state
 	const [loginData, setLoginData] = useState({
-		email: '',
+		username: '',
 		password: '',
 	})
 
 	// Signup form state
 	const [signupData, setSignupData] = useState({
+		username: '',
 		fullName: '',
 		phoneNumber: '',
 		email: '',
@@ -51,6 +82,12 @@ const CustomerAuth = ({ onClose, onSuccess }) => {
 		return phoneRegex.test(cleanPhone)
 	}
 
+	// Validate username (4-20 characters, alphanumeric and underscore)
+	const validateUsername = (username) => {
+		const usernameRegex = /^[a-zA-Z0-9_]{4,20}$/
+		return usernameRegex.test(username)
+	}
+
 	// Handle login submission
 	const handleLogin = async (e) => {
 		e.preventDefault()
@@ -58,14 +95,8 @@ const CustomerAuth = ({ onClose, onSuccess }) => {
 		setLoading(true)
 
 		// Validation
-		if (!loginData.email.trim()) {
-			setErrorMessage('Email is required.')
-			setLoading(false)
-			return
-		}
-
-		if (!validateEmail(loginData.email)) {
-			setErrorMessage('Please enter a valid email address.')
+		if (!loginData.username.trim()) {
+			setErrorMessage('Username or email is required.')
 			setLoading(false)
 			return
 		}
@@ -82,33 +113,35 @@ const CustomerAuth = ({ onClose, onSuccess }) => {
 			return
 		}
 
+		if (!ownerId) {
+			setErrorMessage('Restaurant ID not found. Please scan QR code again.')
+			setLoading(false)
+			return
+		}
+
 		try {
-			// TODO: Call customer login API
-			console.log('Customer Login:', loginData)
-
-			// Mock successful login
-			await new Promise((resolve) => setTimeout(resolve, 1000))
-
-			// Store customer auth token (localStorage for persistence)
-			localStorage.setItem(
-				'customerAuth',
-				JSON.stringify({
-					email: loginData.email,
-					name: loginData.email.split('@')[0],
-					loggedInAt: new Date().toISOString(),
-				}),
+			// Call customer login API
+			const result = await customerLoginAPI(
+				loginData.username,
+				loginData.password,
+				ownerId,
 			)
 
-			setLoading(false)
+			if (result.success) {
+				setLoading(false)
 
-			// Callback to parent component
-			if (onSuccess) {
-				onSuccess()
-			}
+				// Callback to parent component
+				if (onSuccess) {
+					onSuccess(result.customer)
+				}
 
-			// Close modal
-			if (onClose) {
-				onClose()
+				// Close modal
+				if (onClose) {
+					onClose()
+				}
+			} else {
+				setErrorMessage(result.message || 'Login failed. Please try again.')
+				setLoading(false)
 			}
 		} catch (error) {
 			console.error('Login error:', error)
@@ -124,6 +157,20 @@ const CustomerAuth = ({ onClose, onSuccess }) => {
 		setLoading(true)
 
 		// Validation
+		if (!signupData.username.trim()) {
+			setErrorMessage('Username is required.')
+			setLoading(false)
+			return
+		}
+
+		if (!validateUsername(signupData.username)) {
+			setErrorMessage(
+				'Username must be 4-20 characters (letters, numbers, underscore only).',
+			)
+			setLoading(false)
+			return
+		}
+
 		if (!signupData.fullName.trim()) {
 			setErrorMessage('Full name is required.')
 			setLoading(false)
@@ -172,45 +219,31 @@ const CustomerAuth = ({ onClose, onSuccess }) => {
 			return
 		}
 
-		// Password complexity check
-		const passwordRegex =
-			/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/
-		if (!passwordRegex.test(signupData.password)) {
-			setErrorMessage(
-				'Password must include uppercase, lowercase, number, and special character.',
-			)
+		if (!ownerId) {
+			setErrorMessage('Restaurant ID not found. Please scan QR code again.')
 			setLoading(false)
 			return
 		}
 
 		try {
-			// TODO: Call customer signup API
-			console.log('Customer Signup:', signupData)
+			// Call customer signup API
+			const result = await customerSignupAPI(signupData, ownerId)
 
-			// Mock successful signup
-			await new Promise((resolve) => setTimeout(resolve, 1500))
+			if (result.success) {
+				setLoading(false)
 
-			// Auto login after signup
-			localStorage.setItem(
-				'customerAuth',
-				JSON.stringify({
-					email: signupData.email,
-					name: signupData.fullName,
-					phone: signupData.phoneNumber,
-					loggedInAt: new Date().toISOString(),
-				}),
-			)
+				// Callback to parent component
+				if (onSuccess) {
+					onSuccess(result.customer)
+				}
 
-			setLoading(false)
-
-			// Callback to parent component
-			if (onSuccess) {
-				onSuccess()
-			}
-
-			// Close modal
-			if (onClose) {
-				onClose()
+				// Close modal
+				if (onClose) {
+					onClose()
+				}
+			} else {
+				setErrorMessage(result.message || 'Registration failed. Please try again.')
+				setLoading(false)
 			}
 		} catch (error) {
 			console.error('Signup error:', error)
@@ -222,6 +255,59 @@ const CustomerAuth = ({ onClose, onSuccess }) => {
 	// Toggle password visibility
 	const togglePasswordVisibility = () => {
 		setPasswordVisible((prev) => !prev)
+	}
+
+	// Handle forgot password submission
+	const handleForgotPassword = async (e) => {
+		e.preventDefault()
+		setErrorMessage('')
+		setSuccessMessage('')
+		setLoading(true)
+
+		if (!forgotEmail.trim()) {
+			setErrorMessage('Email is required.')
+			setLoading(false)
+			return
+		}
+
+		if (!validateEmail(forgotEmail)) {
+			setErrorMessage('Please enter a valid email address.')
+			setLoading(false)
+			return
+		}
+
+		try {
+			const API_URL = import.meta.env.VITE_API_GATEWAY_URL
+				? `${import.meta.env.VITE_API_GATEWAY_URL}/api/v1`
+				: '/api/v1'
+
+			const response = await fetch(`${API_URL}/identity/auth/forgot-password`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ email: forgotEmail }),
+			})
+
+			const data = await response.json()
+
+			if (response.ok && data.code === 1000) {
+				setSuccessMessage(
+					'If an account with that email exists, we have sent a password reset link. Please check your inbox.',
+				)
+				setForgotEmail('')
+			} else {
+				// Still show success message to prevent email enumeration
+				setSuccessMessage(
+					'If an account with that email exists, we have sent a password reset link. Please check your inbox.',
+				)
+			}
+		} catch (error) {
+			console.error('Forgot password error:', error)
+			setErrorMessage('An error occurred. Please try again later.')
+		} finally {
+			setLoading(false)
+		}
 	}
 
 	return (
@@ -311,6 +397,20 @@ const CustomerAuth = ({ onClose, onSuccess }) => {
 						)}
 					</AnimatePresence>
 
+					{/* Success message */}
+					<AnimatePresence mode="wait">
+						{successMessage && (
+							<motion.div
+								initial={{ opacity: 0, y: -10 }}
+								animate={{ opacity: 1, y: 0 }}
+								exit={{ opacity: 0, y: -10 }}
+								className="mb-4 text-sm text-green-400 bg-green-600/10 p-3 rounded-lg text-center"
+							>
+								{successMessage}
+							</motion.div>
+						)}
+					</AnimatePresence>
+
 					{/* Login Form */}
 					<AnimatePresence mode="wait">
 						{activeTab === 'login' && (
@@ -324,16 +424,16 @@ const CustomerAuth = ({ onClose, onSuccess }) => {
 								className="flex flex-col gap-4"
 							>
 								<FloatingInputField
-									label="Email Address"
-									type="email"
-									id="email"
-									name="email"
-									value={loginData.email}
+									label="Username or Email"
+									type="text"
+									id="username"
+									name="username"
+									value={loginData.username}
 									onChange={handleLoginChange}
 									placeholder=""
 									disabled={loading}
 									autoComplete="off"
-									icon={<span className="material-symbols-outlined">mail</span>}
+									icon={<span className="material-symbols-outlined">person</span>}
 									iconPosition="left"
 								/>
 
@@ -360,6 +460,22 @@ const CustomerAuth = ({ onClose, onSuccess }) => {
 										<span className="material-symbols-outlined text-lg">
 											{passwordVisible ? 'visibility_off' : 'visibility'}
 										</span>
+									</button>
+								</div>
+
+								{/* Forgot Password Link */}
+								<div className="text-right -mt-2">
+									<button
+										type="button"
+										onClick={() => {
+											setActiveTab('forgot')
+											setErrorMessage('')
+											setSuccessMessage('')
+										}}
+										className="text-sm text-[#137fec] hover:text-white transition-colors bg-transparent border-none cursor-pointer p-0"
+										disabled={loading}
+									>
+										Forgot password?
 									</button>
 								</div>
 
@@ -409,6 +525,19 @@ const CustomerAuth = ({ onClose, onSuccess }) => {
 								onSubmit={handleSignup}
 								className="flex flex-col gap-4"
 							>
+								<FloatingInputField
+									label="Username"
+									type="text"
+									id="username"
+									name="username"
+									value={signupData.username}
+									onChange={handleSignupChange}
+									placeholder="4-20 characters"
+									disabled={loading}
+									icon={<span className="material-symbols-outlined">badge</span>}
+									iconPosition="left"
+								/>
+
 								<FloatingInputField
 									label="Full Name"
 									type="text"
@@ -530,6 +659,87 @@ const CustomerAuth = ({ onClose, onSuccess }) => {
 										'Sign Up'
 									)}
 								</button>
+							</motion.form>
+						)}
+
+						{/* Forgot Password Form */}
+						{activeTab === 'forgot' && (
+							<motion.form
+								key="forgot"
+								initial={{ opacity: 0, x: 20 }}
+								animate={{ opacity: 1, x: 0 }}
+								exit={{ opacity: 0, x: -20 }}
+								transition={{ duration: 0.3 }}
+								onSubmit={handleForgotPassword}
+								className="flex flex-col gap-4"
+							>
+								<p className="text-gray-300 text-sm mb-2 text-center">
+									Enter your email address and we'll send you instructions to reset your
+									password.
+								</p>
+
+								<FloatingInputField
+									label="Email Address"
+									type="email"
+									id="forgotEmail"
+									name="forgotEmail"
+									value={forgotEmail}
+									onChange={(e) => setForgotEmail(e.target.value)}
+									placeholder=""
+									disabled={loading}
+									icon={<span className="material-symbols-outlined">mail</span>}
+									iconPosition="left"
+								/>
+
+								<button
+									className={`${
+										loading ? 'opacity-70 cursor-wait' : ''
+									} flex h-12 w-full items-center justify-center rounded-lg bg-[#137fec] text-base font-bold text-white transition-colors hover:bg-blue-600/90 border-none cursor-pointer mt-2`}
+									type="submit"
+									disabled={loading}
+								>
+									{loading ? (
+										<svg
+											className="animate-spin h-5 w-5 text-white"
+											xmlns="http://www.w3.org/2000/svg"
+											fill="none"
+											viewBox="0 0 24 24"
+										>
+											<circle
+												className="opacity-25"
+												cx="12"
+												cy="12"
+												r="10"
+												stroke="currentColor"
+												strokeWidth="4"
+											></circle>
+											<path
+												className="opacity-75"
+												fill="currentColor"
+												d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+											></path>
+										</svg>
+									) : (
+										'Send Reset Instructions'
+									)}
+								</button>
+
+								{/* Back to Login Link */}
+								<div className="text-center mt-2">
+									<button
+										type="button"
+										onClick={() => {
+											setActiveTab('login')
+											setErrorMessage('')
+											setSuccessMessage('')
+											setForgotEmail('')
+										}}
+										className="text-sm text-gray-400 hover:text-white transition-colors bg-transparent border-none cursor-pointer p-0"
+										disabled={loading}
+									>
+										Back to Login
+									</button>
+								</div>
 							</motion.form>
 						)}
 					</AnimatePresence>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, forwardRef } from 'react'
 
 /**
  * FloatingInputField - Material Design Floating Label Input Component
@@ -20,74 +20,87 @@ import React, { useState } from 'react'
  * @param {object} icon - Optional icon element to display
  * @param {string} iconPosition - Icon position: 'left' or 'right'
  */
-const FloatingInputField = ({
-	label,
-	type = 'text',
-	value = '',
-	onChange,
-	id,
-	name,
-	placeholder = '',
-	disabled = false,
-	required = false,
-	className = '',
-	error = '',
-	icon = null,
-	iconPosition = 'left',
-	...rest
-}) => {
-	const [isFocused, setIsFocused] = useState(false)
+const FloatingInputField = forwardRef(
+	(
+		{
+			label,
+			type = 'text',
+			value = '',
+			onChange,
+			id,
+			name,
+			placeholder = '',
+			disabled = false,
+			required = false,
+			className = '',
+			error = '',
+			icon = null,
+			iconPosition = 'left',
+			onFocus,
+			onBlur,
+			...rest
+		},
+		ref,
+	) => {
+		const [isFocused, setIsFocused] = useState(false)
 
-	// Determine if label should float
-	const shouldFloat = isFocused || value !== ''
+		// Determine if label should float
+		const shouldFloat = isFocused || value !== ''
 
-	// Determine border color based on state
-	const getBorderColor = () => {
-		if (error) return 'border-red-500'
-		if (isFocused) return 'border-[#137fec]'
-		return 'border-white/20'
-	}
+		// Determine border color based on state
+		const getBorderColor = () => {
+			if (error) return 'border-red-500'
+			if (isFocused) return 'border-[#137fec]'
+			return 'border-white/20'
+		}
 
-	// Determine label color based on state
-	const getLabelColor = () => {
-		if (error) return 'text-red-400'
-		if (isFocused) return 'text-[#137fec]'
-		if (shouldFloat) return 'text-gray-300'
-		return 'text-gray-400'
-	}
+		// Determine label color based on state
+		const getLabelColor = () => {
+			if (error) return 'text-red-400'
+			if (isFocused) return 'text-[#137fec]'
+			if (shouldFloat) return 'text-gray-300'
+			return 'text-gray-400'
+		}
 
-	return (
-		<div className={`relative w-full ${className}`}>
-			{/* Input Container */}
-			<div className="relative">
-				{/* Left Icon */}
-				{icon && iconPosition === 'left' && (
-					<div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10">
-						{icon}
-					</div>
-				)}
+		return (
+			<div className={`relative w-full ${className}`}>
+				{/* Input Container */}
+				<div className="relative">
+					{/* Left Icon */}
+					{icon && iconPosition === 'left' && (
+						<div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10">
+							{icon}
+						</div>
+					)}
 
-				{/* Input Field */}
-				<input
-					type={type}
-					id={id}
-					name={name}
-					value={value}
-					onChange={onChange}
-					onFocus={() => setIsFocused(true)}
-					onBlur={() => setIsFocused(false)}
-					disabled={disabled}
-					required={required}
-					placeholder={isFocused ? placeholder : ''}
-					className={`
+					{/* Input Field */}
+					<input
+						ref={ref}
+						type={type}
+						id={id}
+						name={name}
+						value={value}
+						onChange={onChange}
+						onFocus={(e) => {
+							setIsFocused(true)
+							if (onFocus) onFocus(e)
+						}}
+						onBlur={(e) => {
+							setIsFocused(false)
+							if (onBlur) onBlur(e)
+						}}
+						disabled={disabled}
+						required={required}
+						placeholder={isFocused ? placeholder : ''}
+						className={`
 						peer
 						w-full h-12
 						rounded-lg
 						bg-black/40 backdrop-blur-md
 						border-2 ${getBorderColor()}
 						px-4 ${icon && iconPosition === 'left' ? 'pl-10' : ''} ${
-						icon && iconPosition === 'right' ? 'pr-10' : ''
-					}
+							icon && iconPosition === 'right' ? 'pr-10' : ''
+						}
 						${shouldFloat ? 'pt-0' : 'pt-4'}
 						text-base text-white
 						placeholder:text-gray-500
@@ -99,18 +112,18 @@ const FloatingInputField = ({
 						autofill:shadow-[inset_0_0_0_1000px_rgba(0,0,0,0.4)]
 						autofill:[-webkit-text-fill-color:white]
 					`}
-					style={{
-						WebkitBoxShadow: '0 0 0 1000px rgba(0, 0, 0, 0.4) inset',
-						WebkitTextFillColor: 'white',
-						transition: 'background-color 5000s ease-in-out 0s',
-					}}
-					{...rest}
-				/>
+						style={{
+							WebkitBoxShadow: '0 0 0 1000px rgba(0, 0, 0, 0.4) inset',
+							WebkitTextFillColor: 'white',
+							transition: 'background-color 5000s ease-in-out 0s',
+						}}
+						{...rest}
+					/>
 
-				{/* Floating Label */}
-				<label
-					htmlFor={id}
-					className={`
+					{/* Floating Label */}
+					<label
+						htmlFor={id}
+						className={`
 						absolute
 						left-4 ${icon && iconPosition === 'left' ? 'left-10' : ''}
 						pointer-events-none
@@ -122,28 +135,31 @@ const FloatingInputField = ({
 								: 'top-1/2 -translate-y-1/2 text-base'
 						}
 					`}
-				>
-					{label}
-					{required && <span className="text-red-400 ml-1">*</span>}
-				</label>
+					>
+						{label}
+						{required && <span className="text-red-400 ml-1">*</span>}
+					</label>
 
-				{/* Right Icon */}
-				{icon && iconPosition === 'right' && (
-					<div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10">
-						{icon}
-					</div>
+					{/* Right Icon */}
+					{icon && iconPosition === 'right' && (
+						<div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10">
+							{icon}
+						</div>
+					)}
+				</div>
+
+				{/* Error Message */}
+				{error && (
+					<p className="mt-1 text-xs text-red-400 flex items-center gap-1">
+						<span className="material-symbols-outlined text-sm">error</span>
+						{error}
+					</p>
 				)}
 			</div>
+		)
+	},
+)
 
-			{/* Error Message */}
-			{error && (
-				<p className="mt-1 text-xs text-red-400 flex items-center gap-1">
-					<span className="material-symbols-outlined text-sm">error</span>
-					{error}
-				</p>
-			)}
-		</div>
-	)
-}
+FloatingInputField.displayName = 'FloatingInputField'
 
 export default FloatingInputField

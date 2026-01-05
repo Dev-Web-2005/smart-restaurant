@@ -215,6 +215,7 @@ const OrderManagementInterface = () => {
 					ordersCount={orders.length}
 					cartCount={totalItemsInCart}
 					setIsSettingsOpen={setIsSettingsOpen}
+					tenantId={tenantId}
 				/>
 
 				{/* CONTENT VIEWS */}
