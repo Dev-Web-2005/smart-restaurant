@@ -3,12 +3,8 @@
 
 import axios from 'axios'
 
-// Get API Gateway URL from environment variable
-// Development: Uses proxy via relative path '/api/v1'
-// Production: Uses full URL from VITE_API_GATEWAY_URL
-const API_BASE_URL = import.meta.env.VITE_API_GATEWAY_URL
-	? `${import.meta.env.VITE_API_GATEWAY_URL}/api/v1`
-	: '/api/v1'
+// Backend API Gateway URL - Gọi trực tiếp (CORS enabled)
+const API_BASE_URL = `${import.meta.env.VITE_API_GATEWAY_URL}/api/v1`
 
 // Create axios instance
 const apiClient = axios.create({
