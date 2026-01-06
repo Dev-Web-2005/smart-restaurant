@@ -500,13 +500,16 @@ const RestaurantOnboarding = () => {
 	// Lấy Context user và pendingSignupData
 	const { completeOnboarding, pendingSignupData } = useUser()
 
-	// ✅ Redirect to signup if no pending data
+	// ✅ Flag to prevent redirect during onboarding completion
+	const [isCompletingOnboarding, setIsCompletingOnboarding] = useState(false)
+
+	// ✅ Redirect to signup if no pending data (but not during onboarding completion)
 	useEffect(() => {
-		if (!pendingSignupData) {
+		if (!pendingSignupData && !isCompletingOnboarding) {
 			console.warn('⚠️ No signup data found, redirecting to signup page')
 			navigate('/signup')
 		}
-	}, [pendingSignupData, navigate])
+	}, [pendingSignupData, isCompletingOnboarding, navigate])
 
 	const [step, setStep] = useState(1)
 	const [formData, setFormData] = useState({
@@ -822,27 +825,28 @@ const RestaurantOnboarding = () => {
 			cccdBackUrl: onboardingData.cccdBackUrl ? '✅ Present' : '❌ Missing',
 		})
 
+		// ✅ IMPORTANT: Save username to localStorage BEFORE calling completeOnboarding
+		// This prevents race condition where pendingSignupData is cleared before we can access it
+		localStorage.setItem('registrationUsername', pendingSignupData.username)
+
+		// ✅ Set flag to prevent useEffect redirect during onboarding completion
+		setIsCompletingOnboarding(true)
+
 		try {
 			// 🚀 Call completeOnboarding (uploads files, then registers user with backend)
 			console.log('🚀 Starting onboarding completion...')
 			const result = await completeOnboarding(onboardingData)
 
 			if (result.success) {
-				// ✅ Registration and login successful
+				// ✅ Registration successful
 				console.log('✅ Onboarding complete!')
 				setLoading(false)
 
 				// Show success message
 				alert('🎉 Registration successful! Welcome to SpillProofPOS!')
 
-				// Navigate based on result
-				if (result.requireLogin) {
-					// Need to login manually
-					navigate('/login')
-				} else {
-					// Auto-login successful
-					navigate('/user/menu')
-				}
+				// Navigate to email confirmation page
+				navigate('/email-confirmation')
 			} else {
 				// ❌ Registration failed
 				console.error('❌ Registration failed:', result.message)
@@ -855,6 +859,8 @@ const RestaurantOnboarding = () => {
 				'An error occurred during registration: ' + (error.message || 'Unknown error'),
 			)
 			setLoading(false)
+			// Reset flag on error so user can try again
+			setIsCompletingOnboarding(false)
 		}
 
 		// Comment: KẾT THÚC: Logic gọi API hoàn tất Onboarding

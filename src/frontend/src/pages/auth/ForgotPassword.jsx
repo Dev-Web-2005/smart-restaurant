@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import FloatingInputField from '../../components/form/FloatingInputField'
 import BackgroundImage from '../../components/common/BackgroundImage'
 import { useLoading } from '../../contexts/LoadingContext'
+import { checkEmailVerificationStatusAPI } from '../../services/api/authAPI'
 
 const ForgotPassword = () => {
 	const { showLoading, hideLoading } = useLoading()
@@ -28,9 +29,35 @@ const ForgotPassword = () => {
 		}
 
 		setLoading(true)
-		showLoading('Sending reset email...')
+		showLoading('Checking email verification status...')
 
 		try {
+			// ✅ Step 1: Check if email is verified
+			console.log('🔍 Checking email verification status for:', email)
+			const verificationResult = await checkEmailVerificationStatusAPI(email)
+
+			if (!verificationResult.success) {
+				setErrorMessage('Failed to verify email status. Please try again.')
+				setLoading(false)
+				hideLoading()
+				return
+			}
+
+			// ❌ If email is not verified, show error and stop
+			if (!verificationResult.isVerified) {
+				setErrorMessage(
+					'⚠️ Your email is not verified. Please verify your email address before requesting a password reset. You can verify your email from your account settings.',
+				)
+				setLoading(false)
+				hideLoading()
+				return
+			}
+
+			// ✅ Step 2: Email is verified, proceed with forgot password request
+			console.log('✅ Email is verified, sending reset link...')
+			// Update loading message (don't call hideLoading/showLoading again)
+			// Just rely on the existing loading state
+
 			const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
 			const response = await fetch(`${API_URL}/identity/auth/forgot-password`, {
 				method: 'POST',
@@ -44,18 +71,18 @@ const ForgotPassword = () => {
 
 			if (response.ok && data.code === 1000) {
 				setSuccessMessage(
-					'If an account with that email exists, we have sent a password reset link. Please check your inbox.'
+					'✅ Password reset link has been sent to your verified email address. Please check your inbox.',
 				)
 				setEmail('')
 			} else {
 				// Still show success message to prevent email enumeration
 				setSuccessMessage(
-					'If an account with that email exists, we have sent a password reset link. Please check your inbox.'
+					'✅ If an account with that email exists, we have sent a password reset link. Please check your inbox.',
 				)
 			}
 		} catch (error) {
 			console.error('Forgot password error:', error)
-			setErrorMessage('An error occurred. Please try again later.')
+			setErrorMessage('❌ An error occurred. Please try again later.')
 		} finally {
 			setLoading(false)
 			hideLoading()

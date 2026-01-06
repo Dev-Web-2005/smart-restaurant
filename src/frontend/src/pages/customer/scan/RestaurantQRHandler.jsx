@@ -6,14 +6,13 @@ import apiClient from '../../../services/apiClient'
 /**
  * Restaurant QR Handler - TOKEN-BASED VERSION
  * Route: /restaurant/:ownerId/:token/:tableNumber
- * 
+ *
  * When customer scans restaurant QR code, they are directed here.
  * Validates the token before showing login/signup modal.
  */
 const RestaurantQRHandler = () => {
 	const { ownerId, token, tableNumber } = useParams()
 	const navigate = useNavigate()
-	const [showAuthModal, setShowAuthModal] = useState(false)
 	const [validating, setValidating] = useState(true)
 	const [validationError, setValidationError] = useState(null)
 	const [restaurantInfo, setRestaurantInfo] = useState(null)
@@ -36,9 +35,12 @@ const RestaurantQRHandler = () => {
 					if (tableNumber) {
 						localStorage.setItem('currentTableNumber', tableNumber)
 					}
-					// Show auth modal
-					setShowAuthModal(true)
-					console.log('✅ Restaurant QR validated - ownerId:', ownerId, 'tableNumber:', tableNumber)
+					console.log(
+						'✅ Restaurant QR validated - ownerId:',
+						ownerId,
+						'tableNumber:',
+						tableNumber,
+					)
 				} else {
 					// Token is invalid
 					setValidationError(data.message || 'Invalid or expired QR code')
@@ -68,9 +70,7 @@ const RestaurantQRHandler = () => {
 
 	const handleAuthSuccess = (customer) => {
 		console.log('✅ Customer authenticated:', customer)
-		// Close modal and navigate to ordering interface
-		setShowAuthModal(false)
-		
+
 		// Check if tableNumber exists from QR code
 		if (tableNumber) {
 			// Table QR - navigate directly to that table
@@ -84,9 +84,7 @@ const RestaurantQRHandler = () => {
 	}
 
 	const handleAuthClose = () => {
-		// If customer closes auth modal without logging in, 
-		// redirect to home or show a message
-		setShowAuthModal(false)
+		// Do nothing - customer cannot close the modal
 	}
 
 	// Validating state
@@ -95,7 +93,9 @@ const RestaurantQRHandler = () => {
 			<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900">
 				<div className="max-w-md p-8 bg-white rounded-2xl shadow-2xl text-center">
 					<div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-					<h2 className="text-xl font-semibold text-gray-800 mb-2">Validating QR Code...</h2>
+					<h2 className="text-xl font-semibold text-gray-800 mb-2">
+						Validating QR Code...
+					</h2>
 					<p className="text-gray-600">Please wait a moment</p>
 				</div>
 			</div>
@@ -125,39 +125,20 @@ const RestaurantQRHandler = () => {
 		<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900">
 			{/* Background Pattern */}
 			<div className="absolute inset-0 opacity-10">
-				<div className="absolute inset-0" style={{
-					backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-				}}></div>
+				<div
+					className="absolute inset-0"
+					style={{
+						backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+					}}
+				></div>
 			</div>
 
-			{/* Welcome Message (only shown when modal is closed) */}
-			{!showAuthModal && (
-				<div className="relative z-10 text-center p-8 bg-white/10 backdrop-blur-md rounded-2xl max-w-md">
-					<div className="text-6xl mb-4">🍽️</div>
-					<h1 className="text-3xl font-bold text-white mb-4">Welcome!</h1>
-					<p className="text-white/90 mb-6">
-						You've successfully scanned the restaurant QR code.
-						{restaurantInfo?.restaurantName && (
-							<span className="block mt-2 font-semibold">{restaurantInfo.restaurantName}</span>
-						)}
-					</p>
-					<button
-						onClick={() => setShowAuthModal(true)}
-						className="px-8 py-3 bg-white text-purple-900 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
-					>
-						Login / Sign Up
-					</button>
-				</div>
-			)}
-
-			{/* Auth Modal */}
-			{showAuthModal && (
-				<CustomerAuth
-					onClose={handleAuthClose}
-					onSuccess={handleAuthSuccess}
-					tenantId={ownerId}
-				/>
-			)}
+			{/* Auth Modal - Always show */}
+			<CustomerAuth
+				onClose={handleAuthClose}
+				onSuccess={handleAuthSuccess}
+				tenantId={ownerId}
+			/>
 		</div>
 	)
 }

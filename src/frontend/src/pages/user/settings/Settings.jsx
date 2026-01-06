@@ -6,6 +6,12 @@ import { useLoading } from '../../../contexts/LoadingContext'
 import BasePageLayout from '../../../components/layout/BasePageLayout' // 👈 IMPORT LAYOUT CHUNG
 import { ButtonLoader, InlineLoader } from '../../../components/common/LoadingSpinner'
 import AccountManagement from './AccountManagement' // 👈 IMPORT ACCOUNT MANAGEMENT
+import {
+	sendVerificationEmailAPI,
+	verifyEmailCodeAPI,
+	resendVerificationEmailAPI,
+	checkEmailVerificationStatusAPI,
+} from '../../../services/api/authAPI'
 
 // --- Dữ liệu Mock Cài đặt Hiện tại ---
 const mockSettings = {
@@ -24,6 +30,40 @@ const ApplicationSettings = () => {
 	const [backgroundPreview, setBackgroundPreview] = useState(null)
 	const [regeneratingQR, setRegeneratingQR] = useState(false)
 	const [qrCodeUrl, setQrCodeUrl] = useState('/api/placeholder-qr.png') // Mock QR code URL
+
+	// Email Verification State
+	const [emailVerified, setEmailVerified] = useState(false)
+	const [checkingEmailStatus, setCheckingEmailStatus] = useState(true)
+	const [showOTPInput, setShowOTPInput] = useState(false)
+	const [otpCode, setOtpCode] = useState('')
+	const [sendingEmail, setSendingEmail] = useState(false)
+	const [verifyingOTP, setVerifyingOTP] = useState(false)
+	const [otpError, setOtpError] = useState('')
+	const [otpSuccess, setOtpSuccess] = useState('')
+
+	// ✨ Function to check email verification status via API
+	const checkEmailVerificationStatus = async () => {
+		if (!user?.email) {
+			setCheckingEmailStatus(false)
+			return
+		}
+
+		setCheckingEmailStatus(true)
+		try {
+			const result = await checkEmailVerificationStatusAPI(user.email)
+
+			if (result.success) {
+				setEmailVerified(result.isVerified)
+				console.log('📧 Email verification status:', result.isVerified)
+			} else {
+				console.error('Failed to check email status:', result.message)
+			}
+		} catch (error) {
+			console.error('Error checking email verification status:', error)
+		} finally {
+			setCheckingEmailStatus(false)
+		}
+	}
 
 	// 2. Hàm Fetch Settings (GET)
 	const fetchSettings = async () => {
@@ -106,6 +146,94 @@ const ApplicationSettings = () => {
 		}, 1000)
 	}
 
+	// ✨ Email Verification Functions
+	const handleSendVerificationEmail = async () => {
+		setSendingEmail(true)
+		setOtpError('')
+		setOtpSuccess('')
+
+		try {
+			const result = await sendVerificationEmailAPI()
+
+			if (result.success) {
+				setShowOTPInput(true)
+				setOtpSuccess('✅ Verification code sent to your email! Check your inbox.')
+			} else {
+				setOtpError(result.message || '❌ Failed to send verification email')
+			}
+		} catch (error) {
+			setOtpError('❌ An error occurred. Please try again.')
+			console.error('Send verification email error:', error)
+		} finally {
+			setSendingEmail(false)
+		}
+	}
+
+	const handleVerifyOTP = async () => {
+		if (!otpCode || otpCode.length !== 6) {
+			setOtpError('Please enter a valid 6-digit code')
+			return
+		}
+
+		setVerifyingOTP(true)
+		setOtpError('')
+
+		try {
+			const result = await verifyEmailCodeAPI(otpCode)
+
+			if (result.success) {
+				setShowOTPInput(false)
+				setOtpCode('')
+				alert('🎉 Email verified successfully!')
+
+				// ✅ Re-check email status via API instead of manually updating
+				await checkEmailVerificationStatus()
+
+				// Update user context
+				const updatedUser = { ...user, isEmailVerified: true }
+				localStorage.setItem('user', JSON.stringify(updatedUser))
+			} else {
+				setOtpError(result.message || '❌ Invalid verification code')
+			}
+		} catch (error) {
+			setOtpError('❌ Verification failed. Please try again.')
+			console.error('Verify OTP error:', error)
+		} finally {
+			setVerifyingOTP(false)
+		}
+	}
+
+	const handleResendOTP = async () => {
+		if (!user?.email) {
+			setOtpError('Email not found. Please contact support.')
+			return
+		}
+
+		setSendingEmail(true)
+		setOtpError('')
+
+		try {
+			const result = await resendVerificationEmailAPI(user.email)
+
+			if (result.success) {
+				setOtpSuccess('✅ New verification code sent!')
+			} else {
+				setOtpError(result.message || '❌ Failed to resend code')
+			}
+		} catch (error) {
+			setOtpError('❌ An error occurred. Please try again.')
+			console.error('Resend OTP error:', error)
+		} finally {
+			setSendingEmail(false)
+		}
+	}
+
+	const handleOTPInputChange = (e) => {
+		const value = e.target.value.replace(/\D/g, '').slice(0, 6) // Only digits, max 6
+		setOtpCode(value)
+		setOtpError('') // Clear error when typing
+	}
+
 	// 4. Hàm Xử lý Lưu (POST/PUT)
 	const handleSave = async (e) => {
 		e.preventDefault()
@@ -139,8 +267,17 @@ const ApplicationSettings = () => {
 	useEffect(() => {
 		if (!contextLoading) {
 			fetchSettings()
+			// ✅ Check email verification status via API
+			checkEmailVerificationStatus()
 		}
 	}, [contextLoading])
+
+	// ✅ Re-check email verification status when user changes (e.g., after login/refresh)
+	useEffect(() => {
+		if (user?.email) {
+			checkEmailVerificationStatus()
+		}
+	}, [user?.email])
 
 	// Xử lý loading chung
 	if (contextLoading || loading) {
@@ -360,6 +497,198 @@ const ApplicationSettings = () => {
 									sure to update any printed materials.
 								</span>
 							</div>
+						</div>
+					</div>
+
+					{/* 3. Email Verification */}
+					<div className="settings-card bg-black/40 backdrop-blur-md rounded-xl border border-white/10">
+						<div className="card-header p-6 border-b border-white/10">
+							<h2 className="text-xl font-bold text-white m-0 flex items-center gap-2">
+								<span className="material-symbols-outlined">
+									{emailVerified ? 'verified' : 'mail'}
+								</span>
+								Email Verification
+							</h2>
+							<p className="text-sm text-gray-300 mt-1">
+								Verify your email address to enable all features.
+							</p>
+						</div>
+						<div className="card-body p-6 space-y-4">
+							{/* Email Display */}
+							<div className="flex items-center justify-between p-4 bg-black/20 rounded-lg border border-white/10">
+								<div className="flex items-center gap-3">
+									<span className="material-symbols-outlined text-gray-400">mail</span>
+									<div>
+										<p className="text-white font-medium">{user?.email || 'No email'}</p>
+										<p className="text-xs text-gray-400">Your registered email address</p>
+									</div>
+								</div>
+
+								{/* Verification Status Badge */}
+								<div
+									className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${
+										checkingEmailStatus
+											? 'bg-gray-500/20 border border-gray-500/30'
+											: emailVerified
+											? 'bg-green-500/20 border border-green-500/30'
+											: 'bg-amber-500/20 border border-amber-500/30'
+									}`}
+								>
+									<span
+										className={`material-symbols-outlined text-sm ${
+											checkingEmailStatus
+												? 'text-gray-400 animate-spin'
+												: emailVerified
+												? 'text-green-400'
+												: 'text-amber-400'
+										}`}
+									>
+										{checkingEmailStatus
+											? 'progress_activity'
+											: emailVerified
+											? 'check_circle'
+											: 'pending'}
+									</span>
+									<span
+										className={`text-xs font-medium ${
+											checkingEmailStatus
+												? 'text-gray-400'
+												: emailVerified
+												? 'text-green-400'
+												: 'text-amber-400'
+										}`}
+									>
+										{checkingEmailStatus
+											? 'Checking...'
+											: emailVerified
+											? 'Verified'
+											: 'Not Verified'}
+									</span>
+								</div>
+							</div>
+
+							{/* Verification Actions */}
+							{!checkingEmailStatus && !emailVerified && (
+								<div className="space-y-4">
+									{/* Info Message */}
+									<div className="text-sm text-gray-300 flex items-start gap-2 bg-blue-500/10 p-3 rounded-lg border border-blue-500/20">
+										<span className="material-symbols-outlined text-sm text-blue-400">
+											info
+										</span>
+										<span className="text-blue-400">
+											Verify your email to access all features and receive important
+											notifications.
+										</span>
+									</div>
+
+									{/* Send Verification Button */}
+									{!showOTPInput && (
+										<button
+											type="button"
+											onClick={handleSendVerificationEmail}
+											disabled={sendingEmail}
+											className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#137fec] hover:bg-[#1068c4] text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+										>
+											<span className="material-symbols-outlined">
+												{sendingEmail ? 'progress_activity' : 'send'}
+											</span>
+											<span>
+												{sendingEmail ? 'Sending Code...' : 'Send Verification Code'}
+											</span>
+										</button>
+									)}
+
+									{/* OTP Input Form */}
+									{showOTPInput && (
+										<div className="space-y-4">
+											{/* Success Message */}
+											{otpSuccess && (
+												<div className="text-sm text-green-400 flex items-start gap-2 bg-green-500/10 p-3 rounded-lg border border-green-500/20">
+													<span className="material-symbols-outlined text-sm">
+														check_circle
+													</span>
+													<span>{otpSuccess}</span>
+												</div>
+											)}
+
+											{/* OTP Input */}
+											<div className="space-y-2">
+												<label className="text-sm font-medium text-gray-300">
+													Enter 6-Digit Code
+												</label>
+												<input
+													type="text"
+													inputMode="numeric"
+													pattern="[0-9]*"
+													maxLength={6}
+													value={otpCode}
+													onChange={handleOTPInputChange}
+													placeholder="000000"
+													className="w-full px-4 py-3 bg-black/40 border border-white/20 rounded-lg text-white text-center text-2xl tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-[#137fec] focus:border-transparent"
+													disabled={verifyingOTP}
+												/>
+												<p className="text-xs text-gray-400">
+													Check your email for the 6-digit verification code
+												</p>
+											</div>
+
+											{/* Error Message */}
+											{otpError && (
+												<div className="text-sm text-red-400 flex items-start gap-2 bg-red-500/10 p-3 rounded-lg border border-red-500/20">
+													<span className="material-symbols-outlined text-sm">error</span>
+													<span>{otpError}</span>
+												</div>
+											)}
+
+											{/* Action Buttons */}
+											<div className="flex gap-3">
+												<button
+													type="button"
+													onClick={handleVerifyOTP}
+													disabled={verifyingOTP || otpCode.length !== 6}
+													className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+												>
+													<span className="material-symbols-outlined">
+														{verifyingOTP ? 'progress_activity' : 'verified'}
+													</span>
+													<span>{verifyingOTP ? 'Verifying...' : 'Verify Code'}</span>
+												</button>
+
+												<button
+													type="button"
+													onClick={handleResendOTP}
+													disabled={sendingEmail}
+													className="px-6 py-3 bg-black/40 hover:bg-black/60 text-white border border-white/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+												>
+													<span className="material-symbols-outlined text-sm">
+														refresh
+													</span>
+													<span>Resend</span>
+												</button>
+											</div>
+
+											{/* Code Expiry Info */}
+											<div className="text-xs text-gray-400 flex items-start gap-2">
+												<span className="material-symbols-outlined text-sm">
+													schedule
+												</span>
+												<span>
+													The verification code expires in 5 minutes. If you don't receive
+													it, check your spam folder or click Resend.
+												</span>
+											</div>
+										</div>
+									)}
+								</div>
+							)}
+
+							{/* Already Verified Message */}
+							{emailVerified && (
+								<div className="text-sm text-green-400 flex items-center gap-2 bg-green-500/10 p-4 rounded-lg border border-green-500/20">
+									<span className="material-symbols-outlined">check_circle</span>
+									<span>Your email is verified! You have access to all features.</span>
+								</div>
+							)}
 						</div>
 					</div>
 				</div>

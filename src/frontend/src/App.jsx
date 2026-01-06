@@ -12,6 +12,7 @@ import SignUp from './pages/auth/SignUp'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
 import RestaurantSetupWizard from './pages/onboarding/RestaurantSetupWizard'
+import EmailConfirmation from './pages/onboarding/EmailConfirmation'
 import KYCCallback from './pages/kyc/KYCCallback'
 import GoogleAuthenticate from './pages/auth/GoogleAuthenticate/GoogleAuthenticate'
 import SetPassword from './pages/auth/SetPassword/SetPassword'
@@ -70,46 +71,39 @@ function App() {
 						<NotificationProvider>
 							<BrowserRouter>
 								<Routes>
-								<Route path="/login" element={<Login />} />
-								<Route path="/signup" element={<SignUp />} />
-								<Route path="/forgot-password" element={<ForgotPassword />} />
-								<Route path="/reset-password" element={<ResetPassword />} />
-								<Route path="/onboarding" element={<RestaurantSetupWizard />} />
-								<Route path="/kyc/callback" element={<KYCCallback />} />
-								<Route path="/google-authenticate" element={<GoogleAuthenticate />} />
-								<Route path="/set-password" element={<SetPassword />} />
-								
-								{/* Customer Login Routes */}
-								<Route path="/customer-login" element={<CustomerLogin />} />
-								<Route path="/customer-login/:ownerId" element={<CustomerLogin />} />
+									<Route path="/login" element={<Login />} />
+									<Route path="/signup" element={<SignUp />} />
+									<Route path="/forgot-password" element={<ForgotPassword />} />
+									<Route path="/reset-password" element={<ResetPassword />} />
+									<Route path="/onboarding" element={<RestaurantSetupWizard />} />
+									<Route path="/email-confirmation" element={<EmailConfirmation />} />
+									<Route path="/customer-login" element={<CustomerLogin />} />
+									<Route path="/customer-login/:ownerId" element={<CustomerLogin />} />
 
 									<Route
 										path="/tenants/:tenantId/tables/scan/:token"
 										element={<QRScanHandler />}
 									/>
 
-				<Route
-					path="/restaurant/:ownerId/:token/:tableNumber"
-					element={<RestaurantQRHandler />}
-				/>
+									<Route
+										path="/restaurant/:ownerId/:token/:tableNumber"
+										element={<RestaurantQRHandler />}
+									/>
 
-				{/* Fallback route for QR without table number */}
-				<Route
-					path="/restaurant/:ownerId/:token"
-					element={<RestaurantQRHandler />}
-				/>
+									{/* Fallback route for QR without table number */}
+									<Route
+										path="/restaurant/:ownerId/:token"
+										element={<RestaurantQRHandler />}
+									/>
 
-				{/* Table selection after restaurant QR login */}
-				<Route
-					path="/select-table/:ownerId"
-					element={<SelectTable />}
-				/>
+									{/* Table selection after restaurant QR login */}
+									<Route path="/select-table/:ownerId" element={<SelectTable />} />
 
-				{/* Customer ordering interface */}
-				<Route
-					path="/order/:tenantId/table/:tableId"
-					element={<OrderingInterface />}
-				/>
+									{/* Customer ordering interface */}
+									<Route
+										path="/order/:tenantId/table/:tableId"
+										element={<OrderingInterface />}
+									/>
 
 									<Route
 										path="/admin/dashboard"
