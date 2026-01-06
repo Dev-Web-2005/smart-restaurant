@@ -144,6 +144,40 @@ export class IdentityController {
 	}
 
 	/**
+	 * Check email verification status (Public API)
+	 */
+	@Post('users/check-verify-email-status')
+	checkVerifyEmailStatus(@Body() data: { email: string }) {
+		return this.identityClient.send('users:check-verify-email-status', {
+			email: data.email,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+	}
+
+	/**
+	 * Resend verification email (Public API)
+	 */
+	@Post('users/resend-verification-email')
+	resendVerificationEmail(@Body() data: { email: string }) {
+		return this.identityClient.send('users:resend-verification-email', {
+			email: data.email,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+	}
+
+	/**
+	 * Update email when register failed (Public API)
+	 */
+	@Post('users/update-email-when-register-failed')
+	updateEmailWhenRegisterFailed(@Body() data: { oldEmail: string; newEmail: string }) {
+		return this.identityClient.send('users:update-email-when-register-failed', {
+			oldEmail: data.oldEmail,
+			newEmail: data.newEmail,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+	}
+
+	/**
 	 * Generate or regenerate restaurant QR code
 	 */
 	@UseGuards(AuthGuard, Role('USER'))

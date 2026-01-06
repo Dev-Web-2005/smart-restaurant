@@ -582,6 +582,96 @@
                             ]
                         }
                     }
+                },
+                {
+                    "name": "Check Email Verification Status (Public)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"customer@example.com\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/users/check-verify-email-status",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "users",
+                                "check-verify-email-status"
+                            ]
+                        },
+                        "description": "Check if an email has been verified. Public API - no authentication required."
+                    }
+                },
+                {
+                    "name": "Resend Verification Email (Public)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"customer@example.com\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/users/resend-verification-email",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "users",
+                                "resend-verification-email"
+                            ]
+                        },
+                        "description": "Resend verification email to a user's email address. Public API - no authentication required."
+                    }
+                },
+                {
+                    "name": "Update Email When Register Failed (Public)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"oldEmail\": \"wrong@example.com\",\n  \"newEmail\": \"correct@example.com\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/users/update-email-when-register-failed",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "users",
+                                "update-email-when-register-failed"
+                            ]
+                        },
+                        "description": "Update email address when registration failed due to wrong email. Public API - no authentication required."
+                    }
                 }
             ]
         },
