@@ -117,6 +117,8 @@ export class OrderService {
 			total: 0,
 		});
 
+		await this.orderRepository.save(order); // Save to get ID (otherwise FK fails)
+
 		// Create order items
 		// In real implementation, fetch menu item details from product service
 		const items = await this.createOrderItems(order, dto.items);
@@ -442,9 +444,12 @@ export class OrderService {
 				menuItemId: itemDto.menuItemId,
 			};
 
-			const menuItem = await firstValueFrom(
+			const menuItemResponse = await firstValueFrom(
 				this.productClient.send('menu-items:get', getMenuItemRequest),
 			);
+
+			// Extract data from HttpResponse structure
+			const menuItem = menuItemResponse.data;
 
 			// Calculate modifiers total
 			let modifiersTotal = 0;
@@ -461,14 +466,14 @@ export class OrderService {
 					// 	price: 5000, // Fetch from product service
 					// 	currency: 'VND',
 					// };
-					const modifierGroup = await firstValueFrom(
+					const modifierGroupResponse = await firstValueFrom(
 						this.productClient.send('modifier-groups:get', {
 							productApiKey: this.configService.get<string>('PRODUCT_API_KEY'),
 							tenantId: order.tenantId,
 							modifierGroupId: modDto.modifierGroupId,
 						}),
 					);
-					const modifierOption = await firstValueFrom(
+					const modifierOptionResponse = await firstValueFrom(
 						this.productClient.send('modifier-options:get', {
 							productApiKey: this.configService.get<string>('PRODUCT_API_KEY'),
 							tenantId: order.tenantId,
@@ -477,12 +482,16 @@ export class OrderService {
 						}),
 					);
 
+					// Extract data from HttpResponse structures
+					const modifierGroup = modifierGroupResponse.data;
+					const modifierOption = modifierOptionResponse.data;
+
 					const orderItemModifier = {
 						modifierGroupId: modDto.modifierGroupId,
 						modifierGroupName: modifierGroup.name,
 						modifierOptionId: modDto.modifierOptionId,
-						optionName: modifierOption.name,
-						price: modifierOption.price,
+						optionName: modifierOption.label,
+						price: modifierOption.priceDelta,
 						currency: 'VND',
 					};
 
