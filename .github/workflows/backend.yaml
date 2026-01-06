@@ -375,6 +375,7 @@ jobs:
             KITCHEN_API_KEY=${{ secrets.KITCHEN_API_KEY }}
             CONNECTION_AMQP=${{ secrets.CONNECTION_AMQP }}
             LIMIT_REQUEUE=10
+            NAME_QUEUE=kitchen
             EOF
               pm2 delete kitchen || true
               pm2 start dist/kitchen/src/main.js --name kitchen
@@ -404,6 +405,7 @@ jobs:
             MAIL_SENDER=${{ secrets.MAIL_SENDER }}
             MAIL_SENDER_NAME=${{ secrets.MAIL_SENDER_NAME }}
             TTS_API_KEY=${{ secrets.TTS_API_KEY }}
+            NAME_QUEUE=notification
             EOF
               pm2 delete notification || true
               pm2 start dist/notification/src/main.js --name notification

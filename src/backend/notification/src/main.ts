@@ -11,20 +11,20 @@ async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
 	const connection = await amqp.connect(process.env.CONNECTION_AMQP);
 	const channel = await connection.createChannel();
-
+	const name: string = process.env.NAME_QUEUE || 'local_notification';
 	try {
-		await channel.assertExchange('dlx_exchange', 'direct', { durable: true });
-		await channel.assertQueue('notification_dlq', {
+		await channel.assertExchange(name + '_dlx_exchange', 'direct', { durable: true });
+		await channel.assertQueue(name + '_dlq', {
 			durable: true,
 		});
 
-		await channel.bindQueue('notification_dlq', 'dlx_exchange', 'notification_dlq');
+		await channel.bindQueue(name + '_dlq', name + '_dlx_exchange', name + '_dlq');
 
-		await channel.assertQueue('notification_queue', {
+		await channel.assertQueue(name + '_queue', {
 			durable: true,
 			arguments: {
-				'x-dead-letter-exchange': 'dlx_exchange',
-				'x-dead-letter-routing-key': 'notification_dlq',
+				'x-dead-letter-exchange': name + '_dlx_exchange',
+				'x-dead-letter-routing-key': name + '_dlq',
 			},
 		});
 	} finally {
@@ -36,14 +36,14 @@ async function bootstrap() {
 		transport: Transport.RMQ,
 		options: {
 			urls: [process.env.CONNECTION_AMQP],
-			queue: 'notification_queue',
+			queue: name + '_queue',
 			prefetchCount: 1,
 			queueOptions: {
 				durable: true,
 				noAck: false,
 				arguments: {
-					'x-dead-letter-exchange': 'dlx_exchange',
-					'x-dead-letter-routing-key': 'notification_dlq',
+					'x-dead-letter-exchange': name + '_dlx_exchange',
+					'x-dead-letter-routing-key': name + '_dlq',
 				},
 			},
 		},
@@ -53,7 +53,7 @@ async function bootstrap() {
 		transport: Transport.RMQ,
 		options: {
 			urls: [process.env.CONNECTION_AMQP],
-			queue: 'notification_dlq',
+			queue: name + '_dlq',
 			prefetchCount: 1,
 			queueOptions: {
 				durable: true,
