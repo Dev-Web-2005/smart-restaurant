@@ -397,3 +397,179 @@ export const refreshTokenAPI = async () => {
 		}
 	}
 }
+
+/**
+ * Update email when registration failed (e.g., email not received)
+ * @param {string} username - Username from signup
+ * @param {string} newEmail - New email address
+ * @returns {Promise} Response with success status
+ */
+export const updateEmailWhenRegisterFailed = async (username, newEmail) => {
+	try {
+		const response = await apiClient.post(
+			'/identity/users/update-email-when-register-failed',
+			{
+				username,
+				newEmail,
+			},
+		)
+
+		const { code, message, data } = response.data
+
+		if (code === 200) {
+			return {
+				success: true,
+				message: message || 'Email updated successfully',
+				data,
+			}
+		} else {
+			return {
+				success: false,
+				message: message || 'Failed to update email',
+			}
+		}
+	} catch (error) {
+		console.error('❌ Update email error:', error)
+		return {
+			success: false,
+			message:
+				error.response?.data?.message || 'Failed to update email. Please try again.',
+		}
+	}
+}
+
+/**
+ * Send verification email with OTP code
+ * @returns {Promise} Response with sent status
+ */
+export const sendVerificationEmailAPI = async () => {
+	try {
+		const response = await apiClient.post('/identity/users/send-verification-email')
+
+		const { code, message, data } = response.data
+
+		if (code === 200) {
+			return {
+				success: true,
+				message: message || 'Verification email sent successfully',
+				data,
+			}
+		} else {
+			return {
+				success: false,
+				message: message || 'Failed to send verification email',
+			}
+		}
+	} catch (error) {
+		console.error('❌ Send verification email error:', error)
+		return {
+			success: false,
+			message:
+				error.response?.data?.message ||
+				'Failed to send verification email. Please try again.',
+		}
+	}
+}
+
+/**
+ * Verify email with OTP code
+ * @param {string} code - 6-digit OTP code
+ * @returns {Promise} Response with verification status
+ */
+export const verifyEmailCodeAPI = async (code) => {
+	try {
+		const response = await apiClient.post('/identity/users/verify-email', { code })
+
+		const { code: statusCode, message, data } = response.data
+
+		if (statusCode === 200) {
+			return {
+				success: true,
+				message: message || 'Email verified successfully',
+				data,
+			}
+		} else {
+			return {
+				success: false,
+				message: message || 'Invalid verification code',
+			}
+		}
+	} catch (error) {
+		console.error('❌ Verify email code error:', error)
+		return {
+			success: false,
+			message:
+				error.response?.data?.message || 'Failed to verify email. Please try again.',
+		}
+	}
+}
+
+/**
+ * Check email verification status
+ * @param {string} email - Email to check
+ * @returns {Promise} Response with verification status
+ */
+export const checkEmailVerificationStatusAPI = async (email) => {
+	try {
+		const response = await apiClient.post('/identity/users/check-verify-email-status', {
+			email,
+		})
+
+		const { code, message, data } = response.data
+
+		if (code === 200) {
+			return {
+				success: true,
+				isVerified: data.isVerified,
+				message,
+			}
+		} else {
+			return {
+				success: false,
+				message: message || 'Failed to check verification status',
+			}
+		}
+	} catch (error) {
+		console.error('❌ Check email verification status error:', error)
+		return {
+			success: false,
+			message: 'Failed to check verification status. Please try again.',
+		}
+	}
+}
+
+/**
+ * Resend verification email
+ * @param {string} email - Email to resend verification
+ * @returns {Promise} Response with sent status
+ */
+export const resendVerificationEmailAPI = async (email) => {
+	try {
+		const response = await apiClient.post('/identity/users/resend-verification-email', {
+			email,
+		})
+
+		const { code, message, data } = response.data
+
+		if (code === 200) {
+			return {
+				success: true,
+				message: message || 'Verification email resent successfully',
+				data,
+			}
+		} else {
+			return {
+				success: false,
+				message: message || 'Failed to resend verification email',
+			}
+		}
+	} catch (error) {
+		console.error('❌ Resend verification email error:', error)
+		return {
+			success: false,
+			message:
+				error.response?.data?.message ||
+				'Failed to resend verification email. Please try again.',
+		}
+	}
+}

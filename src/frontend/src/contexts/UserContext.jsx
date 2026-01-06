@@ -83,43 +83,15 @@ export const UserProvider = ({ children }) => {
 			const result = await registerAPI(pendingSignupData, onboardingData)
 
 			if (result.success) {
-				// Note: Backend does NOT auto-login after registration
-				// We need to login manually with username/password
-				const loginResult = await loginAPI(
-					pendingSignupData.username,
-					pendingSignupData.password,
-				)
-
-				if (loginResult.success) {
-					// ✅ Store access token in memory if provided
-					if (loginResult.accessToken) {
-						window.accessToken = loginResult.accessToken
-					}
-
-					const userData = {
-						...loginResult.user,
-						role: loginResult.user.roles.includes('ADMIN')
-							? 'Super Administrator'
-							: 'User',
-						name: loginResult.user.username,
-					}
-					setUser(userData)
-					// ✅ Save user to localStorage for F5 persistence
-					localStorage.setItem('user', JSON.stringify(loginResult.user))
-					// ✅ Mark tab as active session
-					sessionStorage.setItem('tabSession', Date.now().toString())
-					setPendingSignupData(null) // Clear pending data
-					setLoading(false)
-					return { success: true, message: 'Registration and login successful!' }
-				} else {
-					// Registration OK but auto-login failed
-					setPendingSignupData(null)
-					setLoading(false)
-					return {
-						success: true,
-						message: 'Registration successful! Please login with your credentials.',
-						requireLogin: true,
-					}
+				// ✅ Registration successful - DO NOT auto-login
+				// User will be directed to email confirmation page first
+				// They will login after confirming email receipt
+				setPendingSignupData(null) // Clear pending data
+				setLoading(false)
+				return {
+					success: true,
+					message: 'Registration successful! Please check your email.',
+					requireLogin: false,
 				}
 			} else {
 				// ❌ Registration failed

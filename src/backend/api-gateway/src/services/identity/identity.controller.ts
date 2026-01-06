@@ -169,9 +169,9 @@ export class IdentityController {
 	 * Update email when register failed (Public API)
 	 */
 	@Post('users/update-email-when-register-failed')
-	updateEmailWhenRegisterFailed(@Body() data: { oldEmail: string; newEmail: string }) {
+	updateEmailWhenRegisterFailed(@Body() data: { username: string; newEmail: string }) {
 		return this.identityClient.send('users:update-email-when-register-failed', {
-			oldEmail: data.oldEmail,
+			username: data.username,
 			newEmail: data.newEmail,
 			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
 		});
