@@ -1,7 +1,7 @@
 {
     "info": {
         "name": "Identity - New Features",
-        "description": "Collection for forgot password, reset password, multi-tenant auth, and TTS API",
+        "description": "Collection for forgot password, reset password, multi-tenant auth, TTS API, staff/chef management, and email verification",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "item": [
@@ -235,6 +235,353 @@
                             ]
                         }
                     }
+                },
+                {
+                    "name": "Get Staff/Chef List (Paginated)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/users/staff-chef?page=1&limit=10",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "users",
+                                "staff-chef"
+                            ],
+                            "query": [
+                                {
+                                    "key": "role",
+                                    "value": "STAFF",
+                                    "description": "Filter by role: STAFF or CHEF (optional)",
+                                    "disabled": true
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number (default: 1)"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10",
+                                    "description": "Items per page (default: 10)"
+                                },
+                                {
+                                    "key": "isActive",
+                                    "value": "true",
+                                    "description": "Filter by active status (optional)",
+                                    "disabled": true
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Staff Only (Paginated)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/users/staff-chef?role=STAFF&page=1&limit=10",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "users",
+                                "staff-chef"
+                            ],
+                            "query": [
+                                {
+                                    "key": "role",
+                                    "value": "STAFF"
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Chef Only (Paginated)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/users/staff-chef?role=CHEF&page=1&limit=10",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "users",
+                                "staff-chef"
+                            ],
+                            "query": [
+                                {
+                                    "key": "role",
+                                    "value": "CHEF"
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Deactivate User (Soft Delete)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"isActive\": false\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/users/:targetUserId/status",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "users",
+                                ":targetUserId",
+                                "status"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "targetUserId",
+                                    "value": "{{targetUserId}}",
+                                    "description": "The userId of Staff/Chef to deactivate"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Activate User (Restore)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"isActive\": true\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/users/:targetUserId/status",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "users",
+                                ":targetUserId",
+                                "status"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "targetUserId",
+                                    "value": "{{targetUserId}}",
+                                    "description": "The userId of Staff/Chef to activate"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Delete User (Hard Delete)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/users/:targetUserId",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "users",
+                                ":targetUserId"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "targetUserId",
+                                    "value": "{{targetUserId}}",
+                                    "description": "The userId of Staff/Chef to permanently delete"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Email Verification",
+            "item": [
+                {
+                    "name": "Send Verification Email",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/users/send-verification-email",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "users",
+                                "send-verification-email"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Verify Email Code",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"code\": \"123456\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/users/verify-email",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "users",
+                                "verify-email"
+                            ]
+                        }
+                    }
                 }
             ]
         },
@@ -297,6 +644,10 @@
         },
         {
             "key": "resetToken",
+            "value": ""
+        },
+        {
+            "key": "targetUserId",
             "value": ""
         }
     ]

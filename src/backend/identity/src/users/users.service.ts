@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/common/entities/user';
 import RegisterResponse from 'src/users/dtos/response/register-user-response.dto';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { RolesService } from 'src/roles/roles.service';
 import { AuthorityEnum, RoleEnum } from '@shared/utils/enum';
@@ -14,7 +14,6 @@ import GetAuthorityResponseDto from 'src/authorities/dtos/response/get-authority
 import { GetUserResponseDto } from 'src/users/dtos/response/get-user-response.dto';
 import RegisterUserResponseDto from 'src/users/dtos/response/register-user-response.dto';
 import { ClientProxy } from '@nestjs/microservices';
-import { Inject } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 import RegisterUserWithProfileRequestDto from 'src/users/dtos/request/register-user-with-profile-request.dto';
 import { extractFields } from '@shared/utils/utils';
@@ -22,6 +21,9 @@ import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { RestaurantQrResponseDto } from './dtos/response/restaurant-qr-response.dto';
 import { ValidateRestaurantQrResponseDto } from './dtos/response/validate-restaurant-qr-response.dto';
+import { PaginatedUsersResponseDto } from './dtos/response/paginated-users-response.dto';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 
 @Injectable()
 export class UsersService {
@@ -46,6 +48,7 @@ export class UsersService {
 		private readonly rolesService: RolesService,
 		@Inject('PROFILE_SERVICE') private readonly profileClient: ClientProxy,
 		@Inject('NOTIFICATION_SERVICE') private readonly notificationClient: ClientProxy,
+		@Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
 		private readonly configService: ConfigService,
 	) {}
 
@@ -519,5 +522,314 @@ export class UsersService {
 		response.ownerUsername = user.username;
 
 		return response;
+	}
+
+	async toggleUserStatus(
+		ownerId: string,
+		targetUserId: string,
+		isActive: boolean,
+	): Promise<{ userId: string; isActive: boolean }> {
+		// Verify owner exists and has USER role
+		const owner = await this.userRepository.findOne({
+			where: { userId: ownerId },
+			relations: ['roles'],
+		});
+
+		if (!owner) {
+			throw new AppException(ErrorCode.USER_NOT_FOUND);
+		}
+
+		const hasUserRole = owner.roles.some(
+			(role) => role.name.toString() === RoleEnum.USER.toString(),
+		);
+		if (!hasUserRole) {
+			throw new AppException(ErrorCode.FORBIDDEN);
+		}
+
+		// Find target user
+		const targetUser = await this.userRepository.findOne({
+			where: { userId: targetUserId },
+			relations: ['roles'],
+		});
+
+		if (!targetUser) {
+			throw new AppException(ErrorCode.USER_NOT_FOUND);
+		}
+
+		// Verify target user belongs to owner
+		if (targetUser.ownerId !== ownerId) {
+			throw new AppException(ErrorCode.FORBIDDEN);
+		}
+
+		// Verify target is STAFF or CHEF
+		const isStaffOrChef = targetUser.roles.some(
+			(role) =>
+				role.name.toString() === RoleEnum.STAFF.toString() ||
+				role.name.toString() === RoleEnum.CHEF.toString(),
+		);
+
+		if (!isStaffOrChef) {
+			throw new AppException(ErrorCode.FORBIDDEN);
+		}
+
+		targetUser.isActive = isActive;
+		await this.userRepository.save(targetUser);
+
+		return {
+			userId: targetUser.userId,
+			isActive: targetUser.isActive,
+		};
+	}
+
+	async hardDeleteUser(
+		ownerId: string,
+		targetUserId: string,
+	): Promise<{ deleted: boolean }> {
+		// Verify owner exists and has USER role
+		const owner = await this.userRepository.findOne({
+			where: { userId: ownerId },
+			relations: ['roles'],
+		});
+
+		if (!owner) {
+			throw new AppException(ErrorCode.USER_NOT_FOUND);
+		}
+
+		const hasUserRole = owner.roles.some(
+			(role) => role.name.toString() === RoleEnum.USER.toString(),
+		);
+		if (!hasUserRole) {
+			throw new AppException(ErrorCode.FORBIDDEN);
+		}
+
+		// Find target user
+		const targetUser = await this.userRepository.findOne({
+			where: { userId: targetUserId },
+			relations: ['roles'],
+		});
+
+		if (!targetUser) {
+			throw new AppException(ErrorCode.USER_NOT_FOUND);
+		}
+
+		// Verify target user belongs to owner
+		if (targetUser.ownerId !== ownerId) {
+			throw new AppException(ErrorCode.FORBIDDEN);
+		}
+
+		// Verify target is STAFF or CHEF (cannot delete USER/owner accounts)
+		const isStaffOrChef = targetUser.roles.some(
+			(role) =>
+				role.name.toString() === RoleEnum.STAFF.toString() ||
+				role.name.toString() === RoleEnum.CHEF.toString(),
+		);
+
+		if (!isStaffOrChef) {
+			throw new AppException(ErrorCode.CANNOT_DELETE_OWNER);
+		}
+
+		// Delete profile first
+		try {
+			await firstValueFrom(
+				this.profileClient.send('profiles:delete-profile', {
+					userId: targetUserId,
+					profileApiKey: process.env.PROFILE_API_KEY,
+				}),
+			);
+		} catch (err) {
+			console.error('Error deleting profile:', err);
+			// Continue with user deletion even if profile deletion fails
+		}
+
+		await this.userRepository.delete({ userId: targetUserId });
+
+		return { deleted: true };
+	}
+
+	async getStaffChefByOwner(
+		ownerId: string,
+		role?: 'STAFF' | 'CHEF',
+		page: number = 1,
+		limit: number = 10,
+		isActive?: boolean,
+	): Promise<PaginatedUsersResponseDto> {
+		// Verify owner exists
+		const owner = await this.userRepository.findOne({
+			where: { userId: ownerId },
+			relations: ['roles'],
+		});
+
+		if (!owner) {
+			throw new AppException(ErrorCode.USER_NOT_FOUND);
+		}
+
+		const hasUserRole = owner.roles.some(
+			(r) => r.name.toString() === RoleEnum.USER.toString(),
+		);
+		if (!hasUserRole) {
+			throw new AppException(ErrorCode.FORBIDDEN);
+		}
+
+		// Build query
+		const queryBuilder = this.userRepository
+			.createQueryBuilder('user')
+			.leftJoinAndSelect('user.roles', 'role')
+			.leftJoinAndSelect('role.authorities', 'authority')
+			.where('user.ownerId = :ownerId', { ownerId });
+
+		// Filter by role if specified
+		if (role) {
+			const roleInt = role === 'STAFF' ? RoleEnum.STAFF : RoleEnum.CHEF;
+			queryBuilder.andWhere('role.name = :roleName', { roleName: roleInt });
+		} else {
+			// Get both STAFF and CHEF
+			queryBuilder.andWhere('role.name IN (:...roleNames)', {
+				roleNames: [RoleEnum.STAFF, RoleEnum.CHEF],
+			});
+		}
+
+		// Filter by isActive if specified
+		if (isActive !== undefined) {
+			queryBuilder.andWhere('user.isActive = :isActive', { isActive });
+		}
+
+		// Get total count
+		const total = await queryBuilder.getCount();
+
+		// Apply pagination
+		const skip = (page - 1) * limit;
+		queryBuilder.skip(skip).take(limit);
+
+		// Order by creation (latest first)
+		queryBuilder.orderBy('user.userId', 'DESC');
+
+		const users = await queryBuilder.getMany();
+
+		// Map to response DTOs
+		const data = users.map((user) => {
+			const dto = new GetUserResponseDto();
+			dto.userId = user.userId;
+			// Extract display username (remove ownerId suffix)
+			const usernameParts = user.username.split('_');
+			if (usernameParts.length >= 2) {
+				dto.username = usernameParts.slice(0, -1).join('_');
+			} else {
+				dto.username = user.username;
+			}
+			dto.email = user.email;
+			dto.isActive = user.isActive;
+			dto.roles = user.roles.map((role) => {
+				const roleDto = new GetRoleResponseDto();
+				roleDto.name = RoleEnum[role.name];
+				roleDto.description = role.description;
+				roleDto.authorities = role.authorities.map((authority) => {
+					return new GetAuthorityResponseDto({
+						name: AuthorityEnum[authority.name],
+						description: authority.description,
+					});
+				});
+				return roleDto;
+			});
+			return dto;
+		});
+
+		const response = new PaginatedUsersResponseDto();
+		response.data = data;
+		response.total = total;
+		response.page = page;
+		response.limit = limit;
+		response.totalPages = Math.ceil(total / limit);
+
+		return response;
+	}
+
+	async sendVerificationEmail(userId: string): Promise<{ sent: boolean }> {
+		const user = await this.userRepository.findOne({
+			where: { userId },
+		});
+
+		if (!user) {
+			throw new AppException(ErrorCode.USER_NOT_FOUND);
+		}
+
+		if (!user.email) {
+			throw new AppException(ErrorCode.USER_NO_EMAIL);
+		}
+
+		if (user.isEmailVerified) {
+			throw new AppException(ErrorCode.EMAIL_ALREADY_VERIFIED);
+		}
+
+		// Generate 6-digit code
+		const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+		// Store in Redis with 5 minute TTL (300 seconds)
+		const cacheKey = `email_verification:${userId}`;
+		await this.cacheManager.set(cacheKey, code, 300000); // 300000ms = 5 minutes
+
+		// Send email
+		const variables = new Map<string, string>();
+		variables.set('NAME', user.username);
+		variables.set('CODE', code);
+
+		const variablesObject: Record<string, string> = {};
+		variables.forEach((value, key) => {
+			variablesObject[key] = value;
+		});
+
+		const notificationApiKey = this.configService.get<string>('NOTIFICATION_API_KEY');
+		const notificationRequest = {
+			to: {
+				email: user.email,
+				name: user.username,
+			},
+			subject: 'Verify Your Email',
+			variables: variablesObject,
+			notificationApiKey: notificationApiKey,
+		};
+
+		try {
+			this.notificationClient.emit('mail.send', notificationRequest);
+		} catch (emitError) {
+			console.error('Error emitting verification email:', emitError);
+			throw new AppException(ErrorCode.NOTIFICATION_SERVICE_ERROR);
+		}
+
+		return { sent: true };
+	}
+
+	async verifyEmailCode(userId: string, code: string): Promise<{ verified: boolean }> {
+		const user = await this.userRepository.findOne({
+			where: { userId },
+		});
+
+		if (!user) {
+			throw new AppException(ErrorCode.USER_NOT_FOUND);
+		}
+
+		if (user.isEmailVerified) {
+			throw new AppException(ErrorCode.EMAIL_ALREADY_VERIFIED);
+		}
+
+		// Get code from Redis
+		const cacheKey = `email_verification:${userId}`;
+		const storedCode = await this.cacheManager.get<string>(cacheKey);
+
+		if (!storedCode) {
+			throw new AppException(ErrorCode.VERIFICATION_CODE_EXPIRED);
+		}
+
+		if (storedCode !== code) {
+			throw new AppException(ErrorCode.VERIFICATION_CODE_INVALID);
+		}
+
+		// Mark email as verified
+		user.isEmailVerified = true;
+		await this.userRepository.save(user);
+
+		// Delete the code from Redis
+		await this.cacheManager.del(cacheKey);
+
+		return { verified: true };
 	}
 }

@@ -10,6 +10,11 @@ import { GetAllUsersRequestDto } from 'src/users/dtos/request/get-all-users-requ
 import { GetUserByIdRequestDto } from 'src/users/dtos/request/get-user-by-id-request.dto';
 import { handleRpcCall } from '@shared/utils/rpc-error-handler';
 import { ValidateRestaurantQrRequestDto } from './dtos/request/validate-restaurant-qr-request.dto';
+import { ToggleUserStatusRequestDto } from './dtos/request/toggle-user-status-request.dto';
+import { DeleteUserRequestDto } from './dtos/request/delete-user-request.dto';
+import { GetStaffChefByOwnerRequestDto } from './dtos/request/get-staff-chef-by-owner-request.dto';
+import { SendVerificationEmailRequestDto } from './dtos/request/send-verification-email-request.dto';
+import { VerifyEmailCodeRequestDto } from './dtos/request/verify-email-code-request.dto';
 
 @Controller()
 export class UsersController {
@@ -157,6 +162,102 @@ export class UsersController {
 				200,
 				'Restaurant QR validation completed',
 				await this.usersService.validateRestaurantQr(data.ownerId, data.token),
+			);
+		});
+	}
+
+	@MessagePattern('users:toggle-status')
+	async toggleUserStatus(data: {
+		ownerId: string;
+		targetUserId: string;
+		isActive: boolean;
+		identityApiKey?: string;
+	}): Promise<HttpResponse> {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			return new HttpResponse(
+				200,
+				data.isActive ? 'User activated successfully' : 'User deactivated successfully',
+				await this.usersService.toggleUserStatus(
+					data.ownerId,
+					data.targetUserId,
+					data.isActive,
+				),
+			);
+		});
+	}
+
+	@MessagePattern('users:hard-delete')
+	async hardDeleteUser(data: {
+		ownerId: string;
+		targetUserId: string;
+		identityApiKey?: string;
+	}): Promise<HttpResponse> {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			return new HttpResponse(
+				200,
+				'User deleted permanently',
+				await this.usersService.hardDeleteUser(data.ownerId, data.targetUserId),
+			);
+		});
+	}
+
+	@MessagePattern('users:get-staff-chef-by-owner')
+	async getStaffChefByOwner(data: GetStaffChefByOwnerRequestDto): Promise<HttpResponse> {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			return new HttpResponse(
+				200,
+				'Staff/Chef list retrieved successfully',
+				await this.usersService.getStaffChefByOwner(
+					data.ownerId,
+					data.role,
+					data.page || 1,
+					data.limit || 10,
+					data.isActive,
+				),
+			);
+		});
+	}
+
+	@MessagePattern('users:send-verification-email')
+	async sendVerificationEmail(
+		data: SendVerificationEmailRequestDto,
+	): Promise<HttpResponse> {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			return new HttpResponse(
+				200,
+				'Verification email sent successfully',
+				await this.usersService.sendVerificationEmail(data.userId),
+			);
+		});
+	}
+
+	@MessagePattern('users:verify-email-code')
+	async verifyEmailCode(data: VerifyEmailCodeRequestDto): Promise<HttpResponse> {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			return new HttpResponse(
+				200,
+				'Email verified successfully',
+				await this.usersService.verifyEmailCode(data.userId, data.code),
 			);
 		});
 	}

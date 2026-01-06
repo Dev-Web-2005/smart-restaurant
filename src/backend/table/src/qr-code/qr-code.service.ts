@@ -107,12 +107,17 @@ export class QrCodeService {
 	 * Returns redirect URL if valid
 	 */
 	async validateScanToken(token: string): Promise<ScanResponseDto> {
+		console.log('🔑 [QR-Service] Validating token...');
+
 		// Verify and decode token
 		const payload = this.verifyToken(token);
 
 		if (!payload) {
+			console.log('❌ [QR-Service] Token signature invalid');
 			throw new AppException(ErrorCode.INVALID_QR_TOKEN);
 		}
+
+		console.log('✅ [QR-Service] Token payload:', payload);
 
 		// Check if token version matches current table version
 		const table = await this.tablesService.getTableEntity(
@@ -120,24 +125,42 @@ export class QrCodeService {
 			payload.tenantId,
 		);
 
+		console.log('📋 [QR-Service] Table info:', {
+			tableTokenVersion: table.tokenVersion,
+			payloadTokenVersion: payload.tokenVersion,
+			isActive: table.isActive,
+		});
+
 		if (table.tokenVersion !== payload.tokenVersion) {
 			// Token has been invalidated by regeneration
+			console.log('❌ [QR-Service] Token version mismatch');
 			throw new AppException(ErrorCode.INVALID_QR_TOKEN);
 		}
 
 		if (!table.isActive) {
+			console.log('❌ [QR-Service] Table not active');
 			throw new AppException(ErrorCode.TABLE_NOT_FOUND);
 		}
 
 		// Check token expiry (optional, can be very long)
 		const ageInHours = (Date.now() - payload.issuedAt) / (1000 * 60 * 60);
+		console.log(
+			'⏱️ [QR-Service] Token age:',
+			ageInHours,
+			'hours, max:',
+			this.TOKEN_EXPIRY_HOURS,
+		);
+
 		if (ageInHours > this.TOKEN_EXPIRY_HOURS) {
+			console.log('❌ [QR-Service] Token expired');
 			throw new AppException(ErrorCode.INVALID_QR_TOKEN);
 		}
 
 		// Return redirect URL for frontend
 		// const redirect = `/menu?tenantId=${table.tenantId}&tableId=${table.id}`;
 		const redirect = `/order/${table.tenantId}/table/${table.id}`;
+
+		console.log('✅ [QR-Service] Validation successful, redirect:', redirect);
 
 		return new ScanResponseDto({
 			tenantId: table.tenantId,
