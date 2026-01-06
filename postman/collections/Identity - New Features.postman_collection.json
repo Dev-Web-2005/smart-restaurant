@@ -655,7 +655,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"oldEmail\": \"wrong@example.com\",\n  \"newEmail\": \"correct@example.com\"\n}"
+                            "raw": "{\n  \"username\": \"username\",\n  \"newEmail\": \"correct@example.com\"\n}"
                         },
                         "url": {
                             "raw": "{{baseURL}}/api/v1/identity/users/update-email-when-register-failed",
