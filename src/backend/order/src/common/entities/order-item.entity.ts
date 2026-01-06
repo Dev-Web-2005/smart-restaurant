@@ -23,13 +23,12 @@ import { Order } from './order.entity';
  * - Preserves data even if menu item is later deleted/modified
  */
 @Entity('order_items')
-@Index(['orderId'])
+@Index('idx_order_item_order_id', ['orderId'])
 export class OrderItem {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;
 
 	@Column({ type: 'uuid', nullable: false })
-	@Index()
 	orderId: string; // Parent order
 
 	@Column({ type: 'uuid', nullable: false })

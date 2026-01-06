@@ -26,18 +26,18 @@ import { OrderItem } from './order-item.entity';
  * - Status tracking from PENDING to COMPLETED
  */
 @Entity('orders')
-@Index(['tenantId', 'tableId', 'status'])
-@Index(['tenantId', 'customerId'])
+@Index('idx_order_tenant_table_status', ['tenantId', 'tableId', 'status'])
+@Index('idx_order_tenant_customer', ['tenantId', 'customerId'])
 export class Order {
 	@PrimaryGeneratedColumn('uuid')
 	id: string;
 
 	@Column({ type: 'uuid', nullable: false })
-	@Index()
+	@Index('idx_order_tenant_id')
 	tenantId: string; // Multi-tenancy isolation
 
 	@Column({ type: 'uuid', nullable: false })
-	@Index()
+	@Index('idx_order_table_id')
 	tableId: string; // Table where customer is seated
 
 	@Column({ type: 'uuid', nullable: true })
@@ -50,7 +50,7 @@ export class Order {
 	orderType: OrderType;
 
 	@Column({ type: 'int', default: OrderStatus.PENDING })
-	@Index()
+	@Index('idx_order_status')
 	status: OrderStatus;
 
 	@Column({ type: 'int', default: PaymentStatus.PENDING })
