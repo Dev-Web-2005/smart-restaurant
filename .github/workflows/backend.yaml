@@ -142,9 +142,23 @@ jobs:
 
       - name: Build changed services
         run: |
-          mkdir -p result
-
           BUILD_ALL="${{ needs.detect-changes.outputs.build-all }}"
+
+          # Kiểm tra xem có service nào cần build không
+          if [ "$BUILD_ALL" != "true" ] && \
+             [ "${{ needs.detect-changes.outputs.shared }}" != "true" ] && \
+             [ "${{ needs.detect-changes.outputs.api-gateway }}" != "true" ] && \
+             [ "${{ needs.detect-changes.outputs.identity }}" != "true" ] && \
+             [ "${{ needs.detect-changes.outputs.product }}" != "true" ] && \
+             [ "${{ needs.detect-changes.outputs.profile }}" != "true" ] && \
+             [ "${{ needs.detect-changes.outputs.table }}" != "true" ] && \
+             [ "${{ needs.detect-changes.outputs.kitchen }}" != "true" ] && \
+             [ "${{ needs.detect-changes.outputs.notification }}" != "true" ]; then
+            echo "⚠️ No services to build - skipping"
+            exit 0
+          fi
+
+          mkdir -p result
 
           if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.shared }}" == "true" ]; then
             echo "Building shared..."
@@ -195,12 +209,14 @@ jobs:
           fi
 
       - uses: actions/upload-artifact@v4
+        if: hashFiles('result/**') != ''
         with:
           name: backend-build
           path: result
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Deploy to server
+        if: hashFiles('result/**') != ''
         uses: appleboy/scp-action@v0.1.6
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -213,6 +229,7 @@ jobs:
           overwrite: true
 
       - name: Restart changed services
+        if: hashFiles('result/**') != ''
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
