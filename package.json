@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"description": "Smart Restaurant Microservices",
 	"scripts": {
-		"dev": "concurrently -n \"identity,profile,product,table,order,gateway\" -c \"cyan,magenta,green,yellow,purple,blue\" \"npm run dev:identity\" \"npm run dev:profile\" \"npm run dev:product\" \"npm run dev:table\" \"npm run dev:order\" \"npm run dev:gateway\"",
+		"dev": "concurrently -n \"identity,profile,product,table,order,gateway\" -c \"cyan,magenta,green,yellow,red,blue\" \"npm run dev:identity\" \"npm run dev:profile\" \"npm run dev:product\" \"npm run dev:table\" \"npm run dev:order\" \"npm run dev:gateway\"",
 		"dev:identity": "cd src/backend/identity && npm run start:dev",
 		"dev:profile": "cd src/backend/profile && npm run start:dev",
 		"dev:product": "cd src/backend/product && npm run start:dev",
