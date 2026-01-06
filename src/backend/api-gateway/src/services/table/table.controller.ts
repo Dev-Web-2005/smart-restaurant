@@ -253,28 +253,19 @@ export class TableController {
 				}),
 			);
 
-			// Server-side redirect đến trang menu
-
-			// Test response in development mode
-			// if (this.configService.get('MOD') === 'development') {
-			// 	console.log('QR Scan Validated:', result);
-			// 	return res.status(200).json({ redirect: result.redirect });
-			// }
-
-			// Production mode - perform redirect
-			const frontendUrl =
-				this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
-			const redirectUrl = frontendUrl + result.redirect;
-
-			return res.redirect(302, redirectUrl);
+			// Return JSON for frontend to handle login flow
+			return res.status(200).json({
+				code: 200,
+				message: 'QR code validated successfully',
+				data: result,
+			});
 		} catch (error) {
-			// Nếu QR invalid, redirect đến error page
-			const frontendUrl =
-				this.configService.get('FRONTEND_URL') || 'http://localhost:5173';
-			return res.redirect(
-				302,
-				`${frontendUrl}/qr-error?message=${encodeURIComponent(error.message || 'Invalid QR Code')}`,
-			);
+			// Return error JSON
+			return res.status(400).json({
+				code: 4003,
+				message: error.message || 'QR code không hợp lệ hoặc đã hết hạn',
+				data: null,
+			});
 		}
 	}
 

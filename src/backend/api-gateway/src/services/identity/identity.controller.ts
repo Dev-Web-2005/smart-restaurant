@@ -5,11 +5,14 @@ import {
 	Get,
 	Inject,
 	Post,
+	Delete,
+	Patch,
 	HttpStatus,
 	Res,
 	UseGuards,
 	Param,
 	Req,
+	Query,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
@@ -53,6 +56,89 @@ export class IdentityController {
 		return this.identityClient.send('users:generate-staff-chef', {
 			ownerId: userId,
 			role: data.role,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+	}
+
+	@UseGuards(AuthGuard, Role('USER'))
+	@Get('users/staff-chef')
+	getStaffChefByOwner(
+		@Req() req: Request,
+		@Query('role') role?: 'STAFF' | 'CHEF',
+		@Query('page') page?: string,
+		@Query('limit') limit?: string,
+		@Query('isActive') isActive?: string,
+	) {
+		const userId = (req as any).user?.userId;
+		if (!userId) {
+			throw new AppException(ErrorCode.UNAUTHORIZED);
+		}
+		return this.identityClient.send('users:get-staff-chef-by-owner', {
+			ownerId: userId,
+			role,
+			page: page ? parseInt(page, 10) : 1,
+			limit: limit ? parseInt(limit, 10) : 10,
+			isActive: isActive !== undefined ? isActive === 'true' : undefined,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+	}
+
+	@UseGuards(AuthGuard, Role('USER'))
+	@Patch('users/:targetUserId/status')
+	toggleUserStatus(
+		@Param('targetUserId') targetUserId: string,
+		@Body() data: { isActive: boolean },
+		@Req() req: Request,
+	) {
+		const userId = (req as any).user?.userId;
+		if (!userId) {
+			throw new AppException(ErrorCode.UNAUTHORIZED);
+		}
+		return this.identityClient.send('users:toggle-status', {
+			ownerId: userId,
+			targetUserId,
+			isActive: data.isActive,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+	}
+
+	@UseGuards(AuthGuard, Role('USER'))
+	@Delete('users/:targetUserId')
+	hardDeleteUser(@Param('targetUserId') targetUserId: string, @Req() req: Request) {
+		const userId = (req as any).user?.userId;
+		if (!userId) {
+			throw new AppException(ErrorCode.UNAUTHORIZED);
+		}
+		return this.identityClient.send('users:hard-delete', {
+			ownerId: userId,
+			targetUserId,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+	}
+
+	@UseGuards(AuthGuard)
+	@Post('users/send-verification-email')
+	sendVerificationEmail(@Req() req: Request) {
+		const userId = (req as any).user?.userId;
+		if (!userId) {
+			throw new AppException(ErrorCode.UNAUTHORIZED);
+		}
+		return this.identityClient.send('users:send-verification-email', {
+			userId,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+	}
+
+	@UseGuards(AuthGuard)
+	@Post('users/verify-email')
+	verifyEmailCode(@Body() data: { code: string }, @Req() req: Request) {
+		const userId = (req as any).user?.userId;
+		if (!userId) {
+			throw new AppException(ErrorCode.UNAUTHORIZED);
+		}
+		return this.identityClient.send('users:verify-email-code', {
+			userId,
+			code: data.code,
 			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
 		});
 	}

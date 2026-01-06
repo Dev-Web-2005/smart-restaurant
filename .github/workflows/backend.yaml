@@ -289,6 +289,12 @@ jobs:
             FRONTEND_URL=${{ vars.FRONTEND_URL }}
             CONNECTION_AMQP=${{ secrets.CONNECTION_AMQP }}
             NOTIFICATION_API_KEY=${{ secrets.NOTIFICATION_API_KEY }}
+            REDIS_HOST=${{ secrets.REDIS_HOST }}
+            REDIS_PORT=${{ secrets.REDIS_PORT }}
+            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+            CLIENT_ID=${{ secrets.CLIENT_ID }}
+            CLIENT_SECRET=${{ secrets.CLIENT_SECRET }}
+            REDIRECT_URI=${{ secrets.REDIRECT_URI }}
             EOF
               pm2 delete identity || true
               pm2 start dist/identity/src/main.js --name identity

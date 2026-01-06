@@ -21,6 +21,12 @@ export class User {
 	@Column({ default: false })
 	isGoogleLogin: boolean;
 
+	@Column({ default: true })
+	isActive: boolean;
+
+	@Column({ default: false })
+	isEmailVerified: boolean;
+
 	@Column({ nullable: true })
 	restaurantQrToken?: string;
 

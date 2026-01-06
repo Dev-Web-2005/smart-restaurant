@@ -105,16 +105,14 @@ function App() {
 					element={<SelectTable />}
 				/>
 
+				{/* Customer ordering interface */}
 				<Route
 					path="/order/:tenantId/table/:tableId"
-										element={
-											<ProtectedRoute allowedRoles={['Super Administrator']}>
-												<Dashboard />
-											</ProtectedRoute>
-										}
-									/>
+					element={<OrderingInterface />}
+				/>
+
 									<Route
-										path="/admin/tenant-management"
+										path="/admin/dashboard"
 										element={
 											<ProtectedRoute allowedRoles={['Super Administrator']}>
 												<TenantManagementListView />

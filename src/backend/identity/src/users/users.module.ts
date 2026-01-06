@@ -6,11 +6,26 @@ import { User } from 'src/common/entities/user';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { RolesModule } from 'src/roles/roles.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-yet';
 
 @Module({
 	imports: [
 		TypeOrmModule.forFeature([User]),
 		RolesModule,
+		CacheModule.registerAsync({
+			imports: [ConfigModule],
+			inject: [ConfigService],
+			useFactory: async (configService: ConfigService) => ({
+				store: await redisStore({
+					socket: {
+						host: configService.get<string>('REDIS_HOST') || 'localhost',
+						port: configService.get<number>('REDIS_PORT') || 6379,
+					},
+					password: configService.get<string>('REDIS_PASSWORD') || undefined,
+				}),
+			}),
+		}),
 		ClientsModule.registerAsync([
 			{
 				name: 'PROFILE_SERVICE',

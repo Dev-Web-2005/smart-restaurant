@@ -295,6 +295,49 @@ export default class ErrorCode {
 		"Notification service error",
 		500
 	);
+
+	/** Email verification code expired */
+	static readonly VERIFICATION_CODE_EXPIRED: ErrorCode = new ErrorCode(
+		6004,
+		"Verification code has expired",
+		400
+	);
+
+	/** Email verification code invalid */
+	static readonly VERIFICATION_CODE_INVALID: ErrorCode = new ErrorCode(
+		6005,
+		"Invalid verification code",
+		400
+	);
+
+	/** Email already verified */
+	static readonly EMAIL_ALREADY_VERIFIED: ErrorCode = new ErrorCode(
+		6006,
+		"Email is already verified",
+		400
+	);
+
+	/** User has no email to verify */
+	static readonly USER_NO_EMAIL: ErrorCode = new ErrorCode(
+		6007,
+		"User does not have an email address",
+		400
+	);
+
+	/** User account is inactive */
+	static readonly USER_INACTIVE: ErrorCode = new ErrorCode(
+		2005,
+		"User account is inactive",
+		403
+	);
+
+	/** Cannot delete user with USER role (restaurant owner) */
+	static readonly CANNOT_DELETE_OWNER: ErrorCode = new ErrorCode(
+		2006,
+		"Cannot delete restaurant owner account",
+		403
+	);
+
 	// ==================== SYSTEM & INFRASTRUCTURE (9000-9999) ====================
 
 	/** Unexpected server error */

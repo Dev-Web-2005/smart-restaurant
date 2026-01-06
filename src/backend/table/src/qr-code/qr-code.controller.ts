@@ -86,11 +86,21 @@ export class QrCodeController {
 		@Payload() payload: { token: string; tableApiKey?: string },
 	): Promise<ScanResponseDto> {
 		return handleRpcCall(async () => {
+			console.log(
+				'🔍 [QR-Validate] Received token:',
+				payload.token?.substring(0, 50) + '...',
+			);
+
 			const expectedApiKey = this.config.get<string>('TABLE_API_KEY');
 			if (payload.tableApiKey !== expectedApiKey) {
+				console.log('❌ [QR-Validate] API key mismatch');
 				throw new AppException(ErrorCode.UNAUTHORIZED);
 			}
-			return await this.qrCodeService.validateScanToken(payload.token);
+
+			console.log('✅ [QR-Validate] API key valid, validating token...');
+			const result = await this.qrCodeService.validateScanToken(payload.token);
+			console.log('✅ [QR-Validate] Token valid:', result);
+			return result;
 		});
 	}
 

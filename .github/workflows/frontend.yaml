@@ -27,6 +27,10 @@ env:
   VITE_DIDIT_WORKFLOW_ID: ${{ secrets.VITE_DIDIT_WORKFLOW_ID }}
   VITE_DIDIT_CALLBACK_URL: ${{ secrets.VITE_DIDIT_CALLBACK_URL }}
 
+  # Google OAuth Specific Env vars
+  VITE_CLIENT_ID: ${{ secrets.VITE_CLIENT_ID }}
+  VITE_REDIRECT_URI: ${{ secrets.VITE_REDIRECT_URI }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -45,6 +49,8 @@ jobs:
           VITE_DIDIT_API_KEY: ${{ secrets.VITE_DIDIT_API_KEY }}
           VITE_DIDIT_WORKFLOW_ID: ${{ secrets.VITE_DIDIT_WORKFLOW_ID }}
           VITE_DIDIT_CALLBACK_URL: ${{ secrets.VITE_DIDIT_CALLBACK_URL }}
+          VITE_CLIENT_ID: ${{ secrets.VITE_CLIENT_ID }}
+          VITE_REDIRECT_URI: ${{ secrets.VITE_REDIRECT_URI }}
           VITE_PROD: "true"
         run: |
           cd src/frontend

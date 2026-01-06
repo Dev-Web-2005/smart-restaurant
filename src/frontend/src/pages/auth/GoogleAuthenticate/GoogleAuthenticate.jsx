@@ -7,8 +7,17 @@ const GoogleAuthenticate = () => {
 	const location = useLocation();
 	const hasProcessed = useRef(false);
 
+	const navigateOnFailure = (ownerId, tableNumber) => {
+		if (ownerId && tableNumber) {
+			navigate(`/select-table/${ownerId}`, { replace: true });
+		} else if (ownerId) {
+			navigate(`/select-table/${ownerId}`, { replace: true });
+		} else {
+			navigate('/', { replace: true });
+		}
+	};
+
 	useEffect(() => {
-		// Prevent multiple API calls with the same code
 		if (hasProcessed.current) {
 			return;
 		}
@@ -18,16 +27,14 @@ const GoogleAuthenticate = () => {
 			const code = params.get('code');
 			const stateParam = params.get('state') || '';
 			
-			// Parse state: format is "ownerId|tableNumber"
 			const [ownerId, tableNumberFromState] = stateParam.split('|');
 
 			if (!code) {
 				alert('Google authentication failed. No authorization code received.');
-				navigate('/login');
+				navigateOnFailure(ownerId, tableNumberFromState);
 				return;
 			}
 
-			// Mark as processed to prevent re-running
 			hasProcessed.current = true;
 
 			try {
@@ -44,7 +51,7 @@ const GoogleAuthenticate = () => {
 						window.accessToken = accessToken;
 					} else {
 						alert('Authentication failed: No access token received');
-						navigate('/login');
+						navigateOnFailure(ownerId, tableNumberFromState);
 						return;
 					}
 
@@ -63,14 +70,12 @@ const GoogleAuthenticate = () => {
 					};
 					localStorage.setItem('customerAuth', JSON.stringify(customerData));
 
-					// Get table number from state or localStorage
 					const tableNumber = tableNumberFromState || localStorage.getItem('currentTableNumber') || '';
 					if (tableNumber) {
 						localStorage.setItem('currentTableNumber', tableNumber);
 					}
 
 					if (isGoogleLogin) {
-						// First time Google login - need to set password
 						navigate('/set-password', {
 							state: { 
 								firstTimeGoogleLogin: true,
@@ -79,24 +84,22 @@ const GoogleAuthenticate = () => {
 								tableNumber: tableNumber,
 								fromGoogleAuth: true
 							},
+							replace: true
 						});
 					} else {
-						// Returning Google user - navigate based on tableNumber
 						if (finalOwnerId) {
 							if (tableNumber) {
-								// Has table number - go directly to that table
-								navigate(`/order/${finalOwnerId}/table/${tableNumber}`);
+								navigate(`/order/${finalOwnerId}/table/${tableNumber}`, { replace: true });
 							} else {
-								// No table number - show table selection
-								navigate(`/select-table/${finalOwnerId}`);
+								navigate(`/select-table/${finalOwnerId}`, { replace: true });
 							}
 						} else {
-							navigate('/');
+							navigate('/', { replace: true });
 						}
 					}
 				} else {
 					alert(response.data?.message || 'Authentication failed');
-					navigate('/login');
+					navigateOnFailure(ownerId, tableNumberFromState);
 				}
 			} catch (error) {
 				const errorMessage = error.response?.data?.message || 
@@ -104,7 +107,7 @@ const GoogleAuthenticate = () => {
 									'Authentication failed. Please try again.';
 				
 				alert(errorMessage);
-				navigate('/login');
+				navigateOnFailure(ownerId, tableNumberFromState);
 			}
 		};
 
