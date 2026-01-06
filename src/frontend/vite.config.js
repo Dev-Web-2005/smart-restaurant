@@ -21,20 +21,9 @@ export default defineConfig(({ mode }) => {
 				},
 			},
 		},
+		// Backend có CORS, gọi trực tiếp không cần proxy
 		server: {
-			proxy: {
-				// Proxy backend API requests to avoid CORS issues
-				'/api/v1': {
-					target: env.VITE_API_GATEWAY_URL || 'http://localhost:8888',
-					changeOrigin: true,
-					configure: (proxy, options) => {
-						proxy.on('proxyReq', (proxyReq, req, res) => {
-							// Add x-api-key header to proxied request
-							proxyReq.setHeader('x-api-key', env.VITE_API_KEY)
-						})
-					},
-				},
-			},
+			port: 5173,
 		},
 	}
 })
