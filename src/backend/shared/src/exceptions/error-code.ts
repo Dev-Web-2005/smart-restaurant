@@ -93,6 +93,12 @@ export default class ErrorCode {
 		500
 	);
 
+	static readonly EMAIL_ALREADY_IN_USE: ErrorCode = new ErrorCode(
+		2007,
+		"Email is already in use",
+		409
+	);
+
 	// ==================== ROLE & AUTHORITY (2100-2199) ====================
 
 	/** Role not found in system */

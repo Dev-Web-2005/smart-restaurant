@@ -24,6 +24,8 @@ import { ValidateRestaurantQrResponseDto } from './dtos/response/validate-restau
 import { PaginatedUsersResponseDto } from './dtos/response/paginated-users-response.dto';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
+import { CheckEmailResponseDto } from 'src/users/dtos/response/check-email-response.dto';
+import { UpdateEmailRequestDto } from 'src/users/dtos/request/update-email-request.dto';
 
 @Injectable()
 export class UsersService {
@@ -831,5 +833,66 @@ export class UsersService {
 		await this.cacheManager.del(cacheKey);
 
 		return { verified: true };
+	}
+
+	async checkVerifyEmailStatus(email: string): Promise<CheckEmailResponseDto> {
+		const user = await this.userRepository.findOne({
+			where: { email },
+		});
+		if (user && user.isEmailVerified) {
+			return { isVerified: true };
+		}
+		return { isVerified: false };
+	}
+
+	async updateEmailWhenRegisterFailed(
+		data: Omit<UpdateEmailRequestDto, 'identityApiKey'>,
+	): Promise<void> {
+		const user = await this.userRepository.findOne({
+			where: { username: data.username },
+		});
+		if (!user) {
+			throw new AppException(ErrorCode.USER_NOT_FOUND);
+		}
+		user.email = data.newEmail;
+
+		if (await this.userRepository.existsBy({ email: data.newEmail })) {
+			throw new AppException(ErrorCode.EMAIL_ALREADY_IN_USE);
+		}
+
+		try {
+			await this.userRepository.save(user);
+
+			const variables = new Map<string, string>();
+			variables.set('NAME', user.username);
+
+			const variablesObject: Record<string, string> = {};
+			variables.forEach((value, key) => {
+				variablesObject[key] = value;
+			});
+			const subject = 'Welcome To Smart Restaurant';
+			const notificationApiKey = this.configService.get<string>('NOTIFICATION_API_KEY');
+			const notificationRequest = {
+				to: {
+					email: user.email,
+					name: user.username,
+				},
+				subject,
+				variables: variablesObject,
+				notificationApiKey: notificationApiKey,
+			};
+			try {
+				this.notificationClient.emit('mail.send', notificationRequest);
+			} catch (emitError) {
+				console.error('Error emitting notification event:', emitError);
+				throw new AppException(ErrorCode.NOTIFICATION_SERVICE_ERROR);
+			}
+		} catch (error) {
+			console.error('Error updating email:', error);
+			if (error instanceof AppException) {
+				throw error;
+			}
+			throw new AppException(ErrorCode.EMAIL_ALREADY_IN_USE);
+		}
 	}
 }

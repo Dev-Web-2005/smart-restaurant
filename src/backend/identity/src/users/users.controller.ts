@@ -10,11 +10,11 @@ import { GetAllUsersRequestDto } from 'src/users/dtos/request/get-all-users-requ
 import { GetUserByIdRequestDto } from 'src/users/dtos/request/get-user-by-id-request.dto';
 import { handleRpcCall } from '@shared/utils/rpc-error-handler';
 import { ValidateRestaurantQrRequestDto } from './dtos/request/validate-restaurant-qr-request.dto';
-import { ToggleUserStatusRequestDto } from './dtos/request/toggle-user-status-request.dto';
-import { DeleteUserRequestDto } from './dtos/request/delete-user-request.dto';
 import { GetStaffChefByOwnerRequestDto } from './dtos/request/get-staff-chef-by-owner-request.dto';
 import { SendVerificationEmailRequestDto } from './dtos/request/send-verification-email-request.dto';
 import { VerifyEmailCodeRequestDto } from './dtos/request/verify-email-code-request.dto';
+import { CheckEmailRequestDto } from 'src/users/dtos/request/check-email-request.dto';
+import { UpdateEmailRequestDto } from 'src/users/dtos/request/update-email-request.dto';
 
 @Controller()
 export class UsersController {
@@ -261,4 +261,50 @@ export class UsersController {
 			);
 		});
 	}
+
+	@MessagePattern('users:check-verify-email-status')
+	async checkVerifyEmailStatus(data: CheckEmailRequestDto): Promise<HttpResponse> {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			return new HttpResponse(
+				200,
+				'Email verification status retrieved successfully',
+				await this.usersService.checkVerifyEmailStatus(data.email),
+			);
+		});
+	}
+
+	@MessagePattern('users:resend-verification-email')
+	async resendVerificationEmail(
+		data: SendVerificationEmailRequestDto,
+	): Promise<HttpResponse> {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			return new HttpResponse(
+				200,
+				'Verification email resent successfully',
+				await this.usersService.sendVerificationEmail(data.userId),
+			);
+		});
+	}
+
+	@MessagePattern('users:update-email-when-register-failed')
+	async updateEmailWhenRegisterFailed(data: UpdateEmailRequestDto): Promise<HttpResponse> {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			return new HttpResponse(
+				200,
+				'Email updated successfully',
+				await this.usersService.updateEmailWhenRegisterFailed(data),
+			);
+		}
 }
