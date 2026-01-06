@@ -295,6 +295,7 @@ jobs:
             CLIENT_ID=${{ secrets.CLIENT_ID }}
             CLIENT_SECRET=${{ secrets.CLIENT_SECRET }}
             REDIRECT_URI=${{ secrets.REDIRECT_URI }}
+            QUEUE_NAME_OF_NOTIFICATION=notification
             EOF
               pm2 delete identity || true
               pm2 start dist/identity/src/main.js --name identity

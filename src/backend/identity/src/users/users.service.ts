@@ -2,7 +2,7 @@ import { Injectable, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/common/entities/user';
 import RegisterResponse from 'src/users/dtos/response/register-user-response.dto';
-import { Repository, In } from 'typeorm';
+import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { RolesService } from 'src/roles/roles.service';
 import { AuthorityEnum, RoleEnum } from '@shared/utils/enum';
@@ -843,6 +843,57 @@ export class UsersService {
 			return { isVerified: true };
 		}
 		return { isVerified: false };
+	}
+
+	async resendVerificationEmailByEmail(email: string): Promise<{ sent: boolean }> {
+		const user = await this.userRepository.findOne({
+			where: { email },
+		});
+
+		if (!user) {
+			throw new AppException(ErrorCode.USER_NOT_FOUND);
+		}
+
+		if (user.isEmailVerified) {
+			throw new AppException(ErrorCode.EMAIL_ALREADY_VERIFIED);
+		}
+
+		// Generate 6-digit code
+		const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+		// Store in Redis with 5 minute TTL (300 seconds)
+		const cacheKey = `email_verification:${user.userId}`;
+		await this.cacheManager.set(cacheKey, code, 300000); // 300000ms = 5 minutes
+
+		// Send email
+		const variables = new Map<string, string>();
+		variables.set('NAME', user.username);
+		variables.set('CODE', code);
+
+		const variablesObject: Record<string, string> = {};
+		variables.forEach((value, key) => {
+			variablesObject[key] = value;
+		});
+
+		const notificationApiKey = this.configService.get<string>('NOTIFICATION_API_KEY');
+		const notificationRequest = {
+			to: {
+				email: user.email,
+				name: user.username,
+			},
+			subject: 'Verify Your Email',
+			variables: variablesObject,
+			notificationApiKey: notificationApiKey,
+		};
+
+		try {
+			this.notificationClient.emit('mail.send', notificationRequest);
+		} catch (emitError) {
+			console.error('Error emitting verification email:', emitError);
+			throw new AppException(ErrorCode.NOTIFICATION_SERVICE_ERROR);
+		}
+
+		return { sent: true };
 	}
 
 	async updateEmailWhenRegisterFailed(

@@ -53,8 +53,12 @@ import { redisStore } from 'cache-manager-redis-yet';
 						queueOptions: {
 							durable: true,
 							arguments: {
-								'x-dead-letter-exchange': 'dlx_exchange',
-								'x-dead-letter-routing-key': 'notification_dlq',
+								'x-dead-letter-exchange':
+									configService.get<string>('QUEUE_NAME_OF_NOTIFICATION') +
+										'_dlx_exchange' || 'local_notification_dlx_exchange',
+								'x-dead-letter-routing-key':
+									configService.get<string>('QUEUE_NAME_OF_NOTIFICATION') + '_dlq' ||
+									'local_notification_dlq',
 							},
 						},
 					},

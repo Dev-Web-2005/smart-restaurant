@@ -104,10 +104,6 @@ export class UsersController {
 		});
 	}
 
-	/**
-	 * Generate or regenerate restaurant QR code
-	 * Pattern: users:generate-restaurant-qr
-	 */
 	@MessagePattern('users:generate-restaurant-qr')
 	async generateRestaurantQr(data: {
 		userId: string;
@@ -126,10 +122,6 @@ export class UsersController {
 		});
 	}
 
-	/**
-	 * Get existing restaurant QR without regenerating
-	 * Pattern: users:get-restaurant-qr
-	 */
 	@MessagePattern('users:get-restaurant-qr')
 	async getRestaurantQr(data: {
 		userId: string;
@@ -278,9 +270,7 @@ export class UsersController {
 	}
 
 	@MessagePattern('users:resend-verification-email')
-	async resendVerificationEmail(
-		data: SendVerificationEmailRequestDto,
-	): Promise<HttpResponse> {
+	async resendVerificationEmail(data: CheckEmailRequestDto): Promise<HttpResponse> {
 		return handleRpcCall(async () => {
 			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
 			if (data.identityApiKey !== expectedApiKey) {
@@ -289,13 +279,15 @@ export class UsersController {
 			return new HttpResponse(
 				200,
 				'Verification email resent successfully',
-				await this.usersService.sendVerificationEmail(data.userId),
+				await this.usersService.resendVerificationEmailByEmail(data.email),
 			);
 		});
 	}
 
 	@MessagePattern('users:update-email-when-register-failed')
-	async updateEmailWhenRegisterFailed(data: UpdateEmailRequestDto): Promise<HttpResponse> {
+	async updateEmailWhenRegisterFailed(
+		data: UpdateEmailRequestDto,
+	): Promise<HttpResponse> {
 		return handleRpcCall(async () => {
 			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
 			if (data.identityApiKey !== expectedApiKey) {
@@ -306,5 +298,6 @@ export class UsersController {
 				'Email updated successfully',
 				await this.usersService.updateEmailWhenRegisterFailed(data),
 			);
-		}
+		});
+	}
 }
