@@ -63,7 +63,7 @@ export class OrderController {
 	 * }
 	 */
 	@Post('tenants/:tenantId/orders')
-	@UseGuards(AuthGuard, Role('USER'))
+	@UseGuards(AuthGuard)
 	createOrder(@Param('tenantId') tenantId: string, @Body() data: any) {
 		return this.orderClient.send('orders:create', {
 			...data,
@@ -112,7 +112,7 @@ export class OrderController {
 	 * GET /tenants/:tenantId/orders/:orderId
 	 */
 	@Get('tenants/:tenantId/orders/:orderId')
-	@UseGuards(AuthGuard, Role('USER'))
+	@UseGuards(AuthGuard)
 	getOrder(@Param('tenantId') tenantId: string, @Param('orderId') orderId: string) {
 		return this.orderClient.send('orders:get', {
 			tenantId,
@@ -138,7 +138,7 @@ export class OrderController {
 	 * }
 	 */
 	@Post('tenants/:tenantId/orders/:orderId/items')
-	@UseGuards(AuthGuard, Role('USER'))
+	@UseGuards(AuthGuard)
 	addItemsToOrder(
 		@Param('tenantId') tenantId: string,
 		@Param('orderId') orderId: string,
@@ -187,7 +187,7 @@ export class OrderController {
 	 * }
 	 */
 	@Patch('tenants/:tenantId/orders/:orderId/cancel')
-	@UseGuards(AuthGuard, Role('USER'))
+	@UseGuards(AuthGuard)
 	cancelOrder(
 		@Param('tenantId') tenantId: string,
 		@Param('orderId') orderId: string,

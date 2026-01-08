@@ -527,24 +527,30 @@ export class OrderService {
 	/**
 	 * Helper: Calculate order totals
 	 */
+	/**
+	 * Helper: Calculate order totals
+	 * Note: DecimalToNumberTransformer ensures all values are already numbers
+	 */
 	private calculateOrderTotals(order: Order): void {
 		let subtotal = 0;
 
 		for (const item of order.items) {
-			subtotal += item.total;
+			subtotal += item.total; // Already a number thanks to transformer
 		}
 
 		// Calculate tax from environment variable (e.g., 0.1 = 10% VAT)
 		const taxRate = this.configService.get<number>('TAX_RATE', 0.1);
 		const tax = subtotal * taxRate;
 
-		order.subtotal = subtotal;
-		order.tax = tax;
-		order.total = subtotal + tax - order.discount;
+		// Round to 2 decimal places to avoid floating point errors
+		order.subtotal = Number(subtotal.toFixed(2));
+		order.tax = Number(tax.toFixed(2));
+		order.total = Number((subtotal + tax - order.discount).toFixed(2));
 	}
 
 	/**
 	 * Helper: Map Order entity to OrderResponseDto
+	 * Note: DecimalToNumberTransformer ensures all numeric fields are already numbers
 	 */
 	private mapToOrderResponse(order: Order): OrderResponseDto {
 		return {
@@ -580,6 +586,7 @@ export class OrderService {
 
 	/**
 	 * Helper: Map OrderItem entity to OrderItemResponseDto
+	 * Note: DecimalToNumberTransformer ensures all numeric fields are already numbers
 	 */
 	private mapToOrderItemResponse(item: OrderItem): OrderItemResponseDto {
 		return {

@@ -9,6 +9,7 @@ import {
 	Index,
 } from 'typeorm';
 import { Order } from './order.entity';
+import { DecimalToNumberTransformer } from '../transformers/decimal-to-number.transformer';
 
 /**
  * OrderItem Entity
@@ -40,19 +41,35 @@ export class OrderItem {
 	@Column({ type: 'text', nullable: true })
 	description: string; // Menu item description (optional snapshot)
 
-	@Column('decimal', { precision: 12, scale: 2 })
+	@Column('decimal', {
+		precision: 12,
+		scale: 2,
+		transformer: new DecimalToNumberTransformer(),
+	})
 	unitPrice: number; // Price per unit at time of order
 
 	@Column({ type: 'int', default: 1 })
 	quantity: number; // Number of this item ordered
 
-	@Column('decimal', { precision: 12, scale: 2 })
+	@Column('decimal', {
+		precision: 12,
+		scale: 2,
+		transformer: new DecimalToNumberTransformer(),
+	})
 	subtotal: number; // unitPrice * quantity (before modifiers)
 
-	@Column('decimal', { precision: 12, scale: 2 })
+	@Column('decimal', {
+		precision: 12,
+		scale: 2,
+		transformer: new DecimalToNumberTransformer(),
+	})
 	modifiersTotal: number; // Total cost of all modifiers
 
-	@Column('decimal', { precision: 12, scale: 2 })
+	@Column('decimal', {
+		precision: 12,
+		scale: 2,
+		transformer: new DecimalToNumberTransformer(),
+	})
 	total: number; // Final total for this line item (subtotal + modifiersTotal)
 
 	@Column({ type: 'varchar', length: 10, default: 'VND' })

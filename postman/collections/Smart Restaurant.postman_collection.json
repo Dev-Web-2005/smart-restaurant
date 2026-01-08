@@ -1060,7 +1060,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"categoryId\": \"4c557e4a-e438-496a-9196-f50794440766\",\n  \"name\": \"Caesar Salad\",\n  \"description\": \"Fresh romaine lettuce with Caesar dressing, parmesan cheese, and croutons\",\n  \"price\": 12.99,\n  \"currency\": \"VND\",\n  \"prepTimeMinutes\": 15,\n  \"status\": \"AVAILABLE\",\n  \"isChefRecommended\": true\n}",
+                  "raw": "{\n  \"categoryId\": \"4c557e4a-e438-496a-9196-f50794440766\",\n  \"name\": \"Fruit Salad\",\n  \"description\": \"Fresh romaine lettuce with Caesar dressing, parmesan cheese, and croutons\",\n  \"price\": 10.99,\n  \"currency\": \"VND\",\n  \"prepTimeMinutes\": 10,\n  \"status\": \"AVAILABLE\",\n  \"isChefRecommended\": true\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1189,7 +1189,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6",
+                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/c0365bc5-c946-45df-8eb2-e8c0bd240b6d",
                   "host": [
                     "{{baseURL}}"
                   ],
@@ -1199,7 +1199,7 @@
                     "tenants",
                     "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                     "items",
-                    "2dc1b28b-76d6-4ee4-935c-8741157d60c6"
+                    "c0365bc5-c946-45df-8eb2-e8c0bd240b6d"
                   ],
                   "query": [
                     {
@@ -2094,7 +2094,7 @@
                   }
                 },
                 "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/dd9fb42b-71a0-421d-bdac-41ba34c7ef16/modifiers",
+                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/c0365bc5-c946-45df-8eb2-e8c0bd240b6d/modifiers",
                   "host": [
                     "{{baseURL}}"
                   ],
@@ -2104,7 +2104,7 @@
                     "tenants",
                     "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                     "items",
-                    "dd9fb42b-71a0-421d-bdac-41ba34c7ef16",
+                    "c0365bc5-c946-45df-8eb2-e8c0bd240b6d",
                     "modifiers"
                   ]
                 }
@@ -2808,7 +2808,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/3a085fe8-a45f-4977-a2de-4f619a0c6db8",
               "host": [
                 "{{baseURL}}"
               ],
@@ -2818,7 +2818,7 @@
                 "tenants",
                 "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "orders",
-                "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                "3a085fe8-a45f-4977-a2de-4f619a0c6db8"
               ]
             }
           },
@@ -2847,7 +2847,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders?status=PENDING&paymentStatus=PENDING&page=1&limit=10&sortBy=createdAt&sortOrder=DESC",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders?page=1&limit=10",
               "host": [
                 "{{baseURL}}"
               ],
@@ -2861,11 +2861,15 @@
               "query": [
                 {
                   "key": "status",
-                  "value": "PENDING"
+                  "value": "PENDING",
+                  "uuid": "142f0e78-86e0-40e6-87dc-1f6b4ab98f32",
+                  "disabled": true
                 },
                 {
                   "key": "paymentStatus",
-                  "value": "PENDING"
+                  "value": "PENDING",
+                  "uuid": "eca7f184-5cc2-4792-98fe-55509f455dec",
+                  "disabled": true
                 },
                 {
                   "key": "tableId",
@@ -2884,19 +2888,25 @@
                 },
                 {
                   "key": "page",
-                  "value": "1"
+                  "value": "1",
+                  "uuid": "2e1fec59-7c43-4939-8fbd-aa8c0f6dee7e"
                 },
                 {
                   "key": "limit",
-                  "value": "10"
+                  "value": "10",
+                  "uuid": "336f3f7e-eca3-462e-a8cf-8bc827d1a475"
                 },
                 {
                   "key": "sortBy",
-                  "value": "createdAt"
+                  "value": "createdAt",
+                  "uuid": "3cc65e3b-ecac-4202-9fca-7a5316c64f73",
+                  "disabled": true
                 },
                 {
                   "key": "sortOrder",
-                  "value": "DESC"
+                  "value": "DESC",
+                  "uuid": "bd6994e5-cc1b-4c7b-b3e9-0add7f0d6ac0",
+                  "disabled": true
                 }
               ]
             }
@@ -2927,7 +2937,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"items\": [\n    {\n      \"menuItemId\": \"g7h8i9j0-k1l2-3456-m789-012345678901\",\n      \"quantity\": 1,\n      \"notes\": \"Medium rare\",\n      \"modifiers\": [\n        {\n          \"modifierGroupId\": \"h8i9j0k1-l2m3-4567-n890-123456789012\",\n          \"modifierOptionId\": \"i9j0k1l2-m3n4-5678-o901-234567890123\"\n        }\n      ]\n    }\n  ],\n  \"notes\": \"Additional order from table\"\n}",
+              "raw": "{\n  \"items\": [\n    {\n      \"menuItemId\": \"c0365bc5-c946-45df-8eb2-e8c0bd240b6d\",\n      \"quantity\": 1,\n      \"notes\": \"Extra cheese, no onions\",\n      \"modifiers\": [\n        {\n          \"modifierGroupId\": \"61649a87-9b54-4b65-84dc-f1d6b7367cb3\",\n          \"modifierOptionId\": \"de183f95-bc1d-4762-bcaf-5012f31f6203\"\n        }\n      ]\n    }\n  ],\n  \"notes\": \"Additional order from table\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2935,7 +2945,7 @@
               }
             },
             "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/items",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/e44870f5-a025-4db6-a7f6-431ac59bb40d/items",
               "host": [
                 "{{baseURL}}"
               ],
@@ -2945,7 +2955,7 @@
                 "tenants",
                 "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "orders",
-                "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                "e44870f5-a025-4db6-a7f6-431ac59bb40d",
                 "items"
               ]
             }

@@ -11,6 +11,7 @@ import { OrderStatus } from '../enums/order-status.enum';
 import { OrderType } from '../enums/order-type.enum';
 import { PaymentStatus } from '../enums/payment-status.enum';
 import { OrderItem } from './order-item.entity';
+import { DecimalToNumberTransformer } from '../transformers/decimal-to-number.transformer';
 
 /**
  * Order Entity
@@ -62,16 +63,36 @@ export class Order {
 	@Column({ type: 'varchar', length: 255, nullable: true })
 	paymentTransactionId: string; // Payment gateway transaction ID
 
-	@Column('decimal', { precision: 12, scale: 2, default: 0 })
+	@Column('decimal', {
+		precision: 12,
+		scale: 2,
+		default: 0,
+		transformer: new DecimalToNumberTransformer(),
+	})
 	subtotal: number; // Sum of all item prices
 
-	@Column('decimal', { precision: 12, scale: 2, default: 0 })
+	@Column('decimal', {
+		precision: 12,
+		scale: 2,
+		default: 0,
+		transformer: new DecimalToNumberTransformer(),
+	})
 	tax: number; // Tax amount (e.g., VAT)
 
-	@Column('decimal', { precision: 12, scale: 2, default: 0 })
+	@Column('decimal', {
+		precision: 12,
+		scale: 2,
+		default: 0,
+		transformer: new DecimalToNumberTransformer(),
+	})
 	discount: number; // Discount amount
 
-	@Column('decimal', { precision: 12, scale: 2, default: 0 })
+	@Column('decimal', {
+		precision: 12,
+		scale: 2,
+		default: 0,
+		transformer: new DecimalToNumberTransformer(),
+	})
 	total: number; // Final total (subtotal + tax - discount)
 
 	@Column({ type: 'varchar', length: 10, default: 'VND' })
