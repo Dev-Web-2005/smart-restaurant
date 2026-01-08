@@ -2986,7 +2986,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"ACCEPTED\",\n  \"waiterId\": \"c3d4e5f6-a7b8-9012-cdef-123456789012\"\n}",
+              "raw": "{\n  \"status\": \"ACCEPTED\",\n  \"waiterId\": \"d95e73fb-b861-40eb-ba09-eff4b79084ef\" // must be real 'waiter', use tenant admin id for example now\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2994,7 +2994,7 @@
               }
             },
             "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/status",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/3a085fe8-a45f-4977-a2de-4f619a0c6db8/status",
               "host": [
                 "{{baseURL}}"
               ],
@@ -3004,7 +3004,7 @@
                 "tenants",
                 "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "orders",
-                "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                "3a085fe8-a45f-4977-a2de-4f619a0c6db8",
                 "status"
               ]
             }
@@ -3043,7 +3043,7 @@
               }
             },
             "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/cancel",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/3a085fe8-a45f-4977-a2de-4f619a0c6db8/cancel",
               "host": [
                 "{{baseURL}}"
               ],
@@ -3053,7 +3053,7 @@
                 "tenants",
                 "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "orders",
-                "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                "3a085fe8-a45f-4977-a2de-4f619a0c6db8",
                 "cancel"
               ]
             }
@@ -3092,7 +3092,7 @@
               }
             },
             "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/payment",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/3a085fe8-a45f-4977-a2de-4f619a0c6db8/payment",
               "host": [
                 "{{baseURL}}"
               ],
@@ -3102,7 +3102,7 @@
                 "tenants",
                 "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "orders",
-                "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                "3a085fe8-a45f-4977-a2de-4f619a0c6db8",
                 "payment"
               ]
             }
