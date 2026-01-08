@@ -2808,13 +2808,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
               "host": [
                 "{{baseURL}}"
               ],
               "path": [
                 "api",
                 "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "orders",
                 "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
               ]
@@ -2845,13 +2847,15 @@
               }
             ],
             "url": {
-              "raw": "{{baseURL}}/api/v1/orders?status=PENDING&paymentStatus=PENDING&page=1&limit=10&sortBy=createdAt&sortOrder=DESC",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders?status=PENDING&paymentStatus=PENDING&page=1&limit=10&sortBy=createdAt&sortOrder=DESC",
               "host": [
                 "{{baseURL}}"
               ],
               "path": [
                 "api",
                 "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "orders"
               ],
               "query": [
@@ -2931,13 +2935,15 @@
               }
             },
             "url": {
-              "raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/items",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/items",
               "host": [
                 "{{baseURL}}"
               ],
               "path": [
                 "api",
                 "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "orders",
                 "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
                 "items"
@@ -2978,13 +2984,15 @@
               }
             },
             "url": {
-              "raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/status",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/status",
               "host": [
                 "{{baseURL}}"
               ],
               "path": [
                 "api",
                 "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "orders",
                 "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
                 "status"
@@ -3007,7 +3015,7 @@
                 }
               ]
             },
-            "method": "DELETE",
+            "method": "PATCH",
             "header": [
               {
                 "key": "x-api-key",
@@ -3025,15 +3033,18 @@
               }
             },
             "url": {
-              "raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/cancel",
               "host": [
                 "{{baseURL}}"
               ],
               "path": [
                 "api",
                 "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "orders",
-                "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                "cancel"
               ]
             }
           },
@@ -3071,13 +3082,15 @@
               }
             },
             "url": {
-              "raw": "{{baseURL}}/api/v1/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/payment",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/a1b2c3d4-e5f6-7890-abcd-ef1234567890/payment",
               "host": [
                 "{{baseURL}}"
               ],
               "path": [
                 "api",
                 "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "orders",
                 "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
                 "payment"
