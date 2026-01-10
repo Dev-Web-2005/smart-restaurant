@@ -34,6 +34,7 @@ import {
 } from './dtos/response';
 import { ClientProxy } from '@nestjs/microservices/client/client-proxy';
 import { firstValueFrom } from 'rxjs';
+import { CartService } from 'src/cart/cart.service';
 
 @Injectable()
 export class OrderService {
@@ -46,6 +47,7 @@ export class OrderService {
 		private readonly orderItemRepository: Repository<OrderItem>,
 		@Inject('PRODUCT_SERVICE') private readonly productClient: ClientProxy,
 		private readonly configService: ConfigService,
+		private readonly cartService: CartService,
 	) {}
 
 	/**
@@ -136,6 +138,53 @@ export class OrderService {
 
 		return this.mapToOrderResponse(savedOrder);
 	}
+
+	// TODO: Checkout từ Cart Service để tạo Order
+	/*
+	async createOrderFromCart(dto: {
+		customerId: string;
+		tenantId: string;
+		tableId: string;
+	}) {
+		// 1. Lấy data từ Redis
+		const cart = await this.cartService.getCart(dto.tenantId, dto.tableId);
+
+		if (cart.items.length === 0) {
+			throw new AppException(ErrorCode.CART_EMPTY);
+		}
+
+		// 2. Convert từ Cart Item (Redis) sang Order Entity (TypeORM)
+		// Lưu ý: Logic này tương tự createOrder cũ nhưng nguồn dữ liệu là biến 'cart'
+		const newOrder = new Order();
+		newOrder.tenantId = dto.tenantId;
+		newOrder.tableId = dto.tableId;
+		newOrder.customerId = dto.customerId;
+		newOrder.status = OrderStatus.PENDING;
+		newOrder.total = cart.totalPrice;
+
+		newOrder.items = cart.items.map((cartItem) => {
+			const orderItem = new OrderItem();
+			orderItem.menuItemId = cartItem.menuItemId;
+			orderItem.name = cartItem.name;
+			orderItem.quantity = cartItem.quantity;
+			orderItem.unitPrice = cartItem.price;
+			orderItem.subtotal = cartItem.subtotal;
+			orderItem.modifiers = cartItem.modifiers; // Cần map đúng kiểu dữ liệu
+			return orderItem;
+		});
+
+		// 3. Lưu Order vào Database SQL
+		const savedOrder = await this.orderRepository.save(newOrder);
+
+		// 4. Xóa Cart trong Redis sau khi tạo đơn thành công
+		await this.cartService.clearCart(dto.customerId);
+
+		// 5. Bắn RabbitMQ (như code cũ của bạn)
+		// this.notificationClient.emit(...)
+
+		return savedOrder;
+	}
+	*/
 
 	/**
 	 * Get a single order by ID
