@@ -3,7 +3,7 @@ import { IsString, IsNotEmpty, IsNumber, Min } from 'class-validator';
 export class UpdateCartItemQuantityDto {
 	@IsString()
 	@IsNotEmpty()
-	cartApiKey: string;
+	orderApiKey: string;
 
 	@IsString()
 	@IsNotEmpty()

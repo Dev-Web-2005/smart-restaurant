@@ -3,6 +3,8 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { AddToCartDto } from './dtos/request/add-to-cart.dto';
 import { UpdateCartItemQuantityDto } from './dtos/request/update-cart-item-quantity.dto';
+import { GetCartDto } from './dtos/request/get-cart.dto';
+import { RemoveCartItemDto } from './dtos/request/remove-cart-item.dto';
 import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
@@ -75,8 +77,11 @@ export class CartService {
 	}
 
 	// 1. Lấy giỏ hàng
-	async getCart(tenantId: string, tableId: string): Promise<Cart> {
-		const key = this.getCartKey(tenantId, tableId);
+	async getCart(dto: GetCartDto): Promise<Cart> {
+		// Validate API key
+		this.validateApiKey(dto.orderApiKey);
+
+		const key = this.getCartKey(dto.tenantId, dto.tableId);
 		const cart = await this.cacheManager.get<Cart>(key);
 		// Nếu chưa có, trả về giỏ rỗng
 		return cart || { items: [], totalPrice: 0, totalItems: 0 };
@@ -85,7 +90,7 @@ export class CartService {
 	// 2. Thêm vào giỏ hàng
 	async addToCart(dto: AddToCartDto): Promise<Cart> {
 		// Validate API key
-		this.validateApiKey(dto.cartApiKey);
+		this.validateApiKey(dto.orderApiKey);
 
 		// Validate input
 		if (dto.quantity <= 0) {
@@ -99,7 +104,13 @@ export class CartService {
 		// Validate menu item exists and is available via Product Service
 		await this.validateMenuItem(dto.tenantId, dto.menuItemId);
 
-		const cart = await this.getCart(dto.tenantId, dto.tableId);
+		// Get cart without re-validating API key (already validated above)
+		const key = this.getCartKey(dto.tenantId, dto.tableId);
+		const cart = (await this.cacheManager.get<Cart>(key)) || {
+			items: [],
+			totalPrice: 0,
+			totalItems: 0,
+		};
 		const { menuItemId, quantity, price, modifiers, notes, name } = dto;
 
 		// Generate unique item key based on menuItemId + modifiers
@@ -145,27 +156,36 @@ export class CartService {
 	}
 
 	// 3. Xóa một món khỏi giỏ
-	async removeItem(tenantId: string, tableId: string, itemKey: string): Promise<Cart> {
-		const cart = await this.getCart(tenantId, tableId);
+	async removeItem(dto: RemoveCartItemDto): Promise<Cart> {
+		// Validate API key
+		this.validateApiKey(dto.orderApiKey);
+
+		// Get cart without re-validating API key
+		const key = this.getCartKey(dto.tenantId, dto.tableId);
+		const cart = (await this.cacheManager.get<Cart>(key)) || {
+			items: [],
+			totalPrice: 0,
+			totalItems: 0,
+		};
 
 		// Check if item exists
-		const itemExists = cart.items.some((item) => item.itemKey === itemKey);
+		const itemExists = cart.items.some((item) => item.itemKey === dto.itemKey);
 		if (!itemExists) {
 			throw new AppException(ErrorCode.CART_ITEM_NOT_FOUND);
 		}
 
 		// Lọc bỏ món cần xóa
-		cart.items = cart.items.filter((item) => item.itemKey !== itemKey);
+		cart.items = cart.items.filter((item) => item.itemKey !== dto.itemKey);
 
 		this.recalculateCart(cart);
 		await this.cacheManager.set(
-			this.getCartKey(tenantId, tableId),
+			key,
 			cart,
 			this.configService.get<number>('REDIS_TTL') * 1000,
 		);
 
 		this.logger.log(
-			`Removed item ${itemKey} from cart for tenant ${tenantId}, table ${tableId}`,
+			`Removed item ${dto.itemKey} from cart for tenant ${dto.tenantId}, table ${dto.tableId}`,
 		);
 
 		return cart;
@@ -180,13 +200,19 @@ export class CartService {
 	// 5. Cập nhật số lượng của một item
 	async updateItemQuantity(dto: UpdateCartItemQuantityDto): Promise<Cart> {
 		// Validate API key
-		this.validateApiKey(dto.cartApiKey);
+		this.validateApiKey(dto.orderApiKey);
 
 		if (dto.quantity <= 0) {
 			throw new AppException(ErrorCode.INVALID_CART_QUANTITY);
 		}
 
-		const cart = await this.getCart(dto.tenantId, dto.tableId);
+		// Get cart without re-validating API key
+		const key = this.getCartKey(dto.tenantId, dto.tableId);
+		const cart = (await this.cacheManager.get<Cart>(key)) || {
+			items: [],
+			totalPrice: 0,
+			totalItems: 0,
+		};
 
 		// Find by itemKey instead of menuItemId
 		const itemIndex = cart.items.findIndex((item) => item.itemKey === dto.itemKey);
