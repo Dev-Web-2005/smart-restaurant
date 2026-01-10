@@ -161,7 +161,11 @@ export class OrderService {
 		this.validateApiKey(dto.orderApiKey);
 
 		// 1. Lấy data từ Redis
-		const cart = await this.cartService.getCart(dto.tenantId, dto.tableId);
+		const cart = await this.cartService.getCart({
+			orderApiKey: dto.orderApiKey,
+			tenantId: dto.tenantId,
+			tableId: dto.tableId,
+		});
 
 		if (!cart.items || cart.items.length === 0) {
 			throw new AppException(ErrorCode.CART_EMPTY);
