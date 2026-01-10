@@ -88,11 +88,24 @@ export class CartService {
 	}
 
 	// 2. Thêm vào giỏ hàng
+	/**
+	 * Add item to cart (naive approach for frontend convenience)
+	 *
+	 * SECURITY NOTE:
+	 * - We accept price from frontend WITHOUT validation
+	 * - Price is stored in Redis ONLY for display purposes
+	 * - NEVER trust this price for checkout/order creation
+	 * - Actual pricing is fetched from Product Service during checkout
+	 *
+	 * This prevents:
+	 * - Price manipulation attacks (hacker modifying Redis)
+	 * - Stale pricing issues (menu price changes before checkout)
+	 */
 	async addToCart(dto: AddToCartDto): Promise<Cart> {
 		// Validate API key
 		this.validateApiKey(dto.orderApiKey);
 
-		// Validate input
+		// Validate input (basic validation only)
 		if (dto.quantity <= 0) {
 			throw new AppException(ErrorCode.INVALID_CART_QUANTITY);
 		}
@@ -101,8 +114,9 @@ export class CartService {
 			throw new AppException(ErrorCode.INVALID_CART_OPERATION);
 		}
 
-		// Validate menu item exists and is available via Product Service
-		await this.validateMenuItem(dto.tenantId, dto.menuItemId);
+		// NOTE: We do NOT validate menu item existence here
+		// Frontend sends "naive" data, validation happens at checkout
+		// This improves performance and user experience
 
 		// Get cart without re-validating API key (already validated above)
 		const key = this.getCartKey(dto.tenantId, dto.tableId);

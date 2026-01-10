@@ -216,27 +216,95 @@ export class OrderService {
 		await this.orderRepository.save(newOrder);
 
 		// 5. Convert Cart Items to Order Items
-		const orderItems: OrderItem[] = cart.items.map((cartItem) => {
-			// Calculate modifiers total
-			const modifiersTotal =
-				cartItem.modifiers?.reduce((sum, mod) => sum + (mod.price || 0), 0) || 0;
+		// SECURITY: Fetch real-time pricing from Product Service
+		// NEVER trust prices from cart (could be manipulated)
+		const orderItems: OrderItem[] = [];
+
+		for (const cartItem of cart.items) {
+			// Fetch REAL menu item details from Product Service
+			const menuItemResponse = await firstValueFrom(
+				this.productClient.send('menu-items:get', {
+					productApiKey: this.configService.get<string>('PRODUCT_API_KEY'),
+					tenantId: dto.tenantId,
+					menuItemId: cartItem.menuItemId,
+				}),
+			);
+
+			// Extract real menu item data
+			const menuItem = menuItemResponse.data;
+
+			// Check if menu item is still available
+			if (!menuItem || menuItem.status !== 'ACTIVE') {
+				this.logger.error(
+					`Menu item ${cartItem.name} (ID: ${cartItem.menuItemId}) is no longer available`,
+				);
+				throw new AppException(ErrorCode.MENU_ITEM_NOT_AVAILABLE);
+			}
+
+			// Fetch REAL modifier pricing from Product Service
+			let modifiersTotal = 0;
+			const validatedModifiers = [];
+
+			if (cartItem.modifiers && cartItem.modifiers.length > 0) {
+				for (const modDto of cartItem.modifiers) {
+					// Fetch modifier group details
+					const modifierGroupResponse = await firstValueFrom(
+						this.productClient.send('modifier-groups:get', {
+							productApiKey: this.configService.get<string>('PRODUCT_API_KEY'),
+							tenantId: dto.tenantId,
+							modifierGroupId: modDto.modifierGroupId,
+						}),
+					);
+
+					// Fetch modifier option details (REAL price)
+					const modifierOptionResponse = await firstValueFrom(
+						this.productClient.send('modifier-options:get', {
+							productApiKey: this.configService.get<string>('PRODUCT_API_KEY'),
+							tenantId: dto.tenantId,
+							modifierGroupId: modDto.modifierGroupId,
+							modifierOptionId: modDto.modifierOptionId,
+						}),
+					);
+
+					const modifierGroup = modifierGroupResponse.data;
+					const modifierOption = modifierOptionResponse.data;
+
+					const orderItemModifier = {
+						modifierGroupId: modDto.modifierGroupId,
+						modifierGroupName: modifierGroup.name,
+						modifierOptionId: modDto.modifierOptionId,
+						optionName: modifierOption.label,
+						price: modifierOption.priceDelta, // REAL price from Product Service
+						currency: 'VND',
+					};
+
+					validatedModifiers.push(orderItemModifier);
+					modifiersTotal += orderItemModifier.price * cartItem.quantity;
+				}
+			}
+
+			// Calculate totals using REAL prices
+			const realUnitPrice = menuItem.price; // REAL price from Product Service
+			const subtotal = realUnitPrice * cartItem.quantity;
+			const total = subtotal + modifiersTotal;
 
 			const orderItem = this.orderItemRepository.create({
 				orderId: newOrder.id,
 				menuItemId: cartItem.menuItemId,
-				name: cartItem.name,
-				unitPrice: cartItem.price,
+				name: menuItem.name, // Use real name from Product Service
+				description: menuItem.description,
+				unitPrice: realUnitPrice, // REAL price, not from cart
 				quantity: cartItem.quantity,
-				subtotal: cartItem.price * cartItem.quantity,
-				modifiersTotal: modifiersTotal * cartItem.quantity,
-				total: cartItem.price * cartItem.quantity + modifiersTotal * cartItem.quantity,
-				modifiers: cartItem.modifiers || [],
+				subtotal: subtotal,
+				modifiersTotal: modifiersTotal,
+				total: total,
+				modifiers: validatedModifiers,
 				notes: cartItem.notes,
 				currency: 'VND',
 			});
 
-			return orderItem;
-		});
+			orderItems.push(orderItem);
+		}
 
 		newOrder.items = orderItems;
 
