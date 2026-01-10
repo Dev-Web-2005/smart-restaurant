@@ -1,6 +1,10 @@
-import { IsString, IsNotEmpty, IsNumber, Min, IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty, IsNumber, Min } from 'class-validator';
 
 export class UpdateCartItemQuantityDto {
+	@IsString()
+	@IsNotEmpty()
+	cartApiKey: string;
+
 	@IsString()
 	@IsNotEmpty()
 	tenantId: string;
@@ -9,9 +13,9 @@ export class UpdateCartItemQuantityDto {
 	@IsNotEmpty()
 	tableId: string;
 
-	@IsUUID()
+	@IsString()
 	@IsNotEmpty()
-	menuItemId: string;
+	itemKey: string;
 
 	@IsNumber()
 	@Min(1)

@@ -11,6 +11,10 @@ import {
 export class AddToCartDto {
 	@IsString()
 	@IsNotEmpty()
+	cartApiKey: string;
+
+	@IsString()
+	@IsNotEmpty()
 	tenantId: string;
 
 	@IsString()

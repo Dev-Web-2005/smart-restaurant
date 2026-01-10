@@ -8,9 +8,11 @@ import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
+import * as crypto from 'crypto';
 
 // Định nghĩa Interface cho Giỏ hàng trong Redis
 interface CartItem {
+	itemKey: string; // Unique key: hash(menuItemId + modifiers)
 	menuItemId: string;
 	name: string;
 	quantity: number;
@@ -36,9 +38,40 @@ export class CartService {
 		@Inject('PRODUCT_SERVICE') private readonly productClient: ClientProxy,
 	) {}
 
+	/**
+	 * Validate API key for cart operations
+	 * Security: All cart operations should be authenticated
+	 */
+	private validateApiKey(providedKey: string): void {
+		const validKey = this.configService.get<string>('ORDER_API_KEY');
+		if (providedKey !== validKey) {
+			throw new AppException(ErrorCode.UNAUTHORIZED);
+		}
+	}
+
 	// Helper: Tạo key cho Redis
 	private getCartKey(tenantId: string, tableId: string): string {
 		return `cart:${tenantId}:${tableId}`;
+	}
+
+	/**
+	 * Helper: Generate unique item key based on menuItemId + modifiers
+	 * This ensures items with different modifiers are treated as separate items
+	 *
+	 * Example:
+	 * - Coffee + Sugar = hash(coffee-id + [sugar])
+	 * - Coffee + No Sugar = hash(coffee-id + [no-sugar])
+	 * These will have different itemKeys
+	 */
+	private generateItemKey(menuItemId: string, modifiers: any[]): string {
+		// Sort modifiers để đảm bảo consistent hash
+		const sortedModifiers = (modifiers || [])
+			.map((mod) => `${mod.modifierGroupId}:${mod.modifierOptionId}`)
+			.sort()
+			.join('|');
+
+		const content = `${menuItemId}|${sortedModifiers}`;
+		return crypto.createHash('md5').update(content).digest('hex');
 	}
 
 	// 1. Lấy giỏ hàng
@@ -51,6 +84,9 @@ export class CartService {
 
 	// 2. Thêm vào giỏ hàng
 	async addToCart(dto: AddToCartDto): Promise<Cart> {
+		// Validate API key
+		this.validateApiKey(dto.cartApiKey);
+
 		// Validate input
 		if (dto.quantity <= 0) {
 			throw new AppException(ErrorCode.INVALID_CART_QUANTITY);
@@ -66,21 +102,21 @@ export class CartService {
 		const cart = await this.getCart(dto.tenantId, dto.tableId);
 		const { menuItemId, quantity, price, modifiers, notes, name } = dto;
 
-		// Kiểm tra xem món này (cùng modifiers) đã có trong giỏ chưa
-		// Lưu ý: So sánh modifiers phức tạp hơn, ở đây mình so sánh menuItemId đơn giản
-		// Trong thực tế bạn nên tạo một uniqueId cho mỗi dòng item dựa trên hash(menuItemId + modifiers)
-		const existingItemIndex = cart.items.findIndex(
-			(item) => item.menuItemId === menuItemId,
-		);
+		// Generate unique item key based on menuItemId + modifiers
+		const itemKey = this.generateItemKey(menuItemId, modifiers || []);
+
+		// Tìm item với CÙNG menuItemId VÀ CÙNG modifiers
+		const existingItemIndex = cart.items.findIndex((item) => item.itemKey === itemKey);
 
 		if (existingItemIndex > -1) {
-			// Nếu có rồi -> Tăng số lượng
+			// Nếu có rồi (cùng món, cùng modifiers) -> Tăng số lượng
 			cart.items[existingItemIndex].quantity += quantity;
 			cart.items[existingItemIndex].subtotal =
 				cart.items[existingItemIndex].quantity * cart.items[existingItemIndex].price;
 		} else {
-			// Nếu chưa có -> Thêm mới
+			// Nếu chưa có (món mới hoặc modifiers khác) -> Thêm mới
 			cart.items.push({
+				itemKey, // Unique identifier
 				menuItemId,
 				name,
 				quantity,
@@ -102,24 +138,24 @@ export class CartService {
 		);
 
 		this.logger.log(
-			`Added item ${menuItemId} to cart for tenant ${dto.tenantId}, table ${dto.tableId}`,
+			`Added item ${menuItemId} (key: ${itemKey}) to cart for tenant ${dto.tenantId}, table ${dto.tableId}`,
 		);
 
 		return cart;
 	}
 
 	// 3. Xóa một món khỏi giỏ
-	async removeItem(tenantId: string, tableId: string, menuItemId: string): Promise<Cart> {
+	async removeItem(tenantId: string, tableId: string, itemKey: string): Promise<Cart> {
 		const cart = await this.getCart(tenantId, tableId);
 
 		// Check if item exists
-		const itemExists = cart.items.some((item) => item.menuItemId === menuItemId);
+		const itemExists = cart.items.some((item) => item.itemKey === itemKey);
 		if (!itemExists) {
 			throw new AppException(ErrorCode.CART_ITEM_NOT_FOUND);
 		}
 
 		// Lọc bỏ món cần xóa
-		cart.items = cart.items.filter((item) => item.menuItemId !== menuItemId);
+		cart.items = cart.items.filter((item) => item.itemKey !== itemKey);
 
 		this.recalculateCart(cart);
 		await this.cacheManager.set(
@@ -129,7 +165,7 @@ export class CartService {
 		);
 
 		this.logger.log(
-			`Removed item ${menuItemId} from cart for tenant ${tenantId}, table ${tableId}`,
+			`Removed item ${itemKey} from cart for tenant ${tenantId}, table ${tableId}`,
 		);
 
 		return cart;
@@ -143,13 +179,17 @@ export class CartService {
 
 	// 5. Cập nhật số lượng của một item
 	async updateItemQuantity(dto: UpdateCartItemQuantityDto): Promise<Cart> {
+		// Validate API key
+		this.validateApiKey(dto.cartApiKey);
+
 		if (dto.quantity <= 0) {
 			throw new AppException(ErrorCode.INVALID_CART_QUANTITY);
 		}
 
 		const cart = await this.getCart(dto.tenantId, dto.tableId);
 
-		const itemIndex = cart.items.findIndex((item) => item.menuItemId === dto.menuItemId);
+		// Find by itemKey instead of menuItemId
+		const itemIndex = cart.items.findIndex((item) => item.itemKey === dto.itemKey);
 		if (itemIndex === -1) {
 			throw new AppException(ErrorCode.CART_ITEM_NOT_FOUND);
 		}
@@ -166,7 +206,7 @@ export class CartService {
 		);
 
 		this.logger.log(
-			`Updated item ${dto.menuItemId} quantity to ${dto.quantity} for tenant ${dto.tenantId}, table ${dto.tableId}`,
+			`Updated item ${dto.itemKey} quantity to ${dto.quantity} for tenant ${dto.tenantId}, table ${dto.tableId}`,
 		);
 
 		return cart;
