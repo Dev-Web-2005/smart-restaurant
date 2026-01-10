@@ -12,6 +12,7 @@ import {
 	CancelOrderRequestDto,
 	UpdatePaymentStatusRequestDto,
 } from './dtos/request';
+import { CheckoutCartDto } from '../cart/dtos/request/checkout-cart.dto';
 
 /**
  * OrderController
@@ -153,6 +154,26 @@ export class OrderController {
 		return handleRpcCall(async () => {
 			const order = await this.orderService.updatePaymentStatus(dto);
 			return new HttpResponse(1000, 'Payment status updated successfully', order);
+		});
+	}
+
+	/**
+	 * Checkout from cart to create order
+	 * RPC Pattern: 'orders:checkout'
+	 *
+	 * Business Flow:
+	 * 1. Customer reviews cart items
+	 * 2. Customer confirms checkout
+	 * 3. Cart items are converted to order items
+	 * 4. Order is created with PENDING status
+	 * 5. Cart is cleared
+	 * 6. Waiter receives notification (via RabbitMQ - to be implemented)
+	 */
+	@MessagePattern('orders:checkout')
+	async checkoutCart(dto: CheckoutCartDto) {
+		return handleRpcCall(async () => {
+			const order = await this.orderService.createOrderFromCart(dto);
+			return new HttpResponse(1000, 'Order created from cart successfully', order);
 		});
 	}
 }

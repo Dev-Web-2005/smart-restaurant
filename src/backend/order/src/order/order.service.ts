@@ -139,52 +139,125 @@ export class OrderService {
 		return this.mapToOrderResponse(savedOrder);
 	}
 
-	// TODO: Checkout từ Cart Service để tạo Order
-	/*
+	/**
+	 * Checkout from Cart Service to create Order
+	 *
+	 * Business Rules:
+	 * - Cart must not be empty
+	 * - Check if active order already exists for table
+	 * - Convert cart items to order items
+	 * - Calculate totals including tax
+	 * - Clear cart after successful checkout
+	 */
 	async createOrderFromCart(dto: {
-		customerId: string;
+		orderApiKey: string;
+		customerId?: string;
+		customerName?: string;
 		tenantId: string;
 		tableId: string;
-	}) {
+		orderType?: string;
+		notes?: string;
+	}): Promise<OrderResponseDto> {
+		this.validateApiKey(dto.orderApiKey);
+
 		// 1. Lấy data từ Redis
 		const cart = await this.cartService.getCart(dto.tenantId, dto.tableId);
 
-		if (cart.items.length === 0) {
+		if (!cart.items || cart.items.length === 0) {
 			throw new AppException(ErrorCode.CART_EMPTY);
 		}
 
-		// 2. Convert từ Cart Item (Redis) sang Order Entity (TypeORM)
-		// Lưu ý: Logic này tương tự createOrder cũ nhưng nguồn dữ liệu là biến 'cart'
-		const newOrder = new Order();
-		newOrder.tenantId = dto.tenantId;
-		newOrder.tableId = dto.tableId;
-		newOrder.customerId = dto.customerId;
-		newOrder.status = OrderStatus.PENDING;
-		newOrder.total = cart.totalPrice;
+		// 2. Check for existing active order on this table
+		const existingOrder = await this.orderRepository.findOne({
+			where: {
+				tenantId: dto.tenantId,
+				tableId: dto.tableId,
+				status: In([
+					OrderStatus.PENDING,
+					OrderStatus.ACCEPTED,
+					OrderStatus.PREPARING,
+					OrderStatus.READY,
+					OrderStatus.SERVED,
+				]),
+			},
+		});
 
-		newOrder.items = cart.items.map((cartItem) => {
-			const orderItem = new OrderItem();
-			orderItem.menuItemId = cartItem.menuItemId;
-			orderItem.name = cartItem.name;
-			orderItem.quantity = cartItem.quantity;
-			orderItem.unitPrice = cartItem.price;
-			orderItem.subtotal = cartItem.subtotal;
-			orderItem.modifiers = cartItem.modifiers; // Cần map đúng kiểu dữ liệu
+		if (existingOrder) {
+			throw new AppException(ErrorCode.CART_HAS_ACTIVE_ORDER);
+		}
+
+		// 3. Convert string status to enum
+		const orderType = dto.orderType
+			? orderTypeFromString(dto.orderType)
+			: OrderType.DINE_IN;
+
+		// 4. Create Order entity
+		const newOrder = this.orderRepository.create({
+			tenantId: dto.tenantId,
+			tableId: dto.tableId,
+			customerId: dto.customerId,
+			customerName: dto.customerName,
+			orderType: orderType,
+			status: OrderStatus.PENDING,
+			paymentStatus: PaymentStatus.PENDING,
+			notes: dto.notes,
+			currency: 'VND',
+			subtotal: 0,
+			tax: 0,
+			discount: 0,
+			total: 0,
+		});
+
+		// Save order first to get ID for foreign key
+		await this.orderRepository.save(newOrder);
+
+		// 5. Convert Cart Items to Order Items
+		const orderItems: OrderItem[] = cart.items.map((cartItem) => {
+			// Calculate modifiers total
+			const modifiersTotal =
+				cartItem.modifiers?.reduce((sum, mod) => sum + (mod.price || 0), 0) || 0;
+
+			const orderItem = this.orderItemRepository.create({
+				orderId: newOrder.id,
+				menuItemId: cartItem.menuItemId,
+				name: cartItem.name,
+				unitPrice: cartItem.price,
+				quantity: cartItem.quantity,
+				subtotal: cartItem.price * cartItem.quantity,
+				modifiersTotal: modifiersTotal * cartItem.quantity,
+				total: cartItem.price * cartItem.quantity + modifiersTotal * cartItem.quantity,
+				modifiers: cartItem.modifiers || [],
+				notes: cartItem.notes,
+				currency: 'VND',
+			});
+
 			return orderItem;
 		});
 
-		// 3. Lưu Order vào Database SQL
+		newOrder.items = orderItems;
+
+		// 6. Calculate order totals
+		this.calculateOrderTotals(newOrder);
+
+		// 7. Save order with items
 		const savedOrder = await this.orderRepository.save(newOrder);
 
-		// 4. Xóa Cart trong Redis sau khi tạo đơn thành công
-		await this.cartService.clearCart(dto.customerId);
+		// 8. Clear cart after successful checkout
+		await this.cartService.clearCart(dto.tenantId, dto.tableId);
 
-		// 5. Bắn RabbitMQ (như code cũ của bạn)
-		// this.notificationClient.emit(...)
+		this.logger.log(
+			`Order created from cart: ${savedOrder.id} for table ${dto.tableId} with ${orderItems.length} items`,
+		);
 
-		return savedOrder;
+		// TODO: 9. Emit event to notification service via RabbitMQ
+		// this.notificationClient.emit('order.created', {
+		//   orderId: savedOrder.id,
+		//   tenantId: dto.tenantId,
+		//   tableId: dto.tableId,
+		// });
+
+		return this.mapToOrderResponse(savedOrder);
 	}
-	*/
 
 	/**
 	 * Get a single order by ID

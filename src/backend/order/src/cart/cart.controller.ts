@@ -2,15 +2,18 @@ import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { CartService } from './cart.service';
 import { AddToCartDto } from './dtos/request/add-to-cart.dto';
-import HttpResponse from '@shared/utils/http-response'; // Giả sử bạn có util này
+import { UpdateCartItemQuantityDto } from './dtos/request/update-cart-item-quantity.dto';
+import { GetCartDto } from './dtos/request/get-cart.dto';
+import { RemoveCartItemDto } from './dtos/request/remove-cart-item.dto';
+import HttpResponse from '@shared/utils/http-response';
 
 @Controller()
 export class CartController {
 	constructor(private readonly cartService: CartService) {}
 
 	@MessagePattern('cart:get')
-	async getCart(@Payload() data: { tenantId: string; tableId: string }) {
-		const cart = await this.cartService.getCart(data.tenantId, data.tableId);
+	async getCart(@Payload() dto: GetCartDto) {
+		const cart = await this.cartService.getCart(dto.tenantId, dto.tableId);
 		return new HttpResponse(1000, 'Get cart success', cart);
 	}
 
@@ -20,21 +23,25 @@ export class CartController {
 		return new HttpResponse(1000, 'Item added to cart', cart);
 	}
 
+	@MessagePattern('cart:update-quantity')
+	async updateQuantity(@Payload() dto: UpdateCartItemQuantityDto) {
+		const cart = await this.cartService.updateItemQuantity(dto);
+		return new HttpResponse(1000, 'Cart item quantity updated', cart);
+	}
+
 	@MessagePattern('cart:remove-item')
-	async removeItem(
-		@Payload() data: { tenantId: string; tableId: string; menuItemId: string },
-	) {
+	async removeItem(@Payload() dto: RemoveCartItemDto) {
 		const cart = await this.cartService.removeItem(
-			data.tenantId,
-			data.tableId,
-			data.menuItemId,
+			dto.tenantId,
+			dto.tableId,
+			dto.menuItemId,
 		);
 		return new HttpResponse(1000, 'Item removed', cart);
 	}
 
 	@MessagePattern('cart:clear')
-	async clearCart(@Payload() data: { tenantId: string; tableId: string }) {
-		await this.cartService.clearCart(data.tenantId, data.tableId);
+	async clearCart(@Payload() dto: GetCartDto) {
+		await this.cartService.clearCart(dto.tenantId, dto.tableId);
 		return new HttpResponse(1000, 'Cart cleared', null);
 	}
 }
