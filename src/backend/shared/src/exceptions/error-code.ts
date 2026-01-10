@@ -320,6 +320,12 @@ export default class ErrorCode {
 		404
 	);
 
+	static readonly CART_EMPTY: ErrorCode = new ErrorCode(
+		4016,
+		"Cart is empty",
+		400
+	);
+
 	// ==================== PAYMENT (5000-5999) ====================
 	// Reserved for payment service
 
