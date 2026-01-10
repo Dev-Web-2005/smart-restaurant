@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { OrderModule } from './order/order.module';
 import { Order, OrderItem } from './common/entities';
+import { CartModule } from './cart/cart.module';
 
 @Module({
 	imports: [
@@ -30,6 +31,8 @@ import { Order, OrderItem } from './common/entities';
 		}),
 
 		OrderModule,
+
+		CartModule,
 	],
 	controllers: [AppController],
 	providers: [AppService],
