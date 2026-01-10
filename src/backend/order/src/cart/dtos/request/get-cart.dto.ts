@@ -3,7 +3,7 @@ import { IsString, IsNotEmpty } from 'class-validator';
 export class GetCartDto {
 	@IsString()
 	@IsNotEmpty()
-	cartApiKey: string;
+	orderApiKey: string;
 
 	@IsString()
 	@IsNotEmpty()

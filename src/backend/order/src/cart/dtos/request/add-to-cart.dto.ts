@@ -11,7 +11,7 @@ import {
 export class AddToCartDto {
 	@IsString()
 	@IsNotEmpty()
-	cartApiKey: string;
+	orderApiKey: string;
 
 	@IsString()
 	@IsNotEmpty()

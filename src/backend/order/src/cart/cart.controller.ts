@@ -15,7 +15,7 @@ export class CartController {
 	@MessagePattern('cart:get')
 	async getCart(@Payload() dto: GetCartDto) {
 		return handleRpcCall(async () => {
-			const cart = await this.cartService.getCart(dto.tenantId, dto.tableId);
+			const cart = await this.cartService.getCart(dto);
 			return new HttpResponse(1000, 'Get cart success', cart);
 		});
 	}
@@ -39,14 +39,7 @@ export class CartController {
 	@MessagePattern('cart:remove-item')
 	async removeItem(@Payload() dto: RemoveCartItemDto) {
 		return handleRpcCall(async () => {
-			// Validate API key
-			this.cartService['validateApiKey'](dto.cartApiKey);
-
-			const cart = await this.cartService.removeItem(
-				dto.tenantId,
-				dto.tableId,
-				dto.itemKey,
-			);
+			const cart = await this.cartService.removeItem(dto);
 			return new HttpResponse(1000, 'Item removed', cart);
 		});
 	}
