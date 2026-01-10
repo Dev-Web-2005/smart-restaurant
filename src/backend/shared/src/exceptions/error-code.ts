@@ -220,7 +220,65 @@ export default class ErrorCode {
 	/** Invalid time/date format provided */
 	static readonly INVALID_TIME_FORMAT: ErrorCode = new ErrorCode(
 		2903,
-		"Invalid time format",
+		"Invalid time or date format",
+		400
+	);
+
+	// ==================== CART (4500-4599) ====================
+
+	/** Cart is empty, cannot proceed with checkout */
+	static readonly CART_EMPTY: ErrorCode = new ErrorCode(
+		4501,
+		"Cart is empty",
+		400
+	);
+
+	/** Cart item not found */
+	static readonly CART_ITEM_NOT_FOUND: ErrorCode = new ErrorCode(
+		4502,
+		"Cart item not found",
+		404
+	);
+
+	/** Invalid cart operation */
+	static readonly INVALID_CART_OPERATION: ErrorCode = new ErrorCode(
+		4503,
+		"Invalid cart operation",
+		400
+	);
+
+	/** Cart has expired or been cleared */
+	static readonly CART_EXPIRED: ErrorCode = new ErrorCode(
+		4504,
+		"Cart has expired or been cleared",
+		404
+	);
+
+	/** Invalid quantity for cart item */
+	static readonly INVALID_CART_QUANTITY: ErrorCode = new ErrorCode(
+		4505,
+		"Invalid quantity. Must be greater than 0",
+		400
+	);
+
+	/** Menu item not available for cart */
+	static readonly MENU_ITEM_NOT_AVAILABLE: ErrorCode = new ErrorCode(
+		4506,
+		"Menu item is not available",
+		400
+	);
+
+	/** Table is not available for ordering */
+	static readonly TABLE_NOT_AVAILABLE: ErrorCode = new ErrorCode(
+		4507,
+		"Table is not available for ordering",
+		400
+	);
+
+	/** Cart already has an active order */
+	static readonly CART_HAS_ACTIVE_ORDER: ErrorCode = new ErrorCode(
+		4508,
+		"This table already has an active order",
 		400
 	);
 
@@ -318,12 +376,6 @@ export default class ErrorCode {
 		4015,
 		"Order item not found",
 		404
-	);
-
-	static readonly CART_EMPTY: ErrorCode = new ErrorCode(
-		4016,
-		"Cart is empty",
-		400
 	);
 
 	// ==================== PAYMENT (5000-5999) ====================
