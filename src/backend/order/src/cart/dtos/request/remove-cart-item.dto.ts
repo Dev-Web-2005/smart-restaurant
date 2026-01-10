@@ -1,6 +1,10 @@
-import { IsString, IsNotEmpty, IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty } from 'class-validator';
 
 export class RemoveCartItemDto {
+	@IsString()
+	@IsNotEmpty()
+	cartApiKey: string;
+
 	@IsString()
 	@IsNotEmpty()
 	tenantId: string;
@@ -9,7 +13,7 @@ export class RemoveCartItemDto {
 	@IsNotEmpty()
 	tableId: string;
 
-	@IsUUID()
+	@IsString()
 	@IsNotEmpty()
-	menuItemId: string;
+	itemKey: string;
 }

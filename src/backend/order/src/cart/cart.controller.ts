@@ -6,6 +6,7 @@ import { UpdateCartItemQuantityDto } from './dtos/request/update-cart-item-quant
 import { GetCartDto } from './dtos/request/get-cart.dto';
 import { RemoveCartItemDto } from './dtos/request/remove-cart-item.dto';
 import HttpResponse from '@shared/utils/http-response';
+import { handleRpcCall } from '@shared/utils/rpc-error-handler';
 
 @Controller()
 export class CartController {
@@ -13,35 +14,48 @@ export class CartController {
 
 	@MessagePattern('cart:get')
 	async getCart(@Payload() dto: GetCartDto) {
-		const cart = await this.cartService.getCart(dto.tenantId, dto.tableId);
-		return new HttpResponse(1000, 'Get cart success', cart);
+		return handleRpcCall(async () => {
+			const cart = await this.cartService.getCart(dto.tenantId, dto.tableId);
+			return new HttpResponse(1000, 'Get cart success', cart);
+		});
 	}
 
 	@MessagePattern('cart:add')
 	async addToCart(@Payload() dto: AddToCartDto) {
-		const cart = await this.cartService.addToCart(dto);
-		return new HttpResponse(1000, 'Item added to cart', cart);
+		return handleRpcCall(async () => {
+			const cart = await this.cartService.addToCart(dto);
+			return new HttpResponse(1000, 'Item added to cart', cart);
+		});
 	}
 
 	@MessagePattern('cart:update-quantity')
 	async updateQuantity(@Payload() dto: UpdateCartItemQuantityDto) {
-		const cart = await this.cartService.updateItemQuantity(dto);
-		return new HttpResponse(1000, 'Cart item quantity updated', cart);
+		return handleRpcCall(async () => {
+			const cart = await this.cartService.updateItemQuantity(dto);
+			return new HttpResponse(1000, 'Cart item quantity updated', cart);
+		});
 	}
 
 	@MessagePattern('cart:remove-item')
 	async removeItem(@Payload() dto: RemoveCartItemDto) {
-		const cart = await this.cartService.removeItem(
-			dto.tenantId,
-			dto.tableId,
-			dto.menuItemId,
-		);
-		return new HttpResponse(1000, 'Item removed', cart);
+		return handleRpcCall(async () => {
+			// Validate API key
+			this.cartService['validateApiKey'](dto.cartApiKey);
+
+			const cart = await this.cartService.removeItem(
+				dto.tenantId,
+				dto.tableId,
+				dto.itemKey,
+			);
+			return new HttpResponse(1000, 'Item removed', cart);
+		});
 	}
 
 	@MessagePattern('cart:clear')
 	async clearCart(@Payload() dto: GetCartDto) {
-		await this.cartService.clearCart(dto.tenantId, dto.tableId);
-		return new HttpResponse(1000, 'Cart cleared', null);
+		return handleRpcCall(async () => {
+			await this.cartService.clearCart(dto.tenantId, dto.tableId);
+			return new HttpResponse(1000, 'Cart cleared', null);
+		});
 	}
 }
