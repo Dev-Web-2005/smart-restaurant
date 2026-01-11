@@ -13,6 +13,8 @@ import { ProductController } from './services/product/product.controller';
 import { PublicUrlMiddleware } from 'src/common/middleware/public-url/public-url.middleware';
 import { HealthController } from './health.controller';
 import { NotificationController } from './services/notification/notification.controller';
+import { OrderController } from './services/order/order.controller';
+import { CartController } from './services/cart/cart.controller';
 
 @Module({
 	imports: [
@@ -23,7 +25,7 @@ import { NotificationController } from './services/notification/notification.con
 				transport: Transport.TCP,
 				options: {
 					host: process.env.HOST_IDENTITY_SERVICE || 'localhost',
-					port: +process.env.PORT_IDENTITY_SERVICE || 8080,
+					port: +process.env.PORT_IDENTITY_SERVICE || 8084,
 				},
 			},
 			{
@@ -51,11 +53,19 @@ import { NotificationController } from './services/notification/notification.con
 				},
 			},
 			{
+				name: 'ORDER_SERVICE',
+				transport: Transport.TCP,
+				options: {
+					host: process.env.HOST_ORDER_SERVICE || 'localhost',
+					port: +process.env.PORT_ORDER_SERVICE || 8087,
+				},
+			},
+			{
 				name: 'NOTIFICATION_SERVICE',
 				transport: Transport.TCP,
 				options: {
 					host: process.env.HOST_NOTIFICATION_SERVICE || 'localhost',
-					port: +process.env.PORT_NOTIFICATION_SERVICE || 8086,
+					port: +process.env.PORT_NOTIFICATION_SERVICE || 8085,
 				},
 			},
 		]),
@@ -69,6 +79,8 @@ import { NotificationController } from './services/notification/notification.con
 		FloorController,
 		ProductController,
 		NotificationController,
+		OrderController,
+		CartController,
 	],
 	providers: [AppService],
 })

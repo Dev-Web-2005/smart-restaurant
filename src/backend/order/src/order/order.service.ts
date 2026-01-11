@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, Not } from 'typeorm';
 import { Order, OrderItem } from '../common/entities';
 import {
 	OrderStatus,
@@ -14,6 +14,9 @@ import {
 	orderStatusFromString,
 	orderTypeFromString,
 	paymentStatusFromString,
+	OrderItemStatus,
+	OrderItemStatusLabels,
+	isValidOrderItemStatusTransition,
 } from '../common/enums';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
@@ -23,6 +26,7 @@ import {
 	GetOrdersRequestDto,
 	AddItemsToOrderRequestDto,
 	UpdateOrderStatusRequestDto,
+	UpdateOrderItemsStatusRequestDto,
 	CancelOrderRequestDto,
 	UpdatePaymentStatusRequestDto,
 	CreateOrderItemDto,
@@ -34,6 +38,7 @@ import {
 } from './dtos/response';
 import { ClientProxy } from '@nestjs/microservices/client/client-proxy';
 import { firstValueFrom } from 'rxjs';
+import { CartService } from 'src/cart/cart.service';
 
 @Injectable()
 export class OrderService {
@@ -46,6 +51,7 @@ export class OrderService {
 		private readonly orderItemRepository: Repository<OrderItem>,
 		@Inject('PRODUCT_SERVICE') private readonly productClient: ClientProxy,
 		private readonly configService: ConfigService,
+		private readonly cartService: CartService,
 	) {}
 
 	/**
@@ -80,13 +86,7 @@ export class OrderService {
 			where: {
 				tenantId: dto.tenantId,
 				tableId: dto.tableId,
-				status: In([
-					OrderStatus.PENDING,
-					OrderStatus.ACCEPTED,
-					OrderStatus.PREPARING,
-					OrderStatus.READY,
-					OrderStatus.SERVED,
-				]),
+				status: Not(In([OrderStatus.COMPLETED, OrderStatus.CANCELLED])),
 			},
 		});
 
@@ -135,6 +135,237 @@ export class OrderService {
 		);
 
 		return this.mapToOrderResponse(savedOrder);
+	}
+
+	/**
+	 * Checkout from Cart Service to create Order
+	 *
+	 * **ORDER SESSION PATTERN** (Phiên đơn hàng):
+	 * - 1 bàn chỉ có 1 order active tại 1 thời điểm
+	 * - Checkout lần đầu → Tạo order mới
+	 * - Checkout lần sau → Append items vào order cũ (gọi thêm món)
+	 *
+	 * Business Rules:
+	 * - Cart must not be empty
+	 * - Check if active order exists → Append items (không tạo mới)
+	 * - Fetch REAL pricing from Product Service (security)
+	 * - Emit kitchen notification ONLY for new items
+	 * - Clear cart after successful checkout
+	 */
+	async createOrderFromCart(dto: {
+		orderApiKey: string;
+		customerId?: string;
+		customerName?: string;
+		tenantId: string;
+		tableId: string;
+		orderType?: string;
+		notes?: string;
+	}): Promise<OrderResponseDto> {
+		this.validateApiKey(dto.orderApiKey);
+
+		// 1. Lấy data từ Redis (Cart)
+		const cart = await this.cartService.getCart({
+			orderApiKey: dto.orderApiKey,
+			tenantId: dto.tenantId,
+			tableId: dto.tableId,
+		});
+
+		if (!cart.items || cart.items.length === 0) {
+			throw new AppException(ErrorCode.CART_EMPTY);
+		}
+
+		// 2. CHECK & APPEND Logic - Kiểm tra order session hiện tại
+		let currentOrder: Order;
+		let isNewOrder = false;
+
+		const existingOrder = await this.orderRepository.findOne({
+			where: {
+				tenantId: dto.tenantId,
+				tableId: dto.tableId,
+				status: Not(In([OrderStatus.COMPLETED, OrderStatus.CANCELLED])),
+			},
+			relations: ['items'], // Load existing items for append scenario
+		});
+
+		if (existingOrder) {
+			// **TRƯỜNG HỢP B: ĐÃ CÓ ORDER ACTIVE - APPEND ITEMS**
+			this.logger.log(
+				`Found existing order ${existingOrder.id} for table ${dto.tableId}. Will append new items.`,
+			);
+			currentOrder = existingOrder;
+
+			// Update order status to IN_PROGRESS if appending items. P/s: No, only update when items start being prepared (update in updateOrderItemsStatus)
+			// if (currentOrder.status === OrderStatus.PENDING) {
+			// 	currentOrder.status = OrderStatus.IN_PROGRESS;
+			// }
+
+			// Merge notes if provided
+			if (dto.notes) {
+				currentOrder.notes = currentOrder.notes
+					? `${currentOrder.notes}\n---\n${dto.notes}`
+					: dto.notes;
+			}
+		} else {
+			// **TRƯỜNG HỢP A: CHƯA CÓ ORDER - TẠO MỚI**
+			this.logger.log(
+				`No active order found for table ${dto.tableId}. Creating new order.`,
+			);
+			isNewOrder = true;
+
+			const orderType = dto.orderType
+				? orderTypeFromString(dto.orderType)
+				: OrderType.DINE_IN;
+
+			currentOrder = this.orderRepository.create({
+				tenantId: dto.tenantId,
+				tableId: dto.tableId,
+				customerId: dto.customerId,
+				customerName: dto.customerName,
+				orderType: orderType,
+				status: OrderStatus.PENDING,
+				paymentStatus: PaymentStatus.PENDING,
+				notes: dto.notes,
+				currency: 'VND',
+				subtotal: 0,
+				tax: 0,
+				discount: 0,
+				total: 0,
+			});
+
+			// Save order first to get ID for foreign key
+			await this.orderRepository.save(currentOrder);
+		}
+
+		// 3. Validate cart items và fetch REAL pricing từ Product Service
+		// Loop CHỈ 1 LẦN duy nhất với orderId chính xác
+		const newOrderItems: OrderItem[] = [];
+
+		for (const cartItem of cart.items) {
+			// Fetch REAL menu item details from Product Service
+			const menuItemResponse = await firstValueFrom(
+				this.productClient.send('menu-items:get', {
+					productApiKey: this.configService.get<string>('PRODUCT_API_KEY'),
+					tenantId: dto.tenantId,
+					menuItemId: cartItem.menuItemId,
+				}),
+			);
+
+			// Extract real menu item data
+			const menuItem = menuItemResponse.data;
+
+			// Check if menu item is still available
+			if (!menuItem || menuItem.status !== 'AVAILABLE') {
+				this.logger.error(
+					`Menu item ${cartItem.name} (ID: ${cartItem.menuItemId}) is no longer available`,
+				);
+				throw new AppException(ErrorCode.MENU_ITEM_NOT_AVAILABLE);
+			}
+
+			// Fetch REAL modifier pricing from Product Service
+			let modifiersTotal = 0;
+			const validatedModifiers = [];
+
+			if (cartItem.modifiers && cartItem.modifiers.length > 0) {
+				for (const modDto of cartItem.modifiers) {
+					// Fetch modifier group details
+					const modifierGroupResponse = await firstValueFrom(
+						this.productClient.send('modifier-groups:get', {
+							productApiKey: this.configService.get<string>('PRODUCT_API_KEY'),
+							tenantId: dto.tenantId,
+							modifierGroupId: modDto.modifierGroupId,
+						}),
+					);
+
+					// Fetch modifier option details (REAL price)
+					const modifierOptionResponse = await firstValueFrom(
+						this.productClient.send('modifier-options:get', {
+							productApiKey: this.configService.get<string>('PRODUCT_API_KEY'),
+							tenantId: dto.tenantId,
+							modifierGroupId: modDto.modifierGroupId,
+							modifierOptionId: modDto.modifierOptionId,
+						}),
+					);
+
+					const modifierGroup = modifierGroupResponse.data;
+					const modifierOption = modifierOptionResponse.data;
+
+					const orderItemModifier = {
+						modifierGroupId: modDto.modifierGroupId,
+						modifierGroupName: modifierGroup.name,
+						modifierOptionId: modDto.modifierOptionId,
+						optionName: modifierOption.label,
+						price: modifierOption.priceDelta, // REAL price from Product Service
+						currency: 'VND',
+					};
+
+					validatedModifiers.push(orderItemModifier);
+					modifiersTotal += orderItemModifier.price * cartItem.quantity;
+				}
+			}
+
+			// Calculate totals using REAL prices
+			const realUnitPrice = menuItem.price; // REAL price from Product Service
+			const subtotal = realUnitPrice * cartItem.quantity;
+			const total = subtotal + modifiersTotal;
+
+			// Tạo OrderItem với orderId ĐÚNG ngay từ đầu (không cần gán lại sau!)
+			const orderItem = this.orderItemRepository.create({
+				orderId: currentOrder.id, // ✅ Đã có ID chính xác
+				menuItemId: cartItem.menuItemId,
+				name: menuItem.name, // Use real name from Product Service
+				description: menuItem.description,
+				unitPrice: realUnitPrice, // REAL price, not from cart
+				quantity: cartItem.quantity,
+				subtotal: subtotal,
+				modifiersTotal: modifiersTotal,
+				total: total,
+				modifiers: validatedModifiers,
+				notes: cartItem.notes,
+				currency: 'VND',
+				status: OrderItemStatus.PENDING, // Set initial item status
+			});
+
+			newOrderItems.push(orderItem);
+		}
+
+		// 4. Append items và save
+		if (isNewOrder) {
+			currentOrder.items = newOrderItems;
+		} else {
+			// Append to existing items
+			currentOrder.items = [...currentOrder.items, ...newOrderItems];
+		}
+
+		// 5. Calculate totals and save
+		this.calculateOrderTotals(currentOrder);
+		const finalOrder = await this.orderRepository.save(currentOrder);
+
+		// Clear cart after successful checkout
+		await this.cartService.clearCart(dto.tenantId, dto.tableId);
+
+		this.logger.log(
+			`Checkout success: Order ${finalOrder.id} | Table ${dto.tableId} | ${isNewOrder ? 'NEW' : 'APPENDED'} | Items added: ${newOrderItems.length} | Total items: ${finalOrder.items.length}`,
+		);
+
+		// TODO: Emit RabbitMQ event CHỈ CHO CÁC MÓN MỚI
+		// Để tránh bếp nấu lại các món cũ!
+		// if (isNewOrder) {
+		//   this.notificationClient.emit('order.created', {
+		//     orderId: finalOrder.id,
+		//     tenantId: dto.tenantId,
+		//     tableId: dto.tableId,
+		//     items: newOrderItems, // All items for new order
+		//   });
+		// } else {
+		//   this.notificationClient.emit('order.items-added', {
+		//     orderId: finalOrder.id,
+		//     tenantId: dto.tenantId,
+		//     tableId: dto.tableId,
+		//     newItems: newOrderItems, // ONLY new items for kitchen
+		//   });
+		// }
+
+		return this.mapToOrderResponse(finalOrder);
 	}
 
 	/**
@@ -271,10 +502,15 @@ export class OrderService {
 	/**
 	 * Update order status
 	 *
+	 * SIMPLIFIED for Item-Level Status Architecture:
+	 * - Order status now only supports: PENDING → IN_PROGRESS → COMPLETED or CANCELLED
+	 * - Detailed status tracking moved to OrderItem level
+	 * - This method is primarily used for payment completion and cancellation
+	 *
 	 * Business Rules:
 	 * - Must follow valid status transitions
 	 * - Updates corresponding timestamps
-	 * - REJECTED requires a reason
+	 * - COMPLETED requires payment to be processed
 	 */
 	async updateOrderStatus(dto: UpdateOrderStatusRequestDto): Promise<OrderResponseDto> {
 		this.validateApiKey(dto.orderApiKey);
@@ -296,48 +532,182 @@ export class OrderService {
 
 		// Validate status transition
 		if (!isValidStatusTransition(order.status, newStatus)) {
+			this.logger.error(
+				`Invalid status transition from ${orderStatusToString(order.status)} to ${orderStatusToString(newStatus)} for order ${order.id}`,
+			);
 			throw new AppException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
-		}
-
-		// Validate rejection reason
-		if (newStatus === OrderStatus.REJECTED && !dto.rejectionReason) {
-			throw new AppException(ErrorCode.VALIDATION_FAILED);
 		}
 
 		// Update status and timestamps
 		order.status = newStatus;
 
 		switch (newStatus) {
-			case OrderStatus.ACCEPTED:
-				order.acceptedAt = new Date();
-				order.waiterId = dto.waiterId;
-				break;
-			case OrderStatus.REJECTED:
-				order.rejectionReason = dto.rejectionReason;
-				break;
-			case OrderStatus.PREPARING:
-				order.preparingAt = new Date();
-				break;
-			case OrderStatus.READY:
-				order.readyAt = new Date();
-				break;
-			case OrderStatus.SERVED:
-				order.servedAt = new Date();
+			case OrderStatus.IN_PROGRESS:
+				// Auto-set when items start processing
 				break;
 			case OrderStatus.COMPLETED:
 				order.completedAt = new Date();
+				break;
+			case OrderStatus.CANCELLED:
+				// Timestamp set via CreatedAt/UpdatedAt
 				break;
 		}
 
 		const updatedOrder = await this.orderRepository.save(order);
 
 		this.logger.log(
-			`Order ${order.id} status updated from ${orderStatusToString(order.status)} to ${orderStatusToString(newStatus)}`,
+			`Order ${order.id} status updated to ${orderStatusToString(newStatus)}`,
 		);
 
 		// TODO: Send notification via RabbitMQ
 
 		return this.mapToOrderResponse(updatedOrder);
+	}
+
+	/**
+	 * Update status of specific order items
+	 *
+	 * NEW METHOD: Item-level status management
+	 *
+	 * Business Rules:
+	 * - All itemIds must belong to the specified order
+	 * - Must validate status transitions (PENDING → ACCEPTED → PREPARING → READY → SERVED)
+	 * - Cannot update items in terminal states (SERVED, REJECTED, CANCELLED)
+	 * - If status is REJECTED, rejectionReason is required
+	 * - Auto-update parent Order status based on item statuses:
+	 *   - If all items are SERVED → Order can be marked for payment
+	 *   - If any items are in progress → Order status = IN_PROGRESS
+	 *
+	 * Use Cases:
+	 * - Kitchen marks items as PREPARING when they start cooking
+	 * - Kitchen marks items as READY when food is cooked
+	 * - Waiter marks items as SERVED when delivered to table
+	 * - Staff can REJECT items if ingredients unavailable
+	 */
+	async updateOrderItemsStatus(
+		dto: UpdateOrderItemsStatusRequestDto,
+	): Promise<OrderResponseDto> {
+		this.validateApiKey(dto.orderApiKey);
+
+		// 1. Fetch order with items
+		const order = await this.orderRepository.findOne({
+			where: {
+				id: dto.orderId,
+				tenantId: dto.tenantId,
+			},
+			relations: ['items'],
+		});
+
+		if (!order) {
+			throw new AppException(ErrorCode.ORDER_NOT_FOUND);
+		}
+
+		// 2. Validate that all itemIds belong to this order
+		const orderItemIds = order.items.map((item) => item.id);
+		const invalidItemIds = dto.itemIds.filter((id) => !orderItemIds.includes(id));
+
+		if (invalidItemIds.length > 0) {
+			this.logger.error(
+				`Items ${invalidItemIds.join(', ')} do not belong to order ${dto.orderId}`,
+			);
+			throw new AppException(ErrorCode.INVALID_CART_OPERATION);
+		}
+
+		// 3. Validate rejection reason if status is REJECTED
+		if (dto.status === OrderItemStatus.REJECTED && !dto.rejectionReason) {
+			this.logger.error('Rejection reason is required when rejecting items');
+			throw new AppException(ErrorCode.INVALID_CART_OPERATION);
+		}
+
+		// 4. Update each item status
+		const updatedItems: OrderItem[] = [];
+		const now = new Date();
+
+		for (const itemId of dto.itemIds) {
+			const item = order.items.find((i) => i.id === itemId);
+
+			if (!item) {
+				continue; // Should not happen due to validation above
+			}
+
+			// Validate status transition
+			if (!isValidOrderItemStatusTransition(item.status, dto.status)) {
+				this.logger.error(
+					`Cannot transition item ${item.name} from ${OrderItemStatusLabels[item.status]} to ${OrderItemStatusLabels[dto.status]}`,
+				);
+				throw new AppException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+			}
+
+			// Update item status
+			item.status = dto.status;
+
+			// Update rejection reason if provided
+			if (dto.rejectionReason) {
+				item.rejectionReason = dto.rejectionReason;
+			}
+
+			// Update timestamps based on status
+			switch (dto.status) {
+				case OrderItemStatus.ACCEPTED:
+					item.acceptedAt = now;
+					break;
+				case OrderItemStatus.PREPARING:
+					item.preparingAt = now;
+					break;
+				case OrderItemStatus.READY:
+					item.readyAt = now;
+					break;
+				case OrderItemStatus.SERVED:
+					item.servedAt = now;
+					break;
+			}
+
+			updatedItems.push(item);
+		}
+
+		// 5. Save updated items
+		await this.orderItemRepository.save(updatedItems);
+
+		// 6. Auto-update parent Order status based on item statuses
+		const allItems = order.items;
+		const allServed = allItems.every((item) => item.status === OrderItemStatus.SERVED);
+		const anyInProgress = allItems.some((item) =>
+			[
+				OrderItemStatus.ACCEPTED,
+				OrderItemStatus.PREPARING,
+				OrderItemStatus.READY,
+			].includes(item.status),
+		);
+
+		if (allServed) {
+			// All items served → order can proceed to payment
+			// Note: Order status will be COMPLETED when payment is done
+			this.logger.log(`Order ${order.id}: All items served. Ready for payment.`);
+		} else if (anyInProgress && order.status === OrderStatus.PENDING) {
+			// Some items in progress → mark order as active
+			order.status = OrderStatus.IN_PROGRESS;
+			await this.orderRepository.save(order);
+
+			this.logger.log(
+				`Order ${order.id}: Items in progress. Order status updated to IN_PROGRESS.`,
+			);
+		}
+
+		this.logger.log(
+			`Updated ${updatedItems.length} items to status ${OrderItemStatusLabels[dto.status]} for order ${dto.orderId}`,
+		);
+
+		// TODO: Send notification via RabbitMQ for kitchen/waiter
+		// this.notificationClient.emit('order-items.status-updated', {
+		//   orderId: order.id,
+		//   tenantId: order.tenantId,
+		//   tableId: order.tableId,
+		//   itemIds: dto.itemIds,
+		//   newStatus: OrderItemStatusLabels[dto.status],
+		//   updatedBy: dto.waiterId,
+		// });
+
+		return this.mapToOrderResponse(order);
 	}
 
 	/**
@@ -361,13 +731,15 @@ export class OrderService {
 			throw new AppException(ErrorCode.ORDER_NOT_FOUND);
 		}
 
-		// Check if order can be cancelled
-		if (![OrderStatus.PENDING, OrderStatus.ACCEPTED].includes(order.status)) {
+		// Check if order can be cancelled (only PENDING and IN_PROGRESS)
+		if (![OrderStatus.PENDING, OrderStatus.IN_PROGRESS].includes(order.status)) {
+			this.logger.error(
+				`Cannot cancel order ${order.id} with status ${orderStatusToString(order.status)}`,
+			);
 			throw new AppException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
 		}
 
 		order.status = OrderStatus.CANCELLED;
-		order.rejectionReason = dto.reason || 'Cancelled by user';
 
 		const updatedOrder = await this.orderRepository.save(order);
 
@@ -414,7 +786,10 @@ export class OrderService {
 		}
 
 		// If payment is successful, mark order as completed
-		if (newPaymentStatus === PaymentStatus.PAID && order.status === OrderStatus.SERVED) {
+		if (
+			newPaymentStatus === PaymentStatus.PAID &&
+			order.status === OrderStatus.IN_PROGRESS
+		) {
 			order.status = OrderStatus.COMPLETED;
 			order.completedAt = new Date();
 		}
@@ -514,6 +889,7 @@ export class OrderService {
 				modifiersTotal: modifiersTotal,
 				total: total,
 				currency: 'VND',
+				status: OrderItemStatus.PENDING, // Set initial item status
 				modifiers: modifiers,
 				notes: itemDto.notes,
 			});
@@ -571,12 +947,7 @@ export class OrderService {
 			currency: order.currency,
 			notes: order.notes,
 			waiterId: order.waiterId,
-			acceptedAt: order.acceptedAt,
-			preparingAt: order.preparingAt,
-			readyAt: order.readyAt,
-			servedAt: order.servedAt,
 			completedAt: order.completedAt,
-			rejectionReason: order.rejectionReason,
 			createdAt: order.createdAt,
 			updatedAt: order.updatedAt,
 			items: order.items?.map((item) => this.mapToOrderItemResponse(item)) || [],
@@ -587,6 +958,7 @@ export class OrderService {
 	/**
 	 * Helper: Map OrderItem entity to OrderItemResponseDto
 	 * Note: DecimalToNumberTransformer ensures all numeric fields are already numbers
+	 * NEW: Includes item-level status and timestamps
 	 */
 	private mapToOrderItemResponse(item: OrderItem): OrderItemResponseDto {
 		return {
@@ -601,8 +973,14 @@ export class OrderService {
 			modifiersTotal: item.modifiersTotal,
 			total: item.total,
 			currency: item.currency,
+			status: OrderItemStatusLabels[item.status] || 'PENDING',
 			modifiers: item.modifiers,
 			notes: item.notes,
+			rejectionReason: item.rejectionReason,
+			acceptedAt: item.acceptedAt,
+			preparingAt: item.preparingAt,
+			readyAt: item.readyAt,
+			servedAt: item.servedAt,
 			createdAt: item.createdAt,
 			updatedAt: item.updatedAt,
 		};

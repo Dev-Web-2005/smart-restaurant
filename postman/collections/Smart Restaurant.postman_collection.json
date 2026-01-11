@@ -2945,7 +2945,7 @@
               }
             },
             "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/e44870f5-a025-4db6-a7f6-431ac59bb40d/items",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/3a085fe8-a45f-4977-a2de-4f619a0c6db8/items",
               "host": [
                 "{{baseURL}}"
               ],
@@ -2955,7 +2955,7 @@
                 "tenants",
                 "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "orders",
-                "e44870f5-a025-4db6-a7f6-431ac59bb40d",
+                "3a085fe8-a45f-4977-a2de-4f619a0c6db8",
                 "items"
               ]
             }
@@ -2986,7 +2986,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"ACCEPTED\",\n  \"waiterId\": \"d95e73fb-b861-40eb-ba09-eff4b79084ef\" // must be real 'waiter', use tenant admin id for example now\n}",
+              "raw": "{\n  \"status\": \"IN_PROGRESS\",  // PENDING | IN_PROGRESS | COMPLETED | CANCELLED\n  \"waiterId\": \"d95e73fb-b861-40eb-ba09-eff4b79084ef\" // Optional - staff performing action\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3006,6 +3006,55 @@
                 "orders",
                 "3a085fe8-a45f-4977-a2de-4f619a0c6db8",
                 "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Order Items Status",
+          "id": "update-order-items-status-008",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemIds\": [\n    \"item-uuid-1\",\n    \"item-uuid-2\"\n  ],\n  \"status\": \"PREPARING\",  // PENDING | ACCEPTED | PREPARING | READY | SERVED | REJECTED | CANCELLED\n  \"rejectionReason\": \"Out of stock\",  // Required if status = REJECTED\n  \"waiterId\": \"d95e73fb-b861-40eb-ba09-eff4b79084ef\"  // Optional\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/3a085fe8-a45f-4977-a2de-4f619a0c6db8/items-status",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "orders",
+                "3a085fe8-a45f-4977-a2de-4f619a0c6db8",
+                "items-status"
               ]
             }
           },
@@ -3111,6 +3160,285 @@
         }
       ],
       "id": "96d51aaf-d0f5-4156-a4b9-2f72854f97e9"
+    },
+    {
+      "name": "Cart",
+      "item": [
+        {
+          "name": "Add Item to Cart",
+          "id": "add-cart-item-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"menuItemId\": \"c0365bc5-c946-45df-8eb2-e8c0bd240b6d\",\n  \"name\": \"Fruit Salad\",\n  \"quantity\": 1,\n  \"price\": 10.99,\n  \"modifiers\": [\n    {\n      \"modifierGroupId\": \"61649a87-9b54-4b65-84dc-f1d6b7367cb3\",\n      \"modifierOptionId\": \"de183f95-bc1d-4762-bcaf-5012f31f6203\",\n      \"name\": \"Large Size\",\n      \"price\": 2\n    }\n  ],\n  \"notes\": \"Extra onions please\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/66094127-3af3-4550-9f7b-a17089ad0981/cart/items",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "tables",
+                "66094127-3af3-4550-9f7b-a17089ad0981",
+                "cart",
+                "items"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cart",
+          "id": "get-cart-002",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/66094127-3af3-4550-9f7b-a17089ad0981/cart",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "tables",
+                "66094127-3af3-4550-9f7b-a17089ad0981",
+                "cart"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Cart Item Quantity",
+          "id": "update-cart-quantity-003",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/66094127-3af3-4550-9f7b-a17089ad0981/cart/items/8bd0f8b68aaa679abee306b86d9e3a22",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "tables",
+                "66094127-3af3-4550-9f7b-a17089ad0981",
+                "cart",
+                "items",
+                "8bd0f8b68aaa679abee306b86d9e3a22"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Cart Item",
+          "id": "remove-cart-item-004",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/66094127-3af3-4550-9f7b-a17089ad0981/cart/items/a7f3b2c1d4e5f6abc123",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "tables",
+                "66094127-3af3-4550-9f7b-a17089ad0981",
+                "cart",
+                "items",
+                "a7f3b2c1d4e5f6abc123"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Clear Cart",
+          "id": "clear-cart-005",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/66094127-3af3-4550-9f7b-a17089ad0981/cart",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "tables",
+                "66094127-3af3-4550-9f7b-a17089ad0981",
+                "cart"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Checkout from Cart",
+          "id": "checkout-cart-006",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"d95e73fb-b861-40eb-ba09-eff4b79084ef\",\n  \"customerName\": \"Test Customer 1\",\n  \"orderType\": \"DINE_IN\",\n  \"notes\": \"Allergic to peanuts, please serve warm\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/66094127-3af3-4550-9f7b-a17089ad0981/cart/checkout",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "tables",
+                "66094127-3af3-4550-9f7b-a17089ad0981",
+                "cart",
+                "checkout"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "cart-folder-main-001"
     },
     {
       "name": "Update Floor",

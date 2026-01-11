@@ -9,9 +9,11 @@ import {
 	GetOrdersRequestDto,
 	AddItemsToOrderRequestDto,
 	UpdateOrderStatusRequestDto,
+	UpdateOrderItemsStatusRequestDto,
 	CancelOrderRequestDto,
 	UpdatePaymentStatusRequestDto,
 } from './dtos/request';
+import { CheckoutCartDto } from '../cart/dtos/request/checkout-cart.dto';
 
 /**
  * OrderController
@@ -19,12 +21,16 @@ import {
  * Handles RPC messages for order management
  * Implements CRUD operations and order lifecycle management
  *
+ * NEW: Item-level status management
+ * - orders:update-items-status - Update status of specific order items
+ *
  * RPC Patterns:
  * - orders:create - Create a new order
  * - orders:get - Get a single order by ID
  * - orders:get-all - Get all orders with filtering and pagination
  * - orders:add-items - Add items to an existing order
  * - orders:update-status - Update order status (PENDING → ACCEPTED → PREPARING → READY → SERVED → COMPLETED)
+ * - orders:update-items-status - Update status of specific order items (NEW)
  * - orders:cancel - Cancel an order
  * - orders:update-payment - Update payment status
  */
@@ -138,6 +144,30 @@ export class OrderController {
 	}
 
 	/**
+	 * Update order items status (NEW)
+	 * RPC Pattern: 'orders:update-items-status'
+	 *
+	 * Item-Level Status Management:
+	 * - Kitchen marks items as PREPARING when they start cooking
+	 * - Kitchen marks items as READY when food is cooked
+	 * - Waiter marks items as SERVED when delivered to table
+	 * - Staff can REJECT items if ingredients unavailable
+	 *
+	 * Business Rules:
+	 * - All itemIds must belong to the specified order
+	 * - Must validate status transitions
+	 * - Cannot update items in terminal states
+	 * - Auto-updates parent Order status based on item statuses
+	 */
+	@MessagePattern('orders:update-items-status')
+	async updateOrderItemsStatus(dto: UpdateOrderItemsStatusRequestDto) {
+		return handleRpcCall(async () => {
+			const order = await this.orderService.updateOrderItemsStatus(dto);
+			return new HttpResponse(1000, 'Order items status updated successfully', order);
+		});
+	}
+
+	/**
 	 * Update payment status
 	 * RPC Pattern: 'orders:update-payment'
 	 *
@@ -153,6 +183,26 @@ export class OrderController {
 		return handleRpcCall(async () => {
 			const order = await this.orderService.updatePaymentStatus(dto);
 			return new HttpResponse(1000, 'Payment status updated successfully', order);
+		});
+	}
+
+	/**
+	 * Checkout from cart to create order
+	 * RPC Pattern: 'orders:checkout'
+	 *
+	 * Business Flow:
+	 * 1. Customer reviews cart items
+	 * 2. Customer confirms checkout
+	 * 3. Cart items are converted to order items
+	 * 4. Order is created with PENDING status
+	 * 5. Cart is cleared
+	 * 6. Waiter receives notification (via RabbitMQ - to be implemented)
+	 */
+	@MessagePattern('orders:checkout')
+	async checkoutCart(dto: CheckoutCartDto) {
+		return handleRpcCall(async () => {
+			const order = await this.orderService.createOrderFromCart(dto);
+			return new HttpResponse(1000, 'Order created from cart successfully', order);
 		});
 	}
 }
