@@ -20,7 +20,7 @@ import { CheckoutCartDto } from '../cart/dtos/request/checkout-cart.dto';
  *
  * Handles RPC messages for order management
  * Implements CRUD operations and order lifecycle management
- * 
+ *
  * NEW: Item-level status management
  * - orders:update-items-status - Update status of specific order items
  *
@@ -146,13 +146,13 @@ export class OrderController {
 	/**
 	 * Update order items status (NEW)
 	 * RPC Pattern: 'orders:update-items-status'
-	 * 
+	 *
 	 * Item-Level Status Management:
 	 * - Kitchen marks items as PREPARING when they start cooking
 	 * - Kitchen marks items as READY when food is cooked
 	 * - Waiter marks items as SERVED when delivered to table
 	 * - Staff can REJECT items if ingredients unavailable
-	 * 
+	 *
 	 * Business Rules:
 	 * - All itemIds must belong to the specified order
 	 * - Must validate status transitions

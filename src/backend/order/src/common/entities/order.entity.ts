@@ -105,22 +105,7 @@ export class Order {
 	waiterId: string; // Waiter who accepted/managed the order
 
 	@Column({ type: 'timestamp', nullable: true })
-	acceptedAt: Date; // When waiter accepted the order
-
-	@Column({ type: 'timestamp', nullable: true })
-	preparingAt: Date; // When kitchen started preparing
-
-	@Column({ type: 'timestamp', nullable: true })
-	readyAt: Date; // When food was ready
-
-	@Column({ type: 'timestamp', nullable: true })
-	servedAt: Date; // When food was served to customer
-
-	@Column({ type: 'timestamp', nullable: true })
 	completedAt: Date; // When order was completed and paid
-
-	@Column({ type: 'text', nullable: true })
-	rejectionReason: string; // Reason if waiter rejected the order
 
 	@CreateDateColumn()
 	createdAt: Date;
@@ -141,7 +126,7 @@ export class Order {
 	}
 
 	get isEditable(): boolean {
-		return [OrderStatus.PENDING, OrderStatus.ACCEPTED].includes(this.status);
+		return [OrderStatus.PENDING, OrderStatus.IN_PROGRESS].includes(this.status);
 	}
 
 	get isPaid(): boolean {

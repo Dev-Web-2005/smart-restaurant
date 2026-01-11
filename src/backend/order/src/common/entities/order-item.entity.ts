@@ -17,7 +17,7 @@ import { OrderItemStatus } from '../enums/order-item-status.enum';
  *
  * Represents individual items (line items) within an order
  * Each item can have custom modifiers selected by the customer
- * 
+ *
  * NEW: Item-level status tracking
  * - Each item has its own lifecycle independent of other items
  * - Allows customers to add items to ongoing orders
