@@ -194,10 +194,10 @@ export class OrderService {
 			);
 			currentOrder = existingOrder;
 
-			// Update order status to IN_PROGRESS if appending items
-			if (currentOrder.status === OrderStatus.PENDING) {
-				currentOrder.status = OrderStatus.IN_PROGRESS;
-			}
+			// Update order status to IN_PROGRESS if appending items. P/s: No, only update when items start being prepared (update in updateOrderItemsStatus)
+			// if (currentOrder.status === OrderStatus.PENDING) {
+			// 	currentOrder.status = OrderStatus.IN_PROGRESS;
+			// }
 
 			// Merge notes if provided
 			if (dto.notes) {
