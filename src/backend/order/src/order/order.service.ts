@@ -254,7 +254,7 @@ export class OrderService {
 			const menuItem = menuItemResponse.data;
 
 			// Check if menu item is still available
-			if (!menuItem || menuItem.status !== 'ACTIVE') {
+			if (!menuItem || menuItem.status !== 'AVAILABLE') {
 				this.logger.error(
 					`Menu item ${cartItem.name} (ID: ${cartItem.menuItemId}) is no longer available`,
 				);
