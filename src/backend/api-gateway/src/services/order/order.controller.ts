@@ -156,10 +156,15 @@ export class OrderController {
 	 * Update order status
 	 * PATCH /tenants/:tenantId/orders/:orderId/status
 	 *
+	 * SIMPLIFIED for Item-Level Status Architecture:
+	 * - Order status now only supports: PENDING, IN_PROGRESS, COMPLETED, CANCELLED
+	 * - Detailed preparation states moved to OrderItem level
+	 * - This endpoint primarily used for payment completion and cancellation
+	 *
 	 * Body:
 	 * {
-	 *   "status": "ACCEPTED",
-	 *   "waiterId": "uuid"
+	 *   "status": "IN_PROGRESS",  // PENDING | IN_PROGRESS | COMPLETED | CANCELLED
+	 *   "waiterId": "uuid"  // Optional
 	 * }
 	 */
 	@Patch('tenants/:tenantId/orders/:orderId/status')
@@ -170,6 +175,42 @@ export class OrderController {
 		@Body() data: any,
 	) {
 		return this.orderClient.send('orders:update-status', {
+			...data,
+			tenantId,
+			orderId,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+
+	/**
+	 * Update order items status
+	 * PATCH /tenants/:tenantId/orders/:orderId/items-status
+	 *
+	 * NEW: Item-level status management
+	 * Allows kitchen/waiter to update individual item statuses
+	 *
+	 * Use Cases:
+	 * - Kitchen marks items as PREPARING when they start cooking
+	 * - Kitchen marks items as READY when food is cooked
+	 * - Waiter marks items as SERVED when delivered to table
+	 * - Staff can REJECT items if ingredients unavailable
+	 *
+	 * Body:
+	 * {
+	 *   "itemIds": ["uuid1", "uuid2"],  // Array of order item IDs
+	 *   "status": "PREPARING",  // PENDING | ACCEPTED | PREPARING | READY | SERVED | REJECTED | CANCELLED
+	 *   "rejectionReason": "Out of stock",  // Required if status = REJECTED
+	 *   "waiterId": "uuid"  // Optional
+	 * }
+	 */
+	@Patch('tenants/:tenantId/orders/:orderId/items-status')
+	@UseGuards(AuthGuard, Role('USER'))
+	updateOrderItemsStatus(
+		@Param('tenantId') tenantId: string,
+		@Param('orderId') orderId: string,
+		@Body() data: any,
+	) {
+		return this.orderClient.send('orders:update-items-status', {
 			...data,
 			tenantId,
 			orderId,

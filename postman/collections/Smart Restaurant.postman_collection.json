@@ -2809,7 +2809,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"status\": \"ACCEPTED\",\n  \"waiterId\": \"d95e73fb-b861-40eb-ba09-eff4b79084ef\" // must be real 'waiter', use tenant admin id for example now\n}",
+							"raw": "{\n  \"status\": \"IN_PROGRESS\",  // PENDING | IN_PROGRESS | COMPLETED | CANCELLED\n  \"waiterId\": \"d95e73fb-b861-40eb-ba09-eff4b79084ef\" // Optional - staff performing action\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -2827,6 +2827,53 @@
 								"orders",
 								"3a085fe8-a45f-4977-a2de-4f619a0c6db8",
 								"status"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Order Items Status",
+					"id": "update-order-items-status-008",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"itemIds\": [\n    \"item-uuid-1\",\n    \"item-uuid-2\"\n  ],\n  \"status\": \"PREPARING\",  // PENDING | ACCEPTED | PREPARING | READY | SERVED | REJECTED | CANCELLED\n  \"rejectionReason\": \"Out of stock\",  // Required if status = REJECTED\n  \"waiterId\": \"d95e73fb-b861-40eb-ba09-eff4b79084ef\"  // Optional\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/3a085fe8-a45f-4977-a2de-4f619a0c6db8/items-status",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"orders",
+								"3a085fe8-a45f-4977-a2de-4f619a0c6db8",
+								"items-status"
 							]
 						}
 					},
