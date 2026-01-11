@@ -86,13 +86,7 @@ export class OrderService {
 			where: {
 				tenantId: dto.tenantId,
 				tableId: dto.tableId,
-				status: In([
-					OrderStatus.PENDING,
-					OrderStatus.ACCEPTED,
-					OrderStatus.PREPARING,
-					OrderStatus.READY,
-					OrderStatus.SERVED,
-				]),
+				status: Not(In([OrderStatus.COMPLETED, OrderStatus.CANCELLED])),
 			},
 		});
 
@@ -508,10 +502,15 @@ export class OrderService {
 	/**
 	 * Update order status
 	 *
+	 * SIMPLIFIED for Item-Level Status Architecture:
+	 * - Order status now only supports: PENDING → IN_PROGRESS → COMPLETED or CANCELLED
+	 * - Detailed status tracking moved to OrderItem level
+	 * - This method is primarily used for payment completion and cancellation
+	 *
 	 * Business Rules:
 	 * - Must follow valid status transitions
 	 * - Updates corresponding timestamps
-	 * - REJECTED requires a reason
+	 * - COMPLETED requires payment to be processed
 	 */
 	async updateOrderStatus(dto: UpdateOrderStatusRequestDto): Promise<OrderResponseDto> {
 		this.validateApiKey(dto.orderApiKey);
@@ -533,43 +532,31 @@ export class OrderService {
 
 		// Validate status transition
 		if (!isValidStatusTransition(order.status, newStatus)) {
+			this.logger.error(
+				`Invalid status transition from ${orderStatusToString(order.status)} to ${orderStatusToString(newStatus)} for order ${order.id}`,
+			);
 			throw new AppException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
-		}
-
-		// Validate rejection reason
-		if (newStatus === OrderStatus.REJECTED && !dto.rejectionReason) {
-			throw new AppException(ErrorCode.VALIDATION_FAILED);
 		}
 
 		// Update status and timestamps
 		order.status = newStatus;
 
 		switch (newStatus) {
-			case OrderStatus.ACCEPTED:
-				order.acceptedAt = new Date();
-				order.waiterId = dto.waiterId;
-				break;
-			case OrderStatus.REJECTED:
-				order.rejectionReason = dto.rejectionReason;
-				break;
-			case OrderStatus.PREPARING:
-				order.preparingAt = new Date();
-				break;
-			case OrderStatus.READY:
-				order.readyAt = new Date();
-				break;
-			case OrderStatus.SERVED:
-				order.servedAt = new Date();
+			case OrderStatus.IN_PROGRESS:
+				// Auto-set when items start processing
 				break;
 			case OrderStatus.COMPLETED:
 				order.completedAt = new Date();
+				break;
+			case OrderStatus.CANCELLED:
+				// Timestamp set via CreatedAt/UpdatedAt
 				break;
 		}
 
 		const updatedOrder = await this.orderRepository.save(order);
 
 		this.logger.log(
-			`Order ${order.id} status updated from ${orderStatusToString(order.status)} to ${orderStatusToString(newStatus)}`,
+			`Order ${order.id} status updated to ${orderStatusToString(newStatus)}`,
 		);
 
 		// TODO: Send notification via RabbitMQ
@@ -692,15 +679,10 @@ export class OrderService {
 			].includes(item.status),
 		);
 
-		if (allServed && order.status !== OrderStatus.SERVED) {
-			// All items served → can proceed to payment
-			order.status = OrderStatus.SERVED;
-			order.servedAt = now;
-			await this.orderRepository.save(order);
-
-			this.logger.log(
-				`Order ${order.id}: All items served. Order status updated to SERVED.`,
-			);
+		if (allServed) {
+			// All items served → order can proceed to payment
+			// Note: Order status will be COMPLETED when payment is done
+			this.logger.log(`Order ${order.id}: All items served. Ready for payment.`);
 		} else if (anyInProgress && order.status === OrderStatus.PENDING) {
 			// Some items in progress → mark order as active
 			order.status = OrderStatus.IN_PROGRESS;
@@ -749,13 +731,15 @@ export class OrderService {
 			throw new AppException(ErrorCode.ORDER_NOT_FOUND);
 		}
 
-		// Check if order can be cancelled
-		if (![OrderStatus.PENDING, OrderStatus.ACCEPTED].includes(order.status)) {
+		// Check if order can be cancelled (only PENDING and IN_PROGRESS)
+		if (![OrderStatus.PENDING, OrderStatus.IN_PROGRESS].includes(order.status)) {
+			this.logger.error(
+				`Cannot cancel order ${order.id} with status ${orderStatusToString(order.status)}`,
+			);
 			throw new AppException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
 		}
 
 		order.status = OrderStatus.CANCELLED;
-		order.rejectionReason = dto.reason || 'Cancelled by user';
 
 		const updatedOrder = await this.orderRepository.save(order);
 
@@ -802,7 +786,10 @@ export class OrderService {
 		}
 
 		// If payment is successful, mark order as completed
-		if (newPaymentStatus === PaymentStatus.PAID && order.status === OrderStatus.SERVED) {
+		if (
+			newPaymentStatus === PaymentStatus.PAID &&
+			order.status === OrderStatus.IN_PROGRESS
+		) {
 			order.status = OrderStatus.COMPLETED;
 			order.completedAt = new Date();
 		}
@@ -960,12 +947,7 @@ export class OrderService {
 			currency: order.currency,
 			notes: order.notes,
 			waiterId: order.waiterId,
-			acceptedAt: order.acceptedAt,
-			preparingAt: order.preparingAt,
-			readyAt: order.readyAt,
-			servedAt: order.servedAt,
 			completedAt: order.completedAt,
-			rejectionReason: order.rejectionReason,
 			createdAt: order.createdAt,
 			updatedAt: order.updatedAt,
 			items: order.items?.map((item) => this.mapToOrderItemResponse(item)) || [],
