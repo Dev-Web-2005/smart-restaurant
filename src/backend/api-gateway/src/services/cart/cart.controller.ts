@@ -12,7 +12,7 @@ import {
 import { ClientProxy } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
-import { AuthGuard } from 'src/middleware/auth/auth.guard';
+import { AuthGuard } from 'src/common/guards/get-role/auth.guard';
 
 /**
  * Cart Controller - API Gateway
