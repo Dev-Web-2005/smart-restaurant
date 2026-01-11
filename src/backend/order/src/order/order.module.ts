@@ -17,10 +17,14 @@ import { CartModule } from 'src/cart/cart.module';
  */
 @Module({
 	imports: [
-		ConfigModule,
+		// 1. Load ConfigModule đầu tiên và set isGlobal
+		ConfigModule.forRoot({
+			isGlobal: true,
+			envFilePath: '.env', // Đảm bảo đường dẫn đúng
+		}),
 		TypeOrmModule.forFeature([Order, OrderItem]),
 
-		// 1. Cấu hình Redis Cache
+		// 2. Cấu hình Redis Cache
 		CacheModule.registerAsync({
 			imports: [ConfigModule],
 			useFactory: async (configService: ConfigService) => ({

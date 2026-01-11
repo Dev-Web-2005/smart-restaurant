@@ -8,20 +8,39 @@ import { redisStore } from 'cache-manager-redis-yet';
 
 @Module({
 	imports: [
-		ConfigModule,
-		// 1. Cấu hình Redis Cache
+		// 1. Load ConfigModule đầu tiên và set isGlobal
+		ConfigModule.forRoot({
+			isGlobal: true,
+			envFilePath: '.env', // Đảm bảo đường dẫn đúng
+		}),
+		// 2. Cấu hình Redis Cache
 		CacheModule.registerAsync({
+			isGlobal: true,
 			imports: [ConfigModule],
-			useFactory: async (configService: ConfigService) => ({
-				store: await redisStore({
-					socket: {
-						host: configService.get('REDIS_HOST') || 'localhost',
-						port: parseInt(configService.get('REDIS_PORT')) || 6379,
-					},
-					ttl: 86400 * 1000, // Mặc định lưu 24h (tính bằng mili-giây)
-				}),
-			}),
 			inject: [ConfigService],
+			useFactory: async (configService: ConfigService) => {
+				// Lấy thông tin config
+				const host = configService.get<string>('REDIS_HOST') || 'localhost';
+				const port = parseInt(configService.get<string>('REDIS_PORT')) || 6379;
+				// const password = configService.get<string>('REDIS_PASSWORD');
+
+				console.log(`🔌 Connecting to Redis at ${host}:${port}...`);
+
+				const store = await redisStore({
+					socket: {
+						host: host,
+						port: port,
+					},
+					// Nếu server leader có pass thì bỏ comment dòng dưới
+					// password: password,
+					ttl: 86400 * 1000, // TTL mặc định (ms)
+				});
+
+				return {
+					store: () => store, // <--- TRICK QUAN TRỌNG: Wrap vào function để tránh lỗi undefined
+					ttl: 86400 * 1000,
+				};
+			},
 		}),
 		ClientsModule.register([
 			{

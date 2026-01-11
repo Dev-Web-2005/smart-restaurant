@@ -40,6 +40,28 @@ export class CartService {
 		@Inject('PRODUCT_SERVICE') private readonly productClient: ClientProxy,
 	) {}
 
+	// async onModuleInit() {
+	// 	this.logger.log('🚀 CartService khởi động. Đang test kết nối Cache...');
+
+	// 	try {
+	// 		// Test ghi một key
+	// 		await this.cacheManager.set('DEBUG_REDIS_CONNECT', 'Success', 10000); // 10s
+	// 		this.logger.log('✅ Ghi key test thành công.');
+
+	// 		// Test đọc lại ngay lập tức
+	// 		const value = await this.cacheManager.get('DEBUG_REDIS_CONNECT');
+	// 		this.logger.log(`🔍 Đọc lại key test: ${value}`);
+
+	// 		if (value === 'Success') {
+	// 			this.logger.log(
+	// 				'👉 HÃY KIỂM TRA REDISINSIGHT NGAY BÂY GIỜ XEM CÓ KEY "DEBUG_REDIS_CONNECT" KHÔNG?',
+	// 			);
+	// 		}
+	// 	} catch (e) {
+	// 		this.logger.error('❌ Lỗi khi thao tác với Cache:', e);
+	// 	}
+	// }
+
 	/**
 	 * Validate API key for cart operations
 	 * Security: All cart operations should be authenticated
