@@ -55,15 +55,28 @@ export class CartController {
 	 *   "menuItemId": "550e8400-e29b-41d4-a716-446655440000",
 	 *   "name": "Cappuccino",
 	 *   "quantity": 2,
-	 *   "price": 45000,
+	 *   "price": 45000,  // Base price without modifiers
 	 *   "modifiers": [
 	 *     {
 	 *       "modifierGroupId": "uuid",
-	 *       "modifierOptionId": "uuid"
+	 *       "modifierOptionId": "uuid",
+	 *       "name": "Extra Shot",
+	 *       "price": 10000  // Additional price for this modifier
+	 *     },
+	 *     {
+	 *       "modifierGroupId": "uuid",
+	 *       "modifierOptionId": "uuid",
+	 *       "name": "Oat Milk",
+	 *       "price": 5000
 	 *     }
 	 *   ],
 	 *   "notes": "Extra hot"
 	 * }
+	 *
+	 * Total Calculation:
+	 * - Subtotal = price * quantity = 45,000 * 2 = 90,000
+	 * - Modifiers Total = (10,000 + 5,000) * 2 = 30,000
+	 * - Item Total = 90,000 + 30,000 = 120,000
 	 */
 	@Post('tenants/:tenantId/tables/:tableId/cart/items')
 	@UseGuards(AuthGuard)
@@ -103,13 +116,22 @@ export class CartController {
 	 *         "menuItemId": "uuid",
 	 *         "name": "Cappuccino",
 	 *         "quantity": 2,
-	 *         "price": 45000,
-	 *         "subtotal": 90000,
-	 *         "modifiers": [...],
+	 *         "price": 45000,  // Base price per unit
+	 *         "subtotal": 90000,  // price * quantity
+	 *         "modifiersTotal": 30000,  // (10000 + 5000) * 2
+	 *         "total": 120000,  // subtotal + modifiersTotal
+	 *         "modifiers": [
+	 *           {
+	 *             "modifierGroupId": "uuid",
+	 *             "modifierOptionId": "uuid",
+	 *             "name": "Extra Shot",
+	 *             "price": 10000
+	 *           }
+	 *         ],
 	 *         "notes": "Extra hot"
 	 *       }
 	 *     ],
-	 *     "totalPrice": 90000,
+	 *     "totalPrice": 120000,  // Sum of all item totals
 	 *     "totalItems": 2
 	 *   }
 	 * }

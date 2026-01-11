@@ -17,10 +17,19 @@ interface CartItem {
 	menuItemId: string;
 	name: string;
 	quantity: number;
-	price: number;
-	subtotal: number;
-	modifiers: any[];
+	price: number; // Base price per unit
+	subtotal: number; // price * quantity
+	modifiersTotal: number; // Total price of all modifiers * quantity
+	total: number; // subtotal + modifiersTotal
+	modifiers: CartItemModifier[];
 	notes?: string;
+}
+
+interface CartItemModifier {
+	modifierGroupId: string;
+	modifierOptionId: string;
+	name: string; // Modifier option name (e.g., "Extra cheese", "Large size")
+	price: number; // Additional price for this modifier
 }
 
 interface Cart {
@@ -151,23 +160,35 @@ export class CartService {
 		// Generate unique item key based on menuItemId + modifiers
 		const itemKey = this.generateItemKey(menuItemId, modifiers || []);
 
+		// Calculate modifiers total
+		const modifiersTotal = (modifiers || []).reduce(
+			(sum, mod) => sum + (mod.price || 0),
+			0,
+		);
+
 		// Tìm item với CÙNG menuItemId VÀ CÙNG modifiers
 		const existingItemIndex = cart.items.findIndex((item) => item.itemKey === itemKey);
 
 		if (existingItemIndex > -1) {
 			// Nếu có rồi (cùng món, cùng modifiers) -> Tăng số lượng
-			cart.items[existingItemIndex].quantity += quantity;
-			cart.items[existingItemIndex].subtotal =
-				cart.items[existingItemIndex].quantity * cart.items[existingItemIndex].price;
+			const existingItem = cart.items[existingItemIndex];
+			existingItem.quantity += quantity;
+			existingItem.subtotal = existingItem.price * existingItem.quantity;
+			existingItem.modifiersTotal = modifiersTotal * existingItem.quantity;
+			existingItem.total = existingItem.subtotal + existingItem.modifiersTotal;
 		} else {
 			// Nếu chưa có (món mới hoặc modifiers khác) -> Thêm mới
+			const subtotal = price * quantity;
+			const totalModifiers = modifiersTotal * quantity;
 			cart.items.push({
 				itemKey, // Unique identifier
 				menuItemId,
 				name,
 				quantity,
-				price,
-				subtotal: price * quantity,
+				price, // Base price per unit
+				subtotal, // price * quantity
+				modifiersTotal: totalModifiers, // modifiers price * quantity
+				total: subtotal + totalModifiers, // subtotal + modifiersTotal
 				modifiers: modifiers || [],
 				notes,
 			});
@@ -255,9 +276,18 @@ export class CartService {
 			throw new AppException(ErrorCode.CART_ITEM_NOT_FOUND);
 		}
 
-		// Update quantity and recalculate subtotal
-		cart.items[itemIndex].quantity = dto.quantity;
-		cart.items[itemIndex].subtotal = cart.items[itemIndex].price * dto.quantity;
+		// Update quantity and recalculate totals with modifiers
+		const item = cart.items[itemIndex];
+		item.quantity = dto.quantity;
+
+		// Recalculate subtotal and modifiers total
+		const modifiersTotal = (item.modifiers || []).reduce(
+			(sum, mod) => sum + (mod.price || 0),
+			0,
+		);
+		item.subtotal = item.price * item.quantity;
+		item.modifiersTotal = modifiersTotal * item.quantity;
+		item.total = item.subtotal + item.modifiersTotal;
 
 		this.recalculateCart(cart);
 		await this.cacheManager.set(
@@ -275,7 +305,7 @@ export class CartService {
 
 	// Helper tính tổng
 	private recalculateCart(cart: Cart) {
-		cart.totalPrice = cart.items.reduce((sum, item) => sum + item.subtotal, 0);
+		cart.totalPrice = cart.items.reduce((sum, item) => sum + item.total, 0);
 		cart.totalItems = cart.items.reduce((sum, item) => sum + item.quantity, 0);
 	}
 }
