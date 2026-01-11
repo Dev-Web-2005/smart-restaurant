@@ -7,7 +7,6 @@ import { GetCartDto } from './dtos/request/get-cart.dto';
 import { RemoveCartItemDto } from './dtos/request/remove-cart-item.dto';
 import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
 import * as crypto from 'crypto';
@@ -272,35 +271,6 @@ export class CartService {
 		);
 
 		return cart;
-	}
-
-	// Helper: Validate menu item với Product Service
-	private async validateMenuItem(tenantId: string, menuItemId: string): Promise<void> {
-		try {
-			const response = await firstValueFrom(
-				this.productClient.send('menu-item:get-by-id', {
-					tenantId,
-					menuItemId,
-				}),
-			);
-
-			if (!response || response.code !== 1000) {
-				this.logger.error(`Menu item ${menuItemId} not found or not available`);
-				throw new AppException(ErrorCode.MENU_ITEM_NOT_AVAILABLE);
-			}
-
-			// Check if menu item is available (status ACTIVE)
-			if (response.data?.status !== 'ACTIVE') {
-				this.logger.error(`Menu item ${menuItemId} is not active`);
-				throw new AppException(ErrorCode.MENU_ITEM_NOT_AVAILABLE);
-			}
-		} catch (error) {
-			if (error instanceof AppException) {
-				throw error;
-			}
-			this.logger.error(`Error validating menu item: ${error.message}`);
-			throw new AppException(ErrorCode.MENU_ITEM_NOT_AVAILABLE);
-		}
 	}
 
 	// Helper tính tổng
