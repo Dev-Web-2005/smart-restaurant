@@ -6,7 +6,30 @@ import {
 	IsUUID,
 	IsOptional,
 	IsArray,
+	ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+/**
+ * DTO for modifier option in cart
+ */
+export class CartModifierDto {
+	@IsUUID()
+	@IsNotEmpty()
+	modifierGroupId: string;
+
+	@IsUUID()
+	@IsNotEmpty()
+	modifierOptionId: string;
+
+	@IsString()
+	@IsNotEmpty()
+	name: string; // Modifier option name (e.g., "Extra cheese", "Large size")
+
+	@IsNumber()
+	@Min(0)
+	price: number; // Additional price for this modifier
+}
 
 export class AddToCartDto {
 	@IsString()
@@ -39,11 +62,13 @@ export class AddToCartDto {
 
 	@IsNumber()
 	@Min(0)
-	price: number;
+	price: number; // Base price of the item (without modifiers)
 
 	@IsArray()
+	@ValidateNested({ each: true })
+	@Type(() => CartModifierDto)
 	@IsOptional()
-	modifiers?: any[]; // Lưu JSON modifiers
+	modifiers?: CartModifierDto[]; // Modifiers with prices
 
 	@IsString()
 	@IsOptional()
