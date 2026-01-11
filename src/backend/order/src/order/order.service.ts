@@ -142,11 +142,16 @@ export class OrderService {
 	/**
 	 * Checkout from Cart Service to create Order
 	 *
+	 * **ORDER SESSION PATTERN** (Phiên đơn hàng):
+	 * - 1 bàn chỉ có 1 order active tại 1 thời điểm
+	 * - Checkout lần đầu → Tạo order mới
+	 * - Checkout lần sau → Append items vào order cũ (gọi thêm món)
+	 *
 	 * Business Rules:
 	 * - Cart must not be empty
-	 * - Check if active order already exists for table
-	 * - Convert cart items to order items
-	 * - Calculate totals including tax
+	 * - Check if active order exists → Append items (không tạo mới)
+	 * - Fetch REAL pricing from Product Service (security)
+	 * - Emit kitchen notification ONLY for new items
 	 * - Clear cart after successful checkout
 	 */
 	async createOrderFromCart(dto: {
@@ -160,7 +165,7 @@ export class OrderService {
 	}): Promise<OrderResponseDto> {
 		this.validateApiKey(dto.orderApiKey);
 
-		// 1. Lấy data từ Redis
+		// 1. Lấy data từ Redis (Cart)
 		const cart = await this.cartService.getCart({
 			orderApiKey: dto.orderApiKey,
 			tenantId: dto.tenantId,
@@ -171,7 +176,7 @@ export class OrderService {
 			throw new AppException(ErrorCode.CART_EMPTY);
 		}
 
-		// 2. Check for existing active order on this table
+		// 2. CHECK & APPEND Logic - Kiểm tra order session hiện tại
 		const existingOrder = await this.orderRepository.findOne({
 			where: {
 				tenantId: dto.tenantId,
@@ -184,41 +189,11 @@ export class OrderService {
 					OrderStatus.SERVED,
 				]),
 			},
+			relations: ['items'], // Load existing items
 		});
 
-		if (existingOrder) {
-			throw new AppException(ErrorCode.CART_HAS_ACTIVE_ORDER);
-		}
-
-		// 3. Convert string status to enum
-		const orderType = dto.orderType
-			? orderTypeFromString(dto.orderType)
-			: OrderType.DINE_IN;
-
-		// 4. Create Order entity
-		const newOrder = this.orderRepository.create({
-			tenantId: dto.tenantId,
-			tableId: dto.tableId,
-			customerId: dto.customerId,
-			customerName: dto.customerName,
-			orderType: orderType,
-			status: OrderStatus.PENDING,
-			paymentStatus: PaymentStatus.PENDING,
-			notes: dto.notes,
-			currency: 'VND',
-			subtotal: 0,
-			tax: 0,
-			discount: 0,
-			total: 0,
-		});
-
-		// Save order first to get ID for foreign key
-		await this.orderRepository.save(newOrder);
-
-		// 5. Convert Cart Items to Order Items
-		// SECURITY: Fetch real-time pricing from Product Service
-		// NEVER trust prices from cart (could be manipulated)
-		const orderItems: OrderItem[] = [];
+		// 3. Validate cart items và fetch REAL pricing từ Product Service
+		const newOrderItems: OrderItem[] = [];
 
 		for (const cartItem of cart.items) {
 			// Fetch REAL menu item details from Product Service
@@ -289,7 +264,7 @@ export class OrderService {
 			const total = subtotal + modifiersTotal;
 
 			const orderItem = this.orderItemRepository.create({
-				orderId: newOrder.id,
+				orderId: existingOrder?.id, // Assign to existing order if found
 				menuItemId: cartItem.menuItemId,
 				name: menuItem.name, // Use real name from Product Service
 				description: menuItem.description,
@@ -303,32 +278,109 @@ export class OrderService {
 				currency: 'VND',
 			});
 
-			orderItems.push(orderItem);
+			newOrderItems.push(orderItem);
 		}
 
-		newOrder.items = orderItems;
+		let finalOrder: Order;
+		let isNewOrder = false;
 
-		// 6. Calculate order totals
-		this.calculateOrderTotals(newOrder);
+		if (existingOrder) {
+			// **TRƯỜNG HỢP B: ĐÃ CÓ ORDER ACTIVE - APPEND ITEMS**
+			this.logger.log(
+				`Appending ${newOrderItems.length} new items to existing order ${existingOrder.id} for table ${dto.tableId}`,
+			);
 
-		// 7. Save order with items
-		const savedOrder = await this.orderRepository.save(newOrder);
+			// Gán orderId cho new items
+			newOrderItems.forEach((item) => {
+				item.orderId = existingOrder.id;
+			});
 
-		// 8. Clear cart after successful checkout
+			// Append new items vào order cũ
+			existingOrder.items = [...existingOrder.items, ...newOrderItems];
+
+			// Merge notes if provided
+			if (dto.notes) {
+				existingOrder.notes = existingOrder.notes
+					? `${existingOrder.notes}\n---\n${dto.notes}`
+					: dto.notes;
+			}
+
+			// Recalculate order totals
+			this.calculateOrderTotals(existingOrder);
+
+			// Save updated order
+			finalOrder = await this.orderRepository.save(existingOrder);
+		} else {
+			// **TRƯỜNG HỢP A: CHƯA CÓ ORDER - TẠO MỚI**
+			this.logger.log(
+				`Creating new order for table ${dto.tableId} with ${newOrderItems.length} items`,
+			);
+
+			isNewOrder = true;
+
+			const orderType = dto.orderType
+				? orderTypeFromString(dto.orderType)
+				: OrderType.DINE_IN;
+
+			const newOrder = this.orderRepository.create({
+				tenantId: dto.tenantId,
+				tableId: dto.tableId,
+				customerId: dto.customerId,
+				customerName: dto.customerName,
+				orderType: orderType,
+				status: OrderStatus.PENDING,
+				paymentStatus: PaymentStatus.PENDING,
+				notes: dto.notes,
+				currency: 'VND',
+				subtotal: 0,
+				tax: 0,
+				discount: 0,
+				total: 0,
+			});
+
+			// Save order first to get ID
+			await this.orderRepository.save(newOrder);
+
+			// Assign orderId to items
+			newOrderItems.forEach((item) => {
+				item.orderId = newOrder.id;
+			});
+
+			newOrder.items = newOrderItems;
+
+			// Calculate totals
+			this.calculateOrderTotals(newOrder);
+
+			// Save with items
+			finalOrder = await this.orderRepository.save(newOrder);
+		}
+
+		// Clear cart after successful checkout
 		await this.cartService.clearCart(dto.tenantId, dto.tableId);
 
 		this.logger.log(
-			`Order created from cart: ${savedOrder.id} for table ${dto.tableId} with ${orderItems.length} items`,
+			`Checkout success: Order ${finalOrder.id} | Table ${dto.tableId} | ${isNewOrder ? 'NEW' : 'APPENDED'} | Total items: ${finalOrder.items.length}`,
 		);
 
-		// TODO: 9. Emit event to notification service via RabbitMQ
-		// this.notificationClient.emit('order.created', {
-		//   orderId: savedOrder.id,
-		//   tenantId: dto.tenantId,
-		//   tableId: dto.tableId,
-		// });
+		// TODO: Emit RabbitMQ event CHỈ CHO CÁC MÓN MỚI
+		// Để tránh bếp nấu lại các món cũ!
+		// if (isNewOrder) {
+		//   this.notificationClient.emit('order.created', {
+		//     orderId: finalOrder.id,
+		//     tenantId: dto.tenantId,
+		//     tableId: dto.tableId,
+		//     items: newOrderItems, // All items for new order
+		//   });
+		// } else {
+		//   this.notificationClient.emit('order.items-added', {
+		//     orderId: finalOrder.id,
+		//     tenantId: dto.tenantId,
+		//     tableId: dto.tableId,
+		//     newItems: newOrderItems, // ONLY new items for kitchen
+		//   });
+		// }
 
-		return this.mapToOrderResponse(savedOrder);
+		return this.mapToOrderResponse(finalOrder);
 	}
 
 	/**
