@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, Not } from 'typeorm';
 import { Order, OrderItem } from '../common/entities';
 import {
 	OrderStatus,
@@ -14,6 +14,9 @@ import {
 	orderStatusFromString,
 	orderTypeFromString,
 	paymentStatusFromString,
+	OrderItemStatus,
+	OrderItemStatusLabels,
+	isValidOrderItemStatusTransition,
 } from '../common/enums';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
@@ -23,6 +26,7 @@ import {
 	GetOrdersRequestDto,
 	AddItemsToOrderRequestDto,
 	UpdateOrderStatusRequestDto,
+	UpdateOrderItemsStatusRequestDto,
 	CancelOrderRequestDto,
 	UpdatePaymentStatusRequestDto,
 	CreateOrderItemDto,
@@ -184,13 +188,7 @@ export class OrderService {
 			where: {
 				tenantId: dto.tenantId,
 				tableId: dto.tableId,
-				status: In([
-					OrderStatus.PENDING,
-					OrderStatus.ACCEPTED,
-					OrderStatus.PREPARING,
-					OrderStatus.READY,
-					OrderStatus.SERVED,
-				]),
+				status: Not(In([OrderStatus.COMPLETED, OrderStatus.CANCELLED])),
 			},
 			relations: ['items'], // Load existing items for append scenario
 		});
@@ -201,6 +199,11 @@ export class OrderService {
 				`Found existing order ${existingOrder.id} for table ${dto.tableId}. Will append new items.`,
 			);
 			currentOrder = existingOrder;
+
+			// Update order status to IN_PROGRESS if appending items
+			if (currentOrder.status === OrderStatus.PENDING) {
+				currentOrder.status = OrderStatus.IN_PROGRESS;
+			}
 
 			// Merge notes if provided
 			if (dto.notes) {
@@ -325,6 +328,7 @@ export class OrderService {
 				modifiers: validatedModifiers,
 				notes: cartItem.notes,
 				currency: 'VND',
+				status: OrderItemStatus.PENDING, // Set initial item status
 			});
 
 			newOrderItems.push(orderItem);
@@ -574,6 +578,157 @@ export class OrderService {
 	}
 
 	/**
+	 * Update status of specific order items
+	 *
+	 * NEW METHOD: Item-level status management
+	 *
+	 * Business Rules:
+	 * - All itemIds must belong to the specified order
+	 * - Must validate status transitions (PENDING → ACCEPTED → PREPARING → READY → SERVED)
+	 * - Cannot update items in terminal states (SERVED, REJECTED, CANCELLED)
+	 * - If status is REJECTED, rejectionReason is required
+	 * - Auto-update parent Order status based on item statuses:
+	 *   - If all items are SERVED → Order can be marked for payment
+	 *   - If any items are in progress → Order status = IN_PROGRESS
+	 *
+	 * Use Cases:
+	 * - Kitchen marks items as PREPARING when they start cooking
+	 * - Kitchen marks items as READY when food is cooked
+	 * - Waiter marks items as SERVED when delivered to table
+	 * - Staff can REJECT items if ingredients unavailable
+	 */
+	async updateOrderItemsStatus(
+		dto: UpdateOrderItemsStatusRequestDto,
+	): Promise<OrderResponseDto> {
+		this.validateApiKey(dto.orderApiKey);
+
+		// 1. Fetch order with items
+		const order = await this.orderRepository.findOne({
+			where: {
+				id: dto.orderId,
+				tenantId: dto.tenantId,
+			},
+			relations: ['items'],
+		});
+
+		if (!order) {
+			throw new AppException(ErrorCode.ORDER_NOT_FOUND);
+		}
+
+		// 2. Validate that all itemIds belong to this order
+		const orderItemIds = order.items.map((item) => item.id);
+		const invalidItemIds = dto.itemIds.filter((id) => !orderItemIds.includes(id));
+
+		if (invalidItemIds.length > 0) {
+			this.logger.error(
+				`Items ${invalidItemIds.join(', ')} do not belong to order ${dto.orderId}`,
+			);
+			throw new AppException(ErrorCode.INVALID_CART_OPERATION);
+		}
+
+		// 3. Validate rejection reason if status is REJECTED
+		if (dto.status === OrderItemStatus.REJECTED && !dto.rejectionReason) {
+			this.logger.error('Rejection reason is required when rejecting items');
+			throw new AppException(ErrorCode.INVALID_CART_OPERATION);
+		}
+
+		// 4. Update each item status
+		const updatedItems: OrderItem[] = [];
+		const now = new Date();
+
+		for (const itemId of dto.itemIds) {
+			const item = order.items.find((i) => i.id === itemId);
+
+			if (!item) {
+				continue; // Should not happen due to validation above
+			}
+
+			// Validate status transition
+			if (!isValidOrderItemStatusTransition(item.status, dto.status)) {
+				this.logger.error(
+					`Cannot transition item ${item.name} from ${OrderItemStatusLabels[item.status]} to ${OrderItemStatusLabels[dto.status]}`,
+				);
+				throw new AppException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
+			}
+
+			// Update item status
+			item.status = dto.status;
+
+			// Update rejection reason if provided
+			if (dto.rejectionReason) {
+				item.rejectionReason = dto.rejectionReason;
+			}
+
+			// Update timestamps based on status
+			switch (dto.status) {
+				case OrderItemStatus.ACCEPTED:
+					item.acceptedAt = now;
+					break;
+				case OrderItemStatus.PREPARING:
+					item.preparingAt = now;
+					break;
+				case OrderItemStatus.READY:
+					item.readyAt = now;
+					break;
+				case OrderItemStatus.SERVED:
+					item.servedAt = now;
+					break;
+			}
+
+			updatedItems.push(item);
+		}
+
+		// 5. Save updated items
+		await this.orderItemRepository.save(updatedItems);
+
+		// 6. Auto-update parent Order status based on item statuses
+		const allItems = order.items;
+		const allServed = allItems.every((item) => item.status === OrderItemStatus.SERVED);
+		const anyInProgress = allItems.some((item) =>
+			[
+				OrderItemStatus.ACCEPTED,
+				OrderItemStatus.PREPARING,
+				OrderItemStatus.READY,
+			].includes(item.status),
+		);
+
+		if (allServed && order.status !== OrderStatus.SERVED) {
+			// All items served → can proceed to payment
+			order.status = OrderStatus.SERVED;
+			order.servedAt = now;
+			await this.orderRepository.save(order);
+
+			this.logger.log(
+				`Order ${order.id}: All items served. Order status updated to SERVED.`,
+			);
+		} else if (anyInProgress && order.status === OrderStatus.PENDING) {
+			// Some items in progress → mark order as active
+			order.status = OrderStatus.IN_PROGRESS;
+			await this.orderRepository.save(order);
+
+			this.logger.log(
+				`Order ${order.id}: Items in progress. Order status updated to IN_PROGRESS.`,
+			);
+		}
+
+		this.logger.log(
+			`Updated ${updatedItems.length} items to status ${OrderItemStatusLabels[dto.status]} for order ${dto.orderId}`,
+		);
+
+		// TODO: Send notification via RabbitMQ for kitchen/waiter
+		// this.notificationClient.emit('order-items.status-updated', {
+		//   orderId: order.id,
+		//   tenantId: order.tenantId,
+		//   tableId: order.tableId,
+		//   itemIds: dto.itemIds,
+		//   newStatus: OrderItemStatusLabels[dto.status],
+		//   updatedBy: dto.waiterId,
+		// });
+
+		return this.mapToOrderResponse(order);
+	}
+
+	/**
 	 * Cancel an order
 	 *
 	 * Business Rules:
@@ -747,6 +902,7 @@ export class OrderService {
 				modifiersTotal: modifiersTotal,
 				total: total,
 				currency: 'VND',
+				status: OrderItemStatus.PENDING, // Set initial item status
 				modifiers: modifiers,
 				notes: itemDto.notes,
 			});
@@ -820,6 +976,7 @@ export class OrderService {
 	/**
 	 * Helper: Map OrderItem entity to OrderItemResponseDto
 	 * Note: DecimalToNumberTransformer ensures all numeric fields are already numbers
+	 * NEW: Includes item-level status and timestamps
 	 */
 	private mapToOrderItemResponse(item: OrderItem): OrderItemResponseDto {
 		return {
@@ -834,8 +991,14 @@ export class OrderService {
 			modifiersTotal: item.modifiersTotal,
 			total: item.total,
 			currency: item.currency,
+			status: OrderItemStatusLabels[item.status] || 'PENDING',
 			modifiers: item.modifiers,
 			notes: item.notes,
+			rejectionReason: item.rejectionReason,
+			acceptedAt: item.acceptedAt,
+			preparingAt: item.preparingAt,
+			readyAt: item.readyAt,
+			servedAt: item.servedAt,
 			createdAt: item.createdAt,
 			updatedAt: item.updatedAt,
 		};

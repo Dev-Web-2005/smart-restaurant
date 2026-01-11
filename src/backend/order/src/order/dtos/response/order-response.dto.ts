@@ -2,6 +2,8 @@ import { OrderItemModifier } from '../../../common/entities/order-item.entity';
 
 /**
  * Response DTO for order item
+ * 
+ * NEW: Includes item-level status tracking fields
  */
 export class OrderItemResponseDto {
 	id: string;
@@ -15,8 +17,14 @@ export class OrderItemResponseDto {
 	modifiersTotal: number;
 	total: number;
 	currency: string;
+	status: string; // Item status as string (PENDING, PREPARING, READY, SERVED, etc.)
 	modifiers: OrderItemModifier[];
 	notes: string;
+	rejectionReason?: string; // Reason if item was rejected
+	acceptedAt?: Date; // When item was accepted
+	preparingAt?: Date; // When preparation started
+	readyAt?: Date; // When item became ready
+	servedAt?: Date; // When item was served
 	createdAt: Date;
 	updatedAt: Date;
 }

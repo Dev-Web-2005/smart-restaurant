@@ -25,7 +25,7 @@ import { CartController } from './services/cart/cart.controller';
 				transport: Transport.TCP,
 				options: {
 					host: process.env.HOST_IDENTITY_SERVICE || 'localhost',
-					port: +process.env.PORT_IDENTITY_SERVICE || 8080,
+					port: +process.env.PORT_IDENTITY_SERVICE || 8084,
 				},
 			},
 			{
@@ -57,7 +57,7 @@ import { CartController } from './services/cart/cart.controller';
 				transport: Transport.TCP,
 				options: {
 					host: process.env.HOST_ORDER_SERVICE || 'localhost',
-					port: +process.env.PORT_ORDER_SERVICE || 8084,
+					port: +process.env.PORT_ORDER_SERVICE || 8087,
 				},
 			},
 			{
@@ -65,7 +65,7 @@ import { CartController } from './services/cart/cart.controller';
 				transport: Transport.TCP,
 				options: {
 					host: process.env.HOST_NOTIFICATION_SERVICE || 'localhost',
-					port: +process.env.PORT_NOTIFICATION_SERVICE || 8086,
+					port: +process.env.PORT_NOTIFICATION_SERVICE || 8085,
 				},
 			},
 		]),

@@ -1,10 +1,14 @@
 /**
  * Order Status Enum
  *
- * Represents the lifecycle of an order from creation to completion
+ * Represents the lifecycle of an order session from creation to completion
  * Stored as INTEGER in database for performance, mapped to STRING for API.
- * Based on the project requirements workflow:
- * Pending → Accepted/Rejected → Preparing → Ready → Served → Completed
+ * 
+ * Note: With item-level status tracking, Order status represents the overall session state:
+ * - PENDING: Order created, waiting for first item acceptance
+ * - IN_PROGRESS: At least one item is being prepared/served
+ * - COMPLETED: All items served and payment completed
+ * - CANCELLED: Entire order session cancelled
  */
 export enum OrderStatus {
 	/** Order placed by customer, waiting for waiter acceptance */
@@ -25,6 +29,9 @@ export enum OrderStatus {
 	/** Food has been served to customer */
 	SERVED = 5,
 
+	/** Order session is active with items in various states */
+	IN_PROGRESS = 8,
+
 	/** Order is completed and paid */
 	COMPLETED = 6,
 
@@ -42,6 +49,7 @@ export const OrderStatusLabels: Record<OrderStatus, string> = {
 	[OrderStatus.PREPARING]: 'PREPARING',
 	[OrderStatus.READY]: 'READY',
 	[OrderStatus.SERVED]: 'SERVED',
+	[OrderStatus.IN_PROGRESS]: 'IN_PROGRESS',
 	[OrderStatus.COMPLETED]: 'COMPLETED',
 	[OrderStatus.CANCELLED]: 'CANCELLED',
 };
@@ -51,21 +59,14 @@ export const OrderStatusLabels: Record<OrderStatus, string> = {
  */
 export const OrderStatusFromString: Record<string, OrderStatus> = {
 	PENDING: OrderStatus.PENDING,
-	pending: OrderStatus.PENDING,
 	ACCEPTED: OrderStatus.ACCEPTED,
-	accepted: OrderStatus.ACCEPTED,
 	REJECTED: OrderStatus.REJECTED,
-	rejected: OrderStatus.REJECTED,
 	PREPARING: OrderStatus.PREPARING,
-	preparing: OrderStatus.PREPARING,
 	READY: OrderStatus.READY,
-	ready: OrderStatus.READY,
 	SERVED: OrderStatus.SERVED,
-	served: OrderStatus.SERVED,
+	IN_PROGRESS: OrderStatus.IN_PROGRESS,
 	COMPLETED: OrderStatus.COMPLETED,
-	completed: OrderStatus.COMPLETED,
 	CANCELLED: OrderStatus.CANCELLED,
-	cancelled: OrderStatus.CANCELLED,
 };
 
 /**
@@ -101,18 +102,29 @@ export function orderStatusFromString(status: string | number): OrderStatus {
 /**
  * Valid order status transitions
  * Prevents invalid state changes
+ * 
+ * Note: With item-level status, Order transitions are simplified:
+ * - PENDING: Initial state when order is created
+ * - IN_PROGRESS: When items are being prepared/served
+ * - COMPLETED: When payment is done
  */
 export const ORDER_STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 	[OrderStatus.PENDING]: [
 		OrderStatus.ACCEPTED,
 		OrderStatus.REJECTED,
+		OrderStatus.IN_PROGRESS,
 		OrderStatus.CANCELLED,
 	],
-	[OrderStatus.ACCEPTED]: [OrderStatus.PREPARING, OrderStatus.CANCELLED],
+	[OrderStatus.ACCEPTED]: [
+		OrderStatus.PREPARING,
+		OrderStatus.IN_PROGRESS,
+		OrderStatus.CANCELLED,
+	],
 	[OrderStatus.REJECTED]: [], // Terminal state
-	[OrderStatus.PREPARING]: [OrderStatus.READY, OrderStatus.CANCELLED],
-	[OrderStatus.READY]: [OrderStatus.SERVED],
-	[OrderStatus.SERVED]: [OrderStatus.COMPLETED],
+	[OrderStatus.PREPARING]: [OrderStatus.READY, OrderStatus.IN_PROGRESS, OrderStatus.CANCELLED],
+	[OrderStatus.READY]: [OrderStatus.SERVED, OrderStatus.IN_PROGRESS],
+	[OrderStatus.SERVED]: [OrderStatus.COMPLETED, OrderStatus.IN_PROGRESS],
+	[OrderStatus.IN_PROGRESS]: [OrderStatus.COMPLETED, OrderStatus.CANCELLED],
 	[OrderStatus.COMPLETED]: [], // Terminal state
 	[OrderStatus.CANCELLED]: [], // Terminal state
 };
