@@ -84,7 +84,6 @@ export class OrderItem {
 	currency: string;
 
 	@Column({ type: 'int', default: OrderItemStatus.PENDING })
-	@Index('idx_order_item_status')
 	status: OrderItemStatus; // Item-level status tracking
 
 	@Column({ type: 'jsonb', nullable: true })
