@@ -71,15 +71,10 @@ import { WaiterController } from './services/waiter/waiter.controller';
 			},
 			{
 				name: 'WAITER_SERVICE',
-				transport: Transport.RMQ,
+				transport: Transport.TCP, // ✅ Đổi thành TCP
 				options: {
-					urls: [
-						process.env.CONNECTION_AMQP || 'amqp://supper:supper@103.249.117.202:46270',
-					],
-					queue: (process.env.QUEUE_NAME_OF_WAITER || 'local_waiter') + '_queue',
-					queueOptions: {
-						durable: true,
-					},
+					host: process.env.HOST_WAITER_SERVICE || 'localhost',
+					port: +process.env.PORT_WAITER_SERVICE || 8088,
 				},
 			},
 		]),
