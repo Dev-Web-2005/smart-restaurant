@@ -20,7 +20,7 @@ if /i "%INSTALL_FLAG%"=="i" (
 echo.
 
 :: Backend services array
-set "services=identity notification product profile table kitchen order api-gateway"
+set "services=identity notification product profile table kitchen order waiter api-gateway"
 
 :: Install and start backend services
 echo [1/2] Starting Backend Services...
