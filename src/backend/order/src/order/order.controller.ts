@@ -232,12 +232,12 @@ export class OrderController {
 	 */
 	@MessagePattern('orders:accept-items')
 	async acceptItems(@Payload() dto: any) {
-		return handleRpcCall(this.logger, async () => {
+		return handleRpcCall(async () => {
 			this.logger.log(
 				`[RPC] Accepting ${dto.itemIds.length} items from order ${dto.orderId} by waiter ${dto.waiterId}`,
 			);
 			const result = await this.orderService.acceptItems(dto);
-			return HttpResponse.success(result, 'Items accepted successfully');
+			return new HttpResponse(1000, 'Items accepted successfully', result);
 		});
 	}
 
@@ -255,12 +255,12 @@ export class OrderController {
 	 */
 	@MessagePattern('orders:reject-items')
 	async rejectItems(@Payload() dto: any) {
-		return handleRpcCall(this.logger, async () => {
+		return handleRpcCall(async () => {
 			this.logger.log(
 				`[RPC] Rejecting ${dto.itemIds.length} items from order ${dto.orderId} by waiter ${dto.waiterId}: ${dto.rejectionReason}`,
 			);
 			const result = await this.orderService.rejectItems(dto);
-			return HttpResponse.success(result, 'Items rejected successfully');
+			return new HttpResponse(1000, 'Items rejected successfully', result);
 		});
 	}
 
