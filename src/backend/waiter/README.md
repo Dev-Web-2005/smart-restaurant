@@ -1,8 +1,235 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Waiter Service
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
+## 📋 Tổng quan
+
+Waiter Service là microservice quản lý luồng duyệt đơn hàng trong hệ thống Smart Restaurant. Service này đóng vai trò trung gian giữa Order Service và Kitchen Service, cho phép waiter review và approve/reject các món ăn trước khi gửi xuống bếp.
+
+### Chức năng chính
+
+✅ Nhận thông báo đơn hàng mới từ Order Service  
+✅ Lưu trữ và quản lý notifications  
+✅ Cung cấp API cho waiter app để xem pending orders  
+✅ Xử lý accept/reject order items  
+✅ Gửi approved items xuống Kitchen Service  
+✅ Cập nhật item status về Order Service  
+✅ Retry logic và Dead Letter Queue handling  
+
+---
+
+## 🏗️ Kiến trúc
+
+```
+┌──────────────────┐
+│  Order Service   │
+│  (emit events)   │
+└────────┬─────────┘
+         │ order.new_items
+         ↓
+    ┌────────────────────┐
+    │   RabbitMQ Queue   │ ← local_waiter_queue
+    │                    │
+    └────────┬───────────┘
+             │
+             ↓
+    ┌────────────────────┐
+    │  Waiter Service    │
+    │  (handle & store)  │
+    └────────┬───────────┘
+             │
+    ┌────────┴───────────┐
+    │                    │
+    ↓                    ↓
+┌────────────┐    ┌──────────────┐
+│   Order    │    │   Kitchen    │
+│  Service   │    │   Service    │
+│ (update)   │    │  (prepare)   │
+└────────────┘    └──────────────┘
+```
+
+---
+
+## 📚 Documentation
+
+Xem tài liệu chi tiết tại: [Waiter Service Guide](../../docs/WAITER_SERVICE_GUIDE.md)
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# Install dependencies
+npm install
+
+# Setup environment
+cp .env.example .env
+# Edit .env with your configuration
+
+# Run in development mode
+npm run start:dev
+
+# Run in production mode
+npm run build
+npm run start:prod
+```
+
+---
+
+## 📡 API Endpoints
+
+### Message Patterns (RPC)
+
+| Pattern | Description |
+|---------|-------------|
+| `waiter.get_pending_notifications` | Lấy danh sách notifications chờ xử lý |
+| `waiter.mark_viewed` | Đánh dấu notification đã xem |
+| `waiter.accept_items` | Duyệt các món và gửi bếp |
+| `waiter.reject_items` | Từ chối các món |
+
+### Event Patterns
+
+| Event | Direction | Description |
+|-------|-----------|-------------|
+| `order.new_items` | Incoming | Nhận thông báo items mới từ Order Service |
+| `order.items_accepted_by_waiter` | Outgoing | Thông báo items đã được duyệt |
+| `order.items_rejected_by_waiter` | Outgoing | Thông báo items bị từ chối |
+| `kitchen.new_items` | Outgoing | Gửi items xuống Kitchen Service |
+
+---
+
+## 🔧 Environment Variables
+
+```env
+PORT=8088
+CONNECTION_AMQP=amqp://localhost:5672
+NAME_QUEUE=local_waiter
+WAITER_API_KEY=your_secret_key
+HOST_DB=localhost
+PORT_DB=5432
+USERNAME_DB=postgres
+PASSWORD_DB=password
+DATABASE_DB=smart_restaurant
+```
+
+---
+
+## 📁 Project Structure
+
+```
+src/
+├── common/
+│   ├── entities/           # Database entities
+│   ├── enums/             # Status enums
+│   └── logger.ts          # Custom logger
+├── waiter/
+│   ├── dtos/              # Request/Response DTOs
+│   ├── waiter.controller.ts
+│   ├── waiter.service.ts
+│   └── waiter.module.ts
+├── app.module.ts
+└── main.ts
+```
+
+---
+
+## 🛠️ Technology Stack
+
+- **Framework:** NestJS
+- **Database:** PostgreSQL + TypeORM
+- **Message Queue:** RabbitMQ
+- **Language:** TypeScript
+- **Validation:** class-validator
+
+---
+
+## 📊 Database Schema
+
+### order_notifications
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| order_id | UUID | Reference to order |
+| table_id | VARCHAR | Table identifier |
+| tenant_id | VARCHAR | Restaurant/tenant ID |
+| waiter_id | UUID | Assigned waiter |
+| status | INT | PENDING/VIEWED/ACCEPTED/REJECTED |
+| item_ids | JSONB | List of order item IDs |
+| metadata | JSONB | Additional context |
+| created_at | TIMESTAMP | Creation time |
+| expires_at | TIMESTAMP | Expiry time |
+
+---
+
+## 🧪 Testing
+
+```bash
+# Unit tests
+npm run test
+
+# E2E tests
+npm run test:e2e
+
+# Test coverage
+npm run test:cov
+```
+
+---
+
+## 📈 Monitoring
+
+### Key Metrics
+
+- **Response Time:** Time from notification creation to waiter response (Target: < 2 min)
+- **Acceptance Rate:** % of accepted vs rejected items (Target: > 95%)
+- **Queue Depth:** Number of pending messages (Alert if > 100)
+
+---
+
+## 🐛 Troubleshooting
+
+### Service không nhận messages
+
+```bash
+# Check RabbitMQ
+docker ps | grep rabbitmq
+
+# Check queue
+rabbitmqadmin list queues
+
+# Check logs
+tail -f logs/waiter-service.log
+```
+
+### Database connection issues
+
+```bash
+# Test connection
+psql -h $HOST_DB -p $PORT_DB -U $USERNAME_DB -d $DATABASE_DB
+
+# Check credentials
+cat .env | grep DB
+```
+
+---
+
+## 🤝 Contributing
+
+1. Create feature branch
+2. Make changes with tests
+3. Submit pull request
+
+---
+
+## 📚 Related Services
+
+- [Order Service](../order/README.md)
+- [Kitchen Service](../kitchen/README.md)
+- [API Gateway](../api-gateway/README.md)
+
+---
+
+**Version:** 1.0.0  
+**Maintainers:** Smart Restaurant Team
 [circleci-url]: https://circleci.com/gh/nestjs/nest
 
   <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
