@@ -102,6 +102,7 @@ const OrderManagementInterface = () => {
 	const [cartItems, setCartItems] = useState([]) // { id, name, price, qty, totalPrice, modifiers, specialNotes, imageUrl }
 	const [view, setView] = useState('MENU') // MENU | ORDERS | CART
 	const [orders, setOrders] = useState([]) // Orders history - load from API
+	const [loadingOrders, setLoadingOrders] = useState(false)
 
 	// Load orders when switching to ORDERS view
 	useEffect(() => {
@@ -111,10 +112,56 @@ const OrderManagementInterface = () => {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [view, tenantId, tableId])
 
+	// Auto-refresh orders every 30 seconds when in ORDERS view
+	useEffect(() => {
+		let intervalId = null
+
+		if (view === 'ORDERS' && tenantId && tableId) {
+			// Refresh every 30 seconds
+			intervalId = setInterval(() => {
+				loadOrders(true) // Pass true to indicate background refresh (no loading spinner)
+			}, 30000)
+		}
+
+		return () => {
+			if (intervalId) {
+				clearInterval(intervalId)
+			}
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [view, tenantId, tableId])
+
 	// Load orders from API
-	const loadOrders = async () => {
+	const loadOrders = async (isBackgroundRefresh = false) => {
+		if (!isBackgroundRefresh) {
+			setLoadingOrders(true)
+		}
+
 		try {
-			console.log('📋 Loading orders for table:', tableId)
+			// Check if customer has authentication
+			if (!window.accessToken) {
+				console.warn('⚠️ No access token found. Customer may need to login.')
+				
+				// Check if there's customerAuth in localStorage
+				const customerAuth = localStorage.getItem('customerAuth')
+				if (!customerAuth) {
+					console.log('🔓 No customer authentication - orders require login')
+					setOrders([])
+					if (!isBackgroundRefresh) {
+						setLoadingOrders(false)
+					}
+					return
+				}
+				
+				// Has customerAuth but no window.accessToken - try to refresh token via apiClient
+				console.log('🔄 Attempting to restore session...')
+			}
+
+			console.log(
+				'📋 Loading orders for table:',
+				tableId,
+				isBackgroundRefresh ? '(background)' : '',
+			)
 
 			const result = await getOrdersAPI(tenantId, {
 				tableId: tableId,
@@ -131,11 +178,15 @@ const OrderManagementInterface = () => {
 					status: order.status, // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
 					currentStep: mapOrderStatus(order.status),
 					totalAmount: order.totalAmount,
+					paymentStatus: order.paymentStatus,
 					items: order.items.map((item) => ({
-						name: item.menuItemName,
+						id: item.id, // Item ID for cancel operation
+						name: item.menuItemName || item.name,
 						price: item.price,
 						quantity: item.quantity,
-						modifiers: item.modifiers?.map((m) => m.modifierName) || [],
+						status: item.status, // PENDING, ACCEPTED, PREPARING, READY, SERVED, REJECTED, CANCELLED
+						modifiers: item.modifiers?.map((m) => m.modifierName || m.name) || [],
+						rejectionReason: item.rejectionReason || null,
 					})),
 					rejectionReason:
 						order.items.find((i) => i.status === 'REJECTED')?.rejectionReason || null,
@@ -143,12 +194,34 @@ const OrderManagementInterface = () => {
 
 				setOrders(transformedOrders)
 			} else {
-				console.log('⚠️ No orders found')
+				console.log('⚠️ No orders found or failed to load:', result.message)
+				
+				// If unauthorized, customer needs to re-login
+				if (result.error?.code === 1004 || result.message?.includes('Unauthorized')) {
+					console.log('🔐 Authentication required - clearing customer auth')
+					localStorage.removeItem('customerAuth')
+					window.accessToken = null
+					alert('Your session has expired. Please login again.')
+				}
+				
 				setOrders([])
 			}
 		} catch (error) {
 			console.error('❌ Load orders error:', error)
+			
+			// Handle auth errors
+			if (error.response?.status === 401) {
+				console.log('🔐 Unauthorized - clearing customer auth')
+				localStorage.removeItem('customerAuth')
+				window.accessToken = null
+				alert('Your session has expired. Please login again.')
+			}
+			
 			setOrders([])
+		} finally {
+			if (!isBackgroundRefresh) {
+				setLoadingOrders(false)
+			}
 		}
 	}
 
@@ -330,7 +403,13 @@ const OrderManagementInterface = () => {
 
 				{/* CONTENT VIEWS */}
 				{view === 'ORDERS' && (
-					<OrdersPage orders={orders} onBrowseMenu={() => setView('MENU')} />
+					<OrdersPage
+						orders={orders}
+						loading={loadingOrders}
+						tenantId={tenantId}
+						onBrowseMenu={() => setView('MENU')}
+						onRefresh={() => loadOrders(false)}
+					/>
 				)}
 
 				{view === 'MENU' && (

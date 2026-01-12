@@ -1,19 +1,88 @@
-import React from 'react'
+import React, { useState } from 'react'
 import OrderStatusTimeline from './OrderStatusTimeline'
+import { updateOrderItemsStatusAPI } from '../../../../services/api/orderAPI'
 
-const OrderCard = ({ order }) => {
+const OrderCard = ({ order, tenantId, onRefresh }) => {
+	const [cancelling, setCancelling] = useState(null) // Track which item is being cancelled
+
 	const getStatusColor = (status) => {
 		switch (status) {
+			case 'PENDING':
 			case 'RECEIVED':
 				return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+			case 'ACCEPTED':
+				return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'
 			case 'PREPARING':
 				return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
 			case 'READY':
 				return 'bg-green-500/20 text-green-400 border-green-500/30'
+			case 'SERVED':
+				return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
 			case 'REJECTED':
+			case 'CANCELLED':
 				return 'bg-red-500/20 text-red-400 border-red-500/30'
 			default:
 				return 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+		}
+	}
+
+	const getItemStatusLabel = (status) => {
+		const labels = {
+			PENDING: 'Pending',
+			ACCEPTED: 'Accepted',
+			PREPARING: 'Preparing',
+			READY: 'Ready',
+			SERVED: 'Served',
+			REJECTED: 'Rejected',
+			CANCELLED: 'Cancelled',
+		}
+		return labels[status] || status
+	}
+
+	const canCancelItem = (itemStatus) => {
+		// Customer can only cancel items that haven't started preparing
+		return itemStatus === 'PENDING' || itemStatus === 'ACCEPTED'
+	}
+
+	const handleCancelItem = async (itemId, itemName) => {
+		if (!tenantId || !order.id) {
+			alert('Missing order information')
+			return
+		}
+
+		const confirmed = window.confirm(
+			`Are you sure you want to cancel "${itemName}"?\n\nThis action cannot be undone.`,
+		)
+
+		if (!confirmed) return
+
+		setCancelling(itemId)
+
+		try {
+			console.log('🚫 Cancelling item:', { orderId: order.id, itemId })
+
+			const result = await updateOrderItemsStatusAPI(tenantId, order.id, {
+				itemIds: [itemId],
+				status: 'CANCELLED',
+			})
+
+			if (result.success) {
+				console.log('✅ Item cancelled successfully')
+				alert(`"${itemName}" has been cancelled`)
+
+				// Refresh orders to show updated status
+				if (onRefresh) {
+					onRefresh()
+				}
+			} else {
+				console.error('❌ Failed to cancel item:', result.message)
+				alert(`Failed to cancel item: ${result.message}`)
+			}
+		} catch (error) {
+			console.error('❌ Cancel item error:', error)
+			alert('Failed to cancel item. Please try again.')
+		} finally {
+			setCancelling(null)
 		}
 	}
 
@@ -100,11 +169,37 @@ const OrderCard = ({ order }) => {
 							className="flex items-start justify-between gap-3 p-3 rounded-lg bg-[#2D3748]/50"
 						>
 							<div className="flex-1">
-								<p className="text-white font-medium text-sm">{item.name}</p>
+								<div className="flex items-start gap-2 mb-1">
+									<p className="text-white font-medium text-sm flex-1">{item.name}</p>
+									{item.status && (
+										<span
+											className={`px-2 py-0.5 rounded text-[10px] font-semibold border whitespace-nowrap ${getStatusColor(
+												item.status,
+											)}`}
+										>
+											{getItemStatusLabel(item.status)}
+										</span>
+									)}
+								</div>
 								{item.modifiers && item.modifiers.length > 0 && (
 									<p className="text-[#9dabb9] text-xs mt-1">
 										{item.modifiers.join(', ')}
 									</p>
+								)}
+								{item.rejectionReason && (
+									<p className="text-red-400 text-xs mt-1 italic">
+										❌ {item.rejectionReason}
+									</p>
+								)}
+								{/* Cancel button for pending/accepted items */}
+								{canCancelItem(item.status) && (
+									<button
+										onClick={() => handleCancelItem(item.id, item.name)}
+										disabled={cancelling === item.id}
+										className="mt-2 text-xs text-red-400 hover:text-red-300 underline disabled:opacity-50 disabled:cursor-not-allowed"
+									>
+										{cancelling === item.id ? 'Cancelling...' : 'Cancel this item'}
+									</button>
 								)}
 							</div>
 							<div className="text-right flex-shrink-0">

@@ -4,6 +4,13 @@ import { useNotifications } from '../../../contexts/NotificationContext'
 import BasePageLayout from '../../../components/layout/BasePageLayout'
 import { InlineLoader, CardSkeleton } from '../../../components/common/LoadingSpinner'
 import { getOrdersAPI, updateOrderItemsStatusAPI } from '../../../services/api/orderAPI'
+import { speakText } from '../../../services/api/ttsAPI'
+import {
+	generateKitchenAnnouncement,
+	generateNewItemsAnnouncement,
+	extractPreparingItems,
+	createItemKey,
+} from '../../../utils/kitchenAnnouncer'
 
 /**
  * KitchenManagement - Kitchen Display System (KDS)
@@ -63,8 +70,14 @@ const KitchenManagement = () => {
 	const [searchQuery, setSearchQuery] = useState('')
 	const [expandedOrders, setExpandedOrders] = useState(new Set())
 
+	// TTS state management
+	const [isSpeaking, setIsSpeaking] = useState(false)
+	const [announcedItems, setAnnouncedItems] = useState(new Set()) // Track which items have been announced
+	const [autoAnnounce, setAutoAnnounce] = useState(true) // Toggle auto-announcement
+
 	// Auto-refresh interval
 	const intervalRef = useRef(null)
+	const previousPreparingItemsRef = useRef(new Set()) // Track previous preparing items
 
 	// Fetch orders from API
 	const fetchOrders = async (showLoader = true) => {
@@ -120,6 +133,11 @@ const KitchenManagement = () => {
 				}, 0)
 				setPendingOrdersCount(acceptedCount)
 
+				// Check for new preparing items and auto-announce if enabled
+				if (autoAnnounce && !showLoader) {
+					checkAndAnnounceNewItems(kitchenOrders)
+				}
+
 				console.log('✅ Kitchen orders loaded:', kitchenOrders.length)
 			} else {
 				console.error('❌ Failed to load orders:', {
@@ -132,6 +150,130 @@ const KitchenManagement = () => {
 		} finally {
 			setLoading(false)
 			setRefreshing(false)
+		}
+	}
+
+	// Check for new preparing items and announce them
+	const checkAndAnnounceNewItems = (currentOrders) => {
+		// Extract all preparing items from current orders
+		const preparingOrders = currentOrders.filter((order) =>
+			order.items.some((item) => item.status === ITEM_STATUS.PREPARING),
+		)
+
+		const currentPreparingItems = extractPreparingItems(
+			preparingOrders.map((order) => ({
+				...order,
+				items: order.items.filter((item) => item.status === ITEM_STATUS.PREPARING),
+			})),
+		)
+
+		// Find new items (not in previous set and not already announced)
+		const newItems = currentPreparingItems.filter((item) => {
+			const itemKey = item.itemKey
+			return (
+				!previousPreparingItemsRef.current.has(itemKey) && !announcedItems.has(itemKey)
+			)
+		})
+
+		// Update previous preparing items set
+		previousPreparingItemsRef.current = new Set(
+			currentPreparingItems.map((item) => item.itemKey),
+		)
+
+		// Announce new items if any
+		if (newItems.length > 0 && !isSpeaking) {
+			announceNewItems(newItems)
+		}
+	}
+
+	// Announce new items
+	const announceNewItems = async (newItems) => {
+		const token = window.accessToken
+
+		if (!token) {
+			console.error('❌ No access token available for TTS')
+			return
+		}
+
+		if (isSpeaking) {
+			console.log('⏭️ Already speaking, skipping announcement')
+			return
+		}
+
+		setIsSpeaking(true)
+
+		try {
+			const announcementText = generateNewItemsAnnouncement(newItems)
+			console.log('🔊 Announcing new items:', announcementText)
+
+			const success = await speakText(announcementText, token)
+
+			if (success) {
+				console.log('✅ Successfully announced new items')
+				// Mark items as announced
+				setAnnouncedItems((prev) => {
+					const newSet = new Set(prev)
+					newItems.forEach((item) => newSet.add(item.itemKey))
+					return newSet
+				})
+			} else {
+				console.error('❌ Failed to announce new items')
+			}
+		} catch (error) {
+			console.error('❌ Error announcing new items:', error)
+		} finally {
+			setIsSpeaking(false)
+		}
+	}
+
+	// Announce all preparing orders
+	const announceAllPreparingOrders = async () => {
+		const token = window.accessToken
+
+		if (!token) {
+			alert('No authentication token available. Please login again.')
+			return
+		}
+
+		if (isSpeaking) {
+			console.log('⏭️ Already speaking, please wait')
+			return
+		}
+
+		// Get all preparing orders
+		const preparingOrders = orders.filter((order) =>
+			order.items.some((item) => item.status === ITEM_STATUS.PREPARING),
+		)
+
+		if (preparingOrders.length === 0) {
+			alert('No orders are currently preparing')
+			return
+		}
+
+		setIsSpeaking(true)
+
+		try {
+			// Filter to only preparing items
+			const ordersWithPreparingItems = preparingOrders.map((order) => ({
+				...order,
+				items: order.items.filter((item) => item.status === ITEM_STATUS.PREPARING),
+			}))
+
+			const announcementText = generateKitchenAnnouncement(ordersWithPreparingItems)
+			console.log('🔊 Announcing all preparing orders:', announcementText)
+
+			const success = await speakText(announcementText, token)
+
+			if (!success) {
+				alert('Failed to announce orders. Please check console for errors.')
+			} else {
+				console.log('✅ Successfully announced all preparing orders')
+			}
+		} catch (error) {
+			console.error('❌ Error announcing orders:', error)
+			alert('Failed to announce orders. Please try again.')
+		} finally {
+			setIsSpeaking(false)
 		}
 	}
 
@@ -212,6 +354,19 @@ const KitchenManagement = () => {
 
 			if (result.success) {
 				console.log('✅ Item status updated:', result.data)
+
+				// Remove items from announced set when marked as READY
+				if (newStatus === ITEM_STATUS.READY) {
+					setAnnouncedItems((prev) => {
+						const newSet = new Set(prev)
+						itemIds.forEach((itemId) => {
+							const itemKey = createItemKey(orderId, itemId)
+							newSet.delete(itemKey)
+						})
+						return newSet
+					})
+				}
+
 				// Refresh orders
 				fetchOrders(false)
 			} else {
@@ -295,18 +450,87 @@ const KitchenManagement = () => {
 						<h1 className="text-3xl font-bold text-white mb-2">Kitchen Display</h1>
 						<p className="text-gray-400">Manage incoming orders and cooking status</p>
 					</div>
-					<button
-						onClick={() => fetchOrders(false)}
-						disabled={refreshing}
-						className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors disabled:opacity-50"
-					>
-						<span
-							className={`material-symbols-outlined ${refreshing ? 'animate-spin' : ''}`}
+					<div className="flex items-center gap-2">
+						{/* Test TTS button */}
+						<button
+							onClick={async () => {
+								const token = window.accessToken
+								if (!token) {
+									alert('No token found. Please login.')
+									return
+								}
+								setIsSpeaking(true)
+								try {
+									await speakText('Test announcement. This is a test.', token)
+									console.log('✅ Test announcement completed')
+								} catch (error) {
+									console.error('❌ Test failed:', error)
+									alert('Test failed: ' + error.message)
+								} finally {
+									setIsSpeaking(false)
+								}
+							}}
+							disabled={isSpeaking}
+							className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/50 rounded-lg transition-colors disabled:opacity-50"
+							title="Test TTS"
 						>
-							refresh
-						</span>
-						Refresh
-					</button>
+							<span className="material-symbols-outlined">play_circle</span>
+							<span className="text-sm font-medium">Test</span>
+						</button>
+
+						{/* Auto-announce toggle */}
+						<button
+							onClick={() => setAutoAnnounce(!autoAnnounce)}
+							className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+								autoAnnounce
+									? 'bg-green-500/20 text-green-400 border border-green-500/50'
+									: 'bg-white/10 text-gray-400 border border-white/20'
+							}`}
+							title={autoAnnounce ? 'Auto-announce enabled' : 'Auto-announce disabled'}
+						>
+							<span className="material-symbols-outlined">
+								{autoAnnounce ? 'volume_up' : 'volume_off'}
+							</span>
+							<span className="text-sm font-medium">
+								{autoAnnounce ? 'Auto' : 'Manual'}
+							</span>
+						</button>
+
+						{/* Announce all button */}
+						<button
+							onClick={announceAllPreparingOrders}
+							disabled={isSpeaking || orders.length === 0}
+							className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+							title="Announce all preparing orders"
+						>
+							<span
+								className={`material-symbols-outlined ${
+									isSpeaking ? 'animate-pulse' : ''
+								}`}
+							>
+								campaign
+							</span>
+							<span className="text-sm font-medium">
+								{isSpeaking ? 'Speaking...' : 'Announce All'}
+							</span>
+						</button>
+
+						{/* Refresh button */}
+						<button
+							onClick={() => fetchOrders(false)}
+							disabled={refreshing}
+							className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors disabled:opacity-50"
+						>
+							<span
+								className={`material-symbols-outlined ${
+									refreshing ? 'animate-spin' : ''
+								}`}
+							>
+								refresh
+							</span>
+							Refresh
+						</button>
+					</div>
 				</div>
 
 				{/* Stats */}

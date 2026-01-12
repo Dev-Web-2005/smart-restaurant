@@ -254,7 +254,7 @@ export const updateOrderPaymentAPI = async (tenantId, orderId, paymentData) => {
  */
 export const cancelOrderAPI = async (tenantId, orderId, reason) => {
 	try {
-		console.log('📋 Cancelling order:', { tenantId, orderId, reason })
+		console.log('� Cancelling order:', { tenantId, orderId, reason })
 
 		const response = await apiClient.patch(
 			`/tenants/${tenantId}/orders/${orderId}/cancel`,
