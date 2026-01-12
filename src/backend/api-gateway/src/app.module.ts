@@ -15,6 +15,7 @@ import { HealthController } from './health.controller';
 import { NotificationController } from './services/notification/notification.controller';
 import { OrderController } from './services/order/order.controller';
 import { CartController } from './services/cart/cart.controller';
+import { WaiterController } from './services/waiter/waiter.controller';
 
 @Module({
 	imports: [
@@ -68,6 +69,19 @@ import { CartController } from './services/cart/cart.controller';
 					port: +process.env.PORT_NOTIFICATION_SERVICE || 8085,
 				},
 			},
+			{
+				name: 'WAITER_SERVICE',
+				transport: Transport.RMQ,
+				options: {
+					urls: [
+						process.env.CONNECTION_AMQP || 'amqp://supper:supper@103.249.117.202:46270',
+					],
+					queue: (process.env.QUEUE_NAME_OF_WAITER || 'local_waiter') + '_queue',
+					queueOptions: {
+						durable: true,
+					},
+				},
+			},
 		]),
 	],
 	controllers: [
@@ -81,6 +95,7 @@ import { CartController } from './services/cart/cart.controller';
 		NotificationController,
 		OrderController,
 		CartController,
+		WaiterController,
 	],
 	providers: [AppService],
 })

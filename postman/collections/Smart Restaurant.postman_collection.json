@@ -2997,7 +2997,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"orderApiKey\": \"lethanhcong\",\n  \"orderId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"itemIds\": [\n    \"660e8400-e29b-41d4-a716-446655440001\",\n    \"660e8400-e29b-41d4-a716-446655440002\"\n  ],\n  \"waiterId\": \"770e8400-e29b-41d4-a716-446655440003\",\n  \"tenantId\": \"d95e73fb-b861-40eb-ba09-eff4b79084ef\"\n}",
+							"raw": "{\n  \"itemIds\": [\n    \"660e8400-e29b-41d4-a716-446655440001\",\n    \"660e8400-e29b-41d4-a716-446655440002\"\n  ],\n  \"waiterId\": \"770e8400-e29b-41d4-a716-446655440003\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3005,11 +3005,19 @@
 							}
 						},
 						"url": {
-							"raw": "{{baseURL}}/api/v1/orders/accept-items",
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/550e8400-e29b-41d4-a716-446655440000/accept-items",
 							"host": ["{{baseURL}}"],
-							"path": ["api", "v1", "orders", "accept-items"]
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"orders",
+								"550e8400-e29b-41d4-a716-446655440000",
+								"accept-items"
+							]
 						},
-						"description": "Waiter accepts specific order items. Items will be sent to kitchen.\n\n**Item-Centric Architecture:**\n- Accept specific items by IDs (granular control)\n- Can accept item A while rejecting item B\n- Direct RPC to Order Service (not via Waiter Service)\n\n**Request:**\n- orderApiKey: API key for authentication\n- orderId: UUID of the order\n- itemIds: Array of item UUIDs to accept\n- waiterId: UUID of waiter accepting items\n- tenantId: Restaurant identifier"
+						"description": "Waiter accepts specific order items via API Gateway (multi-tenant route).\n\n**Item-Centric Architecture:**\n- Accept specific items by IDs (granular control)\n- Can accept item A while rejecting item B\n- Route: POST /tenants/:tenantId/orders/:orderId/accept-items\n- API Gateway proxies to Order Service\n\n**Request Body:**\n- itemIds: Array of item UUIDs to accept\n- waiterId: UUID of waiter accepting items\n\n**Response:**\n- Updated order with accepted items\n- Kitchen receives notification for accepted items"
 					},
 					"response": []
 				},
@@ -3037,7 +3045,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"orderApiKey\": \"lethanhcong\",\n  \"orderId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"itemIds\": [\n    \"660e8400-e29b-41d4-a716-446655440003\"\n  ],\n  \"waiterId\": \"770e8400-e29b-41d4-a716-446655440003\",\n  \"tenantId\": \"d95e73fb-b861-40eb-ba09-eff4b79084ef\",\n  \"rejectionReason\": \"Item out of stock - will be available tomorrow\"\n}",
+							"raw": "{\n  \"itemIds\": [\n    \"660e8400-e29b-41d4-a716-446655440003\"\n  ],\n  \"waiterId\": \"770e8400-e29b-41d4-a716-446655440003\",\n  \"rejectionReason\": \"Item out of stock - will be available tomorrow\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3045,11 +3053,19 @@
 							}
 						},
 						"url": {
-							"raw": "{{baseURL}}/api/v1/orders/reject-items",
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/550e8400-e29b-41d4-a716-446655440000/reject-items",
 							"host": ["{{baseURL}}"],
-							"path": ["api", "v1", "orders", "reject-items"]
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"orders",
+								"550e8400-e29b-41d4-a716-446655440000",
+								"reject-items"
+							]
 						},
-						"description": "Waiter rejects specific order items with a reason. Customer will be notified.\n\n**Item-Centric Architecture:**\n- Reject specific items by IDs\n- Must provide rejection reason (min 5 characters)\n- Reason stored in OrderItem entity\n- Customer receives notification\n\n**Request:**\n- orderApiKey: API key for authentication\n- orderId: UUID of the order\n- itemIds: Array of item UUIDs to reject\n- waiterId: UUID of waiter rejecting items\n- tenantId: Restaurant identifier\n- rejectionReason: Reason for rejection (required)"
+						"description": "Waiter rejects specific order items with a reason via API Gateway (multi-tenant route).\n\n**Item-Centric Architecture:**\n- Reject specific items by IDs\n- Must provide rejection reason (min 5 characters)\n- Route: POST /tenants/:tenantId/orders/:orderId/reject-items\n- API Gateway proxies to Order Service\n\n**Request Body:**\n- itemIds: Array of item UUIDs to reject\n- waiterId: UUID of waiter rejecting items\n- rejectionReason: Reason for rejection (required, min 5 chars)\n\n**Response:**\n- Updated order with rejected items\n- Customer receives notification with rejection reason"
 					},
 					"response": []
 				}
@@ -3082,18 +3098,17 @@
 							}
 						],
 						"url": {
-							"raw": "{{baseURL}}/api/v1/waiter/pending-notifications?waiterApiKey=lethanhcong&tenantId=d95e73fb-b861-40eb-ba09-eff4b79084ef&page=1&limit=10",
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/waiter/notifications?page=1&limit=10",
 							"host": ["{{baseURL}}"],
-							"path": ["api", "v1", "waiter", "pending-notifications"],
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"waiter",
+								"notifications"
+							],
 							"query": [
-								{
-									"key": "waiterApiKey",
-									"value": "lethanhcong"
-								},
-								{
-									"key": "tenantId",
-									"value": "d95e73fb-b861-40eb-ba09-eff4b79084ef"
-								},
 								{
 									"key": "waiterId",
 									"value": "770e8400-e29b-41d4-a716-446655440003",
@@ -3116,7 +3131,7 @@
 								}
 							]
 						},
-						"description": "Get list of pending notifications for waiter dashboard.\n\n**Pure Alert Layer:**\n- Returns UNREAD and READ notifications (excludes ARCHIVED)\n- Ordered by priority DESC, createdAt ASC\n- Pagination support\n- Filter by table or waiter (optional)\n\n**Query Parameters:**\n- waiterApiKey: API key for authentication\n- tenantId: Restaurant identifier\n- waiterId: (Optional) Filter by specific waiter\n- tableId: (Optional) Filter by specific table\n- page: Page number (default: 1)\n- limit: Items per page (default: 10)\n\n**Response:**\n- notifications: Array of notification objects\n- total: Total notification count\n- page: Current page\n- limit: Items per page\n- totalPages: Total pages"
+						"description": "Get list of pending notifications for waiter dashboard via API Gateway (multi-tenant route).\n\n**Pure Alert Layer:**\n- Returns UNREAD and READ notifications (excludes ARCHIVED)\n- Ordered by priority DESC, createdAt ASC\n- Route: GET /tenants/:tenantId/waiter/notifications\n- API Gateway proxies to Waiter Service (RabbitMQ)\n\n**Query Parameters:**\n- waiterId: (Optional) Filter by specific waiter\n- tableId: (Optional) Filter by specific table\n- page: Page number (default: 1)\n- limit: Items per page (default: 10)\n\n**Response:**\n- notifications: Array of notification objects\n- total: Total notification count\n- page: Current page\n- limit: Items per page\n- totalPages: Total pages"
 					},
 					"response": []
 				},
@@ -3144,7 +3159,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"waiterApiKey\": \"lethanhcong\",\n  \"notificationId\": \"880e8400-e29b-41d4-a716-446655440004\",\n  \"waiterId\": \"770e8400-e29b-41d4-a716-446655440003\"\n}",
+							"raw": "{\n  \"waiterId\": \"770e8400-e29b-41d4-a716-446655440003\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3152,11 +3167,20 @@
 							}
 						},
 						"url": {
-							"raw": "{{baseURL}}/api/v1/waiter/mark-read",
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/waiter/notifications/880e8400-e29b-41d4-a716-446655440004/read",
 							"host": ["{{baseURL}}"],
-							"path": ["api", "v1", "waiter", "mark-read"]
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"waiter",
+								"notifications",
+								"880e8400-e29b-41d4-a716-446655440004",
+								"read"
+							]
 						},
-						"description": "Mark notification as read when waiter views it.\n\n**UI State Tracking:**\n- Changes status from UNREAD → READ\n- Records readAt timestamp\n- Pure notification layer (no business logic)\n\n**Request:**\n- waiterApiKey: API key for authentication\n- notificationId: UUID of notification to mark as read\n- waiterId: UUID of waiter viewing notification\n\n**Response:**\n- Updated notification object with READ status and readAt timestamp"
+						"description": "Mark notification as read when waiter views it via API Gateway (multi-tenant route).\n\n**UI State Tracking:**\n- Changes status from UNREAD → READ\n- Records readAt timestamp\n- Route: POST /tenants/:tenantId/waiter/notifications/:notificationId/read\n- API Gateway proxies to Waiter Service (RabbitMQ)\n- Pure notification layer (no business logic)\n\n**Request Body:**\n- waiterId: UUID of waiter viewing notification\n\n**Response:**\n- Updated notification object with READ status and readAt timestamp"
 					},
 					"response": []
 				},
@@ -3184,7 +3208,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"waiterApiKey\": \"lethanhcong\",\n  \"notificationId\": \"880e8400-e29b-41d4-a716-446655440004\"\n}",
+							"raw": "",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -3192,11 +3216,20 @@
 							}
 						},
 						"url": {
-							"raw": "{{baseURL}}/api/v1/waiter/archive",
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/waiter/notifications/880e8400-e29b-41d4-a716-446655440004/archive",
 							"host": ["{{baseURL}}"],
-							"path": ["api", "v1", "waiter", "archive"]
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"waiter",
+								"notifications",
+								"880e8400-e29b-41d4-a716-446655440004",
+								"archive"
+							]
 						},
-						"description": "Archive notification (dismiss or order completed).\n\n**UI State:**\n- Changes status to ARCHIVED\n- Removes from pending notifications list\n- Can be used when waiter dismisses alert or order is completed\n\n**Request:**\n- waiterApiKey: API key for authentication\n- notificationId: UUID of notification to archive\n\n**Response:**\n- Success confirmation"
+						"description": "Archive notification (dismiss or order completed) via API Gateway (multi-tenant route).\n\n**UI State:**\n- Changes status to ARCHIVED\n- Removes from pending notifications list\n- Route: POST /tenants/:tenantId/waiter/notifications/:notificationId/archive\n- API Gateway proxies to Waiter Service (RabbitMQ)\n- Can be used when waiter dismisses alert or order is completed\n\n**Response:**\n- Success confirmation"
 					},
 					"response": []
 				}
