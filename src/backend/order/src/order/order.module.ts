@@ -38,6 +38,37 @@ import { CartModule } from 'src/cart/cart.module';
 			}),
 			inject: [ConfigService],
 		}),
+
+		ClientsModule.registerAsync([
+			{
+				name: 'WAITER_SERVICE',
+				imports: [ConfigModule],
+				inject: [ConfigService],
+				useFactory: (configService: ConfigService) => ({
+					transport: Transport.RMQ,
+					options: {
+						urls: [
+							configService.get<string>('CONNECTION_AMQP') || 'amqp://localhost:5672',
+						],
+						queue:
+							(configService.get<string>('QUEUE_NAME_OF_WAITER') || 'local_waiter') +
+							'_queue',
+						queueOptions: {
+							durable: true,
+							arguments: {
+								'x-dead-letter-exchange':
+									(configService.get<string>('QUEUE_NAME_OF_WAITER') || 'local_waiter') +
+									'_dlx_exchange',
+								'x-dead-letter-routing-key':
+									(configService.get<string>('QUEUE_NAME_OF_WAITER') || 'local_waiter') +
+									'_dlq',
+							},
+						},
+					},
+				}),
+			},
+		]),
+
 		ClientsModule.register([
 			{
 				name: 'PRODUCT_SERVICE',
