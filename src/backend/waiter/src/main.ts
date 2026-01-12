@@ -3,42 +3,27 @@ import { AppModule } from './app.module';
 import { MicroserviceOptions, Transport, RpcException } from '@nestjs/microservices';
 import { ValidationPipe } from '@nestjs/common';
 import ErrorCode from '@shared/exceptions/error-code';
-import { GlobalExceptionFilter } from './common/filters/global-exception/global-exception.filter';
 import * as amqp from 'amqplib';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
-	const port = parseInt(process.env.PORT, 10) || 8083;
-
-	// Setup RabbitMQ Dead Letter Queue and Exchange for Order Service
 	const connection = await amqp.connect(process.env.CONNECTION_AMQP);
 	const channel = await connection.createChannel();
-	const queueName: string = process.env.QUEUE_NAME_OF_ORDER || 'local_order';
-
+	const name: string = process.env.NAME_QUEUE || 'local_waiter';
 	try {
-		// Create Dead Letter Exchange and Queue
-		await channel.assertExchange(queueName + '_dlx_exchange', 'direct', {
-			durable: true,
-		});
-		await channel.assertQueue(queueName + '_dlq', {
+		await channel.assertExchange(name + '_dlx_exchange', 'direct', { durable: true });
+		await channel.assertQueue(name + '_dlq', {
 			durable: true,
 		});
 
-		// Bind Dead Letter Queue to Dead Letter Exchange
-		await channel.bindQueue(
-			queueName + '_dlq',
-			queueName + '_dlx_exchange',
-			queueName + '_dlq',
-		);
-
-		// Create main queue with DLX configuration
-		await channel.assertQueue(queueName + '_queue', {
+		await channel.bindQueue(name + '_dlq', name + '_dlx_exchange', name + '_dlq');
+		await channel.assertQueue(name + '_queue', {
 			durable: true,
 			arguments: {
-				'x-dead-letter-exchange': queueName + '_dlx_exchange',
-				'x-dead-letter-routing-key': queueName + '_dlq',
+				'x-dead-letter-exchange': name + '_dlx_exchange',
+				'x-dead-letter-routing-key': name + '_dlq',
 			},
 		});
 	} finally {
@@ -46,38 +31,37 @@ async function bootstrap() {
 		await connection.close();
 	}
 
-	// 1. TCP Transport for RPC calls (existing)
+	const port = parseInt(process.env.PORT, 10);
+	// 1. TCP Transport cho API Gateway RPC calls
 	app.connectMicroservice<MicroserviceOptions>({
 		transport: Transport.TCP,
 		options: {
-			port: port,
+			port: process.env.PORT ? parseInt(process.env.PORT, 10) : 8088, // 8088
 		},
 	});
 
-	// 2. RabbitMQ Transport for events from other services (Waiter, Kitchen, etc.)
 	app.connectMicroservice<MicroserviceOptions>({
 		transport: Transport.RMQ,
 		options: {
 			urls: [process.env.CONNECTION_AMQP],
-			queue: queueName + '_queue',
+			queue: name + '_queue',
 			prefetchCount: 1,
 			queueOptions: {
 				durable: true,
 				noAck: false,
 				arguments: {
-					'x-dead-letter-exchange': queueName + '_dlx_exchange',
-					'x-dead-letter-routing-key': queueName + '_dlq',
+					'x-dead-letter-exchange': name + '_dlx_exchange',
+					'x-dead-letter-routing-key': name + '_dlq',
 				},
 			},
 		},
 	});
 
-	// 3. RabbitMQ DLQ listener
 	app.connectMicroservice<MicroserviceOptions>({
 		transport: Transport.RMQ,
 		options: {
 			urls: [process.env.CONNECTION_AMQP],
-			queue: queueName + '_dlq',
+			queue: name + '_dlq',
 			prefetchCount: 1,
 			queueOptions: {
 				durable: true,
@@ -107,11 +91,8 @@ async function bootstrap() {
 		}),
 	);
 
-	app.useGlobalFilters(new GlobalExceptionFilter());
-
 	await app.startAllMicroservices();
-	console.log(`Order Service is running on TCP port ${port}`);
-	console.log(`Order Service RabbitMQ listener active on queue: ${queueName}_queue`);
+	console.log(`Waiter Service is running on port ${port}`);
 
 	await app.listen(port, '127.0.0.1');
 	console.log(`HTTP Health endpoint listening on 127.0.0.1:${port}`);
@@ -120,6 +101,7 @@ async function bootstrap() {
 		console.log('SIGINT received. Shutting down gracefully...');
 		app.close().then(() => process.exit(0));
 	});
+
 	process.on('SIGTERM', () => {
 		console.log('SIGTERM received. Shutting down gracefully...');
 		app.close().then(() => process.exit(0));
@@ -128,9 +110,9 @@ async function bootstrap() {
 
 bootstrap()
 	.then(() => {
-		console.log(`Order Service is running on port ${process.env.PORT}`);
+		console.log(`Microservice started successfully`);
 	})
 	.catch((err) => {
-		console.error('Failed to start Order Service:', err);
+		console.error('Error starting the microservice', err);
 		process.exit(1);
 	});

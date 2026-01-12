@@ -28,6 +28,8 @@ import Role from 'src/common/guards/check-role/check-role.guard';
  * - PATCH  /tenants/:tenantId/orders/:orderId/status - Update order status
  * - PATCH  /tenants/:tenantId/orders/:orderId/cancel - Cancel order
  * - PATCH  /tenants/:tenantId/orders/:orderId/payment - Update payment status
+ * - POST   /tenants/:tenantId/orders/:orderId/accept-items - Waiter accepts specific items (ITEM-CENTRIC)
+ * - POST   /tenants/:tenantId/orders/:orderId/reject-items - Waiter rejects specific items (ITEM-CENTRIC)
  */
 @Controller()
 export class OrderController {
@@ -261,6 +263,67 @@ export class OrderController {
 		@Body() data: any,
 	) {
 		return this.orderClient.send('orders:update-payment', {
+			...data,
+			tenantId,
+			orderId,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+
+	/**
+	 * Accept specific order items (ITEM-CENTRIC ARCHITECTURE)
+	 * POST /tenants/:tenantId/orders/:orderId/accept-items
+	 *
+	 * Body:
+	 * {
+	 *   "itemIds": ["uuid1", "uuid2"],
+	 *   "waiterId": "uuid"
+	 * }
+	 *
+	 * Business Flow:
+	 * - Waiter accepts specific items (granular control)
+	 * - Items status updated to ACCEPTED
+	 * - Kitchen receives notification for accepted items
+	 */
+	@Post('tenants/:tenantId/orders/:orderId/accept-items')
+	@UseGuards(AuthGuard, Role('USER'))
+	acceptOrderItems(
+		@Param('tenantId') tenantId: string,
+		@Param('orderId') orderId: string,
+		@Body() data: any,
+	) {
+		return this.orderClient.send('orders:accept-items', {
+			...data,
+			tenantId,
+			orderId,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+
+	/**
+	 * Reject specific order items (ITEM-CENTRIC ARCHITECTURE)
+	 * POST /tenants/:tenantId/orders/:orderId/reject-items
+	 *
+	 * Body:
+	 * {
+	 *   "itemIds": ["uuid1", "uuid2"],
+	 *   "waiterId": "uuid",
+	 *   "rejectionReason": "Out of stock - will be available tomorrow"
+	 * }
+	 *
+	 * Business Flow:
+	 * - Waiter rejects specific items with reason
+	 * - Items status updated to REJECTED
+	 * - Customer receives notification with rejection reason
+	 */
+	@Post('tenants/:tenantId/orders/:orderId/reject-items')
+	@UseGuards(AuthGuard, Role('USER'))
+	rejectOrderItems(
+		@Param('tenantId') tenantId: string,
+		@Param('orderId') orderId: string,
+		@Body() data: any,
+	) {
+		return this.orderClient.send('orders:reject-items', {
 			...data,
 			tenantId,
 			orderId,
