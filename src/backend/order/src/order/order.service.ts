@@ -17,6 +17,7 @@ import {
 	OrderItemStatus,
 	OrderItemStatusLabels,
 	isValidOrderItemStatusTransition,
+	OrderItemStatusFromString,
 } from '../common/enums';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
@@ -348,23 +349,17 @@ export class OrderService {
 			`Checkout success: Order ${finalOrder.id} | Table ${dto.tableId} | ${isNewOrder ? 'NEW' : 'APPENDED'} | Items added: ${newOrderItems.length} | Total items: ${finalOrder.items.length}`,
 		);
 
-		// TODO: Emit RabbitMQ event CHỈ CHO CÁC MÓN MỚI
+		// DONE: Emit RabbitMQ event CHỈ CHO CÁC MÓN MỚI
 		// Để tránh bếp nấu lại các món cũ!
-		// if (isNewOrder) {
-		//   this.notificationClient.emit('order.created', {
-		//     orderId: finalOrder.id,
-		//     tenantId: dto.tenantId,
-		//     tableId: dto.tableId,
-		//     items: newOrderItems, // All items for new order
-		//   });
-		// } else {
-		//   this.notificationClient.emit('order.items-added', {
-		//     orderId: finalOrder.id,
-		//     tenantId: dto.tenantId,
-		//     tableId: dto.tableId,
-		//     newItems: newOrderItems, // ONLY new items for kitchen
-		//   });
-		// }
+		if (newOrderItems.length > 0) {
+			this.waiterClient.emit('order.new_items', {
+				waiterApiKey: this.configService.get<string>('WAITER_API_KEY'),
+				orderId: finalOrder.id,
+				tenantId: dto.tenantId,
+				tableId: dto.tableId,
+				items: newOrderItems, // Only new items
+			});
+		}
 
 		return this.mapToOrderResponse(finalOrder);
 	}
@@ -615,7 +610,9 @@ export class OrderService {
 		}
 
 		// 3. Validate rejection reason if status is REJECTED
-		if (dto.status === OrderItemStatus.REJECTED && !dto.rejectionReason) {
+		const dtoStatus = OrderItemStatusFromString[dto.status];
+
+		if (dtoStatus === OrderItemStatus.REJECTED && !dto.rejectionReason) {
 			this.logger.error('Rejection reason is required when rejecting items');
 			throw new AppException(ErrorCode.INVALID_CART_OPERATION);
 		}
@@ -632,15 +629,15 @@ export class OrderService {
 			}
 
 			// Validate status transition
-			if (!isValidOrderItemStatusTransition(item.status, dto.status)) {
+			if (!isValidOrderItemStatusTransition(item.status, dtoStatus)) {
 				this.logger.error(
-					`Cannot transition item ${item.name} from ${OrderItemStatusLabels[item.status]} to ${OrderItemStatusLabels[dto.status]}`,
+					`Cannot transition item ${item.name} from ${OrderItemStatusLabels[item.status]} to ${OrderItemStatusLabels[dtoStatus]}`,
 				);
 				throw new AppException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
 			}
 
 			// Update item status
-			item.status = dto.status;
+			item.status = dtoStatus;
 
 			// Update rejection reason if provided
 			if (dto.rejectionReason) {
@@ -648,7 +645,7 @@ export class OrderService {
 			}
 
 			// Update timestamps based on status
-			switch (dto.status) {
+			switch (dtoStatus) {
 				case OrderItemStatus.ACCEPTED:
 					item.acceptedAt = now;
 					break;
