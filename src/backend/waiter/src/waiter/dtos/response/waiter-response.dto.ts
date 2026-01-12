@@ -1,22 +1,20 @@
 /**
  * Response DTO for order notification
+ *
+ * PURE ALERT LAYER - Only notification display data
  */
 export class OrderNotificationResponseDto {
 	id: string;
 	orderId: string;
 	tableId: string;
 	tenantId: string;
-	waiterId: string;
-	status: string;
+	status: string; // UNREAD, READ, ARCHIVED
 	notificationType: string;
 	priority: number;
-	itemIds: string[];
-	metadata: Record<string, any>;
-	notes: string;
-	rejectionReason: string;
-	viewedAt: Date;
-	respondedAt: Date;
-	expiresAt: Date;
+	itemIds: string[]; // For display reference only
+	metadata: Record<string, any>; // Customer name, item count, etc.
+	message: string; // Display message
+	readAt: Date;
 	createdAt: Date;
 	updatedAt: Date;
 }
@@ -30,17 +28,4 @@ export class PaginatedNotificationsResponseDto {
 	page: number;
 	limit: number;
 	totalPages: number;
-}
-
-/**
- * Response DTO for accept/reject actions
- */
-export class WaiterActionResponseDto {
-	success: boolean;
-	message: string;
-	notificationId: string;
-	orderId: string;
-	itemIds: string[];
-	action: 'ACCEPTED' | 'REJECTED';
-	timestamp: Date;
 }

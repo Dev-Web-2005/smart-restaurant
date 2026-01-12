@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ConfigModule } from '@nestjs/config';
 import { WaiterController } from './waiter.controller';
 import { WaiterService } from './waiter.service';
 import { OrderNotification } from '../common/entities';
@@ -9,13 +8,18 @@ import { OrderNotification } from '../common/entities';
 /**
  * WaiterModule
  *
- * Encapsulates waiter notification and order review functionality
+ * PURE NOTIFICATION LAYER - Best Practice Architecture
  *
  * Features:
- * - Receive order notifications via RabbitMQ from Order Service
- * - Store notifications in database for tracking and SLA
- * - Handle waiter actions (accept/reject items)
- * - Communicate with Order Service and Kitchen Service
+ * - Receive order notifications via RabbitMQ from Order Service (alert creation)
+ * - Store notifications in database for display
+ * - Provide notification queries for waiter dashboard
+ * - Mark notifications as read/archived
+ *
+ * Does NOT include:
+ * - Business logic (handled by Order Service)
+ * - Kitchen communication (handled by Order Service)
+ * - Accept/Reject operations (Waiter frontend → Order Service directly)
  */
 @Module({
 	imports: [
@@ -28,67 +32,9 @@ import { OrderNotification } from '../common/entities';
 		// 2. TypeORM for notification persistence
 		TypeOrmModule.forFeature([OrderNotification]),
 
-		// 3. RabbitMQ client to Order Service
-		ClientsModule.registerAsync([
-			{
-				name: 'ORDER_SERVICE',
-				imports: [ConfigModule],
-				inject: [ConfigService],
-				useFactory: (configService: ConfigService) => ({
-					transport: Transport.RMQ,
-					options: {
-						urls: [
-							configService.get<string>('CONNECTION_AMQP') || 'amqp://localhost:5672',
-						],
-						queue:
-							(configService.get<string>('QUEUE_NAME_OF_ORDER') || 'local_order') +
-							'_queue',
-						queueOptions: {
-							durable: true,
-							arguments: {
-								'x-dead-letter-exchange':
-									(configService.get<string>('QUEUE_NAME_OF_ORDER') || 'local_order') +
-									'_dlx_exchange',
-								'x-dead-letter-routing-key':
-									(configService.get<string>('QUEUE_NAME_OF_ORDER') || 'local_order') +
-									'_dlq',
-							},
-						},
-					},
-				}),
-			},
-		]),
-
-		// 4. RabbitMQ client to Kitchen Service
-		ClientsModule.registerAsync([
-			{
-				name: 'KITCHEN_SERVICE',
-				imports: [ConfigModule],
-				inject: [ConfigService],
-				useFactory: (configService: ConfigService) => ({
-					transport: Transport.RMQ,
-					options: {
-						urls: [
-							configService.get<string>('CONNECTION_AMQP') || 'amqp://localhost:5672',
-						],
-						queue:
-							(configService.get<string>('QUEUE_NAME_OF_KITCHEN') || 'local_kitchen') +
-							'_queue',
-						queueOptions: {
-							durable: true,
-							arguments: {
-								'x-dead-letter-exchange':
-									(configService.get<string>('QUEUE_NAME_OF_KITCHEN') ||
-										'local_kitchen') + '_dlx_exchange',
-								'x-dead-letter-routing-key':
-									(configService.get<string>('QUEUE_NAME_OF_KITCHEN') ||
-										'local_kitchen') + '_dlq',
-							},
-						},
-					},
-				}),
-			},
-		]),
+		// NOTE: Removed RabbitMQ clients to Order/Kitchen services
+		// Waiter frontend will call Order Service directly via HTTP/RPC
+		// This keeps notification layer pure and decoupled from business logic
 	],
 	controllers: [WaiterController],
 	providers: [WaiterService],
