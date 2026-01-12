@@ -31,15 +31,15 @@ async function bootstrap() {
 		await connection.close();
 	}
 
+	const port = parseInt(process.env.PORT, 10);
 	// 1. TCP Transport cho API Gateway RPC calls
 	app.connectMicroservice<MicroserviceOptions>({
 		transport: Transport.TCP,
 		options: {
-			port: process.env.PORT ? parseInt(process.env.PORT_WAITER_SERVICE, 10) : 8088, // 8088
+			port: process.env.PORT ? parseInt(process.env.PORT, 10) : 8088, // 8088
 		},
 	});
 
-	const port = parseInt(process.env.PORT, 10);
 	app.connectMicroservice<MicroserviceOptions>({
 		transport: Transport.RMQ,
 		options: {
