@@ -11,24 +11,28 @@ import { NotificationStatus } from '../enums/notification-status.enum';
 /**
  * OrderNotification Entity
  *
- * Tracks all order-related notifications sent to waiters
- * Each notification represents a request for waiter action
+ * PURE ALERT LAYER - "Chuông cửa" thông báo cho waiter
  *
- * Business Context:
- * - When customers add new items to an order, waiter needs to review
- * - Waiter can accept (send to kitchen) or reject items
- * - Provides audit trail of waiter actions
- * - Supports multiple waiters with assignment tracking
+ * Best Practice Architecture (Toast POS, Square, Uber Eats):
+ * - Notification = Lightweight alert mechanism
+ * - Business Logic = Separate operations on Order Service
  *
- * Features:
- * - Auto-expiry after timeout
- * - Track response time (SLA monitoring)
- * - Support priority notifications (VIP tables, urgent requests)
- * - Link to specific order items for granular control
+ * This entity ONLY tracks:
+ * - When notification was created
+ * - When waiter read it
+ * - Basic metadata for display
+ *
+ * It does NOT track:
+ * - Accept/Reject actions (handled by Order Service directly)
+ * - Rejection reasons (stored in OrderItem)
+ * - Response timestamps (tracked in OrderItem status changes)
+ *
+ * Waiter actions operate directly on Order Service:
+ * - waiter calls orders:accept-items RPC
+ * - waiter calls orders:reject-items RPC
  */
 @Entity('order_notifications')
 @Index('idx_notification_order_id', ['orderId'])
-@Index('idx_notification_waiter_id', ['waiterId'])
 @Index('idx_notification_status', ['status'])
 @Index('idx_notification_table_id', ['tableId'])
 @Index('idx_notification_created_at', ['createdAt'])
@@ -45,11 +49,8 @@ export class OrderNotification {
 	@Column({ type: 'varchar', length: 50, nullable: false })
 	tenantId: string; // Restaurant/tenant identifier
 
-	@Column({ type: 'uuid', nullable: true })
-	waiterId: string; // Waiter who handled this notification
-
-	@Column({ type: 'int', default: NotificationStatus.PENDING })
-	status: NotificationStatus;
+	@Column({ type: 'int', default: NotificationStatus.UNREAD })
+	status: NotificationStatus; // UNREAD, READ, ARCHIVED only
 
 	@Column({ type: 'varchar', length: 50, default: 'NEW_ITEMS' })
 	notificationType: string; // NEW_ITEMS, ORDER_UPDATE, CUSTOMER_REQUEST, etc.
@@ -58,25 +59,16 @@ export class OrderNotification {
 	priority: number; // 0=normal, 1=high, 2=urgent
 
 	@Column({ type: 'jsonb', nullable: true })
-	itemIds: string[]; // List of order item IDs related to this notification
+	itemIds: string[]; // List of order item IDs for display (read-only)
 
 	@Column({ type: 'jsonb', nullable: true })
-	metadata: Record<string, any>; // Additional context (customer name, order type, etc.)
+	metadata: Record<string, any>; // Additional context for display (customer name, etc.)
 
 	@Column({ type: 'text', nullable: true })
-	notes: string; // Customer notes or special requests
-
-	@Column({ type: 'text', nullable: true })
-	rejectionReason: string; // Reason for rejection if applicable
+	message: string; // Notification message for display
 
 	@Column({ type: 'timestamp', nullable: true })
-	viewedAt: Date; // When waiter first viewed notification
-
-	@Column({ type: 'timestamp', nullable: true })
-	respondedAt: Date; // When waiter accepted/rejected
-
-	@Column({ type: 'timestamp', nullable: true })
-	expiresAt: Date; // Auto-expire time (for SLA)
+	readAt: Date; // When waiter first read notification
 
 	@CreateDateColumn()
 	createdAt: Date;

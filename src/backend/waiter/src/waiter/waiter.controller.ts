@@ -8,24 +8,31 @@ import {
 } from '@nestjs/microservices';
 import { WaiterService } from './waiter.service';
 import { NewOrderItemsEventDto } from './dtos/request/new-order-items-event.dto';
-import { AcceptOrderItemsRequestDto } from './dtos/request/accept-order-items-request.dto';
-import { RejectOrderItemsRequestDto } from './dtos/request/reject-order-items-request.dto';
 import { GetPendingNotificationsRequestDto } from './dtos/request/get-pending-notifications-request.dto';
 import { MarkNotificationViewedRequestDto } from './dtos/request/mark-notification-viewed-request.dto';
 
 /**
  * WaiterController
  *
- * Handles RabbitMQ events and TCP messages for waiter operations
+ * PURE NOTIFICATION LAYER - Best Practice Architecture
+ *
+ * Responsibilities:
+ * - Receive order notifications from Order Service (alert creation)
+ * - Provide notification queries for waiter dashboard
+ * - Mark notifications as read (UI state only)
+ *
+ * What this controller DOES NOT do:
+ * - Accept/Reject items (Waiter frontend calls Order Service directly)
+ * - Business logic (handled by Order Service)
+ * - Kitchen communication (handled by Order Service)
  *
  * Event Patterns (Fire-and-forget from other services):
  * - order.new_items: Receive notification when customers add items
  *
  * Message Patterns (Request-response for client apps):
- * - waiter.get_pending_notifications: Get list of pending orders
- * - waiter.mark_viewed: Mark notification as viewed
- * - waiter.accept_items: Accept order items and send to kitchen
- * - waiter.reject_items: Reject order items with reason
+ * - waiter.get_pending_notifications: Get list of unread/read notifications
+ * - waiter.mark_read: Mark notification as read
+ * - waiter.archive: Archive notification
  */
 @Controller()
 export class WaiterController {
@@ -41,6 +48,7 @@ export class WaiterController {
 	 * - Customer adds more items to existing order
 	 *
 	 * Flow: Order Service -> RabbitMQ -> Waiter Service (this handler)
+	 * Purpose: Create notification alert for waiter
 	 */
 	@EventPattern('order.new_items')
 	async handleNewOrderItems(
@@ -72,16 +80,18 @@ export class WaiterController {
 			// Get retry count
 			const xDeath = message.properties.headers['x-death'];
 			const retryCount = xDeath ? xDeath[0].count : 0;
-			const maxRetries = parseInt(process.env.LIMIT_REQUEUE) || 10;
+			const maxRetries = parseInt(process.env.LIMIT_REQUEUE || '10', 10);
 
-			if (retryCount < maxRetries) {
-				this.logger.warn(
-					`[EVENT] Rejecting message for retry (attempt ${retryCount + 1}/${maxRetries})`,
+			if (retryCount >= maxRetries) {
+				this.logger.error(
+					`[EVENT] Max retries (${maxRetries}) reached for order ${data.orderId}. Sending to DLQ.`,
 				);
-				channel.nack(message, false, false); // Reject to DLX
+				channel.ack(message); // Acknowledge to move to DLQ
 			} else {
-				this.logger.error(`[EVENT] Max retries reached. Sending to DLQ.`);
-				channel.nack(message, false, false); // Send to DLQ
+				this.logger.warn(
+					`[EVENT] Retry ${retryCount + 1}/${maxRetries} for order ${data.orderId}`,
+				);
+				channel.nack(message, false, false); // Reject and requeue
 			}
 		}
 	}
@@ -89,67 +99,50 @@ export class WaiterController {
 	/**
 	 * MESSAGE PATTERN: Get pending notifications
 	 *
-	 * Used by waiter dashboard to fetch orders needing action
+	 * Used by waiter dashboard to fetch notifications needing action
 	 */
 	@MessagePattern('waiter.get_pending_notifications')
 	async getPendingNotifications(@Payload() data: GetPendingNotificationsRequestDto) {
 		try {
-			this.logger.log(`[RPC] Get pending notifications for tenant ${data.tenantId}`);
 			return await this.waiterService.getPendingNotifications(data);
 		} catch (error) {
-			this.logger.error(`[RPC] Failed to get pending notifications: ${error.message}`);
+			this.logger.error(`Failed to get pending notifications: ${error.message}`);
 			throw error;
 		}
 	}
 
 	/**
-	 * MESSAGE PATTERN: Mark notification as viewed
+	 * MESSAGE PATTERN: Mark notification as read
 	 *
-	 * Tracks when waiter first sees notification (for SLA metrics)
+	 * Tracks when waiter first sees notification (for UI state)
 	 */
-	@MessagePattern('waiter.mark_viewed')
-	async markNotificationViewed(@Payload() data: MarkNotificationViewedRequestDto) {
+	@MessagePattern('waiter.mark_read')
+	async markNotificationRead(@Payload() data: MarkNotificationViewedRequestDto) {
 		try {
-			this.logger.log(`[RPC] Marking notification ${data.notificationId} as viewed`);
-			return await this.waiterService.markNotificationViewed(data);
+			return await this.waiterService.markNotificationRead(data);
 		} catch (error) {
-			this.logger.error(`[RPC] Failed to mark notification viewed: ${error.message}`);
+			this.logger.error(`Failed to mark notification as read: ${error.message}`);
 			throw error;
 		}
 	}
 
 	/**
-	 * MESSAGE PATTERN: Accept order items
+	 * MESSAGE PATTERN: Archive notification
 	 *
-	 * Waiter approves items and sends to kitchen
+	 * Used when waiter dismisses notification or order completed
 	 */
-	@MessagePattern('waiter.accept_items')
-	async acceptOrderItems(@Payload() data: AcceptOrderItemsRequestDto) {
+	@MessagePattern('waiter.archive')
+	async archiveNotification(
+		@Payload() data: { notificationId: string; waiterApiKey: string },
+	) {
 		try {
-			this.logger.log(
-				`[RPC] Waiter ${data.waiterId} accepting ${data.itemIds.length} items from order ${data.orderId}`,
+			await this.waiterService.archiveNotification(
+				data.notificationId,
+				data.waiterApiKey,
 			);
-			return await this.waiterService.acceptOrderItems(data);
+			return { success: true };
 		} catch (error) {
-			this.logger.error(`[RPC] Failed to accept order items: ${error.message}`);
-			throw error;
-		}
-	}
-
-	/**
-	 * MESSAGE PATTERN: Reject order items
-	 *
-	 * Waiter declines items with reason
-	 */
-	@MessagePattern('waiter.reject_items')
-	async rejectOrderItems(@Payload() data: RejectOrderItemsRequestDto) {
-		try {
-			this.logger.log(
-				`[RPC] Waiter ${data.waiterId} rejecting ${data.itemIds.length} items from order ${data.orderId}`,
-			);
-			return await this.waiterService.rejectOrderItems(data);
-		} catch (error) {
-			this.logger.error(`[RPC] Failed to reject order items: ${error.message}`);
+			this.logger.error(`Failed to archive notification: ${error.message}`);
 			throw error;
 		}
 	}

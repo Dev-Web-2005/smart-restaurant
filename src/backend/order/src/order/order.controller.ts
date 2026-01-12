@@ -27,18 +27,22 @@ import { CheckoutCartDto } from '../cart/dtos/request/checkout-cart.dto';
  * Handles RPC messages for order management
  * Implements CRUD operations and order lifecycle management
  *
- * NEW: Item-level status management
- * - orders:update-items-status - Update status of specific order items
+ * ITEM-CENTRIC ARCHITECTURE:
+ * - Waiter actions operate directly on items via RPC (not through Waiter Service)
+ * - Accept/Reject are first-class operations, not notification callbacks
  *
  * RPC Patterns:
  * - orders:create - Create a new order
  * - orders:get - Get a single order by ID
  * - orders:get-all - Get all orders with filtering and pagination
  * - orders:add-items - Add items to an existing order
- * - orders:update-status - Update order status (PENDING → ACCEPTED → PREPARING → READY → SERVED → COMPLETED)
- * - orders:update-items-status - Update status of specific order items (NEW)
+ * - orders:update-status - Update order status
+ * - orders:update-items-status - Update status of specific order items
+ * - orders:accept-items - Waiter accepts specific items (NEW - ITEM-CENTRIC)
+ * - orders:reject-items - Waiter rejects specific items with reason (NEW - ITEM-CENTRIC)
  * - orders:cancel - Cancel an order
  * - orders:update-payment - Update payment status
+ * - orders:checkout - Create order from cart
  */
 @Controller()
 export class OrderController {
@@ -215,137 +219,49 @@ export class OrderController {
 	}
 
 	/**
-	 * EVENT: Handle items accepted by waiter
+	 * MESSAGE PATTERN: Accept order items - ITEM-CENTRIC ARCHITECTURE
 	 *
-	 * Triggered when waiter accepts order items
-	 * Flow: Waiter Service -> RabbitMQ -> Order Service (this handler)
+	 * Waiter frontend calls this RPC directly to accept specific items
+	 * No need to go through Waiter Service (notification layer)
 	 *
-	 * Actions:
-	 * 1. Update order items status to ACCEPTED
-	 * 2. Record waiter ID and timestamp
+	 * Business Flow:
+	 * 1. Waiter sees notification (alert from Waiter Service)
+	 * 2. Waiter clicks "Accept" on specific items in UI
+	 * 3. Frontend calls this RPC directly
+	 * 4. Order Service updates items → emits to Kitchen
 	 */
-	@EventPattern('order.items_accepted_by_waiter')
-	async handleItemsAcceptedByWaiter(
-		@Payload()
-		data: {
-			orderId: string;
-			itemIds: string[];
-			waiterId: string;
-			acceptedAt: Date;
-		},
-		@Ctx() context: RmqContext,
-	) {
-		const channel = context.getChannelRef();
-		const message = context.getMessage();
-
-		try {
+	@MessagePattern('orders:accept-items')
+	async acceptItems(@Payload() dto: any) {
+		return handleRpcCall(this.logger, async () => {
 			this.logger.log(
-				`[EVENT] Items accepted by waiter ${data.waiterId} for order ${data.orderId}`,
+				`[RPC] Accepting ${dto.itemIds.length} items from order ${dto.orderId} by waiter ${dto.waiterId}`,
 			);
-
-			await this.orderService.updateOrderItemsStatus({
-				orderApiKey: process.env.ORDER_API_KEY,
-				orderId: data.orderId,
-				itemIds: data.itemIds,
-				status: 'ACCEPTED',
-			});
-
-			this.logger.log(
-				`[EVENT] Updated ${data.itemIds.length} items to ACCEPTED status for order ${data.orderId}`,
-			);
-
-			channel.ack(message);
-		} catch (error) {
-			this.logger.error(
-				`[EVENT] Failed to handle items accepted: ${error.message}`,
-				error.stack,
-			);
-
-			// Retry logic
-			const xDeath = message.properties.headers['x-death'];
-			const retryCount = xDeath ? xDeath[0].count : 0;
-			const maxRetries = parseInt(process.env.LIMIT_REQUEUE) || 10;
-
-			if (retryCount < maxRetries) {
-				this.logger.warn(
-					`[EVENT] Rejecting message for retry (attempt ${retryCount + 1}/${maxRetries})`,
-				);
-				channel.nack(message, false, false);
-			} else {
-				this.logger.error(`[EVENT] Max retries reached. Sending to DLQ.`);
-				channel.nack(message, false, false);
-			}
-		}
+			const result = await this.orderService.acceptItems(dto);
+			return HttpResponse.success(result, 'Items accepted successfully');
+		});
 	}
 
 	/**
-	 * EVENT: Handle items rejected by waiter
+	 * MESSAGE PATTERN: Reject order items - ITEM-CENTRIC ARCHITECTURE
 	 *
-	 * Triggered when waiter rejects order items (e.g., ingredient unavailable)
-	 * Flow: Waiter Service -> RabbitMQ -> Order Service (this handler)
+	 * Waiter frontend calls this RPC directly to reject specific items with reason
+	 * No need to go through Waiter Service (notification layer)
 	 *
-	 * Actions:
-	 * 1. Update order items status to REJECTED
-	 * 2. Record waiter ID, reason, and timestamp
-	 * 3. Notify customer (future enhancement)
+	 * Business Flow:
+	 * 1. Waiter sees notification (alert from Waiter Service)
+	 * 2. Waiter clicks "Reject" on specific items in UI
+	 * 3. Frontend calls this RPC with rejection reason
+	 * 4. Order Service updates items → emits to Notification Service for customer
 	 */
-	@EventPattern('order.items_rejected_by_waiter')
-	async handleItemsRejectedByWaiter(
-		@Payload()
-		data: {
-			orderId: string;
-			itemIds: string[];
-			waiterId: string;
-			rejectionReason: string;
-			rejectedAt: Date;
-		},
-		@Ctx() context: RmqContext,
-	) {
-		const channel = context.getChannelRef();
-		const message = context.getMessage();
-
-		try {
+	@MessagePattern('orders:reject-items')
+	async rejectItems(@Payload() dto: any) {
+		return handleRpcCall(this.logger, async () => {
 			this.logger.log(
-				`[EVENT] Items rejected by waiter ${data.waiterId} for order ${data.orderId}: ${data.rejectionReason}`,
+				`[RPC] Rejecting ${dto.itemIds.length} items from order ${dto.orderId} by waiter ${dto.waiterId}: ${dto.rejectionReason}`,
 			);
-
-			await this.orderService.updateOrderItemsStatus({
-				orderApiKey: process.env.ORDER_API_KEY,
-				orderId: data.orderId,
-				itemIds: data.itemIds,
-				status: 'REJECTED',
-				rejectionReason: data.rejectionReason,
-			});
-
-			this.logger.log(
-				`[EVENT] Updated ${data.itemIds.length} items to REJECTED status for order ${data.orderId}`,
-			);
-
-			// TODO: Send notification to customer about rejection
-			// this.notificationClient.emit('notification.order_items_rejected', {...});
-
-			channel.ack(message);
-		} catch (error) {
-			this.logger.error(
-				`[EVENT] Failed to handle items rejected: ${error.message}`,
-				error.stack,
-			);
-
-			// Retry logic
-			const xDeath = message.properties.headers['x-death'];
-			const retryCount = xDeath ? xDeath[0].count : 0;
-			const maxRetries = parseInt(process.env.LIMIT_REQUEUE) || 10;
-
-			if (retryCount < maxRetries) {
-				this.logger.warn(
-					`[EVENT] Rejecting message for retry (attempt ${retryCount + 1}/${maxRetries})`,
-				);
-				channel.nack(message, false, false);
-			} else {
-				this.logger.error(`[EVENT] Max retries reached. Sending to DLQ.`);
-				channel.nack(message, false, false);
-			}
-		}
+			const result = await this.orderService.rejectItems(dto);
+			return HttpResponse.success(result, 'Items rejected successfully');
+		});
 	}
 
 	/**
