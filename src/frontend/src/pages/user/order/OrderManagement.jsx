@@ -601,14 +601,18 @@ const OrderManagement = () => {
 				})
 				.filter(Boolean)
 		} else if (selectedView === 'SERVED') {
-			// Show orders with all items SERVED (ready for payment)
-			filtered = filtered.filter((order) => {
-				const allServed = order.items.every((item) => item.status === ITEM_STATUS.SERVED)
-				return allServed
-			})
+			// Show orders with at least one SERVED item
+			filtered = filtered
+				.map((order) => {
+					const items = order.items.filter((item) => item.status === ITEM_STATUS.SERVED)
+					if (items.length === 0) return null
+					return { ...order, items }
+				})
+				.filter(Boolean)
 		} else if (selectedView === 'PAYMENT') {
 			// Show orders waiting for payment (all items served, payment pending)
 			filtered = filtered.filter((order) => {
+				if (!order.items || order.items.length === 0) return false
 				const allServed = order.items.every((item) => item.status === ITEM_STATUS.SERVED)
 				return allServed && order.paymentStatus === PAYMENT_STATUS.PENDING
 			})
@@ -882,6 +886,7 @@ const OrderManagement = () => {
 									{
 										orders.filter(
 											(order) =>
+												order.items?.length > 0 &&
 												order.items.every((item) => item.status === ITEM_STATUS.SERVED) &&
 												order.paymentStatus === PAYMENT_STATUS.PENDING,
 										).length
@@ -981,7 +986,7 @@ const OrderManagement = () => {
 										</div>
 
 										<div className="flex items-center gap-4">
-											{selectedView !== 'PENDING' && (
+											{selectedView === 'PAYMENT' && (
 												<span className="text-white text-lg font-bold">
 													${formatPrice(order.total)}
 												</span>
@@ -1129,15 +1134,38 @@ const OrderManagement = () => {
 												</div>
 											))}
 
-											{/* Payment Button (for orders with all items served) */}
-											{needsPayment && (
+											{/* Payment Button (only show in PAYMENT view) */}
+											{selectedView === 'PAYMENT' && needsPayment && (
 												<div className="mt-4 p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
-													<div className="flex items-center justify-between mb-3">
-														<div>
-															<p className="text-white font-semibold">Total Amount</p>
-															<p className="text-blue-400 text-2xl font-bold">
-																${formatPrice(order.total)}
-															</p>
+													<div className="mb-3">
+														<p className="text-white font-semibold mb-3">
+															Payment Summary
+														</p>
+
+														{/* Price Breakdown */}
+														<div className="space-y-2 mb-3">
+															<div className="flex justify-between text-gray-300 text-sm">
+																<span>Subtotal:</span>
+																<span>{formatPrice(order.subtotal)} VND</span>
+															</div>
+															{order.tax > 0 && (
+																<div className="flex justify-between text-gray-300 text-sm">
+																	<span>Tax (10%):</span>
+																	<span>{formatPrice(order.tax)} VND</span>
+																</div>
+															)}
+															{order.discount > 0 && (
+																<div className="flex justify-between text-green-400 text-sm">
+																	<span>Discount:</span>
+																	<span>-{formatPrice(order.discount)} VND</span>
+																</div>
+															)}
+															<div className="border-t border-white/20 pt-2 mt-2 flex justify-between">
+																<span className="text-white font-semibold">Total:</span>
+																<span className="text-blue-400 text-xl font-bold">
+																	{formatPrice(order.total)} VND
+																</span>
+															</div>
 														</div>
 													</div>
 

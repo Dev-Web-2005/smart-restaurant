@@ -43,8 +43,7 @@ const Sidebar = ({ activeRoute, userProfile, handleLogout, isCollapsed, onToggle
 
 	// Get notification count for a specific route
 	const getNotificationCount = (route) => {
-		if (route === '/user/kitchen') return pendingOrdersCount
-		if (route === '/user/order') return newHelpRequestsCount
+		// Only show notification count for help requests
 		if (route === '/user/help-requests') return newHelpRequestsCount
 		return 0
 	}
