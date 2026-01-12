@@ -3358,7 +3358,7 @@
               }
             },
             "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/waiter/notifications/64f88d13-c331-4bba-be26-9b119dda1df7/read",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/waiter/notifications/dbb16b4e-e026-4112-99fa-a154610982eb/read",
               "host": [
                 "{{baseURL}}"
               ],
@@ -3369,7 +3369,7 @@
                 "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "waiter",
                 "notifications",
-                "64f88d13-c331-4bba-be26-9b119dda1df7",
+                "dbb16b4e-e026-4112-99fa-a154610982eb",
                 "read"
               ]
             },
@@ -3409,7 +3409,7 @@
               }
             },
             "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/waiter/notifications/880e8400-e29b-41d4-a716-446655440004/archive",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/waiter/notifications/dbb16b4e-e026-4112-99fa-a154610982eb/archive",
               "host": [
                 "{{baseURL}}"
               ],
@@ -3420,7 +3420,7 @@
                 "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "waiter",
                 "notifications",
-                "880e8400-e29b-41d4-a716-446655440004",
+                "dbb16b4e-e026-4112-99fa-a154610982eb",
                 "archive"
               ]
             },
