@@ -378,6 +378,50 @@ export default class ErrorCode {
 		404
 	);
 
+	/** Invalid status transition for order item */
+	static readonly INVALID_STATUS_TRANSITION: ErrorCode = new ErrorCode(
+		4016,
+		"Invalid status transition",
+		400
+	);
+
+	// ==================== WAITER & NOTIFICATION (4600-4699) ====================
+
+	/** Waiter notification not found */
+	static readonly NOTIFICATION_NOT_FOUND: ErrorCode = new ErrorCode(
+		4601,
+		"Notification not found",
+		404
+	);
+
+	/** Cannot action already processed notification */
+	static readonly NOTIFICATION_ALREADY_PROCESSED: ErrorCode = new ErrorCode(
+		4602,
+		"Notification has already been processed",
+		400
+	);
+
+	/** Notification has expired */
+	static readonly NOTIFICATION_EXPIRED: ErrorCode = new ErrorCode(
+		4603,
+		"Notification has expired",
+		410
+	);
+
+	/** Invalid notification status */
+	static readonly INVALID_NOTIFICATION_STATUS: ErrorCode = new ErrorCode(
+		4604,
+		"Invalid notification status",
+		400
+	);
+
+	/** Waiter not assigned to notification */
+	static readonly WAITER_NOT_ASSIGNED: ErrorCode = new ErrorCode(
+		4605,
+		"Waiter is not assigned to this notification",
+		403
+	);
+
 	// ==================== PAYMENT (5000-5999) ====================
 	// Reserved for payment service
 

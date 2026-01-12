@@ -6,3 +6,5 @@ export * from './update-order-status-request.dto';
 export * from './update-order-items-status-request.dto';
 export * from './cancel-order-request.dto';
 export * from './update-payment-status-request.dto';
+export * from './accept-items-request.dto';
+export * from './reject-items-request.dto';

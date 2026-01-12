@@ -15,6 +15,7 @@ import { HealthController } from './health.controller';
 import { NotificationController } from './services/notification/notification.controller';
 import { OrderController } from './services/order/order.controller';
 import { CartController } from './services/cart/cart.controller';
+import { WaiterController } from './services/waiter/waiter.controller';
 
 @Module({
 	imports: [
@@ -68,6 +69,14 @@ import { CartController } from './services/cart/cart.controller';
 					port: +process.env.PORT_NOTIFICATION_SERVICE || 8085,
 				},
 			},
+			{
+				name: 'WAITER_SERVICE',
+				transport: Transport.TCP, // ✅ Đổi thành TCP
+				options: {
+					host: process.env.HOST_WAITER_SERVICE || 'localhost',
+					port: +process.env.PORT_WAITER_SERVICE || 8088,
+				},
+			},
 		]),
 	],
 	controllers: [
@@ -81,6 +90,7 @@ import { CartController } from './services/cart/cart.controller';
 		NotificationController,
 		OrderController,
 		CartController,
+		WaiterController,
 	],
 	providers: [AppService],
 })

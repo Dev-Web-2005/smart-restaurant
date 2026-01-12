@@ -1,5 +1,11 @@
-import { Controller } from '@nestjs/common';
-import { MessagePattern } from '@nestjs/microservices';
+import { Controller, Logger } from '@nestjs/common';
+import {
+	MessagePattern,
+	EventPattern,
+	Payload,
+	Ctx,
+	RmqContext,
+} from '@nestjs/microservices';
 import { OrderService } from './order.service';
 import HttpResponse from '@shared/utils/http-response';
 import { handleRpcCall } from '@shared/utils/rpc-error-handler';
@@ -21,21 +27,27 @@ import { CheckoutCartDto } from '../cart/dtos/request/checkout-cart.dto';
  * Handles RPC messages for order management
  * Implements CRUD operations and order lifecycle management
  *
- * NEW: Item-level status management
- * - orders:update-items-status - Update status of specific order items
+ * ITEM-CENTRIC ARCHITECTURE:
+ * - Waiter actions operate directly on items via RPC (not through Waiter Service)
+ * - Accept/Reject are first-class operations, not notification callbacks
  *
  * RPC Patterns:
  * - orders:create - Create a new order
  * - orders:get - Get a single order by ID
  * - orders:get-all - Get all orders with filtering and pagination
  * - orders:add-items - Add items to an existing order
- * - orders:update-status - Update order status (PENDING → ACCEPTED → PREPARING → READY → SERVED → COMPLETED)
- * - orders:update-items-status - Update status of specific order items (NEW)
+ * - orders:update-status - Update order status
+ * - orders:update-items-status - Update status of specific order items
+ * - orders:accept-items - Waiter accepts specific items (NEW - ITEM-CENTRIC)
+ * - orders:reject-items - Waiter rejects specific items with reason (NEW - ITEM-CENTRIC)
  * - orders:cancel - Cancel an order
  * - orders:update-payment - Update payment status
+ * - orders:checkout - Create order from cart
  */
 @Controller()
 export class OrderController {
+	private readonly logger = new Logger(OrderController.name);
+
 	constructor(private readonly orderService: OrderService) {}
 
 	/**
@@ -204,5 +216,85 @@ export class OrderController {
 			const order = await this.orderService.createOrderFromCart(dto);
 			return new HttpResponse(1000, 'Order created from cart successfully', order);
 		});
+	}
+
+	/**
+	 * MESSAGE PATTERN: Accept order items - ITEM-CENTRIC ARCHITECTURE
+	 *
+	 * Waiter frontend calls this RPC directly to accept specific items
+	 * No need to go through Waiter Service (notification layer)
+	 *
+	 * Business Flow:
+	 * 1. Waiter sees notification (alert from Waiter Service)
+	 * 2. Waiter clicks "Accept" on specific items in UI
+	 * 3. Frontend calls this RPC directly
+	 * 4. Order Service updates items → emits to Kitchen
+	 */
+	@MessagePattern('orders:accept-items')
+	async acceptItems(@Payload() dto: any) {
+		return handleRpcCall(async () => {
+			this.logger.log(
+				`[RPC] Accepting ${dto.itemIds.length} items from order ${dto.orderId} by waiter ${dto.waiterId}`,
+			);
+			const result = await this.orderService.acceptItems(dto);
+			return new HttpResponse(1000, 'Items accepted successfully', result);
+		});
+	}
+
+	/**
+	 * MESSAGE PATTERN: Reject order items - ITEM-CENTRIC ARCHITECTURE
+	 *
+	 * Waiter frontend calls this RPC directly to reject specific items with reason
+	 * No need to go through Waiter Service (notification layer)
+	 *
+	 * Business Flow:
+	 * 1. Waiter sees notification (alert from Waiter Service)
+	 * 2. Waiter clicks "Reject" on specific items in UI
+	 * 3. Frontend calls this RPC with rejection reason
+	 * 4. Order Service updates items → emits to Notification Service for customer
+	 */
+	@MessagePattern('orders:reject-items')
+	async rejectItems(@Payload() dto: any) {
+		return handleRpcCall(async () => {
+			this.logger.log(
+				`[RPC] Rejecting ${dto.itemIds.length} items from order ${dto.orderId} by waiter ${dto.waiterId}: ${dto.rejectionReason}`,
+			);
+			const result = await this.orderService.rejectItems(dto);
+			return new HttpResponse(1000, 'Items rejected successfully', result);
+		});
+	}
+
+	/**
+	 * EVENT: Handle Dead Letter Queue messages
+	 *
+	 * Catches messages that failed after max retries
+	 */
+	@EventPattern('local_order_dlq')
+	handleDLQ(@Payload() data: any, @Ctx() context: RmqContext) {
+		const channel = context.getChannelRef();
+		const message = context.getMessage();
+
+		const xDeath = message.properties.headers['x-death'];
+		const failureInfo = xDeath ? xDeath[0] : {};
+
+		this.logger.error('Message dropped to DLQ - Failed permanently', {
+			payload: data,
+			failureDetails: {
+				attempts: failureInfo.count || 0,
+				originalQueue: failureInfo.queue || 'unknown',
+				originalExchange: failureInfo.exchange || 'unknown',
+				reason: failureInfo.reason || 'unknown',
+				routingKeys: failureInfo['routing-keys'] || [],
+				time: failureInfo.time ? new Date(failureInfo.time.value * 1000) : null,
+			},
+			messageProperties: {
+				messageId: message.properties.messageId,
+				timestamp: message.properties.timestamp,
+				correlationId: message.properties.correlationId,
+			},
+			droppedAt: new Date().toISOString(),
+		});
+
+		channel.ack(message);
 	}
 }

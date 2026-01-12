@@ -17,6 +17,7 @@ import {
 	OrderItemStatus,
 	OrderItemStatusLabels,
 	isValidOrderItemStatusTransition,
+	OrderItemStatusFromString,
 } from '../common/enums';
 import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
@@ -49,9 +50,10 @@ export class OrderService {
 		private readonly orderRepository: Repository<Order>,
 		@InjectRepository(OrderItem)
 		private readonly orderItemRepository: Repository<OrderItem>,
+		private readonly cartService: CartService,
 		@Inject('PRODUCT_SERVICE') private readonly productClient: ClientProxy,
 		private readonly configService: ConfigService,
-		private readonly cartService: CartService,
+		@Inject('WAITER_SERVICE') private readonly waiterClient: ClientProxy,
 	) {}
 
 	/**
@@ -347,23 +349,17 @@ export class OrderService {
 			`Checkout success: Order ${finalOrder.id} | Table ${dto.tableId} | ${isNewOrder ? 'NEW' : 'APPENDED'} | Items added: ${newOrderItems.length} | Total items: ${finalOrder.items.length}`,
 		);
 
-		// TODO: Emit RabbitMQ event CHỈ CHO CÁC MÓN MỚI
+		// DONE: Emit RabbitMQ event CHỈ CHO CÁC MÓN MỚI
 		// Để tránh bếp nấu lại các món cũ!
-		// if (isNewOrder) {
-		//   this.notificationClient.emit('order.created', {
-		//     orderId: finalOrder.id,
-		//     tenantId: dto.tenantId,
-		//     tableId: dto.tableId,
-		//     items: newOrderItems, // All items for new order
-		//   });
-		// } else {
-		//   this.notificationClient.emit('order.items-added', {
-		//     orderId: finalOrder.id,
-		//     tenantId: dto.tenantId,
-		//     tableId: dto.tableId,
-		//     newItems: newOrderItems, // ONLY new items for kitchen
-		//   });
-		// }
+		if (newOrderItems.length > 0) {
+			this.waiterClient.emit('order.new_items', {
+				waiterApiKey: this.configService.get<string>('WAITER_API_KEY'),
+				orderId: finalOrder.id,
+				tenantId: dto.tenantId,
+				tableId: dto.tableId,
+				items: newOrderItems, // Only new items
+			});
+		}
 
 		return this.mapToOrderResponse(finalOrder);
 	}
@@ -614,7 +610,9 @@ export class OrderService {
 		}
 
 		// 3. Validate rejection reason if status is REJECTED
-		if (dto.status === OrderItemStatus.REJECTED && !dto.rejectionReason) {
+		const dtoStatus = OrderItemStatusFromString[dto.status];
+
+		if (dtoStatus === OrderItemStatus.REJECTED && !dto.rejectionReason) {
 			this.logger.error('Rejection reason is required when rejecting items');
 			throw new AppException(ErrorCode.INVALID_CART_OPERATION);
 		}
@@ -631,15 +629,15 @@ export class OrderService {
 			}
 
 			// Validate status transition
-			if (!isValidOrderItemStatusTransition(item.status, dto.status)) {
+			if (!isValidOrderItemStatusTransition(item.status, dtoStatus)) {
 				this.logger.error(
-					`Cannot transition item ${item.name} from ${OrderItemStatusLabels[item.status]} to ${OrderItemStatusLabels[dto.status]}`,
+					`Cannot transition item ${item.name} from ${OrderItemStatusLabels[item.status]} to ${OrderItemStatusLabels[dtoStatus]}`,
 				);
 				throw new AppException(ErrorCode.INVALID_ORDER_STATUS_TRANSITION);
 			}
 
 			// Update item status
-			item.status = dto.status;
+			item.status = dtoStatus;
 
 			// Update rejection reason if provided
 			if (dto.rejectionReason) {
@@ -647,7 +645,7 @@ export class OrderService {
 			}
 
 			// Update timestamps based on status
-			switch (dto.status) {
+			switch (dtoStatus) {
 				case OrderItemStatus.ACCEPTED:
 					item.acceptedAt = now;
 					break;
@@ -922,6 +920,194 @@ export class OrderService {
 		order.subtotal = Number(subtotal.toFixed(2));
 		order.tax = Number(tax.toFixed(2));
 		order.total = Number((subtotal + tax - order.discount).toFixed(2));
+	}
+
+	/**
+	 * Accept order items - ITEM-CENTRIC ARCHITECTURE
+	 *
+	 * Direct waiter action on specific items
+	 * This is called by waiter frontend directly, not through Waiter Service
+	 *
+	 * Business Flow:
+	 * 1. Validate items belong to the order
+	 * 2. Update items to ACCEPTED status
+	 * 3. Emit to Kitchen Service for preparation
+	 * 4. Track waiter and timestamp
+	 *
+	 * @param dto - Accept items request from waiter
+	 * @returns Updated order with accepted items
+	 */
+	async acceptItems(dto: {
+		orderApiKey: string;
+		orderId: string;
+		itemIds: string[];
+		waiterId: string;
+		tenantId: string;
+	}): Promise<OrderResponseDto> {
+		this.validateApiKey(dto.orderApiKey);
+
+		this.logger.log(
+			`Waiter ${dto.waiterId} accepting ${dto.itemIds.length} items from order ${dto.orderId}`,
+		);
+
+		// Find order
+		const order = await this.orderRepository.findOne({
+			where: { id: dto.orderId, tenantId: dto.tenantId },
+			relations: ['items'],
+		});
+
+		if (!order) {
+			throw new AppException(ErrorCode.ORDER_NOT_FOUND);
+		}
+
+		// Find items to accept
+		const itemsToAccept = order.items.filter((item) => dto.itemIds.includes(item.id));
+
+		if (itemsToAccept.length === 0) {
+			throw new AppException(ErrorCode.ORDER_ITEM_NOT_FOUND);
+		}
+
+		// Validate all items can be accepted
+		for (const item of itemsToAccept) {
+			if (item.status !== OrderItemStatus.PENDING) {
+				throw new AppException({
+					...ErrorCode.INVALID_STATUS_TRANSITION,
+					message: `Item ${item.id} (${item.name}) is ${OrderItemStatusLabels[item.status]}, cannot accept`,
+				});
+			}
+		}
+
+		// Update items to ACCEPTED
+		await this.orderItemRepository.update(
+			{ id: In(dto.itemIds) },
+			{
+				status: OrderItemStatus.ACCEPTED,
+				acceptedAt: new Date(),
+			},
+		);
+
+		// Assign waiter to order if not already assigned
+		if (!order.waiterId) {
+			order.waiterId = dto.waiterId;
+			await this.orderRepository.save(order);
+		}
+
+		// Emit to Kitchen Service for preparation
+		const kitchenApiKey = this.configService.get<string>('KITCHEN_API_KEY');
+		this.waiterClient.emit('kitchen.prepare_items', {
+			kitchenApiKey,
+			orderId: dto.orderId,
+			tableId: order.tableId,
+			tenantId: dto.tenantId,
+			waiterId: dto.waiterId,
+			items: itemsToAccept.map((item) => ({
+				id: item.id,
+				menuItemId: item.menuItemId,
+				name: item.name,
+				quantity: item.quantity,
+				modifiers: item.modifiers,
+				notes: item.notes,
+			})),
+		});
+
+		this.logger.log(
+			`Accepted ${itemsToAccept.length} items from order ${dto.orderId}, sent to kitchen`,
+		);
+
+		// Reload order with updated items
+		const updatedOrder = await this.orderRepository.findOne({
+			where: { id: dto.orderId },
+			relations: ['items'],
+		});
+
+		return this.mapToOrderResponse(updatedOrder);
+	}
+
+	/**
+	 * Reject order items - ITEM-CENTRIC ARCHITECTURE
+	 *
+	 * Direct waiter action to reject specific items with reason
+	 * This is called by waiter frontend directly, not through Waiter Service
+	 *
+	 * Business Flow:
+	 * 1. Validate items belong to the order
+	 * 2. Update items to REJECTED status with reason
+	 * 3. Track waiter and timestamp
+	 * 4. Emit notification to customer (future: Notification Service)
+	 *
+	 * @param dto - Reject items request from waiter
+	 * @returns Updated order with rejected items
+	 */
+	async rejectItems(dto: {
+		orderApiKey: string;
+		orderId: string;
+		itemIds: string[];
+		waiterId: string;
+		tenantId: string;
+		rejectionReason: string;
+	}): Promise<OrderResponseDto> {
+		this.validateApiKey(dto.orderApiKey);
+
+		this.logger.log(
+			`Waiter ${dto.waiterId} rejecting ${dto.itemIds.length} items from order ${dto.orderId}: ${dto.rejectionReason}`,
+		);
+
+		// Find order
+		const order = await this.orderRepository.findOne({
+			where: { id: dto.orderId, tenantId: dto.tenantId },
+			relations: ['items'],
+		});
+
+		if (!order) {
+			throw new AppException(ErrorCode.ORDER_NOT_FOUND);
+		}
+
+		// Find items to reject
+		const itemsToReject = order.items.filter((item) => dto.itemIds.includes(item.id));
+
+		if (itemsToReject.length === 0) {
+			throw new AppException(ErrorCode.ORDER_ITEM_NOT_FOUND);
+		}
+
+		// Validate all items can be rejected
+		for (const item of itemsToReject) {
+			if (item.status !== OrderItemStatus.PENDING) {
+				throw new AppException({
+					...ErrorCode.INVALID_STATUS_TRANSITION,
+					message: `Item ${item.id} (${item.name}) is ${OrderItemStatusLabels[item.status]}, cannot reject`,
+				});
+			}
+		}
+
+		// Update items to REJECTED with reason
+		await this.orderItemRepository.update(
+			{ id: In(dto.itemIds) },
+			{
+				status: OrderItemStatus.REJECTED,
+				rejectionReason: dto.rejectionReason,
+			},
+		);
+
+		// Assign waiter to order if not already assigned
+		if (!order.waiterId) {
+			order.waiterId = dto.waiterId;
+			await this.orderRepository.save(order);
+		}
+
+		this.logger.log(
+			`Rejected ${itemsToReject.length} items from order ${dto.orderId} (Reason: ${dto.rejectionReason})`,
+		);
+
+		// TODO: Emit notification to customer about rejected items
+		// this.notificationClient.emit('customer.items_rejected', {...})
+
+		// Reload order with updated items
+		const updatedOrder = await this.orderRepository.findOne({
+			where: { id: dto.orderId },
+			relations: ['items'],
+		});
+
+		return this.mapToOrderResponse(updatedOrder);
 	}
 
 	/**
