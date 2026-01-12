@@ -1,5 +1,11 @@
-import { Controller } from '@nestjs/common';
-import { MessagePattern } from '@nestjs/microservices';
+import { Controller, Logger } from '@nestjs/common';
+import {
+	MessagePattern,
+	EventPattern,
+	Payload,
+	Ctx,
+	RmqContext,
+} from '@nestjs/microservices';
 import { OrderService } from './order.service';
 import HttpResponse from '@shared/utils/http-response';
 import { handleRpcCall } from '@shared/utils/rpc-error-handler';
@@ -36,6 +42,8 @@ import { CheckoutCartDto } from '../cart/dtos/request/checkout-cart.dto';
  */
 @Controller()
 export class OrderController {
+	private readonly logger = new Logger(OrderController.name);
+
 	constructor(private readonly orderService: OrderService) {}
 
 	/**
@@ -204,5 +212,173 @@ export class OrderController {
 			const order = await this.orderService.createOrderFromCart(dto);
 			return new HttpResponse(1000, 'Order created from cart successfully', order);
 		});
+	}
+
+	/**
+	 * EVENT: Handle items accepted by waiter
+	 *
+	 * Triggered when waiter accepts order items
+	 * Flow: Waiter Service -> RabbitMQ -> Order Service (this handler)
+	 *
+	 * Actions:
+	 * 1. Update order items status to ACCEPTED
+	 * 2. Record waiter ID and timestamp
+	 */
+	@EventPattern('order.items_accepted_by_waiter')
+	async handleItemsAcceptedByWaiter(
+		@Payload()
+		data: {
+			orderId: string;
+			itemIds: string[];
+			waiterId: string;
+			acceptedAt: Date;
+		},
+		@Ctx() context: RmqContext,
+	) {
+		const channel = context.getChannelRef();
+		const message = context.getMessage();
+
+		try {
+			this.logger.log(
+				`[EVENT] Items accepted by waiter ${data.waiterId} for order ${data.orderId}`,
+			);
+
+			await this.orderService.updateOrderItemsStatus({
+				orderApiKey: process.env.ORDER_API_KEY,
+				orderId: data.orderId,
+				itemIds: data.itemIds,
+				status: 'ACCEPTED',
+			});
+
+			this.logger.log(
+				`[EVENT] Updated ${data.itemIds.length} items to ACCEPTED status for order ${data.orderId}`,
+			);
+
+			channel.ack(message);
+		} catch (error) {
+			this.logger.error(
+				`[EVENT] Failed to handle items accepted: ${error.message}`,
+				error.stack,
+			);
+
+			// Retry logic
+			const xDeath = message.properties.headers['x-death'];
+			const retryCount = xDeath ? xDeath[0].count : 0;
+			const maxRetries = parseInt(process.env.LIMIT_REQUEUE) || 10;
+
+			if (retryCount < maxRetries) {
+				this.logger.warn(
+					`[EVENT] Rejecting message for retry (attempt ${retryCount + 1}/${maxRetries})`,
+				);
+				channel.nack(message, false, false);
+			} else {
+				this.logger.error(`[EVENT] Max retries reached. Sending to DLQ.`);
+				channel.nack(message, false, false);
+			}
+		}
+	}
+
+	/**
+	 * EVENT: Handle items rejected by waiter
+	 *
+	 * Triggered when waiter rejects order items (e.g., ingredient unavailable)
+	 * Flow: Waiter Service -> RabbitMQ -> Order Service (this handler)
+	 *
+	 * Actions:
+	 * 1. Update order items status to REJECTED
+	 * 2. Record waiter ID, reason, and timestamp
+	 * 3. Notify customer (future enhancement)
+	 */
+	@EventPattern('order.items_rejected_by_waiter')
+	async handleItemsRejectedByWaiter(
+		@Payload()
+		data: {
+			orderId: string;
+			itemIds: string[];
+			waiterId: string;
+			rejectionReason: string;
+			rejectedAt: Date;
+		},
+		@Ctx() context: RmqContext,
+	) {
+		const channel = context.getChannelRef();
+		const message = context.getMessage();
+
+		try {
+			this.logger.log(
+				`[EVENT] Items rejected by waiter ${data.waiterId} for order ${data.orderId}: ${data.rejectionReason}`,
+			);
+
+			await this.orderService.updateOrderItemsStatus({
+				orderApiKey: process.env.ORDER_API_KEY,
+				orderId: data.orderId,
+				itemIds: data.itemIds,
+				status: 'REJECTED',
+				rejectionReason: data.rejectionReason,
+			});
+
+			this.logger.log(
+				`[EVENT] Updated ${data.itemIds.length} items to REJECTED status for order ${data.orderId}`,
+			);
+
+			// TODO: Send notification to customer about rejection
+			// this.notificationClient.emit('notification.order_items_rejected', {...});
+
+			channel.ack(message);
+		} catch (error) {
+			this.logger.error(
+				`[EVENT] Failed to handle items rejected: ${error.message}`,
+				error.stack,
+			);
+
+			// Retry logic
+			const xDeath = message.properties.headers['x-death'];
+			const retryCount = xDeath ? xDeath[0].count : 0;
+			const maxRetries = parseInt(process.env.LIMIT_REQUEUE) || 10;
+
+			if (retryCount < maxRetries) {
+				this.logger.warn(
+					`[EVENT] Rejecting message for retry (attempt ${retryCount + 1}/${maxRetries})`,
+				);
+				channel.nack(message, false, false);
+			} else {
+				this.logger.error(`[EVENT] Max retries reached. Sending to DLQ.`);
+				channel.nack(message, false, false);
+			}
+		}
+	}
+
+	/**
+	 * EVENT: Handle Dead Letter Queue messages
+	 *
+	 * Catches messages that failed after max retries
+	 */
+	@EventPattern('local_order_dlq')
+	handleDLQ(@Payload() data: any, @Ctx() context: RmqContext) {
+		const channel = context.getChannelRef();
+		const message = context.getMessage();
+
+		const xDeath = message.properties.headers['x-death'];
+		const failureInfo = xDeath ? xDeath[0] : {};
+
+		this.logger.error('Message dropped to DLQ - Failed permanently', {
+			payload: data,
+			failureDetails: {
+				attempts: failureInfo.count || 0,
+				originalQueue: failureInfo.queue || 'unknown',
+				originalExchange: failureInfo.exchange || 'unknown',
+				reason: failureInfo.reason || 'unknown',
+				routingKeys: failureInfo['routing-keys'] || [],
+				time: failureInfo.time ? new Date(failureInfo.time.value * 1000) : null,
+			},
+			messageProperties: {
+				messageId: message.properties.messageId,
+				timestamp: message.properties.timestamp,
+				correlationId: message.properties.correlationId,
+			},
+			droppedAt: new Date().toISOString(),
+		});
+
+		channel.ack(message);
 	}
 }

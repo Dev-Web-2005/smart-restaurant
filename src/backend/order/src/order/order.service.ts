@@ -49,9 +49,10 @@ export class OrderService {
 		private readonly orderRepository: Repository<Order>,
 		@InjectRepository(OrderItem)
 		private readonly orderItemRepository: Repository<OrderItem>,
+		private readonly cartService: CartService,
 		@Inject('PRODUCT_SERVICE') private readonly productClient: ClientProxy,
 		private readonly configService: ConfigService,
-		private readonly cartService: CartService,
+		@Inject('WAITER_SERVICE') private readonly waiterClient: ClientProxy,
 	) {}
 
 	/**
