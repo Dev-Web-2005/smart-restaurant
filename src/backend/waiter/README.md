@@ -12,7 +12,7 @@ Waiter Service là microservice quản lý luồng duyệt đơn hàng trong h�
 ✅ Xử lý accept/reject order items  
 ✅ Gửi approved items xuống Kitchen Service  
 ✅ Cập nhật item status về Order Service  
-✅ Retry logic và Dead Letter Queue handling  
+✅ Retry logic và Dead Letter Queue handling
 
 ---
 
@@ -78,21 +78,21 @@ npm run start:prod
 
 ### Message Patterns (RPC)
 
-| Pattern | Description |
-|---------|-------------|
+| Pattern                            | Description                           |
+| ---------------------------------- | ------------------------------------- |
 | `waiter.get_pending_notifications` | Lấy danh sách notifications chờ xử lý |
-| `waiter.mark_viewed` | Đánh dấu notification đã xem |
-| `waiter.accept_items` | Duyệt các món và gửi bếp |
-| `waiter.reject_items` | Từ chối các món |
+| `waiter.mark_viewed`               | Đánh dấu notification đã xem          |
+| `waiter.accept_items`              | Duyệt các món và gửi bếp              |
+| `waiter.reject_items`              | Từ chối các món                       |
 
 ### Event Patterns
 
-| Event | Direction | Description |
-|-------|-----------|-------------|
-| `order.new_items` | Incoming | Nhận thông báo items mới từ Order Service |
-| `order.items_accepted_by_waiter` | Outgoing | Thông báo items đã được duyệt |
-| `order.items_rejected_by_waiter` | Outgoing | Thông báo items bị từ chối |
-| `kitchen.new_items` | Outgoing | Gửi items xuống Kitchen Service |
+| Event                            | Direction | Description                               |
+| -------------------------------- | --------- | ----------------------------------------- |
+| `order.new_items`                | Incoming  | Nhận thông báo items mới từ Order Service |
+| `order.items_accepted_by_waiter` | Outgoing  | Thông báo items đã được duyệt             |
+| `order.items_rejected_by_waiter` | Outgoing  | Thông báo items bị từ chối                |
+| `kitchen.new_items`              | Outgoing  | Gửi items xuống Kitchen Service           |
 
 ---
 
@@ -145,18 +145,18 @@ src/
 
 ### order_notifications
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | UUID | Primary key |
-| order_id | UUID | Reference to order |
-| table_id | VARCHAR | Table identifier |
-| tenant_id | VARCHAR | Restaurant/tenant ID |
-| waiter_id | UUID | Assigned waiter |
-| status | INT | PENDING/VIEWED/ACCEPTED/REJECTED |
-| item_ids | JSONB | List of order item IDs |
-| metadata | JSONB | Additional context |
-| created_at | TIMESTAMP | Creation time |
-| expires_at | TIMESTAMP | Expiry time |
+| Column     | Type      | Description                      |
+| ---------- | --------- | -------------------------------- |
+| id         | UUID      | Primary key                      |
+| order_id   | UUID      | Reference to order               |
+| table_id   | VARCHAR   | Table identifier                 |
+| tenant_id  | VARCHAR   | Restaurant/tenant ID             |
+| waiter_id  | UUID      | Assigned waiter                  |
+| status     | INT       | PENDING/VIEWED/ACCEPTED/REJECTED |
+| item_ids   | JSONB     | List of order item IDs           |
+| metadata   | JSONB     | Additional context               |
+| created_at | TIMESTAMP | Creation time                    |
+| expires_at | TIMESTAMP | Expiry time                      |
 
 ---
 

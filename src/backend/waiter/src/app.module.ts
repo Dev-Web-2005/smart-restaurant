@@ -37,4 +37,3 @@ import { WaiterModule } from './waiter/waiter.module';
 	providers: [AppService],
 })
 export class AppModule {}
-
