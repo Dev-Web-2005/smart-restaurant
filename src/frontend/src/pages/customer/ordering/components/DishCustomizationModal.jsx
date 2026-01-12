@@ -138,7 +138,7 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 	}
 
 	const handleAddToCart = () => {
-		// Get selected modifier details - handle both API structures
+		// Get selected modifier details with groupId and optionId for backend
 		const modifierDetails = selectedModifiers
 			.map((modId) => {
 				// Try new API structure first
@@ -147,7 +147,9 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 						const option = group.options?.find((opt) => opt.id === modId)
 						if (option) {
 							return {
-								id: option.id,
+								id: option.id, // For UI
+								groupId: group.id, // For backend
+								optionId: option.id, // For backend
 								groupName: group.name,
 								label: option.name,
 								priceDelta: option.priceDelta || option.priceAdjustment || 0,
@@ -162,6 +164,8 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 					if (mod) {
 						return {
 							id: mod.id,
+							groupId: mod.groupId || 'unknown', // For backend
+							optionId: mod.id, // For backend
 							groupName: mod.groupName,
 							label: mod.label,
 							priceDelta: mod.priceDelta,

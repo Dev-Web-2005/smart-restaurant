@@ -26,6 +26,7 @@ import Menu from './pages/user/menu/Menu'
 import CategoryDishes from './pages/user/menu/CategoryDishes'
 import TableManagement from './pages/user/table/TableManagement'
 import OrderManagement from './pages/user/order/OrderManagement'
+import KitchenManagement from './pages/user/kitchen/KitchenManagement'
 import HelpRequests from './pages/user/notifications/HelpRequests'
 import Reports from './pages/user/analytics/Reports'
 import Settings from './pages/user/settings/Settings'
@@ -152,6 +153,14 @@ function App() {
 										element={
 											<ProtectedRoute allowedRoles={['User']}>
 												<RestaurantQRGenerator />
+											</ProtectedRoute>
+										}
+									/>
+									<Route
+										path="/user/kitchen"
+										element={
+											<ProtectedRoute allowedRoles={['User']}>
+												<KitchenManagement />
 											</ProtectedRoute>
 										}
 									/>

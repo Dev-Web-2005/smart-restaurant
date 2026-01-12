@@ -1,5 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
+import { addItemToCartAPI } from '../../../services/api/cartAPI'
+import { getOrdersAPI } from '../../../services/api/orderAPI'
 
 // Import page components
 import MenuPage from './pages/MenuPage'
@@ -73,66 +75,93 @@ if (typeof document !== 'undefined') {
 	}
 }
 
-// Mock Orders Data (fallback for development)
-const mockOrders = [
-	{
-		id: 'ORD-001',
-		createdAt: '2025-12-29T10:30:00Z',
-		status: 'PREPARING',
-		currentStep: 'Preparing',
-		totalAmount: 45.5,
-		items: [
-			{
-				name: 'Spicy Miso Ramen',
-				price: 15.5,
-				quantity: 2,
-				modifiers: ['Large', 'Extra Egg'],
-			},
-			{ name: 'Classic Pad Thai', price: 14.0, quantity: 1, modifiers: [] },
-		],
-		rejectionReason: null,
-	},
-	{
-		id: 'ORD-002',
-		createdAt: '2025-12-29T09:15:00Z',
-		status: 'READY',
-		currentStep: 'Ready',
-		totalAmount: 27.5,
-		items: [{ name: 'Beef Pho', price: 13.5, quantity: 2, modifiers: ['Rare Beef'] }],
-		rejectionReason: null,
-	},
-	{
-		id: 'ORD-003',
-		createdAt: '2025-12-29T08:45:00Z',
-		status: 'REJECTED',
-		currentStep: null,
-		totalAmount: 24.0,
-		items: [{ name: 'Dan Dan Noodles', price: 12.0, quantity: 2, modifiers: [] }],
-		rejectionReason: 'Out of ingredients - Sichuan peppercorns',
-	},
-	{
-		id: 'ORD-004',
-		createdAt: '2025-12-28T19:30:00Z',
-		status: 'RECEIVED',
-		currentStep: 'Received',
-		totalAmount: 33.0,
-		items: [
-			{ name: 'Veggie Burger', price: 11.5, quantity: 1, modifiers: ['Cheese'] },
-			{ name: 'Greek Salad', price: 9.0, quantity: 1, modifiers: [] },
-			{ name: 'Tomato Soup', price: 8.0, quantity: 1, modifiers: [] },
-		],
-		rejectionReason: null,
-	},
-]
-
 const OrderManagementInterface = () => {
 	// Get tenantId and tableId from URL params
 	const { tenantId, tableId } = useParams()
 
+	// Get customer info (guest or logged in)
+	const [customerInfo, setCustomerInfo] = useState(null)
+
+	// Load customer info on mount
+	React.useEffect(() => {
+		const customerAuth = localStorage.getItem('customerAuth')
+		if (customerAuth) {
+			try {
+				const parsed = JSON.parse(customerAuth)
+				setCustomerInfo(parsed)
+				console.log('✅ Customer authenticated:', parsed)
+			} catch (err) {
+				console.error('❌ Failed to parse customerAuth:', err)
+			}
+		} else {
+			console.log('🔓 Guest mode - no customer authentication')
+		}
+	}, [])
+
 	// State management
 	const [cartItems, setCartItems] = useState([]) // { id, name, price, qty, totalPrice, modifiers, specialNotes, imageUrl }
 	const [view, setView] = useState('MENU') // MENU | ORDERS | CART
-	const [orders, setOrders] = useState(mockOrders) // Orders history
+	const [orders, setOrders] = useState([]) // Orders history - load from API
+
+	// Load orders when switching to ORDERS view
+	useEffect(() => {
+		if (view === 'ORDERS' && tenantId && tableId) {
+			loadOrders()
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [view, tenantId, tableId])
+
+	// Load orders from API
+	const loadOrders = async () => {
+		try {
+			console.log('📋 Loading orders for table:', tableId)
+
+			const result = await getOrdersAPI(tenantId, {
+				tableId: tableId,
+				limit: 50, // Get recent 50 orders
+			})
+
+			if (result.success && result.data?.orders) {
+				console.log('✅ Orders loaded:', result.data.orders.length)
+
+				// Transform orders to match OrderCard component format
+				const transformedOrders = result.data.orders.map((order) => ({
+					id: order.id,
+					createdAt: order.createdAt,
+					status: order.status, // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
+					currentStep: mapOrderStatus(order.status),
+					totalAmount: order.totalAmount,
+					items: order.items.map((item) => ({
+						name: item.menuItemName,
+						price: item.price,
+						quantity: item.quantity,
+						modifiers: item.modifiers?.map((m) => m.modifierName) || [],
+					})),
+					rejectionReason:
+						order.items.find((i) => i.status === 'REJECTED')?.rejectionReason || null,
+				}))
+
+				setOrders(transformedOrders)
+			} else {
+				console.log('⚠️ No orders found')
+				setOrders([])
+			}
+		} catch (error) {
+			console.error('❌ Load orders error:', error)
+			setOrders([])
+		}
+	}
+
+	// Helper function to map order status to display text
+	const mapOrderStatus = (status) => {
+		const statusMap = {
+			PENDING: 'Pending',
+			IN_PROGRESS: 'Preparing',
+			COMPLETED: 'Completed',
+			CANCELLED: 'Cancelled',
+		}
+		return statusMap[status] || status
+	}
 
 	// Settings state
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -151,35 +180,116 @@ const OrderManagementInterface = () => {
 	const totalItemsInCart = cartItems.reduce((acc, item) => acc + item.qty, 0)
 
 	// Handle adding item to cart from MenuPage
-	const handleAddToCart = (cartItem) => {
-		// Cart item structure: { id, name, description, price, qty, totalPrice, modifiers, specialNotes, imageUrl }
-		// Generate unique key for cart item based on dish ID and modifiers
-		const modifierKey = JSON.stringify(cartItem.modifiers || [])
-		const uniqueKey = `${cartItem.id}-${modifierKey}`
+	const handleAddToCart = async (cartItem) => {
+		if (!tenantId || !tableId) {
+			alert('Missing tenant or table information. Please scan QR code again.')
+			return
+		}
 
-		// Check if exact same item (with same modifiers) exists
-		const existingIndex = cartItems.findIndex((item) => {
-			const itemModifierKey = JSON.stringify(item.modifiers || [])
-			return `${item.id}-${itemModifierKey}` === uniqueKey
-		})
+		// Cart item structure from modal: { id, name, description, price, qty, totalPrice, modifiers, specialNotes, imageUrl }
+		console.log('🛒 Adding item to cart:', cartItem)
 
-		if (existingIndex !== -1) {
-			// Update quantity if same item with same modifiers exists
-			setCartItems((prev) =>
-				prev.map((item, index) =>
-					index === existingIndex
-						? {
-								...item,
-								qty: item.qty + cartItem.qty,
-								totalPrice:
-									(item.qty + cartItem.qty) * (cartItem.totalPrice / cartItem.qty),
-						  }
-						: item,
-				),
-			)
-		} else {
-			// Add as new cart item if different modifiers
-			setCartItems((prev) => [...prev, { ...cartItem, uniqueKey }])
+		try {
+			// Transform modifiers to API format
+			const modifiersForAPI = (cartItem.modifiers || []).map((mod) => ({
+				modifierGroupId: mod.groupId, // Backend expects modifierGroupId
+				modifierOptionId: mod.optionId || mod.id, // Backend expects modifierOptionId
+				name: mod.label, // Backend expects name (not modifierName)
+				price: mod.priceDelta || 0,
+			}))
+
+			console.log('🔧 Modifiers transformed for API:', modifiersForAPI)
+
+			// Call add to cart API
+			const result = await addItemToCartAPI(tenantId, tableId, {
+				menuItemId: cartItem.id,
+				quantity: cartItem.qty,
+				price: cartItem.price,
+				modifiers: modifiersForAPI,
+				notes: cartItem.specialNotes || '',
+			})
+
+			if (result.success) {
+				console.log('✅ Item added to cart via API:', result.data)
+
+				// Backend returns entire cart with all items
+				// Find the newly added/updated item by matching menuItemId and modifiers
+				// Create a normalized modifier signature for comparison
+				const createModifierSignature = (modifiers) => {
+					if (!modifiers || modifiers.length === 0) return 'no-mods'
+					return modifiers
+						.map((mod) => {
+							// Handle both frontend and backend modifier structures
+							const groupId = mod.modifierGroupId || mod.groupId
+							const optionId = mod.modifierOptionId || mod.optionId || mod.id
+							return `${groupId}:${optionId}`
+						})
+						.sort()
+						.join('|')
+				}
+
+				const frontendModSignature = createModifierSignature(cartItem.modifiers)
+
+				// Find the matching item from backend response to get itemKey
+				let backendItem = null
+				if (result.data?.items) {
+					backendItem = result.data.items.find((item) => {
+						const backendModSignature = createModifierSignature(item.modifiers)
+						return (
+							item.menuItemId === cartItem.id &&
+							backendModSignature === frontendModSignature
+						)
+					})
+				}
+
+				const itemKey = backendItem?.itemKey
+				console.log('🔑 ItemKey from backend:', itemKey)
+
+				// Update local state for immediate UI feedback
+				const uniqueKey = `${cartItem.id}-${frontendModSignature}`
+
+				// Check if exact same item (with same modifiers) exists in local cart
+				const existingIndex = cartItems.findIndex((item) => {
+					const itemModSignature = createModifierSignature(item.modifiers)
+					return item.id === cartItem.id && itemModSignature === frontendModSignature
+				})
+
+				if (existingIndex !== -1) {
+					// Update quantity if same item with same modifiers exists
+					setCartItems((prev) =>
+						prev.map((item, index) =>
+							index === existingIndex
+								? {
+										...item,
+										qty: item.qty + cartItem.qty,
+										totalPrice:
+											(item.qty + cartItem.qty) * (cartItem.totalPrice / cartItem.qty),
+										itemKey: itemKey || item.itemKey, // Keep itemKey
+								  }
+								: item,
+						),
+					)
+				} else {
+					// Add as new cart item if different modifiers
+					setCartItems((prev) => [
+						...prev,
+						{
+							...cartItem,
+							uniqueKey,
+							itemKey, // Store itemKey for future updates/deletes
+						},
+					])
+				}
+
+				// Show success feedback
+				alert(`✅ ${cartItem.name} added to cart!`)
+			} else {
+				console.error('❌ Failed to add item to cart:', result.message)
+				alert(`Failed to add item: ${result.message}`)
+			}
+		} catch (error) {
+			console.error('❌ Add to cart error:', error)
+			alert('Failed to add item to cart. Please try again.')
 		}
 	}
 
@@ -229,6 +339,9 @@ const OrderManagementInterface = () => {
 
 				{view === 'CART' && (
 					<CartPage
+						tenantId={tenantId}
+						tableId={tableId}
+						customerInfo={customerInfo}
 						cartItems={cartItems}
 						onClearCart={handleClearCart}
 						onUpdateCart={handleUpdateCart}

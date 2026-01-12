@@ -21,6 +21,7 @@ const tenantNavItems = [
 	{ icon: 'menu_book', label: 'Menu', route: '/user/menu' },
 	{ icon: 'table_restaurant', label: 'Table', route: '/user/table' },
 	{ icon: 'qr_code_2', label: 'Restaurant QR', route: '/user/restaurant-qr' },
+	{ icon: 'restaurant', label: 'Kitchen', route: '/user/kitchen' },
 	{ icon: 'receipt_long', label: 'Order', route: '/user/order' },
 	{ icon: 'notifications_active', label: 'Help Requests', route: '/user/help-requests' },
 	{ icon: 'analytics', label: 'Analytics', route: '/user/analytics' },
@@ -42,7 +43,8 @@ const Sidebar = ({ activeRoute, userProfile, handleLogout, isCollapsed, onToggle
 
 	// Get notification count for a specific route
 	const getNotificationCount = (route) => {
-		if (route === '/user/order') return pendingOrdersCount
+		if (route === '/user/kitchen') return pendingOrdersCount
+		if (route === '/user/order') return newHelpRequestsCount
 		if (route === '/user/help-requests') return newHelpRequestsCount
 		return 0
 	}

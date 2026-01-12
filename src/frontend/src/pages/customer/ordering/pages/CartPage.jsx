@@ -1,11 +1,25 @@
 import React, { useState, useMemo } from 'react'
+import {
+	checkoutCartAPI,
+	updateCartItemQuantityAPI,
+	removeCartItemAPI,
+} from '../../../../services/api/cartAPI'
 
-const CartPage = ({ cartItems, onClearCart, onUpdateCart, onClose }) => {
+const CartPage = ({
+	tenantId,
+	tableId,
+	customerInfo,
+	cartItems,
+	onClearCart,
+	onUpdateCart,
+	onClose,
+}) => {
 	const [step, setStep] = useState('CART')
 	const [paymentLoading, setPaymentLoading] = useState(false)
 	const [qrCodeUrl, setQrCodeUrl] = useState(null)
 	const [isOrderPlaced, setIsOrderPlaced] = useState(false)
 	const [paymentMethod, setPaymentMethod] = useState('QR') // 'QR' or 'CASH'
+	const [updatingItemIndex, setUpdatingItemIndex] = useState(null) // Track which item is being updated
 
 	// Calculate total (using totalPrice from cart items)
 	const total = useMemo(
@@ -16,6 +30,87 @@ const CartPage = ({ cartItems, onClearCart, onUpdateCart, onClose }) => {
 			),
 		[cartItems],
 	)
+
+	// Handle quantity update with API call
+	const handleUpdateQuantity = async (index, newQty, item) => {
+		if (newQty < 1) return
+
+		// Optimistic UI update
+		const modifierTotal =
+			item.modifiers?.reduce((sum, mod) => sum + (mod.priceDelta || 0), 0) || 0
+		const newTotalPrice = (item.price + modifierTotal) * newQty
+		const newCart = [...cartItems]
+		newCart[index] = {
+			...item,
+			qty: newQty,
+			totalPrice: newTotalPrice,
+		}
+		onUpdateCart?.(newCart)
+
+		// Call API to update backend
+		if (tenantId && tableId && item.itemKey) {
+			setUpdatingItemIndex(index)
+			try {
+				console.log('🔄 Updating item quantity:', {
+					itemKey: item.itemKey,
+					newQty,
+				})
+
+				const result = await updateCartItemQuantityAPI(
+					tenantId,
+					tableId,
+					item.itemKey,
+					newQty,
+				)
+
+				if (result.success) {
+					console.log('✅ Quantity updated successfully')
+				} else {
+					console.error('❌ Failed to update quantity:', result.message)
+					// Revert optimistic update on failure
+					onUpdateCart?.(cartItems)
+					alert(`Failed to update quantity: ${result.message}`)
+				}
+			} catch (error) {
+				console.error('❌ Update quantity error:', error)
+				// Revert optimistic update on error
+				onUpdateCart?.(cartItems)
+				alert('Failed to update quantity. Please try again.')
+			} finally {
+				setUpdatingItemIndex(null)
+			}
+		}
+	}
+
+	// Handle item removal with API call
+	const handleRemoveItem = async (index, item) => {
+		// Optimistic UI update
+		const newCart = cartItems.filter((_, i) => i !== index)
+		onUpdateCart?.(newCart)
+
+		// Call API to remove from backend
+		if (tenantId && tableId && item.itemKey) {
+			try {
+				console.log('🗑️ Removing item from cart:', item.itemKey)
+
+				const result = await removeCartItemAPI(tenantId, tableId, item.itemKey)
+
+				if (result.success) {
+					console.log('✅ Item removed successfully')
+				} else {
+					console.error('❌ Failed to remove item:', result.message)
+					// Revert optimistic update on failure
+					onUpdateCart?.(cartItems)
+					alert(`Failed to remove item: ${result.message}`)
+				}
+			} catch (error) {
+				console.error('❌ Remove item error:', error)
+				// Revert optimistic update on error
+				onUpdateCart?.(cartItems)
+				alert('Failed to remove item. Please try again.')
+			}
+		}
+	}
 
 	// Close and reset state
 	const handleClose = (shouldClearCart = false) => {
@@ -67,42 +162,62 @@ const CartPage = ({ cartItems, onClearCart, onUpdateCart, onClose }) => {
 		}, 1500)
 	}
 
-	// Call API to place order
+	// Call API to place order via checkout
 	const handlePlaceOrder = async () => {
+		if (!tenantId || !tableId) {
+			alert('Missing tenant or table information. Please scan QR code again.')
+			return
+		}
+
 		setIsOrderPlaced(true)
 		setPaymentLoading(true)
 
-		// TODO: Replace with real API call
-		// const orderPayload = {
-		//   tableId: "T101",
-		//   customerNotes: "Order paid via QR code.",
-		//   paymentMethod: paymentMethod, // 'QR' or 'CASH'
-		//   items: cartItems.map((item) => ({
-		//     dishId: item.id,
-		//     quantity: item.qty,
-		//     name: item.name,
-		//     price: item.price,
-		//     notes: item.notes || "",
-		//   })),
-		// };
-		// try {
-		//     await axios.post('/api/customer/order/place', orderPayload);
-		// } catch (error) {
-		//     alert('Failed to place order.');
-		// } finally {
-		//     setPaymentLoading(false);
-		//     onClearCart();
-		//     handleClose();
-		// }
+		console.log('📦 Placing order via checkout...')
+		console.log('Cart items:', cartItems)
+		console.log('Customer info:', customerInfo)
 
-		// Simulation
-		setTimeout(() => {
-			const paymentMsg = paymentMethod === 'CASH' ? 'Cash payment' : 'QR payment'
-			alert(`Order placed successfully! (${paymentMsg})`)
+		try {
+			// Prepare checkout data
+			const checkoutData = {
+				customerId: customerInfo?.id || customerInfo?.userId || null,
+				customerName: customerInfo?.name || customerInfo?.username || 'Guest Customer',
+				customerPhone: customerInfo?.phone || null,
+				notes: `Payment method: ${paymentMethod}`,
+			}
+
+			console.log('🛒 Checkout data:', checkoutData)
+
+			// Call checkout API
+			const result = await checkoutCartAPI(tenantId, tableId, checkoutData)
+
+			if (result.success) {
+				console.log('✅ Order placed successfully:', result.data)
+
+				const paymentMsg = paymentMethod === 'CASH' ? 'Cash payment' : 'QR payment'
+				alert(
+					`Order placed successfully! (${paymentMsg})\n\nOrder ID: ${
+						result.data.id || 'N/A'
+					}`,
+				)
+
+				// Clear cart and close
+				setPaymentLoading(false)
+				onClearCart()
+				handleClose()
+			} else {
+				console.error('❌ Checkout failed:', result.message)
+
+				setPaymentLoading(false)
+				setIsOrderPlaced(false)
+				alert(`Failed to place order: ${result.message}`)
+			}
+		} catch (error) {
+			console.error('❌ Place order error:', error)
+
 			setPaymentLoading(false)
-			onClearCart()
-			handleClose()
-		}, 2000)
+			setIsOrderPlaced(false)
+			alert('Failed to place order. Please try again.')
+		}
 	}
 
 	return (
@@ -211,10 +326,7 @@ const CartPage = ({ cartItems, onClearCart, onUpdateCart, onClose }) => {
 													)}
 												</div>
 												<button
-													onClick={() => {
-														const newCart = cartItems.filter((_, i) => i !== index)
-														onUpdateCart?.(newCart)
-													}}
+													onClick={() => handleRemoveItem(index, item)}
 													className="text-red-400 hover:text-red-300 transition-colors p-2 hover:bg-red-500/10 rounded-lg"
 												>
 													<span className="material-symbols-outlined text-base">
@@ -257,50 +369,27 @@ const CartPage = ({ cartItems, onClearCart, onUpdateCart, onClose }) => {
 											<div className="flex justify-between items-center">
 												<div className="flex items-center gap-3 bg-[#2D3748] rounded-lg p-1">
 													<button
-														onClick={() => {
-															if (item.qty > 1) {
-																const newQty = item.qty - 1
-																const modifierTotal =
-																	item.modifiers?.reduce(
-																		(sum, mod) => sum + (mod.priceDelta || 0),
-																		0,
-																	) || 0
-																const newTotalPrice =
-																	(item.price + modifierTotal) * newQty
-																const newCart = [...cartItems]
-																newCart[index] = {
-																	...item,
-																	qty: newQty,
-																	totalPrice: newTotalPrice,
-																}
-																onUpdateCart?.(newCart)
-															}
-														}}
-														className="w-8 h-8 flex items-center justify-center bg-[#1A202C] text-white rounded hover:bg-[#4A5568] transition-colors"
+														onClick={() =>
+															handleUpdateQuantity(index, item.qty - 1, item)
+														}
+														disabled={item.qty <= 1 || updatingItemIndex === index}
+														className="w-8 h-8 flex items-center justify-center bg-[#1A202C] text-white rounded hover:bg-[#4A5568] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 													>
 														−
 													</button>
 													<span className="text-white font-bold w-10 text-center text-lg">
-														{item.qty}
+														{updatingItemIndex === index ? (
+															<span className="inline-block animate-spin">⟳</span>
+														) : (
+															item.qty
+														)}
 													</span>
 													<button
-														onClick={() => {
-															const newQty = item.qty + 1
-															const modifierTotal =
-																item.modifiers?.reduce(
-																	(sum, mod) => sum + (mod.priceDelta || 0),
-																	0,
-																) || 0
-															const newTotalPrice = (item.price + modifierTotal) * newQty
-															const newCart = [...cartItems]
-															newCart[index] = {
-																...item,
-																qty: newQty,
-																totalPrice: newTotalPrice,
-															}
-															onUpdateCart?.(newCart)
-														}}
-														className="w-8 h-8 flex items-center justify-center bg-[#137fec] text-white rounded hover:bg-blue-600 transition-colors"
+														onClick={() =>
+															handleUpdateQuantity(index, item.qty + 1, item)
+														}
+														disabled={updatingItemIndex === index}
+														className="w-8 h-8 flex items-center justify-center bg-[#137fec] text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 													>
 														+
 													</button>
