@@ -15,8 +15,8 @@ import { RoomManagerService } from '../services/room-manager.service';
 import { EventEmitterService } from '../services/event-emitter.service';
 import { ConnectionTrackerService } from '../services/connection-tracker.service';
 import { SocketUser } from '../interfaces/socket-user.interface';
-import { JoinOrderRoomDto, LeaveOrderRoomDto } from '../dtos/event-payload.dto';
-
+import type { JoinOrderRoomDto, LeaveOrderRoomDto } from '../dtos/event-payload.dto';
+import { WsRole } from '../utils/role-mapping.util';
 /**
  * Realtime Gateway
  *
@@ -248,7 +248,7 @@ export class RealtimeGateway
 	}
 
 	/**
-	 * MESSAGE: Get connection stats (admin only)
+	 * MESSAGE: Get connection stats (admin/owner only)
 	 *
 	 * Returns active connection statistics for monitoring
 	 */
@@ -260,11 +260,11 @@ export class RealtimeGateway
 		try {
 			const user: SocketUser = client.data.user;
 
-			// Authorization: Only admins and managers
-			if (!['admin', 'manager'].includes(user.role)) {
+			// Authorization: Only admins and owners
+			if (![WsRole.ADMIN, WsRole.OWNER].includes(user.role)) {
 				return {
 					success: false,
-					error: 'Unauthorized: Admin or Manager role required',
+					error: 'Unauthorized: Admin or Owner role required',
 				};
 			}
 

@@ -1,4 +1,5 @@
 import { IsString, IsNotEmpty, IsOptional, IsEnum } from 'class-validator';
+import { WsRole } from '../utils/role-mapping.util';
 
 /**
  * Connection Authentication DTO
@@ -16,8 +17,8 @@ export class ConnectionAuthDto {
 
 	@IsString()
 	@IsNotEmpty()
-	@IsEnum(['customer', 'waiter', 'kitchen', 'manager', 'admin'])
-	role: string;
+	@IsEnum(WsRole)
+	role: WsRole;
 
 	@IsString()
 	@IsNotEmpty()
