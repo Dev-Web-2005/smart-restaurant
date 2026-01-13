@@ -715,32 +715,74 @@ export class OrderService {
 			`Updated ${updatedItems.length} items to status ${OrderItemStatusLabels[dto.status]} for order ${dto.orderId}`,
 		);
 
-		// TODO: Send notification via RabbitMQ for kitchen/waiter
-		// this.notificationClient.emit('order-items.status-updated', {
-		//   orderId: order.id,
-		//   tenantId: order.tenantId,
-		//   tableId: order.tableId,
-		//   itemIds: dto.itemIds,
-		//   newStatus: OrderItemStatusLabels[dto.status],
-		//   updatedBy: dto.waiterId,
-		// });
-
-		// ✅ Emit WebSocket event with FULL items data
+		// ✅ Emit WebSocket events to appropriate rooms based on status
 		const eventName = `order.items.${OrderItemStatusLabels[dtoStatus].toLowerCase()}`;
-		this.eventEmitter.emit('websocket.emit', {
-			event: eventName,
-			room: `tenant:${dto.tenantId}:order:${order.id}`,
-			data: {
-				orderId: order.id,
-				tableId: order.tableId,
-				items: updatedItems, // ✅ Send FULL item objects
-				updatedAt: new Date(),
-				status: OrderItemStatusLabels[dtoStatus],
-				updatedBy: dto.waiterId,
-			},
-			timestamp: new Date(),
-			metadata: { tenantId: dto.tenantId, sourceService: 'order-service' },
-		});
+		const baseEventData = {
+			orderId: order.id,
+			tableId: order.tableId,
+			items: updatedItems, // ✅ FULL item objects
+			updatedAt: new Date(),
+			status: OrderItemStatusLabels[dtoStatus],
+			updatedBy: dto.waiterId,
+		};
+
+		// Determine target rooms based on status change
+		const targetRooms: string[] = [];
+
+		switch (dtoStatus) {
+			case OrderItemStatus.ACCEPTED:
+				// Waiter accepted → notify customer & kitchen
+				targetRooms.push(
+					`tenant:${dto.tenantId}:order:${order.id}`, // Customer sees acceptance
+					`tenant:${dto.tenantId}:kitchen`, // Kitchen receives items to prepare
+				);
+				break;
+
+			case OrderItemStatus.PREPARING:
+				// Kitchen started → notify customer & waiters
+				targetRooms.push(
+					`tenant:${dto.tenantId}:order:${order.id}`, // Customer sees cooking progress
+					`tenant:${dto.tenantId}:waiters`, // Waiters track kitchen status
+				);
+				break;
+
+			case OrderItemStatus.READY:
+				// Kitchen finished → notify customer & waiters (to pick up)
+				targetRooms.push(
+					`tenant:${dto.tenantId}:order:${order.id}`, // Customer knows food is ready
+					`tenant:${dto.tenantId}:waiters`, // Waiters need to serve
+				);
+				break;
+
+			case OrderItemStatus.SERVED:
+				// Waiter delivered → notify customer only
+				targetRooms.push(`tenant:${dto.tenantId}:order:${order.id}`);
+				break;
+
+			case OrderItemStatus.REJECTED:
+				// Waiter rejected → notify customer only
+				targetRooms.push(`tenant:${dto.tenantId}:order:${order.id}`);
+				break;
+
+			default:
+				// Fallback: only notify customer
+				targetRooms.push(`tenant:${dto.tenantId}:order:${order.id}`);
+		}
+
+		// Emit to all target rooms
+		for (const room of targetRooms) {
+			this.eventEmitter.emit('websocket.emit', {
+				event: eventName,
+				room,
+				data: baseEventData,
+				timestamp: new Date(),
+				metadata: { tenantId: dto.tenantId, sourceService: 'order-service' },
+			});
+		}
+
+		this.logger.log(
+			`📡 Emitted '${eventName}' to ${targetRooms.length} rooms: ${targetRooms.join(', ')}`,
+		);
 
 		return this.mapToOrderResponse(order);
 	}
