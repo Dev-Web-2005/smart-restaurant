@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { WaiterController } from './waiter.controller';
 import { WaiterService } from './waiter.service';
 import { OrderNotification } from '../common/entities';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 /**
  * WaiterModule
@@ -29,7 +30,14 @@ import { OrderNotification } from '../common/entities';
 			envFilePath: '.env',
 		}),
 
-		// 2. TypeORM for notification persistence
+		// 2. EventEmitter for WebSocket integration
+		EventEmitterModule.forRoot({
+			wildcard: true,
+			delimiter: '.',
+			maxListeners: 100,
+		}),
+
+		// 3. TypeORM for notification persistence
 		TypeOrmModule.forFeature([OrderNotification]),
 
 		// NOTE: Removed RabbitMQ clients to Order/Kitchen services

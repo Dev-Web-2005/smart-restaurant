@@ -16,6 +16,7 @@ import {
 	PaginatedNotificationsResponseDto,
 } from './dtos/response/waiter-response.dto';
 import ErrorCode from '@shared/exceptions/error-code';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 /**
  * WaiterService
@@ -49,6 +50,7 @@ export class WaiterService {
 		@InjectRepository(OrderNotification)
 		private readonly notificationRepository: Repository<OrderNotification>,
 		private readonly configService: ConfigService,
+		private readonly eventEmitter: EventEmitter2,
 	) {}
 
 	/**
@@ -115,6 +117,17 @@ export class WaiterService {
 		const saved = await this.notificationRepository.save(notification);
 
 		this.logger.log(`Created notification ${saved.id} with ${itemIds.length} items`);
+
+		// TODO: Emit event for WebSocket notification
+		this.eventEmitter.emit('websocket.emit', {
+			event: 'waiter.notifications.new',
+			room: `tenant:${dto.tenantId}:waiters`,
+			data: this.mapToResponseDto(saved),
+			metadata: {
+				tenantId: dto.tenantId,
+				sourceService: 'WaiterService',
+			},
+		});
 
 		return this.mapToResponseDto(saved);
 	}

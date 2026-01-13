@@ -53,7 +53,9 @@ import { WsJwtGuard } from './guards/ws-jwt.guard';
 				return {
 					secret,
 					signOptions: {
-						expiresIn: configService.get<string>('ACCESS_TOKEN_EXPIRY') || '5m',
+						expiresIn: (configService.get<string>('ACCESS_TOKEN_EXPIRY') || '5m') as
+							| string
+							| number,
 					},
 				};
 			},
