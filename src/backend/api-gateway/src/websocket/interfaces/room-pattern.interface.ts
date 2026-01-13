@@ -105,6 +105,14 @@ export class RoomPatternManager implements RoomPattern {
 				rooms.push(this.kitchen(user.tenantId));
 				rooms.push(this.customers(user.tenantId));
 				break;
+
+			case WsRole.GUEST:
+				// Guests only join their table room
+				// They will join order room later when placing order
+				if (user.tableId) {
+					rooms.push(this.table(user.tenantId, user.tableId));
+				}
+				break;
 		}
 
 		return rooms;

@@ -16,6 +16,7 @@ export enum WsRole {
 	WAITER = 'waiter', // Maps to STAFF
 	KITCHEN = 'kitchen', // Maps to CHEF
 	CUSTOMER = 'customer',
+	GUEST = 'guest', // Khách vãng lai (no authentication)
 }
 
 /**
@@ -71,6 +72,7 @@ export function hasRole(userRoles: string[], targetRole: IdentityRole): boolean 
 /**
  * Get primary role from roles array
  * Priority: ADMIN > USER > STAFF > CHEF > CUSTOMER
+ * Note: GUEST is not in this list (assigned separately for unauthenticated users)
  */
 export function getPrimaryRole(roles: string[]): WsRole {
 	if (roles.includes('ADMIN')) return WsRole.ADMIN;

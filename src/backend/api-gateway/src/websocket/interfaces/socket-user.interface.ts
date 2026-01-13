@@ -24,6 +24,9 @@ export interface SocketUser {
 	// Session info
 	sessionId: string;
 	connectedAt: Date;
+
+	// Guest user flag
+	isGuest?: boolean; // True for unauthenticated guest users
 }
 
 /**
