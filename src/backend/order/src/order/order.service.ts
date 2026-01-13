@@ -363,16 +363,22 @@ export class OrderService {
 			});
 		}
 
-		// TODO: Emit WebSocket event via EventEmitter for real-time UI update
+		// ✅ Emit WebSocket event to waiters with FULL data
 		this.eventEmitter.emit('websocket.emit', {
 			event: 'order.items.new',
 			room: `tenant:${dto.tenantId}:waiters`,
 			data: {
 				orderId: finalOrder.id,
-				items: newOrderItems, // Only new items
+				tableId: dto.tableId,
+				tenantId: dto.tenantId,
+				customerName: dto.customerName,
+				items: newOrderItems, // ✅ Send FULL item objects
+				orderType: orderTypeToString(finalOrder.orderType),
+				notes: dto.notes,
+				createdAt: new Date(),
 			},
 			timestamp: new Date(),
-			metadata: { tenantId: dto.tenantId, sourceService: 'OrderService' },
+			metadata: { tenantId: dto.tenantId, sourceService: 'order-service' },
 		});
 
 		return this.mapToOrderResponse(finalOrder);
@@ -719,149 +725,22 @@ export class OrderService {
 		//   updatedBy: dto.waiterId,
 		// });
 
-		// TODO: Emit WebSocket event via EventEmitter for real-time UI update
-		switch (dtoStatus) {
-			case OrderItemStatus.ACCEPTED:
-				// Notify waiters, kitchen, customer about accepted items
-				this.eventEmitter.emit('websocket.emit', {
-					event: 'order.items.accepted',
-					room: `tenant:${dto.tenantId}:waiters`,
-					data: {
-						orderId: order.id,
-						itemIds: dto.itemIds,
-					},
-					timestamp: new Date(),
-					metadata: { tenantId: dto.tenantId, sourceService: 'OrderService' },
-				});
-
-				this.eventEmitter.emit('websocket.emit', {
-					event: 'order.items.accepted',
-					room: `tenant:${dto.tenantId}:kitchen`,
-					data: {
-						orderId: order.id,
-						itemIds: dto.itemIds,
-					},
-					timestamp: new Date(),
-					metadata: { tenantId: dto.tenantId, sourceService: 'OrderService' },
-				});
-
-				this.eventEmitter.emit('websocket.emit', {
-					event: 'order.items.accepted',
-					room: `tenant:${dto.tenantId}:order:${order.id}`,
-					data: {
-						orderId: order.id,
-						itemIds: dto.itemIds,
-					},
-					timestamp: new Date(),
-					metadata: { tenantId: dto.tenantId, sourceService: 'OrderService' },
-				});
-				break;
-			case OrderItemStatus.PREPARING:
-				// Notify waiters, kitchen, customer about preparing items
-				this.eventEmitter.emit('websocket.emit', {
-					event: 'order.items.preparing',
-					room: `tenant:${dto.tenantId}:waiters`,
-					data: {
-						orderId: order.id,
-						itemIds: dto.itemIds,
-					},
-					timestamp: new Date(),
-					metadata: { tenantId: dto.tenantId, sourceService: 'OrderService' },
-				});
-
-				this.eventEmitter.emit('websocket.emit', {
-					event: 'order.items.preparing',
-					room: `tenant:${dto.tenantId}:kitchen`,
-					data: {
-						orderId: order.id,
-						itemIds: dto.itemIds,
-					},
-					timestamp: new Date(),
-					metadata: { tenantId: dto.tenantId, sourceService: 'OrderService' },
-				});
-
-				this.eventEmitter.emit('websocket.emit', {
-					event: 'order.items.preparing',
-					room: `tenant:${dto.tenantId}:order:${order.id}`,
-					data: {
-						orderId: order.id,
-						itemIds: dto.itemIds,
-					},
-					timestamp: new Date(),
-					metadata: { tenantId: dto.tenantId, sourceService: 'OrderService' },
-				});
-				break;
-			case OrderItemStatus.READY:
-				// Notify waiters, kitchen, customer about ready items
-				this.eventEmitter.emit('websocket.emit', {
-					event: 'order.items.ready',
-					room: `tenant:${dto.tenantId}:waiters`,
-					data: {
-						orderId: order.id,
-						itemIds: dto.itemIds,
-					},
-					timestamp: new Date(),
-					metadata: { tenantId: dto.tenantId, sourceService: 'OrderService' },
-				});
-
-				this.eventEmitter.emit('websocket.emit', {
-					event: 'order.items.ready',
-					room: `tenant:${dto.tenantId}:kitchen`,
-					data: {
-						orderId: order.id,
-						itemIds: dto.itemIds,
-					},
-					timestamp: new Date(),
-					metadata: { tenantId: dto.tenantId, sourceService: 'OrderService' },
-				});
-
-				this.eventEmitter.emit('websocket.emit', {
-					event: 'order.items.ready',
-					room: `tenant:${dto.tenantId}:order:${order.id}`,
-					data: {
-						orderId: order.id,
-						itemIds: dto.itemIds,
-					},
-					timestamp: new Date(),
-					metadata: { tenantId: dto.tenantId, sourceService: 'OrderService' },
-				});
-				break;
-			case OrderItemStatus.SERVED:
-				// Notify waiters, kitchen, customer about served items
-				this.eventEmitter.emit('websocket.emit', {
-					event: 'order.items.served',
-					room: `tenant:${dto.tenantId}:waiters`,
-					data: {
-						orderId: order.id,
-						itemIds: dto.itemIds,
-					},
-					timestamp: new Date(),
-					metadata: { tenantId: dto.tenantId, sourceService: 'OrderService' },
-				});
-
-				this.eventEmitter.emit('websocket.emit', {
-					event: 'order.items.served',
-					room: `tenant:${dto.tenantId}:kitchen`,
-					data: {
-						orderId: order.id,
-						itemIds: dto.itemIds,
-					},
-					timestamp: new Date(),
-					metadata: { tenantId: dto.tenantId, sourceService: 'OrderService' },
-				});
-
-				this.eventEmitter.emit('websocket.emit', {
-					event: 'order.items.served',
-					room: `tenant:${dto.tenantId}:order:${order.id}`,
-					data: {
-						orderId: order.id,
-						itemIds: dto.itemIds,
-					},
-					timestamp: new Date(),
-					metadata: { tenantId: dto.tenantId, sourceService: 'OrderService' },
-				});
-				break;
-		}
+		// ✅ Emit WebSocket event with FULL items data
+		const eventName = `order.items.${OrderItemStatusLabels[dtoStatus].toLowerCase()}`;
+		this.eventEmitter.emit('websocket.emit', {
+			event: eventName,
+			room: `tenant:${dto.tenantId}:order:${order.id}`,
+			data: {
+				orderId: order.id,
+				tableId: order.tableId,
+				items: updatedItems, // ✅ Send FULL item objects
+				updatedAt: new Date(),
+				status: OrderItemStatusLabels[dtoStatus],
+				updatedBy: dto.waiterId,
+			},
+			timestamp: new Date(),
+			metadata: { tenantId: dto.tenantId, sourceService: 'order-service' },
+		});
 
 		return this.mapToOrderResponse(order);
 	}
@@ -1172,6 +1051,8 @@ export class OrderService {
 			`Accepted ${itemsToAccept.length} items from order ${dto.orderId}, sent to kitchen`,
 		);
 
+		// ❌ REMOVED: Không dùng hàm này nữa - use updateOrderItemsStatus() instead
+
 		// Reload order with updated items
 		const updatedOrder = await this.orderRepository.findOne({
 			where: { id: dto.orderId },
@@ -1258,6 +1139,8 @@ export class OrderService {
 
 		// TODO: Emit notification to customer about rejected items
 		// this.notificationClient.emit('customer.items_rejected', {...})
+
+		// ❌ REMOVED: Không dùng hàm này nữa - use updateOrderItemsStatus() instead
 
 		// Reload order with updated items
 		const updatedOrder = await this.orderRepository.findOne({

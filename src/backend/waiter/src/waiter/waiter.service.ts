@@ -118,16 +118,8 @@ export class WaiterService {
 
 		this.logger.log(`Created notification ${saved.id} with ${itemIds.length} items`);
 
-		// TODO: Emit event for WebSocket notification
-		this.eventEmitter.emit('websocket.emit', {
-			event: 'waiter.notifications.new',
-			room: `tenant:${dto.tenantId}:waiters`,
-			data: this.mapToResponseDto(saved),
-			metadata: {
-				tenantId: dto.tenantId,
-				sourceService: 'WaiterService',
-			},
-		});
+		// ❌ REMOVED: Order Service already emits 'order.items.new' to waiters room
+		// Waiter Service chỉ lưu notification vào DB, không cần emit duplicate event
 
 		return this.mapToResponseDto(saved);
 	}

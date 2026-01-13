@@ -21,59 +21,58 @@ export interface WebSocketEventPayload<T = any> {
 export interface OrderItemsNewEventData {
 	orderId: string;
 	tableId: string;
+	tenantId: string;
 	customerName?: string;
-	items: Array<{
-		id: string;
-		name: string;
-		quantity: number;
-		price: number;
-		modifiers?: any[];
-	}>;
-	priority: number;
+	items: any[]; // ✅ FULL OrderItem objects from database
 	orderType: string;
+	notes?: string;
+	createdAt: Date;
 }
 
 export interface OrderItemsAcceptedEventData {
 	orderId: string;
-	itemIds: string[];
-	waiterId: string;
-	waiterName: string;
-	acceptedAt: Date;
-	estimatedTime?: string;
+	tableId: string;
+	items: any[]; // ✅ FULL OrderItem objects
+	updatedAt: Date;
+	status: string;
+	updatedBy?: string;
 }
 
 export interface OrderItemsRejectedEventData {
 	orderId: string;
-	itemIds: string[];
-	waiterId: string;
-	waiterName: string;
-	rejectedAt: Date;
-	rejectionReason: string;
+	tableId: string;
+	items: any[]; // ✅ FULL OrderItem objects
+	updatedAt: Date;
+	status: string;
+	updatedBy?: string;
+	rejectionReason?: string;
 }
 
 export interface OrderItemsPreparingEventData {
 	orderId: string;
 	tableId: string;
-	itemIds: string[];
-	itemNames: string[];
-	startedAt: Date;
-	estimatedReadyTime?: Date;
+	items: any[]; // ✅ FULL OrderItem objects
+	updatedAt: Date;
+	status: string;
+	updatedBy?: string;
 }
 
 export interface OrderItemsReadyEventData {
 	orderId: string;
 	tableId: string;
-	itemIds: string[];
-	itemNames: string[];
-	readyAt: Date;
-	pickupStation?: string;
+	items: any[]; // ✅ FULL OrderItem objects
+	updatedAt: Date;
+	status: string;
+	updatedBy?: string;
 }
 
 export interface OrderItemsServedEventData {
 	orderId: string;
-	itemIds: string[];
-	servedAt: Date;
-	servedBy: string;
+	tableId: string;
+	items: any[]; // ✅ FULL OrderItem objects
+	updatedAt: Date;
+	status: string;
+	updatedBy?: string;
 }
 
 /**
