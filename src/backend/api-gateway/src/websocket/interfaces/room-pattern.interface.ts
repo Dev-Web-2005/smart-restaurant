@@ -1,3 +1,5 @@
+import { WsRole } from '../utils/role-mapping.util';
+
 /**
  * Room Pattern Interface
  *
@@ -11,7 +13,7 @@ export interface RoomPattern {
 	waiters(tenantId: string): string;
 	kitchen(tenantId: string): string;
 	customers(tenantId: string): string;
-	managers(tenantId: string): string;
+	owners(tenantId: string): string; // Restaurant owners
 
 	// Level 3: Table-specific rooms
 	table(tenantId: string, tableId: string): string;
@@ -43,8 +45,8 @@ export class RoomPatternManager implements RoomPattern {
 		return `tenant:${tenantId}:customers`;
 	}
 
-	managers(tenantId: string): string {
-		return `tenant:${tenantId}:managers`;
+	owners(tenantId: string): string {
+		return `tenant:${tenantId}:owners`;
 	}
 
 	table(tenantId: string, tableId: string): string {
@@ -61,39 +63,47 @@ export class RoomPatternManager implements RoomPattern {
 
 	/**
 	 * Helper: Get all rooms for a user based on their role
+	 * Updated to use WsRole enum
 	 */
 	getRoomsForUser(user: {
 		tenantId: string;
-		role: string;
+		role: WsRole;
 		tableId?: string;
 		waiterId?: string;
 	}): string[] {
 		const rooms: string[] = [this.tenant(user.tenantId)];
 
 		switch (user.role) {
-			case 'customer':
+			case WsRole.CUSTOMER:
 				rooms.push(this.customers(user.tenantId));
 				if (user.tableId) {
 					rooms.push(this.table(user.tenantId, user.tableId));
 				}
 				break;
 
-			case 'waiter':
+			case WsRole.WAITER:
 				rooms.push(this.waiters(user.tenantId));
 				if (user.waiterId) {
 					rooms.push(this.waiter(user.tenantId, user.waiterId));
 				}
 				break;
 
-			case 'kitchen':
+			case WsRole.KITCHEN:
 				rooms.push(this.kitchen(user.tenantId));
 				break;
 
-			case 'manager':
-			case 'admin':
-				rooms.push(this.managers(user.tenantId));
-				rooms.push(this.waiters(user.tenantId)); // Managers see waiter alerts
-				rooms.push(this.kitchen(user.tenantId)); // Managers see kitchen status
+			case WsRole.OWNER:
+				rooms.push(this.owners(user.tenantId));
+				rooms.push(this.waiters(user.tenantId)); // Owners see waiter alerts
+				rooms.push(this.kitchen(user.tenantId)); // Owners see kitchen status
+				break;
+
+			case WsRole.ADMIN:
+				// Admins see everything
+				rooms.push(this.owners(user.tenantId));
+				rooms.push(this.waiters(user.tenantId));
+				rooms.push(this.kitchen(user.tenantId));
+				rooms.push(this.customers(user.tenantId));
 				break;
 		}
 

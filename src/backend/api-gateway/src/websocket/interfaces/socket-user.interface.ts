@@ -1,3 +1,5 @@
+import { WsRole } from '../utils/role-mapping.util';
+
 /**
  * Socket User Interface
  *
@@ -7,7 +9,7 @@
 export interface SocketUser {
 	userId: string;
 	tenantId: string;
-	role: UserRole;
+	role: WsRole; // WebSocket role (mapped from Identity Service)
 	email?: string;
 	name?: string;
 
@@ -22,17 +24,6 @@ export interface SocketUser {
 	// Session info
 	sessionId: string;
 	connectedAt: Date;
-}
-
-/**
- * User Roles in the system
- */
-export enum UserRole {
-	CUSTOMER = 'customer',
-	WAITER = 'waiter',
-	KITCHEN = 'kitchen',
-	MANAGER = 'manager',
-	ADMIN = 'admin',
 }
 
 /**

@@ -37,15 +37,26 @@ import { WsJwtGuard } from './guards/ws-jwt.guard';
 		}),
 
 		// JWT for WebSocket authentication
+		// ✅ MUST use SAME secret as Identity Service
 		JwtModule.registerAsync({
 			imports: [ConfigModule],
 			inject: [ConfigService],
-			useFactory: (configService: ConfigService) => ({
-				secret: configService.get<string>('JWT_SECRET'),
-				signOptions: {
-					expiresIn: configService.get<string>('JWT_EXPIRES_IN') || '1d',
-				},
-			}),
+			useFactory: (configService: ConfigService) => {
+				const secret = configService.get<string>('JWT_SECRET_KEY_ACCESS');
+
+				if (!secret) {
+					throw new Error(
+						'JWT_SECRET_KEY_ACCESS not configured. Must match Identity Service secret.',
+					);
+				}
+
+				return {
+					secret,
+					signOptions: {
+						expiresIn: configService.get<string>('ACCESS_TOKEN_EXPIRY') || '5m',
+					},
+				};
+			},
 		}),
 
 		ConfigModule,
