@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Server } from 'socket.io';
-import { WebSocketEventPayload } from '../dtos/event-payload.dto';
+import type { WebSocketEventPayload } from '../dtos/event-payload.dto';
 
 /**
  * Event Emitter Service
