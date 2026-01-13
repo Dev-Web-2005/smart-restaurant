@@ -3,7 +3,11 @@ import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { ConfigService } from '@nestjs/config';
-import { getPrimaryRole, isValidIdentityRole } from '../utils/role-mapping.util';
+import {
+	getPrimaryRole,
+	isValidIdentityRole,
+	WsRole,
+} from '../utils/role-mapping.util';
 
 /**
  * WebSocket JWT Guard
@@ -29,9 +33,10 @@ export class WsJwtGuard implements CanActivate {
 
 			// 1. Extract token
 			const token = this.extractToken(authData);
+			
+			// 🎯 GUEST MODE: Allow connection without token if tableId provided
 			if (!token) {
-				this.logger.warn('No token provided in WebSocket connection');
-				throw new WsException('Unauthorized: No token provided');
+				return this.handleGuestConnection(client, authData);
 			}
 
 			// 2. ✅ Verify using SAME secret as Identity Service (ACCESS_TOKEN)
@@ -100,6 +105,44 @@ export class WsJwtGuard implements CanActivate {
 
 			throw new WsException('Unauthorized: Authentication failed');
 		}
+	}
+
+	/**
+	 * Handle guest connection (no JWT token)
+	 * Guests must provide tenantId and tableId to connect
+	 */
+	private handleGuestConnection(client: Socket, authData: any): boolean {
+		const { tenantId, tableId, guestName } = authData;
+
+		// Validate required fields for guest
+		if (!tenantId || !tableId) {
+			this.logger.warn('Guest connection missing tenantId or tableId');
+			throw new WsException(
+				'Unauthorized: Guest users must provide tenantId and tableId',
+			);
+		}
+
+		// Generate guest user ID
+		const guestId = `guest_${tableId}_${Date.now()}`;
+
+		// Attach guest user data
+		client.data.user = {
+			userId: guestId,
+			tenantId,
+			role: WsRole.GUEST,
+			name: guestName || `Guest at ${tableId}`,
+			tableId,
+			permissions: [], // No permissions for guest
+			sessionId: client.id,
+			connectedAt: new Date(),
+			isGuest: true, // Flag for guest user
+		};
+
+		this.logger.log(
+			`✅ Guest connected: ${guestId} at table ${tableId} (tenant: ${tenantId})`,
+		);
+
+		return true;
 	}
 
 	/**

@@ -8,27 +8,31 @@ import { WsRole } from '../utils/role-mapping.util';
  */
 export class ConnectionAuthDto {
 	@IsString()
-	@IsNotEmpty()
-	token: string; // JWT token
+	@IsOptional() // ✅ Optional for guest users
+	token?: string; // JWT token (optional for guests)
 
 	@IsString()
 	@IsNotEmpty()
 	tenantId: string;
 
 	@IsString()
-	@IsNotEmpty()
+	@IsOptional() // Extracted from JWT or guest mode
 	@IsEnum(WsRole)
-	role: WsRole;
+	role?: WsRole;
 
 	@IsString()
-	@IsNotEmpty()
-	userId: string;
+	@IsOptional() // Extracted from JWT or generated for guest
+	userId?: string;
 
 	@IsString()
 	@IsOptional()
-	tableId?: string; // Required for customers
+	tableId?: string; // Required for customers and guests
 
 	@IsString()
 	@IsOptional()
 	waiterId?: string; // Required for waiters
+
+	@IsString()
+	@IsOptional()
+	guestName?: string; // Optional display name for guest users
 }
