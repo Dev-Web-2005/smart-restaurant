@@ -10,6 +10,7 @@ import { RealtimeGateway } from './gateways/realtime.gateway';
 import { RoomManagerService } from './services/room-manager.service';
 import { EventEmitterService } from './services/event-emitter.service';
 import { ConnectionTrackerService } from './services/connection-tracker.service';
+import { StringValue } from 'ms';
 
 // Guards
 import { WsJwtGuard } from './guards/ws-jwt.guard';
@@ -53,9 +54,7 @@ import { WsJwtGuard } from './guards/ws-jwt.guard';
 				return {
 					secret,
 					signOptions: {
-						expiresIn: (configService.get<string>('ACCESS_TOKEN_EXPIRY') || '5m') as
-							| string
-							| number,
+						expiresIn: configService.get<StringValue>('ACCESS_TOKEN_EXPIRY') || '5m',
 					},
 				};
 			},
