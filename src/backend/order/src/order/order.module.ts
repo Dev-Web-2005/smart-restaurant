@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config'; // Import ConfigService
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { OrderController } from './order.controller';
 import { OrderService } from './order.service';
 import { Order, OrderItem } from '../common/entities';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { CacheModule } from '@nestjs/cache-manager'; // Import CacheModule
-import { redisStore } from 'cache-manager-redis-yet'; // Import redisStore
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-yet';
 import { CartModule } from 'src/cart/cart.module';
 
 /**
@@ -14,14 +15,23 @@ import { CartModule } from 'src/cart/cart.module';
  *
  * Encapsulates order management functionality
  * Provides CRUD operations and order lifecycle management
+ * Emits WebSocket events for real-time updates
  */
 @Module({
 	imports: [
 		// 1. Load ConfigModule đầu tiên và set isGlobal
 		ConfigModule.forRoot({
 			isGlobal: true,
-			envFilePath: '.env', // Đảm bảo đường dẫn đúng
+			envFilePath: '.env',
 		}),
+
+		// 2. EventEmitter for WebSocket integration
+		EventEmitterModule.forRoot({
+			wildcard: true,
+			delimiter: '.',
+			maxListeners: 100,
+		}),
+
 		TypeOrmModule.forFeature([Order, OrderItem]),
 
 		// 2. Cấu hình Redis Cache

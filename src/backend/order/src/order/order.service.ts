@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, Not } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Order, OrderItem } from '../common/entities';
 import {
 	OrderStatus,
@@ -54,6 +55,7 @@ export class OrderService {
 		@Inject('PRODUCT_SERVICE') private readonly productClient: ClientProxy,
 		private readonly configService: ConfigService,
 		@Inject('WAITER_SERVICE') private readonly waiterClient: ClientProxy,
+		private readonly eventEmitter: EventEmitter2,
 	) {}
 
 	/**
