@@ -3,11 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { ConfigService } from '@nestjs/config';
-import {
-	getPrimaryRole,
-	isValidIdentityRole,
-	WsRole,
-} from '../utils/role-mapping.util';
+import { getPrimaryRole, isValidIdentityRole, WsRole } from '../utils/role-mapping.util';
 
 /**
  * WebSocket JWT Guard
@@ -33,7 +29,7 @@ export class WsJwtGuard implements CanActivate {
 
 			// 1. Extract token
 			const token = this.extractToken(authData);
-			
+
 			// 🎯 GUEST MODE: Allow connection without token if tableId provided
 			if (!token) {
 				return this.handleGuestConnection(client, authData);
