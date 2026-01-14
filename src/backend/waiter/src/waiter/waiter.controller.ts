@@ -77,8 +77,7 @@ export class WaiterController {
 				`✅ [EVENT] Created notification ${result.id} with ${data.items.length} items`,
 			);
 
-			// Acknowledge message
-			channel.ack(message);
+			// ✅ NestJS auto-acks after successful handler completion (noAck: false)
 		} catch (error) {
 			this.logger.error(
 				`❌ [EVENT] Failed to handle new order items: ${error.message}`,

@@ -109,7 +109,14 @@ export class OrderService implements OnModuleDestroy {
 				await this.initializeRabbitMQ();
 			}
 
-			const message = Buffer.from(JSON.stringify(payload));
+			// ✅ CRITICAL FIX: Wrap payload in NestJS message format
+			// NestJS expects: { pattern: 'event.name', data: {...} }
+			const nestJsMessage = {
+				pattern: eventPattern,
+				data: payload,
+			};
+
+			const message = Buffer.from(JSON.stringify(nestJsMessage));
 			const published = this.amqpChannel.publish(
 				exchangeName,
 				'', // Empty routing key for fanout
@@ -117,8 +124,9 @@ export class OrderService implements OnModuleDestroy {
 				{
 					persistent: true,
 					contentType: 'application/json',
+					// Also set pattern in headers for compatibility
 					headers: {
-						pattern: eventPattern, // NestJS event pattern
+						pattern: eventPattern,
 					},
 				},
 			);

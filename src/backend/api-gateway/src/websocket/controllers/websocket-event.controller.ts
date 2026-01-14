@@ -80,16 +80,14 @@ export class WebsocketEventController {
 				`[WebSocket] Broadcasted order.items.new to tenant:${data.tenantId}:waiters room`,
 			);
 
-			// Acknowledge message
-			channel.ack(message);
+			// ✅ NestJS auto-acks on success, auto-nacks on error (noAck: false)
 		} catch (error) {
 			this.logger.error(
 				`[RabbitMQ] Failed to handle order.new_items: ${error.message}`,
 				error.stack,
 			);
-
-			// Reject and requeue on error (with retry limit handled by RabbitMQ DLX)
-			channel.nack(message, false, true);
+			// Auto-nack with requeue on error
+			throw error;
 		}
 	}
 
@@ -124,12 +122,12 @@ export class WebsocketEventController {
 				updatedBy: data.updatedBy,
 			});
 
-			channel.ack(message);
+			// ✅ NestJS auto-acks on success
 		} catch (error) {
 			this.logger.error(
 				`[RabbitMQ] Failed to handle order.items.accepted: ${error.message}`,
 			);
-			channel.nack(message, false, true);
+			throw error;
 		}
 	}
 
@@ -155,12 +153,12 @@ export class WebsocketEventController {
 				updatedBy: data.updatedBy,
 			});
 
-			channel.ack(message);
+			// ✅ NestJS auto-acks on success
 		} catch (error) {
 			this.logger.error(
 				`[RabbitMQ] Failed to handle order.items.preparing: ${error.message}`,
 			);
-			channel.nack(message, false, true);
+			throw error;
 		}
 	}
 
@@ -184,12 +182,12 @@ export class WebsocketEventController {
 				updatedBy: data.updatedBy,
 			});
 
-			channel.ack(message);
+			// ✅ NestJS auto-acks on success
 		} catch (error) {
 			this.logger.error(
 				`[RabbitMQ] Failed to handle order.items.ready: ${error.message}`,
 			);
-			channel.nack(message, false, true);
+			throw error;
 		}
 	}
 
@@ -213,12 +211,12 @@ export class WebsocketEventController {
 				updatedBy: data.updatedBy,
 			});
 
-			channel.ack(message);
+			// ✅ NestJS auto-acks on success
 		} catch (error) {
 			this.logger.error(
 				`[RabbitMQ] Failed to handle order.items.served: ${error.message}`,
 			);
-			channel.nack(message, false, true);
+			throw error;
 		}
 	}
 
@@ -245,12 +243,12 @@ export class WebsocketEventController {
 				updatedBy: data.updatedBy,
 			});
 
-			channel.ack(message);
+			// ✅ NestJS auto-acks on success
 		} catch (error) {
 			this.logger.error(
 				`[RabbitMQ] Failed to handle order.items.rejected: ${error.message}`,
 			);
-			channel.nack(message, false, true);
+			throw error;
 		}
 	}
 }
