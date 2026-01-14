@@ -15,6 +15,9 @@ import { StringValue } from 'ms';
 // Guards
 import { WsJwtGuard } from './guards/ws-jwt.guard';
 
+// Controllers
+import { WebsocketEventController } from './controllers/websocket-event.controller';
+
 /**
  * WebSocket Module
  *
@@ -62,6 +65,7 @@ import { WsJwtGuard } from './guards/ws-jwt.guard';
 
 		ConfigModule,
 	],
+	controllers: [WebsocketEventController],
 	providers: [
 		// Gateway
 		RealtimeGateway,

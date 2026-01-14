@@ -5,8 +5,82 @@ import { RpcExceptionFilter } from './common/filters/rpc-exception.filter';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { TransformResponseInterceptor } from './common/interceptors/transform-response.interceptor';
 import CookieParser from 'cookie-parser';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import * as amqp from 'amqplib';
+import * as dotenv from 'dotenv';
+dotenv.config();
+
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
+
+	// ============================================================
+	// RabbitMQ Microservice Configuration
+	// Subscribe to events from Order Service (order.new_items)
+	// ============================================================
+	const connection = await amqp.connect(process.env.CONNECTION_AMQP);
+	const channel = await connection.createChannel();
+	const queueName: string = process.env.NAME_QUEUE || 'local_api_gateway';
+
+	try {
+		// Setup Dead Letter Queue for failed messages
+		await channel.assertExchange(queueName + '_dlx_exchange', 'direct', {
+			durable: true,
+		});
+		await channel.assertQueue(queueName + '_dlq', {
+			durable: true,
+		});
+		await channel.bindQueue(
+			queueName + '_dlq',
+			queueName + '_dlx_exchange',
+			queueName + '_dlq',
+		);
+
+		// Setup main queue with DLX configuration
+		await channel.assertQueue(queueName + '_queue', {
+			durable: true,
+			arguments: {
+				'x-dead-letter-exchange': queueName + '_dlx_exchange',
+				'x-dead-letter-routing-key': queueName + '_dlq',
+			},
+		});
+
+		console.log(`✅ RabbitMQ queue created: ${queueName}_queue`);
+	} finally {
+		await channel.close();
+		await connection.close();
+	}
+
+	// Connect to RabbitMQ microservice
+	app.connectMicroservice<MicroserviceOptions>({
+		transport: Transport.RMQ,
+		options: {
+			urls: [process.env.CONNECTION_AMQP],
+			queue: queueName + '_queue',
+			prefetchCount: 1,
+			queueOptions: {
+				durable: true,
+				noAck: false,
+				arguments: {
+					'x-dead-letter-exchange': queueName + '_dlx_exchange',
+					'x-dead-letter-routing-key': queueName + '_dlq',
+				},
+			},
+		},
+	});
+
+	// Connect to Dead Letter Queue
+	app.connectMicroservice<MicroserviceOptions>({
+		transport: Transport.RMQ,
+		options: {
+			urls: [process.env.CONNECTION_AMQP],
+			queue: queueName + '_dlq',
+			prefetchCount: 1,
+			queueOptions: {
+				durable: true,
+				noAck: false,
+			},
+		},
+	});
 
 	// Register Cookie Parser middleware
 	app.use(CookieParser());
@@ -66,6 +140,10 @@ async function bootstrap() {
 		allowedHeaders: 'Content-Type,Authorization,x-api-key',
 		exposedHeaders: 'Set-Cookie',
 	});
+
+	// Start all microservices
+	await app.startAllMicroservices();
+	console.log('✅ RabbitMQ microservices started');
 
 	await app.listen(parseInt(process.env.PORT, 10) ?? 8888);
 
