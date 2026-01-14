@@ -23,17 +23,30 @@ export class WsJwtGuard implements CanActivate {
 	) {}
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
-		try {
-			const client: Socket = context.switchToWs().getClient();
+		const client: Socket = context.switchToWs().getClient();
 
+		try {
 			// ✅ Support BOTH auth object and query params (for Postman compatibility)
 			const authData = {
 				...client.handshake.auth, // Auth object (Socket.IO client)
 				...client.handshake.query, // Query params (Postman WebSocket)
 			};
 
+			// 🔍 Debug logging
+			this.logger.log(`[${client.id}] Auth data received:`, {
+				hasToken: !!authData.token,
+				hasTenantId: !!authData.tenantId,
+				tokenLength: authData.token?.length || 0,
+			});
+
 			// 1. Extract token
 			const token = this.extractToken(authData);
+
+			if (!token) {
+				this.logger.log(`[${client.id}] No token found, checking guest mode...`);
+			} else {
+				this.logger.log(`[${client.id}] Token extracted, length: ${token.length}`);
+			}
 
 			// 🎯 GUEST MODE: Allow connection without token if tableId provided
 			if (!token) {
@@ -95,16 +108,30 @@ export class WsJwtGuard implements CanActivate {
 
 			return true;
 		} catch (error) {
-			this.logger.error(`❌ WebSocket authentication failed: ${error.message}`);
+			this.logger.error(
+				`❌ [${client.id}] WebSocket authentication failed: ${error.message}`,
+			);
+			this.logger.error(`Error name: ${error.name}`);
+			this.logger.error(`Error stack: ${error.stack}`);
 
+			// ✅ Send error to client before disconnecting
+			let errorMessage = 'Authentication failed';
 			if (error.name === 'TokenExpiredError') {
-				throw new WsException('Unauthorized: Token expired');
-			}
-			if (error.name === 'JsonWebTokenError') {
-				throw new WsException('Unauthorized: Invalid token');
+				errorMessage = 'Token expired';
+			} else if (error.name === 'JsonWebTokenError') {
+				errorMessage = 'Invalid token';
+			} else if (error instanceof WsException) {
+				errorMessage = error.message.replace('Unauthorized: ', '');
 			}
 
-			throw new WsException('Unauthorized: Authentication failed');
+			client.emit('error', {
+				type: 'authentication_failed',
+				message: errorMessage,
+				timestamp: new Date(),
+			});
+
+			client.disconnect();
+			return false;
 		}
 	}
 
@@ -118,9 +145,15 @@ export class WsJwtGuard implements CanActivate {
 		// Validate required fields for guest
 		if (!tenantId || !tableId) {
 			this.logger.warn('Guest connection missing tenantId or tableId');
-			throw new WsException(
-				'Unauthorized: Guest users must provide tenantId and tableId',
-			);
+
+			client.emit('error', {
+				type: 'authentication_failed',
+				message: 'Guest users must provide tenantId and tableId',
+				timestamp: new Date(),
+			});
+
+			client.disconnect();
+			return false;
 		}
 
 		// Generate guest user ID

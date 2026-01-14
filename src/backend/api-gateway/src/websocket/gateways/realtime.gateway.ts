@@ -53,6 +53,7 @@ export class RealtimeGateway
 		private readonly roomManager: RoomManagerService,
 		private readonly eventEmitter: EventEmitterService,
 		private readonly connectionTracker: ConnectionTrackerService,
+		private readonly wsJwtGuard: WsJwtGuard, // ✅ Inject guard manually
 	) {}
 
 	/**
@@ -67,18 +68,39 @@ export class RealtimeGateway
 	 * Lifecycle: Client connection
 	 *
 	 * Flow:
-	 * 1. Authenticate via JWT (WsJwtGuard)
+	 * 1. Authenticate via JWT (Manual guard call)
 	 * 2. Extract user from socket.data.user
 	 * 3. Auto-join to role-based rooms
 	 * 4. Track connection
 	 */
-	@UseGuards(WsJwtGuard)
 	async handleConnection(@ConnectedSocket() client: Socket) {
 		try {
+			// ✅ Manually authenticate BEFORE accessing user data
+			this.logger.log(`[${client.id}] New connection attempt...`);
+
+			const isAuthenticated = await this.wsJwtGuard.canActivate({
+				switchToWs: () => ({ getClient: () => client }),
+			} as any);
+
+			if (!isAuthenticated) {
+				this.logger.warn(`[${client.id}] Authentication failed, disconnecting...`);
+				client.disconnect();
+				return;
+			}
+
 			const user: SocketUser = client.data.user;
 
 			if (!user) {
-				this.logger.warn(`Connection rejected: No user data for socket ${client.id}`);
+				this.logger.error(
+					`Connection rejected: No user data for socket ${client.id}. ` +
+						`Auth data: ${JSON.stringify(client.handshake.auth)}, ` +
+						`Query: ${JSON.stringify(client.handshake.query)}`,
+				);
+				client.emit('error', {
+					type: 'authentication_required',
+					message: 'Authentication failed - no user data available',
+					timestamp: new Date(),
+				});
 				client.disconnect();
 				return;
 			}
