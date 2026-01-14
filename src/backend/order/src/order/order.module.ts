@@ -51,7 +51,7 @@ import { CartModule } from 'src/cart/cart.module';
 
 		ClientsModule.registerAsync([
 			{
-				name: 'WAITER_SERVICE',
+				name: 'ORDER_EVENTS',
 				imports: [ConfigModule],
 				inject: [ConfigService],
 				useFactory: (configService: ConfigService) => ({
@@ -60,19 +60,14 @@ import { CartModule } from 'src/cart/cart.module';
 						urls: [
 							configService.get<string>('CONNECTION_AMQP') || 'amqp://localhost:5672',
 						],
-						queue:
-							(configService.get<string>('QUEUE_NAME_OF_WAITER') || 'local_waiter') +
-							'_queue',
+						// ✅ PUBLISH-SUBSCRIBE PATTERN: Emit to Exchange (not queue)
+						// NestJS ClientProxy: 'queue' field is used as exchange name when routingKey is present
+						// routingKey: '' means fanout pattern (broadcast to all bound queues)
+						queue: 'order_events_exchange', // Exchange name (not a queue)
+						routingKey: '', // Empty routing key = fanout broadcast (must be set to enable exchange mode, otherwise direct queue mode)
+						noAck: false,
 						queueOptions: {
 							durable: true,
-							arguments: {
-								'x-dead-letter-exchange':
-									(configService.get<string>('QUEUE_NAME_OF_WAITER') || 'local_waiter') +
-									'_dlx_exchange',
-								'x-dead-letter-routing-key':
-									(configService.get<string>('QUEUE_NAME_OF_WAITER') || 'local_waiter') +
-									'_dlq',
-							},
 						},
 					},
 				}),

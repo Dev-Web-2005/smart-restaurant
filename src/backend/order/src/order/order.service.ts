@@ -54,7 +54,7 @@ export class OrderService {
 		private readonly cartService: CartService,
 		@Inject('PRODUCT_SERVICE') private readonly productClient: ClientProxy,
 		private readonly configService: ConfigService,
-		@Inject('WAITER_SERVICE') private readonly waiterClient: ClientProxy,
+		@Inject('ORDER_EVENTS') private readonly orderEventsClient: ClientProxy,
 		private readonly eventEmitter: EventEmitter2,
 	) {}
 
@@ -351,35 +351,27 @@ export class OrderService {
 			`Checkout success: Order ${finalOrder.id} | Table ${dto.tableId} | ${isNewOrder ? 'NEW' : 'APPENDED'} | Items added: ${newOrderItems.length} | Total items: ${finalOrder.items.length}`,
 		);
 
-		// DONE: Emit RabbitMQ event CHỈ CHO CÁC MÓN MỚI
-		// Để tránh bếp nấu lại các món cũ!
+		// ✅ Emit RabbitMQ event CHỈ CHO CÁC MÓN MỚI
+		// Pub/Sub Pattern: Emit to Exchange → Fanout to all subscribers
+		// Event này sẽ được nhận bởi:
+		// 1. Waiter Service (queue: local_waiter_queue) → Tạo notification
+		// 2. API Gateway (queue: local_api_gateway_queue) → Broadcast WebSocket
 		if (newOrderItems.length > 0) {
-			this.waiterClient.emit('order.new_items', {
+			this.orderEventsClient.emit('order.new_items', {
 				waiterApiKey: this.configService.get<string>('WAITER_API_KEY'),
 				orderId: finalOrder.id,
 				tenantId: dto.tenantId,
 				tableId: dto.tableId,
-				items: newOrderItems, // Only new items
-			});
-		}
-
-		// ✅ Emit WebSocket event to waiters with FULL data
-		this.eventEmitter.emit('websocket.emit', {
-			event: 'order.items.new',
-			room: `tenant:${dto.tenantId}:waiters`,
-			data: {
-				orderId: finalOrder.id,
-				tableId: dto.tableId,
-				tenantId: dto.tenantId,
-				customerName: dto.customerName,
-				items: newOrderItems, // ✅ Send FULL item objects
+				items: newOrderItems, // ✅ FULL OrderItem objects
 				orderType: orderTypeToString(finalOrder.orderType),
+				customerName: dto.customerName,
 				notes: dto.notes,
-				createdAt: new Date(),
-			},
-			timestamp: new Date(),
-			metadata: { tenantId: dto.tenantId, sourceService: 'order-service' },
-		});
+			});
+
+			this.logger.log(
+				`📡 Emitted 'order.new_items' to Exchange → Waiter Service & API Gateway (${newOrderItems.length} items)`,
+			);
+		}
 
 		return this.mapToOrderResponse(finalOrder);
 	}
@@ -715,73 +707,24 @@ export class OrderService {
 			`Updated ${updatedItems.length} items to status ${OrderItemStatusLabels[dto.status]} for order ${dto.orderId}`,
 		);
 
-		// ✅ Emit WebSocket events to appropriate rooms based on status
-		const eventName = `order.items.${OrderItemStatusLabels[dtoStatus].toLowerCase()}`;
-		const baseEventData = {
+		// ✅ Emit RabbitMQ event for status changes
+		// Pub/Sub Pattern: Emit to Exchange → Both services receive
+		const rabbitEventName = `order.items.${OrderItemStatusLabels[dtoStatus].toLowerCase()}`;
+
+		this.orderEventsClient.emit(rabbitEventName, {
+			waiterApiKey: this.configService.get<string>('WAITER_API_KEY'),
 			orderId: order.id,
 			tableId: order.tableId,
+			tenantId: dto.tenantId,
 			items: updatedItems, // ✅ FULL item objects
-			updatedAt: new Date(),
 			status: OrderItemStatusLabels[dtoStatus],
 			updatedBy: dto.waiterId,
-		};
-
-		// Determine target rooms based on status change
-		const targetRooms: string[] = [];
-
-		switch (dtoStatus) {
-			case OrderItemStatus.ACCEPTED:
-				// Waiter accepted → notify customer & kitchen
-				targetRooms.push(
-					`tenant:${dto.tenantId}:order:${order.id}`, // Customer sees acceptance
-					`tenant:${dto.tenantId}:kitchen`, // Kitchen receives items to prepare
-				);
-				break;
-
-			case OrderItemStatus.PREPARING:
-				// Kitchen started → notify customer & waiters
-				targetRooms.push(
-					`tenant:${dto.tenantId}:order:${order.id}`, // Customer sees cooking progress
-					`tenant:${dto.tenantId}:waiters`, // Waiters track kitchen status
-				);
-				break;
-
-			case OrderItemStatus.READY:
-				// Kitchen finished → notify customer & waiters (to pick up)
-				targetRooms.push(
-					`tenant:${dto.tenantId}:order:${order.id}`, // Customer knows food is ready
-					`tenant:${dto.tenantId}:waiters`, // Waiters need to serve
-				);
-				break;
-
-			case OrderItemStatus.SERVED:
-				// Waiter delivered → notify customer only
-				targetRooms.push(`tenant:${dto.tenantId}:order:${order.id}`);
-				break;
-
-			case OrderItemStatus.REJECTED:
-				// Waiter rejected → notify customer only
-				targetRooms.push(`tenant:${dto.tenantId}:order:${order.id}`);
-				break;
-
-			default:
-				// Fallback: only notify customer
-				targetRooms.push(`tenant:${dto.tenantId}:order:${order.id}`);
-		}
-
-		// Emit to all target rooms
-		for (const room of targetRooms) {
-			this.eventEmitter.emit('websocket.emit', {
-				event: eventName,
-				room,
-				data: baseEventData,
-				timestamp: new Date(),
-				metadata: { tenantId: dto.tenantId, sourceService: 'order-service' },
-			});
-		}
+			rejectionReason: dto.rejectionReason,
+			updatedAt: new Date(),
+		});
 
 		this.logger.log(
-			`📡 Emitted '${eventName}' to ${targetRooms.length} rooms: ${targetRooms.join(', ')}`,
+			`📡 Emitted '${rabbitEventName}' to Exchange → Waiter Service & API Gateway (${updatedItems.length} items)`,
 		);
 
 		return this.mapToOrderResponse(order);
@@ -1073,7 +1016,7 @@ export class OrderService {
 
 		// Emit to Kitchen Service for preparation
 		const kitchenApiKey = this.configService.get<string>('KITCHEN_API_KEY');
-		this.waiterClient.emit('kitchen.prepare_items', {
+		this.orderEventsClient.emit('kitchen.prepare_items', {
 			kitchenApiKey,
 			orderId: dto.orderId,
 			tableId: order.tableId,
