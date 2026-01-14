@@ -140,4 +140,69 @@ export class EventEmitterService {
 			event: 'payment.completed',
 		});
 	}
+
+	/**
+	 * ============================================================
+	 * DIRECT BROADCAST METHODS (Called from RabbitMQ Controller)
+	 * ============================================================
+	 *
+	 * These methods are called directly by WebsocketEventController
+	 * when receiving RabbitMQ events from Order Service
+	 *
+	 * They bypass the EventEmitter pattern and emit directly to Socket.IO
+	 * This is the proper way to handle cross-process communication
+	 */
+
+	/**
+	 * Broadcast new order items to waiters
+	 * Called from RabbitMQ controller when Order Service emits order.new_items
+	 */
+	broadcastOrderItemsNew(data: {
+		orderId: string;
+		tableId: string;
+		tenantId: string;
+		items: any[];
+		orderType?: string;
+		customerName?: string;
+		notes?: string;
+	}): void {
+		if (!this.server) {
+			this.logger.warn('Socket.IO server not initialized, cannot broadcast');
+			return;
+		}
+
+		const room = `tenant:${data.tenantId}:waiters`;
+		const eventPayload: WebSocketEventPayload = {
+			event: 'order.items.new',
+			room,
+			data: {
+				orderId: data.orderId,
+				tableId: data.tableId,
+				tenantId: data.tenantId,
+				customerName: data.customerName,
+				items: data.items, // ✅ Full OrderItem objects from Order Service
+				orderType: data.orderType,
+				notes: data.notes,
+				createdAt: new Date(),
+			},
+			timestamp: new Date(),
+			metadata: {
+				tenantId: data.tenantId,
+				sourceService: 'order-service',
+			},
+		};
+
+		this.server.to(room).emit('order.items.new', eventPayload);
+		this.logger.log(
+			`[WebSocket] Emitted 'order.items.new' to room '${room}' with ${data.items.length} items`,
+		);
+	}
+
+	/**
+	 * Future: Add more broadcast methods for other order events
+	 * - broadcastOrderItemsAccepted()
+	 * - broadcastOrderItemsPreparing()
+	 * - broadcastOrderItemsReady()
+	 * - broadcastOrderItemsServed()
+	 */
 }
