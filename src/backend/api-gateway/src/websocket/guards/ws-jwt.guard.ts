@@ -25,7 +25,12 @@ export class WsJwtGuard implements CanActivate {
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		try {
 			const client: Socket = context.switchToWs().getClient();
-			const authData = client.handshake.auth;
+
+			// ✅ Support BOTH auth object and query params (for Postman compatibility)
+			const authData = {
+				...client.handshake.auth, // Auth object (Socket.IO client)
+				...client.handshake.query, // Query params (Postman WebSocket)
+			};
 
 			// 1. Extract token
 			const token = this.extractToken(authData);
