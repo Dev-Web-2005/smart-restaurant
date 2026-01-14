@@ -205,4 +205,234 @@ export class EventEmitterService {
 	 * - broadcastOrderItemsReady()
 	 * - broadcastOrderItemsServed()
 	 */
+
+	/**
+	 * Broadcast accepted order items
+	 * Target rooms: Customer order room + Kitchen room
+	 */
+	broadcastOrderItemsAccepted(data: {
+		orderId: string;
+		tableId: string;
+		tenantId: string;
+		items: any[];
+		status: string;
+		updatedBy?: string;
+	}): void {
+		if (!this.server) {
+			this.logger.warn('Socket.IO server not initialized, cannot broadcast');
+			return;
+		}
+
+		const eventPayload: WebSocketEventPayload = {
+			event: 'order.items.accepted',
+			data: {
+				orderId: data.orderId,
+				tableId: data.tableId,
+				tenantId: data.tenantId,
+				items: data.items,
+				status: data.status,
+				updatedBy: data.updatedBy,
+				updatedAt: new Date(),
+			},
+			timestamp: new Date(),
+			metadata: {
+				tenantId: data.tenantId,
+				sourceService: 'order-service',
+			},
+		};
+
+		// Emit to customer order room
+		const orderRoom = `tenant:${data.tenantId}:order:${data.orderId}`;
+		this.server.to(orderRoom).emit('order.items.accepted', eventPayload);
+
+		// Emit to kitchen room
+		const kitchenRoom = `tenant:${data.tenantId}:kitchen`;
+		this.server.to(kitchenRoom).emit('order.items.accepted', eventPayload);
+
+		this.logger.log(
+			`[WebSocket] Emitted 'order.items.accepted' to rooms: ${orderRoom}, ${kitchenRoom}`,
+		);
+	}
+
+	/**
+	 * Broadcast preparing order items
+	 * Target rooms: Customer order room + Waiter room
+	 */
+	broadcastOrderItemsPreparing(data: {
+		orderId: string;
+		tableId: string;
+		tenantId: string;
+		items: any[];
+		status: string;
+		updatedBy?: string;
+	}): void {
+		if (!this.server) {
+			this.logger.warn('Socket.IO server not initialized, cannot broadcast');
+			return;
+		}
+
+		const eventPayload: WebSocketEventPayload = {
+			event: 'order.items.preparing',
+			data: {
+				orderId: data.orderId,
+				tableId: data.tableId,
+				tenantId: data.tenantId,
+				items: data.items,
+				status: data.status,
+				updatedBy: data.updatedBy,
+				updatedAt: new Date(),
+			},
+			timestamp: new Date(),
+			metadata: {
+				tenantId: data.tenantId,
+				sourceService: 'order-service',
+			},
+		};
+
+		// Emit to customer order room
+		const orderRoom = `tenant:${data.tenantId}:order:${data.orderId}`;
+		this.server.to(orderRoom).emit('order.items.preparing', eventPayload);
+
+		// Emit to waiter room
+		const waiterRoom = `tenant:${data.tenantId}:waiters`;
+		this.server.to(waiterRoom).emit('order.items.preparing', eventPayload);
+
+		this.logger.log(
+			`[WebSocket] Emitted 'order.items.preparing' to rooms: ${orderRoom}, ${waiterRoom}`,
+		);
+	}
+
+	/**
+	 * Broadcast ready order items
+	 * Target rooms: Customer order room + Waiter room
+	 */
+	broadcastOrderItemsReady(data: {
+		orderId: string;
+		tableId: string;
+		tenantId: string;
+		items: any[];
+		status: string;
+		updatedBy?: string;
+	}): void {
+		if (!this.server) {
+			this.logger.warn('Socket.IO server not initialized, cannot broadcast');
+			return;
+		}
+
+		const eventPayload: WebSocketEventPayload = {
+			event: 'order.items.ready',
+			data: {
+				orderId: data.orderId,
+				tableId: data.tableId,
+				tenantId: data.tenantId,
+				items: data.items,
+				status: data.status,
+				updatedBy: data.updatedBy,
+				updatedAt: new Date(),
+			},
+			timestamp: new Date(),
+			metadata: {
+				tenantId: data.tenantId,
+				sourceService: 'order-service',
+			},
+		};
+
+		// Emit to customer order room
+		const orderRoom = `tenant:${data.tenantId}:order:${data.orderId}`;
+		this.server.to(orderRoom).emit('order.items.ready', eventPayload);
+
+		// Emit to waiter room
+		const waiterRoom = `tenant:${data.tenantId}:waiters`;
+		this.server.to(waiterRoom).emit('order.items.ready', eventPayload);
+
+		this.logger.log(
+			`[WebSocket] Emitted 'order.items.ready' to rooms: ${orderRoom}, ${waiterRoom}`,
+		);
+	}
+
+	/**
+	 * Broadcast served order items
+	 * Target room: Customer order room only
+	 */
+	broadcastOrderItemsServed(data: {
+		orderId: string;
+		tableId: string;
+		tenantId: string;
+		items: any[];
+		status: string;
+		updatedBy?: string;
+	}): void {
+		if (!this.server) {
+			this.logger.warn('Socket.IO server not initialized, cannot broadcast');
+			return;
+		}
+
+		const eventPayload: WebSocketEventPayload = {
+			event: 'order.items.served',
+			data: {
+				orderId: data.orderId,
+				tableId: data.tableId,
+				tenantId: data.tenantId,
+				items: data.items,
+				status: data.status,
+				updatedBy: data.updatedBy,
+				updatedAt: new Date(),
+			},
+			timestamp: new Date(),
+			metadata: {
+				tenantId: data.tenantId,
+				sourceService: 'order-service',
+			},
+		};
+
+		// Emit to customer order room only
+		const orderRoom = `tenant:${data.tenantId}:order:${data.orderId}`;
+		this.server.to(orderRoom).emit('order.items.served', eventPayload);
+
+		this.logger.log(`[WebSocket] Emitted 'order.items.served' to room: ${orderRoom}`);
+	}
+
+	/**
+	 * Broadcast rejected order items
+	 * Target room: Customer order room only
+	 */
+	broadcastOrderItemsRejected(data: {
+		orderId: string;
+		tableId: string;
+		tenantId: string;
+		items: any[];
+		status: string;
+		rejectionReason?: string;
+		updatedBy?: string;
+	}): void {
+		if (!this.server) {
+			this.logger.warn('Socket.IO server not initialized, cannot broadcast');
+			return;
+		}
+
+		const eventPayload: WebSocketEventPayload = {
+			event: 'order.items.rejected',
+			data: {
+				orderId: data.orderId,
+				tableId: data.tableId,
+				tenantId: data.tenantId,
+				items: data.items,
+				status: data.status,
+				rejectionReason: data.rejectionReason,
+				updatedBy: data.updatedBy,
+				updatedAt: new Date(),
+			},
+			timestamp: new Date(),
+			metadata: {
+				tenantId: data.tenantId,
+				sourceService: 'order-service',
+			},
+		};
+
+		// Emit to customer order room only
+		const orderRoom = `tenant:${data.tenantId}:order:${data.orderId}`;
+		this.server.to(orderRoom).emit('order.items.rejected', eventPayload);
+
+		this.logger.log(`[WebSocket] Emitted 'order.items.rejected' to room: ${orderRoom}`);
+	}
 }

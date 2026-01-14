@@ -6,16 +6,20 @@ import { EventEmitterService } from '../services/event-emitter.service';
  * WebSocket Event Controller
  *
  * Listens to RabbitMQ events from Order Service and broadcasts them via WebSocket
- * Implements Option 1: Reuse existing `order.new_items` event from Order → Waiter
+ * Implements Publish-Subscribe Pattern via Exchange (NO competing consumer issue)
  *
- * Architecture:
- * Order Service → RabbitMQ `order.new_items` → [Waiter Service + API Gateway]
+ * Architecture (FIXED ✅):
+ * Order Service → RabbitMQ Exchange (order_events_exchange) → Fanout to:
+ *   - Queue 1 (local_waiter_queue) → Waiter Service (100% messages)
+ *   - Queue 2 (local_api_gateway_queue) → API Gateway (100% messages)
+ *
  * API Gateway receives event → EventEmitterService → WebSocket clients
  *
  * Benefits:
- * - Reuses existing RabbitMQ infrastructure
- * - Minimal code changes
- * - Same event payload for Waiter and WebSocket
+ * - Each service has dedicated queue (no competing consumers)
+ * - All services receive ALL events (fanout pattern)
+ * - Shared exchange for event distribution
+ * - Independent scaling and failure isolation
  */
 @Controller()
 export class WebsocketEventController {
@@ -26,14 +30,15 @@ export class WebsocketEventController {
 	/**
 	 * EVENT: Receive new order items from Order Service
 	 *
-	 * This is the SAME event that Waiter Service receives
-	 * We subscribe to it to broadcast real-time updates to WebSocket clients
+	 * Pub/Sub Pattern: Order Service emits to Exchange → All subscribers receive
+	 * This ensures BOTH Waiter Service AND API Gateway receive the SAME event
 	 *
 	 * Flow:
-	 * 1. Order Service emits `order.new_items` via RabbitMQ
-	 * 2. Both Waiter Service AND API Gateway receive the event
-	 * 3. Waiter Service creates notification (alert layer)
-	 * 4. API Gateway broadcasts to WebSocket clients (real-time layer)
+	 * 1. Order Service emits `order.new_items` to Exchange
+	 * 2. Exchange broadcasts to:
+	 *    - local_waiter_queue → Waiter Service creates notification (100% events)
+	 *    - local_api_gateway_queue → API Gateway broadcasts WebSocket (100% events)
+	 * 3. NO competing consumers (each service has dedicated queue)
 	 *
 	 * Payload structure (from Order Service):
 	 * {
@@ -96,4 +101,156 @@ export class WebsocketEventController {
 	 * - order.items.served
 	 * etc.
 	 */
+
+	/**
+	 * EVENT: Order items accepted by waiter
+	 */
+	@EventPattern('order.items.accepted')
+	async handleItemsAccepted(@Payload() data: any, @Ctx() context: RmqContext) {
+		const channel = context.getChannelRef();
+		const message = context.getMessage();
+
+		try {
+			this.logger.log(
+				`[RabbitMQ] Received order.items.accepted for order ${data.orderId}`,
+			);
+
+			this.eventEmitterService.broadcastOrderItemsAccepted({
+				orderId: data.orderId,
+				tableId: data.tableId,
+				tenantId: data.tenantId,
+				items: data.items,
+				status: data.status,
+				updatedBy: data.updatedBy,
+			});
+
+			channel.ack(message);
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle order.items.accepted: ${error.message}`,
+			);
+			channel.nack(message, false, true);
+		}
+	}
+
+	/**
+	 * EVENT: Order items preparing in kitchen
+	 */
+	@EventPattern('order.items.preparing')
+	async handleItemsPreparing(@Payload() data: any, @Ctx() context: RmqContext) {
+		const channel = context.getChannelRef();
+		const message = context.getMessage();
+
+		try {
+			this.logger.log(
+				`[RabbitMQ] Received order.items.preparing for order ${data.orderId}`,
+			);
+
+			this.eventEmitterService.broadcastOrderItemsPreparing({
+				orderId: data.orderId,
+				tableId: data.tableId,
+				tenantId: data.tenantId,
+				items: data.items,
+				status: data.status,
+				updatedBy: data.updatedBy,
+			});
+
+			channel.ack(message);
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle order.items.preparing: ${error.message}`,
+			);
+			channel.nack(message, false, true);
+		}
+	}
+
+	/**
+	 * EVENT: Order items ready from kitchen
+	 */
+	@EventPattern('order.items.ready')
+	async handleItemsReady(@Payload() data: any, @Ctx() context: RmqContext) {
+		const channel = context.getChannelRef();
+		const message = context.getMessage();
+
+		try {
+			this.logger.log(`[RabbitMQ] Received order.items.ready for order ${data.orderId}`);
+
+			this.eventEmitterService.broadcastOrderItemsReady({
+				orderId: data.orderId,
+				tableId: data.tableId,
+				tenantId: data.tenantId,
+				items: data.items,
+				status: data.status,
+				updatedBy: data.updatedBy,
+			});
+
+			channel.ack(message);
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle order.items.ready: ${error.message}`,
+			);
+			channel.nack(message, false, true);
+		}
+	}
+
+	/**
+	 * EVENT: Order items served to customer
+	 */
+	@EventPattern('order.items.served')
+	async handleItemsServed(@Payload() data: any, @Ctx() context: RmqContext) {
+		const channel = context.getChannelRef();
+		const message = context.getMessage();
+
+		try {
+			this.logger.log(`[RabbitMQ] Received order.items.served for order ${data.orderId}`);
+
+			this.eventEmitterService.broadcastOrderItemsServed({
+				orderId: data.orderId,
+				tableId: data.tableId,
+				tenantId: data.tenantId,
+				items: data.items,
+				status: data.status,
+				updatedBy: data.updatedBy,
+			});
+
+			channel.ack(message);
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle order.items.served: ${error.message}`,
+			);
+			channel.nack(message, false, true);
+		}
+	}
+
+	/**
+	 * EVENT: Order items rejected
+	 */
+	@EventPattern('order.items.rejected')
+	async handleItemsRejected(@Payload() data: any, @Ctx() context: RmqContext) {
+		const channel = context.getChannelRef();
+		const message = context.getMessage();
+
+		try {
+			this.logger.log(
+				`[RabbitMQ] Received order.items.rejected for order ${data.orderId}`,
+			);
+
+			this.eventEmitterService.broadcastOrderItemsRejected({
+				orderId: data.orderId,
+				tableId: data.tableId,
+				tenantId: data.tenantId,
+				items: data.items,
+				status: data.status,
+				rejectionReason: data.rejectionReason,
+				updatedBy: data.updatedBy,
+			});
+
+			channel.ack(message);
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle order.items.rejected: ${error.message}`,
+			);
+			channel.nack(message, false, true);
+		}
+	}
 }

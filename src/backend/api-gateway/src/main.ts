@@ -14,15 +14,22 @@ async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
 
 	// ============================================================
-	// RabbitMQ Microservice Configuration
-	// Subscribe to events from Order Service (order.new_items)
+	// RabbitMQ Pub/Sub Configuration
+	// Subscribe to order events via Exchange (not direct queue)
 	// ============================================================
 	const connection = await amqp.connect(process.env.CONNECTION_AMQP);
 	const channel = await connection.createChannel();
 	const queueName: string = process.env.NAME_QUEUE || 'local_api_gateway';
+	const exchangeName = 'order_events_exchange';
 
 	try {
-		// Setup Dead Letter Queue for failed messages
+		// 1. Create fanout exchange for order events
+		await channel.assertExchange(exchangeName, 'fanout', {
+			durable: true,
+		});
+		console.log(`✅ Exchange created: ${exchangeName}`);
+
+		// 2. Setup Dead Letter Queue for failed messages
 		await channel.assertExchange(queueName + '_dlx_exchange', 'direct', {
 			durable: true,
 		});
@@ -35,7 +42,7 @@ async function bootstrap() {
 			queueName + '_dlq',
 		);
 
-		// Setup main queue with DLX configuration
+		// 3. Setup main queue with DLX configuration
 		await channel.assertQueue(queueName + '_queue', {
 			durable: true,
 			arguments: {
@@ -43,14 +50,17 @@ async function bootstrap() {
 				'x-dead-letter-routing-key': queueName + '_dlq',
 			},
 		});
+		console.log(`✅ Queue created: ${queueName}_queue`);
 
-		console.log(`✅ RabbitMQ queue created: ${queueName}_queue`);
+		// 4. Bind queue to exchange (Pub/Sub pattern)
+		await channel.bindQueue(queueName + '_queue', exchangeName, '');
+		console.log(`✅ Queue bound to exchange: ${queueName}_queue → ${exchangeName}`);
 	} finally {
 		await channel.close();
 		await connection.close();
 	}
 
-	// Connect to RabbitMQ microservice
+	// Connect to RabbitMQ microservice (listen to queue)
 	app.connectMicroservice<MicroserviceOptions>({
 		transport: Transport.RMQ,
 		options: {
