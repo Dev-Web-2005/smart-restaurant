@@ -65,7 +65,7 @@ export class OrderController {
 	 * }
 	 */
 	@Post('tenants/:tenantId/orders')
-	@UseGuards(AuthGuard)
+	// @UseGuards(AuthGuard)
 	createOrder(@Param('tenantId') tenantId: string, @Body() data: any) {
 		return this.orderClient.send('orders:create', {
 			...data,
@@ -87,7 +87,7 @@ export class OrderController {
 	 * - paymentStatus: string (PENDING, PROCESSING, PAID, FAILED, REFUNDED)
 	 */
 	@Get('tenants/:tenantId/orders')
-	@UseGuards(AuthGuard, Role('USER'))
+	@UseGuards(AuthGuard, Role('USER', 'STAFF', 'KITCHEN'))
 	getOrders(
 		@Param('tenantId') tenantId: string,
 		@Query('page') page?: number,
@@ -114,7 +114,7 @@ export class OrderController {
 	 * GET /tenants/:tenantId/orders/:orderId
 	 */
 	@Get('tenants/:tenantId/orders/:orderId')
-	@UseGuards(AuthGuard)
+	// @UseGuards(AuthGuard)
 	getOrder(@Param('tenantId') tenantId: string, @Param('orderId') orderId: string) {
 		return this.orderClient.send('orders:get', {
 			tenantId,
@@ -140,7 +140,7 @@ export class OrderController {
 	 * }
 	 */
 	@Post('tenants/:tenantId/orders/:orderId/items')
-	@UseGuards(AuthGuard)
+	// @UseGuards(AuthGuard)
 	addItemsToOrder(
 		@Param('tenantId') tenantId: string,
 		@Param('orderId') orderId: string,
@@ -170,7 +170,7 @@ export class OrderController {
 	 * }
 	 */
 	@Patch('tenants/:tenantId/orders/:orderId/status')
-	@UseGuards(AuthGuard, Role('USER'))
+	@UseGuards(AuthGuard, Role('USER', 'STAFF', 'KITCHEN'))
 	updateOrderStatus(
 		@Param('tenantId') tenantId: string,
 		@Param('orderId') orderId: string,
@@ -206,7 +206,7 @@ export class OrderController {
 	 * }
 	 */
 	@Patch('tenants/:tenantId/orders/:orderId/items-status')
-	@UseGuards(AuthGuard, Role('USER'))
+	@UseGuards(AuthGuard, Role('USER', 'STAFF', 'KITCHEN'))
 	updateOrderItemsStatus(
 		@Param('tenantId') tenantId: string,
 		@Param('orderId') orderId: string,
@@ -230,7 +230,7 @@ export class OrderController {
 	 * }
 	 */
 	@Patch('tenants/:tenantId/orders/:orderId/cancel')
-	@UseGuards(AuthGuard)
+	// @UseGuards(AuthGuard)
 	cancelOrder(
 		@Param('tenantId') tenantId: string,
 		@Param('orderId') orderId: string,
@@ -256,7 +256,7 @@ export class OrderController {
 	 * }
 	 */
 	@Patch('tenants/:tenantId/orders/:orderId/payment')
-	@UseGuards(AuthGuard, Role('USER'))
+	@UseGuards(AuthGuard, Role('USER', 'STAFF'))
 	updatePaymentStatus(
 		@Param('tenantId') tenantId: string,
 		@Param('orderId') orderId: string,
@@ -285,8 +285,9 @@ export class OrderController {
 	 * - Items status updated to ACCEPTED
 	 * - Kitchen receives notification for accepted items
 	 */
+	// DO NOT USE THIS ENDPOINT FOR NOW, USE ORDER ITEMS STATUS UPDATE INSTEAD
 	@Post('tenants/:tenantId/orders/:orderId/accept-items')
-	@UseGuards(AuthGuard, Role('USER'))
+	@UseGuards(AuthGuard, Role('USER', 'STAFF'))
 	acceptOrderItems(
 		@Param('tenantId') tenantId: string,
 		@Param('orderId') orderId: string,
@@ -316,8 +317,9 @@ export class OrderController {
 	 * - Items status updated to REJECTED
 	 * - Customer receives notification with rejection reason
 	 */
+	// DO NOT USE THIS ENDPOINT FOR NOW, USE ORDER ITEMS STATUS UPDATE INSTEAD
 	@Post('tenants/:tenantId/orders/:orderId/reject-items')
-	@UseGuards(AuthGuard, Role('USER'))
+	@UseGuards(AuthGuard, Role('USER', 'STAFF'))
 	rejectOrderItems(
 		@Param('tenantId') tenantId: string,
 		@Param('orderId') orderId: string,

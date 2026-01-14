@@ -79,7 +79,7 @@ export class CartController {
 	 * - Item Total = 90,000 + 30,000 = 120,000
 	 */
 	@Post('tenants/:tenantId/tables/:tableId/cart/items')
-	@UseGuards(AuthGuard)
+	// @UseGuards(AuthGuard)
 	async addToCart(
 		@Param('tenantId') tenantId: string,
 		@Param('tableId') tableId: string,
@@ -137,7 +137,7 @@ export class CartController {
 	 * }
 	 */
 	@Get('tenants/:tenantId/tables/:tableId/cart')
-	@UseGuards(AuthGuard)
+	// @UseGuards(AuthGuard)
 	async getCart(@Param('tenantId') tenantId: string, @Param('tableId') tableId: string) {
 		return firstValueFrom(
 			this.orderClient.send('cart:get', {
@@ -162,7 +162,7 @@ export class CartController {
 	 * }
 	 */
 	@Patch('tenants/:tenantId/tables/:tableId/cart/items/:itemKey')
-	@UseGuards(AuthGuard)
+	// @UseGuards(AuthGuard)
 	async updateCartItemQuantity(
 		@Param('tenantId') tenantId: string,
 		@Param('tableId') tableId: string,
@@ -185,7 +185,7 @@ export class CartController {
 	 * DELETE /tenants/:tenantId/tables/:tableId/cart/items/:itemKey
 	 */
 	@Delete('tenants/:tenantId/tables/:tableId/cart/items/:itemKey')
-	@UseGuards(AuthGuard)
+	// @UseGuards(AuthGuard)
 	async removeCartItem(
 		@Param('tenantId') tenantId: string,
 		@Param('tableId') tableId: string,
@@ -206,7 +206,7 @@ export class CartController {
 	 * DELETE /tenants/:tenantId/tables/:tableId/cart
 	 */
 	@Delete('tenants/:tenantId/tables/:tableId/cart')
-	@UseGuards(AuthGuard)
+	// @UseGuards(AuthGuard)
 	async clearCart(
 		@Param('tenantId') tenantId: string,
 		@Param('tableId') tableId: string,
@@ -257,7 +257,7 @@ export class CartController {
 	 * }
 	 */
 	@Post('tenants/:tenantId/tables/:tableId/cart/checkout')
-	@UseGuards(AuthGuard)
+	// @UseGuards(AuthGuard)
 	async checkoutCart(
 		@Param('tenantId') tenantId: string,
 		@Param('tableId') tableId: string,

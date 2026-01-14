@@ -57,7 +57,7 @@ export class WaiterController {
 	 * }
 	 */
 	@Get('tenants/:tenantId/waiter/notifications')
-	@UseGuards(AuthGuard, Role('USER'))
+	@UseGuards(AuthGuard, Role('USER', 'STAFF'))
 	getPendingNotifications(
 		@Param('tenantId') tenantId: string,
 		@Query('waiterId') waiterId?: string,
@@ -88,7 +88,7 @@ export class WaiterController {
 	 * Records readAt timestamp
 	 */
 	@Post('tenants/:tenantId/waiter/notifications/:notificationId/read')
-	@UseGuards(AuthGuard, Role('USER'))
+	@UseGuards(AuthGuard, Role('USER', 'STAFF'))
 	markNotificationRead(
 		@Param('tenantId') tenantId: string,
 		@Param('notificationId') notificationId: string,
@@ -114,7 +114,7 @@ export class WaiterController {
 	 * Removes from pending notifications list
 	 */
 	@Post('tenants/:tenantId/waiter/notifications/:notificationId/archive')
-	@UseGuards(AuthGuard, Role('USER'))
+	@UseGuards(AuthGuard, Role('USER', 'STAFF'))
 	archiveNotification(
 		@Param('tenantId') tenantId: string,
 		@Param('notificationId') notificationId: string,
