@@ -84,7 +84,7 @@ import ErrorCode from '@shared/exceptions/error-code';
 @Injectable()
 export class KitchenService implements OnModuleInit, OnModuleDestroy {
 	private readonly logger = new Logger(KitchenService.name);
-	private amqpConnection: amqp.Connection;
+	private amqpConnection: amqp.ChannelModel;
 	private amqpChannel: amqp.Channel;
 	private ticketTimerInterval: NodeJS.Timeout;
 	private dailyTicketCounter: number = 0;
