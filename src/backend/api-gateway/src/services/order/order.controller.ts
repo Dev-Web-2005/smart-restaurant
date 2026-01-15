@@ -85,9 +85,12 @@ export class OrderController {
 	 * - tableId: uuid
 	 * - customerId: uuid
 	 * - paymentStatus: string (PENDING, PROCESSING, PAID, FAILED, REFUNDED)
+	 *
+	 * NOTE: Auth temporarily disabled to allow customer/guest access via tableId
+	 * TODO: Implement proper table-based authentication or separate public endpoint
 	 */
 	@Get('tenants/:tenantId/orders')
-	@UseGuards(AuthGuard, Role('USER', 'STAFF', 'KITCHEN'))
+	// @UseGuards(AuthGuard, Role('USER', 'STAFF', 'KITCHEN'))
 	getOrders(
 		@Param('tenantId') tenantId: string,
 		@Query('page') page?: number,

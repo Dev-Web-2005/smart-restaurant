@@ -62,7 +62,7 @@ const OrderCard = ({ order }) => {
 					<div className="text-right">
 						<p className="text-xs text-[#9dabb9]">Total Amount</p>
 						<p className="text-xl sm:text-2xl font-bold text-[#4ade80]">
-							${order.totalAmount.toFixed(2)}
+							${(order.total || order.totalAmount || 0).toFixed(2)}
 						</p>
 					</div>
 				</div>
@@ -103,16 +103,23 @@ const OrderCard = ({ order }) => {
 								<p className="text-white font-medium text-sm">{item.name}</p>
 								{item.modifiers && item.modifiers.length > 0 && (
 									<p className="text-[#9dabb9] text-xs mt-1">
-										{item.modifiers.join(', ')}
+										{Array.isArray(item.modifiers)
+											? item.modifiers
+													.map((m) => (typeof m === 'string' ? m : m.name))
+													.join(', ')
+											: ''}
 									</p>
+								)}
+								{item.notes && (
+									<p className="text-yellow-400 text-xs mt-1">📝 {item.notes}</p>
 								)}
 							</div>
 							<div className="text-right flex-shrink-0">
 								<p className="text-white font-semibold text-sm">
-									${(item.price * item.quantity).toFixed(2)}
+									${((item.unitPrice || item.price || 0) * item.quantity).toFixed(2)}
 								</p>
 								<p className="text-[#9dabb9] text-xs">
-									{item.quantity} × ${item.price.toFixed(2)}
+									{item.quantity} × ${(item.unitPrice || item.price || 0).toFixed(2)}
 								</p>
 							</div>
 						</div>

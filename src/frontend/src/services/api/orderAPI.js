@@ -168,6 +168,7 @@ export const rejectOrderItemsAPI = async ({
 
 /**
  * Mark order items as served (waiter delivered to customer)
+ * Uses PATCH /items-status endpoint with status="SERVED"
  * @param {Object} params - Request parameters
  * @param {string} params.tenantId - Tenant ID (UUID)
  * @param {string} params.orderId - Order ID (UUID)
@@ -190,10 +191,11 @@ export const markItemsServedAPI = async ({ tenantId, orderId, itemIds, waiterId 
 			throw new Error('Waiter ID is required and must be a string')
 		}
 
-		const response = await apiClient.post(
-			`/tenants/${tenantId}/orders/${orderId}/mark-served`,
+		const response = await apiClient.patch(
+			`/tenants/${tenantId}/orders/${orderId}/items-status`,
 			{
 				itemIds,
+				status: 'SERVED',
 				waiterId,
 			},
 		)
@@ -241,13 +243,20 @@ export const cancelOrderAPI = async ({ tenantId, orderId, reason }) => {
 
 /**
  * Mark order as paid
+ * Uses PATCH /payment endpoint with paymentStatus="PAID"
  * @param {Object} params - Request parameters
  * @param {string} params.tenantId - Tenant ID (UUID)
  * @param {string} params.orderId - Order ID (UUID)
  * @param {string} params.paymentMethod - Payment method (CASH, CARD, MOMO, etc.)
+ * @param {string} [params.paymentTransactionId] - Optional transaction ID
  * @returns {Promise<Object>} Response with updated order
  */
-export const markOrderPaidAPI = async ({ tenantId, orderId, paymentMethod }) => {
+export const markOrderPaidAPI = async ({
+	tenantId,
+	orderId,
+	paymentMethod,
+	paymentTransactionId,
+}) => {
 	try {
 		if (!tenantId || typeof tenantId !== 'string') {
 			throw new Error('Tenant ID is required and must be a string')
@@ -259,10 +268,12 @@ export const markOrderPaidAPI = async ({ tenantId, orderId, paymentMethod }) => 
 			throw new Error('Payment method is required and must be a string')
 		}
 
-		const response = await apiClient.post(
-			`/tenants/${tenantId}/orders/${orderId}/mark-paid`,
+		const response = await apiClient.patch(
+			`/tenants/${tenantId}/orders/${orderId}/payment`,
 			{
+				paymentStatus: 'PAID',
 				paymentMethod,
+				...(paymentTransactionId && { paymentTransactionId }),
 			},
 		)
 
@@ -271,4 +282,99 @@ export const markOrderPaidAPI = async ({ tenantId, orderId, paymentMethod }) => 
 		console.error('❌ Error marking order as paid:', error)
 		throw error
 	}
+}
+
+/**
+ * Update order items status (generic)
+ * PATCH /tenants/:tenantId/orders/:orderId/items-status
+ * @param {Object} params - Request parameters
+ * @param {string} params.tenantId - Tenant ID (UUID)
+ * @param {string} params.orderId - Order ID (UUID)
+ * @param {Array<string>} params.itemIds - Array of order item IDs to update
+ * @param {string} params.status - New status (PENDING, ACCEPTED, PREPARING, READY, SERVED, REJECTED, CANCELLED)
+ * @param {string} [params.userId] - User ID (kitchen staff, waiter, etc.)
+ * @param {string} [params.rejectionReason] - Required if status is REJECTED
+ * @returns {Promise<Object>} Response with updated order
+ */
+export const updateItemsStatusAPI = async ({
+	tenantId,
+	orderId,
+	itemIds,
+	status,
+	userId,
+	rejectionReason,
+}) => {
+	try {
+		if (!tenantId || typeof tenantId !== 'string') {
+			throw new Error('Tenant ID is required and must be a string')
+		}
+		if (!orderId || typeof orderId !== 'string') {
+			throw new Error('Order ID is required and must be a string')
+		}
+		if (!Array.isArray(itemIds) || itemIds.length === 0) {
+			throw new Error('Item IDs must be a non-empty array')
+		}
+		if (!status || typeof status !== 'string') {
+			throw new Error('Status is required and must be a string')
+		}
+		if (status === 'REJECTED' && !rejectionReason) {
+			throw new Error('Rejection reason is required when status is REJECTED')
+		}
+
+		const payload = {
+			itemIds,
+			status,
+		}
+
+		if (userId) payload.waiterId = userId
+		if (rejectionReason) payload.rejectionReason = rejectionReason
+
+		const response = await apiClient.patch(
+			`/tenants/${tenantId}/orders/${orderId}/items-status`,
+			payload,
+		)
+
+		return response.data
+	} catch (error) {
+		console.error(`❌ Error updating items status to ${status}:`, error)
+		throw error
+	}
+}
+
+/**
+ * Mark order items as PREPARING (kitchen starts cooking)
+ * @param {Object} params - Request parameters
+ * @param {string} params.tenantId - Tenant ID (UUID)
+ * @param {string} params.orderId - Order ID (UUID)
+ * @param {Array<string>} params.itemIds - Array of order item IDs
+ * @param {string} params.userId - Kitchen staff ID (UUID)
+ * @returns {Promise<Object>} Response with updated order
+ */
+export const markItemsPreparingAPI = async ({ tenantId, orderId, itemIds, userId }) => {
+	return updateItemsStatusAPI({
+		tenantId,
+		orderId,
+		itemIds,
+		status: 'PREPARING',
+		userId,
+	})
+}
+
+/**
+ * Mark order items as READY (kitchen finished cooking)
+ * @param {Object} params - Request parameters
+ * @param {string} params.tenantId - Tenant ID (UUID)
+ * @param {string} params.orderId - Order ID (UUID)
+ * @param {Array<string>} params.itemIds - Array of order item IDs
+ * @param {string} params.userId - Kitchen staff ID (UUID)
+ * @returns {Promise<Object>} Response with updated order
+ */
+export const markItemsReadyAPI = async ({ tenantId, orderId, itemIds, userId }) => {
+	return updateItemsStatusAPI({
+		tenantId,
+		orderId,
+		itemIds,
+		status: 'READY',
+		userId,
+	})
 }

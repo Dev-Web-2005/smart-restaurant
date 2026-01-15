@@ -1,11 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import ReactDOM from 'react-dom'
 import { useUser } from '../../../contexts/UserContext'
 import { useNotifications } from '../../../contexts/NotificationContext'
 import BasePageLayout from '../../../components/layout/BasePageLayout'
 import { CardSkeleton } from '../../../components/common/LoadingSpinner'
 import socketClient from '../../../services/websocket/socketClient'
-import { getOrdersAPI } from '../../../services/api/orderAPI'
+import {
+	getOrdersAPI,
+	acceptOrderItemsAPI,
+	rejectOrderItemsAPI,
+	markItemsServedAPI,
+	markOrderPaidAPI,
+} from '../../../services/api/orderAPI'
 
 /**
  * OrderManagement - Waiter Dashboard
@@ -463,7 +469,7 @@ const PendingOrderItem = ({ order, onApprove, onDecline, onView }) => {
 
 const OrderManagement = () => {
 	const { user } = useUser()
-	const { setNewHelpRequestsCount } = useNotifications()
+	// const { setNewHelpRequestsCount } = useNotifications() // Unused for now
 
 	// State management
 	const [loading, setLoading] = useState(true)
@@ -477,31 +483,210 @@ const OrderManagement = () => {
 	/**
 	 * Fetch orders from API
 	 */
-	const fetchOrders = async (silent = false) => {
-		try {
-			if (!silent) setRefreshing(true)
+	const fetchOrders = useCallback(
+		async (silent = false) => {
+			try {
+				if (!silent) setRefreshing(true)
 
+				const tenantId = user?.tenantId || localStorage.getItem('currentTenantId')
+				if (!tenantId) {
+					console.warn('⚠️ No tenantId found, skipping order fetch')
+					return
+				}
+
+				console.log('🔄 Fetching orders for tenant:', tenantId)
+
+				// ❌ REMOVED status: 'IN_PROGRESS' filter
+				// Reason: New orders from customer checkout have status='PENDING'
+				// Filter was preventing new orders from appearing in UI
+				// Now fetching ALL unpaid orders (both PENDING and IN_PROGRESS)
+				const response = await getOrdersAPI({
+					tenantId,
+					page: 1,
+					limit: 100,
+					// status: 'IN_PROGRESS', // ❌ REMOVED - need PENDING orders!
+					paymentStatus: 'PENDING', // Only unpaid orders
+				})
+
+				if (response?.code === 1000 && response?.data) {
+					// Backend returns PaginatedOrdersResponseDto: { orders, total, page, limit, totalPages }
+					const fetchedOrders = response.data.orders || []
+					console.log('✅ Orders fetched:', fetchedOrders.length)
+					setOrders(fetchedOrders)
+				} else {
+					console.warn('⚠️ Unexpected response format:', response)
+					setOrders([])
+				}
+			} catch (error) {
+				console.error('❌ Error fetching orders:', error)
+				setOrders([])
+			} finally {
+				if (!silent) setRefreshing(false)
+			}
+		},
+		[user?.tenantId],
+	)
+
+	/**
+	 * Accept order items (waiter accepts pending items)
+	 * @param {string} orderId - Order ID
+	 * @param {Array<string>} itemIds - Array of item IDs to accept
+	 */
+	const handleAcceptItems = async (orderId, itemIds) => {
+		try {
 			const tenantId = user?.tenantId || localStorage.getItem('currentTenantId')
-			if (!tenantId) {
-				console.warn('⚠️ No tenantId found, skipping order fetch')
+			const waiterId = user?.userId
+
+			if (!tenantId || !waiterId) {
+				console.error('❌ Missing tenantId or waiterId')
 				return
 			}
 
-			// Fetch all orders (we'll filter by view on frontend)
-			const response = await getOrdersAPI({
+			if (!itemIds || itemIds.length === 0) {
+				console.warn('⚠️ No items to accept')
+				return
+			}
+
+			console.log(`✅ Accepting ${itemIds.length} items from order ${orderId}`)
+
+			await acceptOrderItemsAPI({
 				tenantId,
-				page: 1,
-				limit: 100, // Get more orders to show across all tabs
+				orderId,
+				itemIds,
+				waiterId,
 			})
 
-			if (response?.code === 1000 && response?.data) {
-				// Backend returns PaginatedOrdersResponseDto: { orders, total, page, limit, totalPages }
-				setOrders(response.data.orders || [])
-			}
+			console.log('✅ Items accepted successfully')
+
+			// Refresh orders to get updated status
+			await fetchOrders(true)
 		} catch (error) {
-			console.error('❌ Error fetching orders:', error)
-		} finally {
-			if (!silent) setRefreshing(false)
+			console.error('❌ Error accepting items:', error)
+			alert(error.response?.data?.message || 'Failed to accept items')
+		}
+	}
+
+	/**
+	 * Reject order items (waiter rejects pending items with reason)
+	 * @param {string} orderId - Order ID
+	 * @param {Array<string>} itemIds - Array of item IDs to reject
+	 */
+	const handleRejectItems = async (orderId, itemIds) => {
+		try {
+			const tenantId = user?.tenantId || localStorage.getItem('currentTenantId')
+			const waiterId = user?.userId
+
+			if (!tenantId || !waiterId) {
+				console.error('❌ Missing tenantId or waiterId')
+				return
+			}
+
+			if (!itemIds || itemIds.length === 0) {
+				console.warn('⚠️ No items to reject')
+				return
+			}
+
+			// Prompt for rejection reason
+			const reason = prompt('Enter rejection reason (minimum 5 characters):')
+
+			if (!reason) {
+				console.log('ℹ️ Rejection cancelled by user')
+				return
+			}
+
+			if (reason.trim().length < 5) {
+				alert('Rejection reason must be at least 5 characters')
+				return
+			}
+
+			console.log(`❌ Rejecting ${itemIds.length} items from order ${orderId}`)
+
+			await rejectOrderItemsAPI({
+				tenantId,
+				orderId,
+				itemIds,
+				waiterId,
+				reason: reason.trim(),
+			})
+
+			console.log('✅ Items rejected successfully')
+
+			// Refresh orders to get updated status
+			await fetchOrders(true)
+		} catch (error) {
+			console.error('❌ Error rejecting items:', error)
+			alert(error.response?.data?.message || 'Failed to reject items')
+		}
+	}
+
+	/**
+	 * Mark order items as served (waiter delivered food to customer)
+	 * @param {string} orderId - Order ID
+	 * @param {Array<string>} itemIds - Array of item IDs to mark as served
+	 */
+	const handleMarkServed = async (orderId, itemIds) => {
+		try {
+			const tenantId = user?.tenantId || localStorage.getItem('currentTenantId')
+			const waiterId = user?.userId
+
+			if (!tenantId || !waiterId) {
+				console.error('❌ Missing tenantId or waiterId')
+				return
+			}
+
+			if (!itemIds || itemIds.length === 0) {
+				console.warn('⚠️ No items to mark as served')
+				return
+			}
+
+			console.log(`✅ Marking ${itemIds.length} items as served from order ${orderId}`)
+
+			await markItemsServedAPI({
+				tenantId,
+				orderId,
+				itemIds,
+				waiterId,
+			})
+
+			console.log('✅ Items marked as served successfully')
+
+			// Refresh orders to get updated status
+			await fetchOrders(true)
+		} catch (error) {
+			console.error('❌ Error marking items as served:', error)
+			alert(error.response?.data?.message || 'Failed to mark items as served')
+		}
+	}
+
+	/**
+	 * Mark order as paid (customer completed payment)
+	 * @param {string} orderId - Order ID
+	 * @param {string} paymentMethod - Payment method (CASH, CARD, MOMO, etc.)
+	 */
+	const handleMarkPaid = async (orderId, paymentMethod) => {
+		try {
+			const tenantId = user?.tenantId || localStorage.getItem('currentTenantId')
+
+			if (!tenantId) {
+				console.error('❌ Missing tenantId')
+				return
+			}
+
+			console.log(`💰 Marking order ${orderId} as paid via ${paymentMethod}`)
+
+			await markOrderPaidAPI({
+				tenantId,
+				orderId,
+				paymentMethod,
+			})
+
+			console.log('✅ Order marked as paid successfully')
+
+			// Refresh orders to get updated status
+			await fetchOrders(true)
+		} catch (error) {
+			console.error('❌ Error marking order as paid:', error)
+			alert(error.response?.data?.message || 'Failed to mark order as paid')
 		}
 	}
 
@@ -528,7 +713,7 @@ const OrderManagement = () => {
 		}
 
 		initialize()
-	}, []) // Run once on mount
+	}, [fetchOrders]) // Re-initialize if fetchOrders changes
 
 	/**
 	 * WebSocket setup - Separate useEffect to prevent reconnections
@@ -560,7 +745,8 @@ const OrderManagement = () => {
 
 			// Define event handlers
 			const handleNewOrderItems = (payload) => {
-				console.log('🆕 [OrderManagement] New order received')
+				console.log('🆕 [OrderManagement] New order received', payload)
+				console.log('🔄 [OrderManagement] Refreshing orders after new order received')
 
 				// Show notification
 				if (payload?.data) {
@@ -581,12 +767,14 @@ const OrderManagement = () => {
 			}
 
 			const handleItemsAccepted = (payload) => {
-				console.log('✅ [OrderManagement] Order items accepted')
+				console.log('✅ [OrderManagement] Order items accepted', payload)
+				console.log('🔄 [OrderManagement] Refreshing orders after items accepted')
 				fetchOrders(true)
 			}
 
 			const handleItemsReady = (payload) => {
-				console.log('🍽️ [OrderManagement] Order items ready')
+				console.log('🍽️ [OrderManagement] Order items ready', payload)
+				console.log('🔄 [OrderManagement] Refreshing orders after items ready')
 				fetchOrders(true)
 			}
 
@@ -612,7 +800,7 @@ const OrderManagement = () => {
 			socketClient.off('order.items.accepted')
 			socketClient.off('order.items.ready')
 		}
-	}, [user?.tenantId, user?.userId]) // Reconnect if tenantId or userId changes
+	}, [user?.tenantId, user?.userId, fetchOrders]) // Include fetchOrders to ensure handlers always use current version
 
 	// Filter orders based on view and search
 	useEffect(() => {

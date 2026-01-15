@@ -1,88 +1,112 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
+import ReactDOM from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useUser } from '../../contexts/UserContext'
 import { useAlert } from '../../contexts/AlertContext'
+// import { useNotifications } from '../../contexts/NotificationContext' // Not used yet
 import { CardSkeleton } from '../../components/common/LoadingSpinner'
+import socketClient from '../../services/websocket/socketClient'
+import {
+	getOrdersAPI,
+	acceptOrderItemsAPI,
+	rejectOrderItemsAPI,
+	markItemsServedAPI,
+	markOrderPaidAPI,
+} from '../../services/api/orderAPI'
 
-// Mock data for development - Replace with actual API calls
-const mockOrders = [
-	{
-		id: 'ORD-001',
-		tableNumber: 5,
-		tableName: 'Table 5',
-		status: 'PENDING',
-		totalAmount: 45.5,
-		itemCount: 3,
-		createdAt: new Date(Date.now() - 5 * 60000).toISOString(),
-		items: [
-			{ name: 'Phở Bò Tái', quantity: 2, price: 15.5 },
-			{ name: 'Gỏi Cuốn', quantity: 1, price: 14.5 },
-		],
-	},
-	{
-		id: 'ORD-002',
-		tableNumber: 8,
-		tableName: 'Table 8',
-		status: 'PREPARING',
-		totalAmount: 62.0,
-		itemCount: 4,
-		createdAt: new Date(Date.now() - 12 * 60000).toISOString(),
-		items: [
-			{ name: 'Bún Chả Hà Nội', quantity: 2, price: 18.0 },
-			{ name: 'Chả Giò', quantity: 2, price: 13.0 },
-		],
-	},
-	{
-		id: 'ORD-003',
-		tableNumber: 3,
-		tableName: 'Table 3',
-		status: 'READY',
-		totalAmount: 28.0,
-		itemCount: 2,
-		createdAt: new Date(Date.now() - 20 * 60000).toISOString(),
-		items: [
-			{ name: 'Cà Phê Sữa Đá', quantity: 2, price: 7.0 },
-			{ name: 'Bánh Mì', quantity: 2, price: 7.0 },
-		],
-	},
-]
+/**
+ * WaiterPanel - Staff/Waiter Dashboard
+ *
+ * Displays orders ready for waiter attention and help requests:
+ * - ORDERS Tab:
+ *   - PENDING: New orders to accept/reject and notify kitchen
+ *   - READY: Items ready to be served to customers
+ *   - SERVED: Items already served, waiting for payment
+ *   - PAYMENT: Mark orders as paid to complete them
+ * - HELP Tab:
+ *   - Help requests from customers
+ *
+ * Status Flow:
+ * PENDING (accept/reject) → READY → SERVED (waiter delivers) → PAID (payment complete)
+ */
 
-const mockHelpRequests = [
-	{
-		id: 'HELP-001',
-		tableNumber: 12,
-		tableName: 'Table 12',
-		message: 'Need more napkins',
-		createdAt: new Date(Date.now() - 2 * 60000).toISOString(),
-		status: 'PENDING',
-		isAcknowledged: false,
-	},
-	{
-		id: 'HELP-002',
-		tableNumber: 7,
-		tableName: 'Table 7',
-		message: 'Requesting bill',
-		createdAt: new Date(Date.now() - 8 * 60000).toISOString(),
-		status: 'PENDING',
-		isAcknowledged: false,
-	},
-]
-
-// Helper function to format timestamp
-const formatTimestamp = (timestamp) => {
-	const now = Date.now()
-	const diff = now - timestamp
-	const minutes = Math.floor(diff / 60000)
-	const hours = Math.floor(minutes / 60)
-
-	if (minutes < 1) return 'Just now'
-	if (minutes < 60) return `${minutes}m ago`
-	return `${hours}h ${minutes % 60}m ago`
+// Order Item Status Constants
+// Backend returns status as STRING labels, not numbers
+const ITEM_STATUS = {
+	PENDING: 'PENDING',
+	ACCEPTED: 'ACCEPTED',
+	PREPARING: 'PREPARING',
+	READY: 'READY',
+	SERVED: 'SERVED',
+	REJECTED: 'REJECTED',
+	CANCELLED: 'CANCELLED',
 }
 
-// Helper function to get full date time
+const ITEM_STATUS_LABELS = {
+	[ITEM_STATUS.PENDING]: 'Pending',
+	[ITEM_STATUS.ACCEPTED]: 'Accepted',
+	[ITEM_STATUS.PREPARING]: 'Preparing',
+	[ITEM_STATUS.READY]: 'Ready',
+	[ITEM_STATUS.SERVED]: 'Served',
+	[ITEM_STATUS.REJECTED]: 'Rejected',
+	[ITEM_STATUS.CANCELLED]: 'Cancelled',
+}
+
+const ITEM_STATUS_COLORS = {
+	[ITEM_STATUS.PENDING]: 'bg-yellow-500/20 text-yellow-300',
+	[ITEM_STATUS.ACCEPTED]: 'bg-blue-500/20 text-blue-300',
+	[ITEM_STATUS.PREPARING]: 'bg-orange-500/20 text-orange-300',
+	[ITEM_STATUS.READY]: 'bg-green-500/20 text-green-300',
+	[ITEM_STATUS.SERVED]: 'bg-purple-500/20 text-purple-300',
+	[ITEM_STATUS.REJECTED]: 'bg-red-500/20 text-red-300',
+	[ITEM_STATUS.CANCELLED]: 'bg-gray-500/20 text-gray-300',
+}
+
+const PAYMENT_STATUS = {
+	PENDING: 'PENDING',
+	PAID: 'PAID',
+	FAILED: 'FAILED',
+	REFUNDED: 'REFUNDED',
+}
+
+// Mock help requests - will be replaced with real API later
+const mockHelpRequests = [
+	{
+		id: '1',
+		tableId: 'T-102',
+		tableName: 'Table 2',
+		message: 'Need napkins please',
+		createdAt: new Date(Date.now() - 60000).toISOString(),
+		acknowledged: false,
+	},
+	{
+		id: '2',
+		tableId: 'T-105',
+		tableName: 'Table 5',
+		message: 'Check please',
+		createdAt: new Date(Date.now() - 180000).toISOString(),
+		acknowledged: false,
+	},
+]
+
+// Helper function to format timestamps
+const formatTimestamp = (timestamp) => {
+	const date = new Date(timestamp)
+	const now = new Date()
+	const diffMs = now - date
+	const diffMins = Math.floor(diffMs / 60000)
+
+	if (diffMins < 1) return 'Just now'
+	if (diffMins < 60) return `${diffMins}m ago`
+	const diffHours = Math.floor(diffMins / 60)
+	if (diffHours < 24) return `${diffHours}h ago`
+	return date.toLocaleDateString()
+}
+
 const getFullDateTime = (timestamp) => {
-	return new Date(timestamp).toLocaleString('en-US', {
+	const date = new Date(timestamp)
+	return date.toLocaleString('en-US', {
+		year: 'numeric',
 		month: 'short',
 		day: 'numeric',
 		hour: '2-digit',
@@ -90,37 +114,258 @@ const getFullDateTime = (timestamp) => {
 	})
 }
 
-/**
- * Waiter Panel - For Staff role
- *
- * Features:
- * - View pending orders
- * - Accept/Reject orders
- * - View help requests from customers
- * - Mark orders as served
- * - Real-time updates via WebSocket
- */
 const WaiterPanel = () => {
 	const { user, logout } = useUser()
 	const { showSuccess } = useAlert()
 	const navigate = useNavigate()
 	const { ownerId } = useParams()
+	// const { setNewHelpRequestsCount } = useNotifications() // Not used yet
 
-	// State
-	const [orders, setOrders] = useState(mockOrders)
-	const [helpRequests, setHelpRequests] = useState(mockHelpRequests)
-	const [selectedView, setSelectedView] = useState('orders') // 'orders' | 'help'
-	const [filter, setFilter] = useState('ALL') // ALL, PENDING, PREPARING, READY
+	// === ORDERS State (OrderManagement logic) ===
 	const [loading, setLoading] = useState(true)
+	// const [refreshing, setRefreshing] = useState(false) // Not displayed in UI
+	const [orders, setOrders] = useState([])
+	const [filteredOrders, setFilteredOrders] = useState([])
+	const [selectedView, setSelectedView] = useState('orders') // 'orders' | 'help'
+	const [ordersView, setOrdersView] = useState('PENDING') // PENDING, READY, SERVED, PAYMENT
+	const [searchQuery, setSearchQuery] = useState('')
+	const [expandedOrders, setExpandedOrders] = useState(new Set())
 
-	// Simulating data load
-	useEffect(() => {
-		setTimeout(() => {
-			setLoading(false)
-		}, 500)
-	}, [])
+	// === HELP State (Keep existing logic) ===
+	const [helpRequests, setHelpRequests] = useState(mockHelpRequests)
 
-	// Handle logout
+	/**
+	 * Fetch orders from API - useCallback to stabilize function reference
+	 */
+	const fetchOrders = useCallback(
+		async (_silent = false) => {
+			try {
+				// if (!_silent) setRefreshing(true) // Not displayed in UI
+
+				const tenantId =
+					user?.tenantId || ownerId || localStorage.getItem('currentTenantId')
+				if (!tenantId) {
+					console.warn('⚠️ No tenantId found, skipping order fetch')
+					return
+				}
+
+				console.log('🔄 Fetching orders for tenant:', tenantId)
+
+				// Fetch orders - DO NOT filter by order status here
+				// New orders from customer start with PENDING status
+				// After staff accepts items, order becomes IN_PROGRESS
+				// We need both PENDING and IN_PROGRESS orders for waiter workflow
+				const response = await getOrdersAPI({
+					tenantId,
+					page: 1,
+					limit: 100,
+					// status: 'IN_PROGRESS', // ❌ DON'T filter - need PENDING orders too!
+					paymentStatus: 'PENDING', // Only unpaid orders
+				})
+
+				if (response?.code === 1000 && response?.data) {
+					// Backend returns PaginatedOrdersResponseDto: { orders, total, page, limit, totalPages }
+					const fetchedOrders = response.data.orders || []
+					console.log('✅ Orders fetched:', fetchedOrders.length)
+					setOrders(fetchedOrders)
+				} else {
+					console.warn('⚠️ Unexpected response format:', response)
+					setOrders([])
+				}
+			} catch (error) {
+				console.error('❌ Error fetching orders:', error)
+				setOrders([])
+			} finally {
+				// if (!_silent) setRefreshing(false) // Not displayed in UI
+			}
+		},
+		[user?.tenantId, ownerId],
+	) // Dependencies for useCallback
+
+	/**
+	 * Accept order items (waiter accepts pending items)
+	 * @param {string} orderId - Order ID
+	 * @param {Array<string>} itemIds - Array of item IDs to accept
+	 */
+	const handleAcceptItems = async (orderId, itemIds) => {
+		try {
+			const tenantId =
+				user?.tenantId || ownerId || localStorage.getItem('currentTenantId')
+			const waiterId = user?.userId
+
+			if (!tenantId || !waiterId) {
+				console.error('❌ Missing tenantId or waiterId')
+				return
+			}
+
+			if (!itemIds || itemIds.length === 0) {
+				console.warn('⚠️ No items to accept')
+				return
+			}
+
+			console.log(`✅ Accepting ${itemIds.length} items from order ${orderId}`)
+
+			await acceptOrderItemsAPI({
+				tenantId,
+				orderId,
+				itemIds,
+				waiterId,
+			})
+
+			console.log('✅ Items accepted successfully')
+			showSuccess('Items accepted and sent to kitchen')
+
+			// Refresh orders to get updated status
+			await fetchOrders(true)
+		} catch (error) {
+			console.error('❌ Error accepting items:', error)
+			alert(error.response?.data?.message || 'Failed to accept items')
+		}
+	}
+
+	/**
+	 * Reject order items (waiter rejects pending items with reason)
+	 * @param {string} orderId - Order ID
+	 * @param {Array<string>} itemIds - Array of item IDs to reject
+	 */
+	const handleRejectItems = async (orderId, itemIds) => {
+		try {
+			const tenantId =
+				user?.tenantId || ownerId || localStorage.getItem('currentTenantId')
+			const waiterId = user?.userId
+
+			if (!tenantId || !waiterId) {
+				console.error('❌ Missing tenantId or waiterId')
+				return
+			}
+
+			if (!itemIds || itemIds.length === 0) {
+				console.warn('⚠️ No items to reject')
+				return
+			}
+
+			// Prompt for rejection reason
+			const reason = prompt('Enter rejection reason (minimum 5 characters):')
+
+			if (!reason) {
+				console.log('ℹ️ Rejection cancelled by user')
+				return
+			}
+
+			if (reason.trim().length < 5) {
+				alert('Rejection reason must be at least 5 characters')
+				return
+			}
+
+			console.log(`❌ Rejecting ${itemIds.length} items from order ${orderId}`)
+
+			await rejectOrderItemsAPI({
+				tenantId,
+				orderId,
+				itemIds,
+				waiterId,
+				reason: reason.trim(),
+			})
+
+			console.log('✅ Items rejected successfully')
+			showSuccess('Items rejected')
+
+			// Refresh orders to get updated status
+			await fetchOrders(true)
+		} catch (error) {
+			console.error('❌ Error rejecting items:', error)
+			alert(error.response?.data?.message || 'Failed to reject items')
+		}
+	}
+
+	/**
+	 * Mark order items as served (waiter delivered food to customer)
+	 * @param {string} orderId - Order ID
+	 * @param {Array<string>} itemIds - Array of item IDs to mark as served
+	 */
+	const handleMarkServed = async (orderId, itemIds) => {
+		try {
+			const tenantId =
+				user?.tenantId || ownerId || localStorage.getItem('currentTenantId')
+			const waiterId = user?.userId
+
+			if (!tenantId || !waiterId) {
+				console.error('❌ Missing tenantId or waiterId')
+				return
+			}
+
+			if (!itemIds || itemIds.length === 0) {
+				console.warn('⚠️ No items to mark as served')
+				return
+			}
+
+			console.log(`✅ Marking ${itemIds.length} items as served from order ${orderId}`)
+
+			await markItemsServedAPI({
+				tenantId,
+				orderId,
+				itemIds,
+				waiterId,
+			})
+
+			console.log('✅ Items marked as served successfully')
+			showSuccess('Items marked as served')
+
+			// Refresh orders to get updated status
+			await fetchOrders(true)
+		} catch (error) {
+			console.error('❌ Error marking items as served:', error)
+			alert(error.response?.data?.message || 'Failed to mark items as served')
+		}
+	}
+
+	/**
+	 * Mark order as paid (customer completed payment)
+	 * @param {string} orderId - Order ID
+	 * @param {string} paymentMethod - Payment method (CASH, CARD, MOMO, etc.)
+	 */
+	const handleMarkPaid = async (orderId, paymentMethod) => {
+		try {
+			const tenantId =
+				user?.tenantId || ownerId || localStorage.getItem('currentTenantId')
+
+			if (!tenantId) {
+				console.error('❌ Missing tenantId')
+				return
+			}
+
+			console.log(`💰 Marking order ${orderId} as paid via ${paymentMethod}`)
+
+			await markOrderPaidAPI({
+				tenantId,
+				orderId,
+				paymentMethod,
+			})
+
+			console.log('✅ Order marked as paid successfully')
+			showSuccess(`Payment received via ${paymentMethod}`)
+
+			// Refresh orders to get updated status
+			await fetchOrders(true)
+		} catch (error) {
+			console.error('❌ Error marking order as paid:', error)
+			alert(error.response?.data?.message || 'Failed to mark order as paid')
+		}
+	}
+
+	/**
+	 * Handle help request acknowledgment
+	 */
+	const handleResolveHelp = (helpId) => {
+		setHelpRequests((prev) =>
+			prev.map((req) => (req.id === helpId ? { ...req, acknowledged: true } : req)),
+		)
+		showSuccess('Help Request', 'Help request acknowledged')
+	}
+
+	/**
+	 * Handle logout
+	 */
 	const handleLogout = () => {
 		logout()
 		if (ownerId) {
@@ -130,114 +375,273 @@ const WaiterPanel = () => {
 		}
 	}
 
-	// Accept order
-	const handleAcceptOrder = (orderId) => {
-		setOrders((prev) =>
-			prev.map((order) =>
-				order.id === orderId ? { ...order, status: 'PREPARING' } : order,
-			),
-		)
-		showSuccess('Order Accepted', `Order ${orderId} is now being prepared`)
+	/**
+	 * Initial load
+	 */
+	useEffect(() => {
+		const initialize = async () => {
+			try {
+				// Request notification permission
+				if ('Notification' in window && Notification.permission === 'default') {
+					Notification.requestPermission().then((permission) => {
+						console.log('🔔 Notification permission:', permission)
+					})
+				}
+
+				// Fetch initial orders
+				await fetchOrders()
+			} catch (error) {
+				console.error('❌ Error initializing orders:', error)
+			} finally {
+				setLoading(false)
+			}
+		}
+
+		initialize()
+	}, [fetchOrders]) // Run once on mount with fetchOrders dependency
+
+	/**
+	 * WebSocket setup - Separate useEffect to prevent reconnections
+	 */
+	useEffect(() => {
+		const setupWebSocket = () => {
+			// Use window.accessToken (set by authAPI after login/refresh)
+			const authToken = window.accessToken || localStorage.getItem('authToken')
+			const tenantId =
+				user?.tenantId ||
+				user?.userId ||
+				ownerId ||
+				localStorage.getItem('currentTenantId')
+
+			if (!authToken || !tenantId) {
+				console.error('❌ [WaiterPanel] No token or tenantId, skipping WebSocket setup')
+				return
+			}
+
+			// Only connect if not already connected
+			if (socketClient.isSocketConnected()) {
+				console.log('🔵 [WaiterPanel] WebSocket already connected, reusing connection')
+				return
+			}
+
+			// Connect WebSocket
+			socketClient.connect(authToken)
+
+			// Define event handlers
+			const handleNewOrderItems = (payload) => {
+				console.log('🆕 [WaiterPanel] New order received', payload)
+
+				// Show notification
+				if (payload?.data) {
+					const { tableId, items } = payload.data
+					const itemCount = items?.length || 0
+
+					// Optionally show browser notification
+					if ('Notification' in window && Notification.permission === 'granted') {
+						new Notification('New Order Received', {
+							body: `${itemCount} item(s) from Table ${tableId}`,
+							icon: '/logo.png',
+						})
+					}
+				}
+
+				// Refresh orders list to show new pending items
+				console.log('🔄 [WaiterPanel] Refreshing orders after new order received')
+				fetchOrders(true) // silent refresh
+			}
+
+			const handleItemsAccepted = (payload) => {
+				console.log('✅ [WaiterPanel] Order items accepted', payload)
+				fetchOrders(true)
+			}
+
+			const handleItemsReady = (payload) => {
+				console.log('🍽️ [WaiterPanel] Order items ready', payload)
+				fetchOrders(true)
+			}
+
+			// Listen for events
+			socketClient.on('order.items.new', handleNewOrderItems)
+			socketClient.on('order.items.accepted', handleItemsAccepted)
+			socketClient.on('order.items.ready', handleItemsReady)
+		}
+
+		// Only setup WebSocket if user is available
+		const effectiveTenantId = user?.tenantId || user?.userId || ownerId
+		if (effectiveTenantId) {
+			setupWebSocket()
+		} else {
+			console.error('❌ [WaiterPanel] User authentication required for real-time updates')
+		}
+
+		// Cleanup only on unmount (not on re-render)
+		return () => {
+			socketClient.off('order.items.new')
+			socketClient.off('order.items.accepted')
+			socketClient.off('order.items.ready')
+		}
+	}, [user?.tenantId, user?.userId, ownerId, fetchOrders]) // Include fetchOrders in dependencies
+
+	/**
+	 * Filter orders based on view and search
+	 */
+	useEffect(() => {
+		let filtered = [...orders]
+
+		// Filter by view
+		if (ordersView === 'PENDING') {
+			// Show orders with at least one PENDING item
+			filtered = filtered
+				.map((order) => {
+					const items = order.items.filter((item) => item.status === ITEM_STATUS.PENDING)
+					if (items.length === 0) return null
+					return { ...order, items }
+				})
+				.filter(Boolean)
+		} else if (ordersView === 'READY') {
+			// Show orders with at least one READY item
+			filtered = filtered
+				.map((order) => {
+					const items = order.items.filter((item) => item.status === ITEM_STATUS.READY)
+					if (items.length === 0) return null
+					return { ...order, items }
+				})
+				.filter(Boolean)
+		} else if (ordersView === 'SERVED') {
+			// Show orders with at least one SERVED item
+			filtered = filtered
+				.map((order) => {
+					const items = order.items.filter((item) => item.status === ITEM_STATUS.SERVED)
+					if (items.length === 0) return null
+					return { ...order, items }
+				})
+				.filter(Boolean)
+		} else if (ordersView === 'PAYMENT') {
+			// Show orders waiting for payment (all items served, payment pending)
+			filtered = filtered.filter((order) => {
+				if (!order.items || order.items.length === 0) return false
+				const allServed = order.items.every((item) => item.status === ITEM_STATUS.SERVED)
+				return allServed && order.paymentStatus === PAYMENT_STATUS.PENDING
+			})
+		}
+
+		// Filter by search query (table name or item name)
+		if (searchQuery.trim()) {
+			const query = searchQuery.toLowerCase()
+			filtered = filtered
+				.map((order) => {
+					// Check if table name matches
+					if (order.table?.name?.toLowerCase().includes(query)) {
+						return order
+					}
+
+					// Check if any item name matches
+					const matchingItems = order.items.filter((item) =>
+						item.name?.toLowerCase().includes(query),
+					)
+					if (matchingItems.length > 0) {
+						return { ...order, items: matchingItems }
+					}
+
+					return null
+				})
+				.filter(Boolean)
+		}
+
+		setFilteredOrders(filtered)
+	}, [orders, ordersView, searchQuery])
+
+	// Toggle order expansion
+	const toggleOrderExpansion = (orderId) => {
+		setExpandedOrders((prev) => {
+			const newSet = new Set(prev)
+			if (newSet.has(orderId)) {
+				newSet.delete(orderId)
+			} else {
+				newSet.add(orderId)
+			}
+			return newSet
+		})
 	}
 
-	// Mark order as served
-	const handleServeOrder = (orderId) => {
-		setOrders((prev) =>
-			prev.map((order) =>
-				order.id === orderId ? { ...order, status: 'SERVED' } : order,
-			),
-		)
-		showSuccess('Order Served', `Order ${orderId} has been served`)
+	// Format price
+	const formatPrice = (price) => {
+		if (!price) return '0'
+		return new Intl.NumberFormat('vi-VN').format(price)
 	}
 
-	// Handle help request
-	const handleResolveHelp = (helpId) => {
-		setHelpRequests((prev) =>
-			prev.map((req) => (req.id === helpId ? { ...req, isAcknowledged: true } : req)),
-		)
-		showSuccess('Request Resolved', 'Help request has been acknowledged')
-	}
+	// Calculate stats
+	const pendingCount = orders.reduce(
+		(count, order) =>
+			count + order.items.filter((item) => item.status === ITEM_STATUS.PENDING).length,
+		0,
+	)
 
-	// Filter orders
-	const filteredOrders = orders.filter((order) => {
-		if (filter === 'ALL') return order.status !== 'SERVED'
-		return order.status === filter
-	})
+	const readyCount = orders.reduce(
+		(count, order) =>
+			count + order.items.filter((item) => item.status === ITEM_STATUS.READY).length,
+		0,
+	)
 
-	// Filter help requests - show only unacknowledged by default
-	const filteredHelpRequests = helpRequests.filter((req) => !req.isAcknowledged)
-	const newHelpRequestsCount = filteredHelpRequests.length
+	const servedCount = orders.reduce(
+		(count, order) =>
+			count + order.items.filter((item) => item.status === ITEM_STATUS.SERVED).length,
+		0,
+	)
 
-	// Stats
-	const stats = {
-		pending: orders.filter((o) => o.status === 'PENDING').length,
-		preparing: orders.filter((o) => o.status === 'PREPARING').length,
-		ready: orders.filter((o) => o.status === 'READY').length,
-		helpRequests: newHelpRequestsCount,
-	}
+	const paymentCount = orders.filter((order) => {
+		if (!order.items || order.items.length === 0) return false
+		const allServed = order.items.every((item) => item.status === ITEM_STATUS.SERVED)
+		return allServed && order.paymentStatus === PAYMENT_STATUS.PENDING
+	}).length
 
+	const filteredHelpRequests = helpRequests.filter((req) => !req.acknowledged)
+	const helpRequestsCount = filteredHelpRequests.length
+
+	// Render loading skeleton
 	if (loading) {
 		return (
-			<div className="min-h-screen bg-[#101922] flex items-center justify-center">
-				<CardSkeleton />
+			<div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-6">
+				<div className="max-w-7xl mx-auto space-y-6">
+					<div className="flex items-center justify-between">
+						<div className="h-8 w-48 bg-white/10 rounded animate-pulse" />
+						<div className="h-10 w-32 bg-white/10 rounded animate-pulse" />
+					</div>
+					<CardSkeleton />
+					<CardSkeleton />
+				</div>
 			</div>
 		)
 	}
 
 	return (
-		<div className="min-h-screen bg-[#101922] text-white">
-			{/* Top Navigation Bar */}
-			<nav className="bg-black/40 backdrop-blur-md border-b border-white/10">
-				<div className="max-w-7xl mx-auto px-6 py-4">
-					<div className="flex items-center justify-between">
-						<div className="flex items-center gap-3">
-							<span className="material-symbols-outlined text-blue-400 text-3xl">
-								restaurant
-							</span>
-							<h1 className="text-white text-2xl font-bold">Waiter Panel</h1>
-						</div>
-
-						<div className="flex items-center gap-4">
-							<div className="text-right">
-								<p className="text-white font-medium">{user?.name || 'Waiter'}</p>
-								<p className="text-sm text-gray-400">{user?.email || 'Staff'}</p>
-							</div>
-							<button
-								onClick={handleLogout}
-								className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-400/50 rounded-lg font-medium transition-colors flex items-center gap-2"
-							>
-								<span className="material-symbols-outlined">logout</span>
-								Logout
-							</button>
-						</div>
+		<div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-6">
+			<div className="max-w-7xl mx-auto space-y-6">
+				{/* Top Navigation Bar */}
+				<div className="flex items-center justify-between">
+					<div>
+						<h1 className="text-3xl font-bold text-white mb-1">Waiter Panel</h1>
+						<p className="text-gray-400">Serve customers and manage requests</p>
 					</div>
+					<button
+						onClick={handleLogout}
+						className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors flex items-center gap-2"
+					>
+						<span className="material-symbols-outlined text-lg">logout</span>
+						Logout
+					</button>
 				</div>
-			</nav>
 
-			{/* Main Content Area */}
-			<div className="max-w-7xl mx-auto px-6 py-8">
 				{/* Stats Cards */}
-				<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+				<div className="grid grid-cols-1 md:grid-cols-5 gap-4">
 					<div className="bg-yellow-500/20 backdrop-blur-md rounded-lg p-4 border border-yellow-500/30">
 						<div className="flex items-center gap-3">
 							<span className="material-symbols-outlined text-yellow-400 text-3xl">
-								pending
+								pending_actions
 							</span>
 							<div>
-								<p className="text-yellow-400 text-sm font-medium">Pending Orders</p>
-								<p className="text-white text-2xl font-bold">{stats.pending}</p>
-							</div>
-						</div>
-					</div>
-
-					<div className="bg-blue-500/20 backdrop-blur-md rounded-lg p-4 border border-blue-500/30">
-						<div className="flex items-center gap-3">
-							<span className="material-symbols-outlined text-blue-400 text-3xl">
-								cooking
-							</span>
-							<div>
-								<p className="text-blue-400 text-sm font-medium">Preparing</p>
-								<p className="text-white text-2xl font-bold">{stats.preparing}</p>
+								<p className="text-yellow-400 text-sm font-medium">Pending</p>
+								<p className="text-white text-2xl font-bold">{pendingCount}</p>
 							</div>
 						</div>
 					</div>
@@ -245,54 +649,78 @@ const WaiterPanel = () => {
 					<div className="bg-green-500/20 backdrop-blur-md rounded-lg p-4 border border-green-500/30">
 						<div className="flex items-center gap-3">
 							<span className="material-symbols-outlined text-green-400 text-3xl">
-								check_circle
+								restaurant
 							</span>
 							<div>
-								<p className="text-green-400 text-sm font-medium">Ready to Serve</p>
-								<p className="text-white text-2xl font-bold">{stats.ready}</p>
+								<p className="text-green-400 text-sm font-medium">Ready</p>
+								<p className="text-white text-2xl font-bold">{readyCount}</p>
 							</div>
 						</div>
 					</div>
 
-					<div className="bg-red-500/20 backdrop-blur-md rounded-lg p-4 border border-red-500/30">
+					<div className="bg-purple-500/20 backdrop-blur-md rounded-lg p-4 border border-purple-500/30">
 						<div className="flex items-center gap-3">
-							<span className="material-symbols-outlined text-red-400 text-3xl">
+							<span className="material-symbols-outlined text-purple-400 text-3xl">
+								check_circle
+							</span>
+							<div>
+								<p className="text-purple-400 text-sm font-medium">Served</p>
+								<p className="text-white text-2xl font-bold">{servedCount}</p>
+							</div>
+						</div>
+					</div>
+
+					<div className="bg-blue-500/20 backdrop-blur-md rounded-lg p-4 border border-blue-500/30">
+						<div className="flex items-center gap-3">
+							<span className="material-symbols-outlined text-blue-400 text-3xl">
+								payments
+							</span>
+							<div>
+								<p className="text-blue-400 text-sm font-medium">Payment</p>
+								<p className="text-white text-2xl font-bold">{paymentCount}</p>
+							</div>
+						</div>
+					</div>
+
+					<div className="bg-orange-500/20 backdrop-blur-md rounded-lg p-4 border border-orange-500/30">
+						<div className="flex items-center gap-3">
+							<span className="material-symbols-outlined text-orange-400 text-3xl">
 								help
 							</span>
 							<div>
-								<p className="text-red-400 text-sm font-medium">Help Requests</p>
-								<p className="text-white text-2xl font-bold">{stats.helpRequests}</p>
+								<p className="text-orange-400 text-sm font-medium">Help</p>
+								<p className="text-white text-2xl font-bold">{helpRequestsCount}</p>
 							</div>
 						</div>
 					</div>
 				</div>
 
-				{/* Tabs */}
-				<div className="flex gap-2 mb-6 bg-black/40 backdrop-blur-md rounded-lg p-1 border border-white/10">
+				{/* Tab Navigation */}
+				<div className="flex gap-2">
 					<button
 						onClick={() => setSelectedView('orders')}
-						className={`flex-1 py-3 px-4 rounded-md font-semibold transition-all flex items-center justify-center gap-2 ${
+						className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 ${
 							selectedView === 'orders'
-								? 'bg-blue-500 text-white shadow-lg'
-								: 'text-gray-400 hover:text-white hover:bg-white/5'
+								? 'bg-blue-500 text-white'
+								: 'bg-white/10 text-gray-300 hover:bg-white/20'
 						}`}
 					>
-						<span className="material-symbols-outlined text-sm">receipt_long</span>
+						<span className="material-symbols-outlined">receipt_long</span>
 						Orders
 					</button>
 					<button
 						onClick={() => setSelectedView('help')}
-						className={`relative flex-1 py-3 px-4 rounded-md font-semibold transition-all flex items-center justify-center gap-2 ${
+						className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 relative ${
 							selectedView === 'help'
-								? 'bg-red-500 text-white shadow-lg'
-								: 'text-gray-400 hover:text-white hover:bg-white/5'
+								? 'bg-orange-500 text-white'
+								: 'bg-white/10 text-gray-300 hover:bg-white/20'
 						}`}
 					>
-						<span className="material-symbols-outlined text-sm">help</span>
+						<span className="material-symbols-outlined">help</span>
 						Help Requests
-						{stats.helpRequests > 0 && (
-							<span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[24px] h-6 flex items-center justify-center px-2 shadow-lg">
-								{stats.helpRequests}
+						{helpRequestsCount > 0 && (
+							<span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+								{helpRequestsCount}
 							</span>
 						)}
 					</button>
@@ -300,220 +728,337 @@ const WaiterPanel = () => {
 
 				{/* Orders View */}
 				{selectedView === 'orders' && (
-					<div className="space-y-6">
-						{/* Filter Buttons */}
-						<div className="flex gap-2">
-							{['ALL', 'PENDING', 'PREPARING', 'READY'].map((f) => (
-								<button
-									key={f}
-									onClick={() => setFilter(f)}
-									className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-										filter === f
-											? 'bg-blue-500 text-white'
-											: 'bg-white/10 text-gray-300 hover:bg-white/20'
-									}`}
-								>
-									{f === 'ALL' ? 'All Active' : f}
-								</button>
-							))}
+					<>
+						{/* Filters */}
+						<div className="flex flex-col md:flex-row gap-4">
+							<div className="flex-1">
+								<div className="relative">
+									<span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+										search
+									</span>
+									<input
+										type="text"
+										placeholder="Search by table or item name..."
+										value={searchQuery}
+										onChange={(e) => setSearchQuery(e.target.value)}
+										className="w-full pl-10 pr-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+									/>
+								</div>
+							</div>
+
+							<div className="flex gap-2">
+								{['PENDING', 'READY', 'SERVED', 'PAYMENT'].map((view) => (
+									<button
+										key={view}
+										onClick={() => setOrdersView(view)}
+										className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+											ordersView === view
+												? 'bg-blue-500 text-white'
+												: 'bg-white/10 text-gray-300 hover:bg-white/20'
+										}`}
+									>
+										{view === 'PENDING'
+											? 'Pending'
+											: view === 'READY'
+											? 'Ready'
+											: view === 'SERVED'
+											? 'Served'
+											: 'Payment'}
+									</button>
+								))}
+							</div>
 						</div>
 
-						{/* Orders Grid */}
+						{/* Orders List */}
 						{filteredOrders.length === 0 ? (
 							<div className="bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-12 text-center">
 								<span className="material-symbols-outlined text-gray-400 text-6xl mb-4">
 									receipt_long
 								</span>
-								<p className="text-gray-400 text-lg">No orders to handle</p>
-								<p className="text-gray-500 mt-2">All caught up!</p>
+								<p className="text-gray-400 text-lg">No orders to display</p>
 							</div>
 						) : (
-							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+							<div className="space-y-4">
 								{filteredOrders.map((order) => {
-									const statusColors = {
-										PENDING: 'border-yellow-500/50 bg-yellow-500/5',
-										PREPARING: 'border-blue-500/50 bg-blue-500/5',
-										READY: 'border-green-500/50 bg-green-500/5',
-									}
+									const allServed = order.items.every(
+										(item) => item.status === ITEM_STATUS.SERVED,
+									)
+									const needsPayment =
+										allServed && order.paymentStatus === PAYMENT_STATUS.PENDING
 
 									return (
 										<div
 											key={order.id}
 											className={`bg-white/10 backdrop-blur-md rounded-lg border overflow-hidden ${
-												statusColors[order.status] || 'border-white/20'
+												needsPayment ? 'border-blue-500/50' : 'border-white/20'
 											}`}
 										>
 											{/* Order Header */}
-											<div className="p-4 border-b border-white/10">
-												<div className="flex items-center justify-between mb-2">
-													<div className="flex items-center gap-2">
-														<span className="material-symbols-outlined text-blue-400">
-															table_restaurant
-														</span>
-														<h3 className="text-white text-lg font-bold">
-															{order.tableName}
+											<div
+												className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/5 transition-colors"
+												onClick={() => toggleOrderExpansion(order.id)}
+											>
+												<div className="flex items-center gap-4">
+													<span className="material-symbols-outlined text-blue-400 text-3xl">
+														table_restaurant
+													</span>
+													<div>
+														<h3 className="text-white text-lg font-semibold">
+															{order.table?.name || `Table ${order.tableId}`}
 														</h3>
+														<p className="text-gray-400 text-sm">
+															{order.items.length} item(s) • Order #{order.id.slice(0, 8)}
+														</p>
+														{needsPayment && (
+															<span className="inline-block mt-1 px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded">
+																Awaiting Payment
+															</span>
+														)}
 													</div>
+												</div>
+
+												<div className="flex items-center gap-4">
+													{ordersView === 'PAYMENT' && (
+														<span className="text-white text-lg font-bold">
+															${formatPrice(order.total)}
+														</span>
+													)}
 													<span
-														className={`px-2 py-1 rounded text-xs font-medium ${
-															order.status === 'PENDING'
-																? 'bg-yellow-500/20 text-yellow-300'
-																: order.status === 'PREPARING'
-																? 'bg-blue-500/20 text-blue-300'
-																: 'bg-green-500/20 text-green-300'
+														className={`material-symbols-outlined text-white transition-transform ${
+															expandedOrders.has(order.id) ? 'rotate-180' : ''
 														}`}
 													>
-														{order.status}
+														expand_more
 													</span>
 												</div>
-												<p className="text-sm text-gray-400">Order #{order.id}</p>
 											</div>
 
-											{/* Order Content */}
-											<div className="p-4">
-												<div className="flex justify-between items-start mb-3">
-													<div>
-														<p className="text-sm text-gray-400">Items</p>
-														<p className="text-lg font-bold text-white">
-															{order.itemCount}
-														</p>
-													</div>
-													<div className="text-right">
-														<p className="text-sm text-gray-400">Total</p>
-														<p className="text-xl font-bold text-blue-400">
-															${order.totalAmount.toFixed(2)}
-														</p>
-													</div>
-												</div>
+											{/* Order Items (Expanded) */}
+											{expandedOrders.has(order.id) && (
+												<div className="border-t border-white/10 p-4 space-y-3">
+													{/* Bulk Actions for PENDING orders - Right aligned compact */}
+													{ordersView === 'PENDING' &&
+														order.items.some(
+															(item) => item.status === ITEM_STATUS.PENDING,
+														) && (
+															<div className="flex justify-end gap-2 mb-3">
+																<button
+																	onClick={() =>
+																		handleRejectItems(
+																			order.id,
+																			order.items
+																				.filter(
+																					(item) => item.status === ITEM_STATUS.PENDING,
+																				)
+																				.map((item) => item.id),
+																		)
+																	}
+																	title="Reject all pending items"
+																	className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-sm font-medium transition-colors flex items-center gap-1.5"
+																>
+																	<span className="material-symbols-outlined text-base">
+																		close
+																	</span>
+																	Reject All
+																</button>
+																<button
+																	onClick={() =>
+																		handleAcceptItems(
+																			order.id,
+																			order.items
+																				.filter(
+																					(item) => item.status === ITEM_STATUS.PENDING,
+																				)
+																				.map((item) => item.id),
+																		)
+																	}
+																	title="Accept all pending items"
+																	className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded text-sm font-medium transition-colors flex items-center gap-1.5"
+																>
+																	<span className="material-symbols-outlined text-base">
+																		check
+																	</span>
+																	Accept All
+																</button>
+															</div>
+														)}
 
-												{/* Items Preview */}
-												<div className="bg-black/40 rounded-lg p-3 mb-3 space-y-2">
-													{order.items.map((item, idx) => (
-														<div key={idx} className="flex justify-between text-sm">
-															<span className="text-gray-300">
-																{item.quantity}x {item.name}
-															</span>
-															<span className="text-gray-400">
-																${(item.price * item.quantity).toFixed(2)}
-															</span>
+													{order.items.map((item) => (
+														<div key={item.id} className="bg-white/5 rounded-lg p-4">
+															{/* Item Info and Action Buttons */}
+															<div className="flex items-start justify-between gap-4">
+																<div className="flex-1">
+																	<div className="flex items-center gap-3 mb-2">
+																		<h4 className="text-white font-semibold">
+																			{item.name}
+																		</h4>
+																		<span
+																			className={`px-2 py-1 rounded text-xs font-medium ${
+																				ITEM_STATUS_COLORS[item.status]
+																			}`}
+																		>
+																			{ITEM_STATUS_LABELS[item.status]}
+																		</span>
+																	</div>
+
+																	<p className="text-gray-400 text-sm mb-2">
+																		Quantity: {item.quantity} × $
+																		{formatPrice(item.unitPrice)}= $
+																		{formatPrice(item.subtotal)}
+																	</p>
+
+																	{/* Modifiers */}
+																	{item.modifiers && item.modifiers.length > 0 && (
+																		<div className="text-gray-400 text-sm mb-2">
+																			<strong>Modifiers:</strong>
+																			<ul className="ml-4 list-disc">
+																				{item.modifiers.map((mod, idx) => (
+																					<li key={idx}>
+																						{mod.optionName} (+${formatPrice(mod.price)})
+																					</li>
+																				))}
+																			</ul>
+																		</div>
+																	)}
+
+																	{/* Notes */}
+																	{item.notes && (
+																		<p className="text-yellow-400 text-sm">
+																			📝 {item.notes}
+																		</p>
+																	)}
+																</div>
+
+																{/* Action Buttons - Right side */}
+																<div className="flex flex-col gap-2 items-end">
+																	{/* READY item button */}
+																	{item.status === ITEM_STATUS.READY && (
+																		<button
+																			onClick={() =>
+																				handleMarkServed(order.id, [item.id])
+																			}
+																			title="Mark as served"
+																			className="px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded text-sm font-medium transition-colors flex items-center gap-1.5"
+																		>
+																			<span className="material-symbols-outlined text-base">
+																				check_circle
+																			</span>
+																			Served
+																		</button>
+																	)}
+																</div>
+															</div>
 														</div>
 													))}
-												</div>
 
-												{/* Timestamp */}
-												<div className="flex items-center gap-2 text-xs text-gray-400 mb-4">
-													<span className="material-symbols-outlined text-sm">
-														schedule
-													</span>
-													<span>
-														{formatTimestamp(new Date(order.createdAt).getTime())}
-													</span>
-												</div>
+													{/* Payment Button (only show in PAYMENT view) */}
+													{ordersView === 'PAYMENT' && needsPayment && (
+														<div className="mt-4 p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
+															<div className="mb-3">
+																<p className="text-white font-semibold mb-3">
+																	Payment Summary
+																</p>
 
-												{/* Actions */}
-												<div className="flex gap-2">
-													{order.status === 'PENDING' && (
-														<button
-															onClick={() => handleAcceptOrder(order.id)}
-															className="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-400/50 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-														>
-															<span className="material-symbols-outlined text-base">
-																check
-															</span>
-															Accept
-														</button>
-													)}
-													{order.status === 'READY' && (
-														<button
-															onClick={() => handleServeOrder(order.id)}
-															className="flex-1 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-400/50 py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
-														>
-															<span className="material-symbols-outlined text-base">
-																check_circle
-															</span>
-															Mark Served
-														</button>
-													)}
-													{order.status === 'PREPARING' && (
-														<div className="flex-1 bg-blue-500/20 text-blue-300 py-2 rounded-lg font-semibold text-center flex items-center justify-center gap-2">
-															<span className="material-symbols-outlined text-base">
-																cooking
-															</span>
-															Being Prepared...
+																{/* Price Breakdown */}
+																<div className="space-y-2 mb-3">
+																	<div className="flex justify-between text-gray-300 text-sm">
+																		<span>Subtotal:</span>
+																		<span>{formatPrice(order.subtotal)} VND</span>
+																	</div>
+																	{order.tax > 0 && (
+																		<div className="flex justify-between text-gray-300 text-sm">
+																			<span>Tax (10%):</span>
+																			<span>{formatPrice(order.tax)} VND</span>
+																		</div>
+																	)}
+																	{order.discount > 0 && (
+																		<div className="flex justify-between text-green-400 text-sm">
+																			<span>Discount:</span>
+																			<span>-{formatPrice(order.discount)} VND</span>
+																		</div>
+																	)}
+																	<div className="border-t border-white/20 pt-2 mt-2 flex justify-between">
+																		<span className="text-white font-semibold">
+																			Total:
+																		</span>
+																		<span className="text-blue-400 text-xl font-bold">
+																			{formatPrice(order.total)} VND
+																		</span>
+																	</div>
+																</div>
+															</div>
+
+															<div className="flex gap-2">
+																<button
+																	onClick={() => handleMarkPaid(order.id, 'CASH')}
+																	className="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors"
+																>
+																	💵 Cash
+																</button>
+																<button
+																	onClick={() => handleMarkPaid(order.id, 'CARD')}
+																	className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+																>
+																	💳 Card
+																</button>
+																<button
+																	onClick={() => handleMarkPaid(order.id, 'MOMO')}
+																	className="flex-1 px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-medium transition-colors"
+																>
+																	📱 MoMo
+																</button>
+															</div>
 														</div>
 													)}
 												</div>
-											</div>
+											)}
 										</div>
 									)
 								})}
 							</div>
 						)}
-					</div>
+					</>
 				)}
 
-				{/* Help Requests View */}
+				{/* Help Requests View - PRESERVED */}
 				{selectedView === 'help' && (
 					<div className="space-y-4">
+						<h2 className="text-2xl font-bold text-white mb-4">Help Requests</h2>
 						{filteredHelpRequests.length === 0 ? (
 							<div className="bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-12 text-center">
 								<span className="material-symbols-outlined text-gray-400 text-6xl mb-4">
-									notifications_off
+									check_circle
 								</span>
 								<p className="text-gray-400 text-lg">No new help requests</p>
-								<p className="text-gray-500 mt-2">Customers are happy!</p>
 							</div>
 						) : (
 							filteredHelpRequests.map((request) => (
 								<div
 									key={request.id}
-									className="bg-black/40 backdrop-blur-md rounded-xl p-4 border border-yellow-500/50 shadow-lg shadow-yellow-500/10"
+									className="bg-orange-500/10 backdrop-blur-md rounded-lg p-4 border border-orange-500/30"
 								>
-									<div className="flex items-start justify-between gap-4">
-										{/* Left: Info */}
-										<div className="flex-1 space-y-2">
-											{/* Table Name */}
-											<div className="flex items-center gap-2">
-												<span className="material-symbols-outlined text-blue-400">
-													table_restaurant
-												</span>
-												<h3 className="text-white text-lg font-bold m-0">
+									<div className="flex items-center justify-between">
+										<div className="flex items-center gap-4">
+											<span className="material-symbols-outlined text-orange-400 text-3xl">
+												help
+											</span>
+											<div>
+												<h3 className="text-white text-lg font-semibold">
 													{request.tableName}
 												</h3>
-												<span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs font-bold rounded-full border border-yellow-500/50">
-													NEW
-												</span>
-											</div>
-
-											{/* Message */}
-											<p className="text-gray-300 text-sm">{request.message}</p>
-
-											{/* Timestamp */}
-											<div className="flex items-center gap-2 text-xs text-gray-400">
-												<span className="material-symbols-outlined text-sm">
-													schedule
-												</span>
-												<span>
-													{getFullDateTime(new Date(request.createdAt).getTime())}
-												</span>
-												<span className="text-gray-500">•</span>
-												<span className="text-yellow-400 font-semibold">
+												<p className="text-gray-300 text-sm">{request.message}</p>
+												<p className="text-gray-400 text-xs mt-1">
 													{formatTimestamp(new Date(request.createdAt).getTime())}
-												</span>
+												</p>
 											</div>
 										</div>
-
-										{/* Right: Action Button */}
-										<div className="flex flex-col items-end gap-2">
-											<button
-												onClick={() => handleResolveHelp(request.id)}
-												className="flex items-center justify-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 border border-green-400/50 rounded-lg transition-colors hover:bg-green-500/30 active:scale-95"
-												title="Acknowledge request"
-											>
-												<span className="material-symbols-outlined">check_circle</span>
-												<span className="font-semibold text-sm">Acknowledge</span>
-											</button>
-										</div>
+										<button
+											onClick={() => handleResolveHelp(request.id)}
+											className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors flex items-center gap-2"
+										>
+											<span className="material-symbols-outlined">check</span>
+											Acknowledge
+										</button>
 									</div>
 								</div>
 							))

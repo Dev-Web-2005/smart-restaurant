@@ -303,16 +303,18 @@ const CartPage = ({
 									if (confirmed) {
 										try {
 											// Call API to clear cart on backend
-											await apiClient.delete(`/tenants/${tenantId}/tables/${tableId}/cart`)
-											
+											await apiClient.delete(
+												`/tenants/${tenantId}/tables/${tableId}/cart`,
+											)
+
 											// Update local state
 											onClearCart()
-											
+
 											// Refresh cart from backend
 											if (onRefreshCart) {
 												await onRefreshCart()
 											}
-											
+
 											showAlert(
 												'Cart Cleared',
 												'All items have been removed from your cart',
@@ -323,7 +325,8 @@ const CartPage = ({
 											console.error('❌ Error clearing cart:', error)
 											showAlert(
 												'Clear Failed',
-												error.response?.data?.message || 'Failed to clear cart. Please try again.',
+												error.response?.data?.message ||
+													'Failed to clear cart. Please try again.',
 												'error',
 												5000,
 											)

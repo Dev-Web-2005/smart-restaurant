@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAlert } from '../../../contexts/AlertContext'
 import apiClient from '../../../services/apiClient'
+import { getOrdersAPI } from '../../../services/api/orderAPI'
+import socketClient from '../../../services/websocket/socketClient'
 
 // Import page components
 import MenuPage from './pages/MenuPage'
@@ -75,58 +77,6 @@ if (typeof document !== 'undefined') {
 	}
 }
 
-// Mock Orders Data (fallback for development)
-const mockOrders = [
-	{
-		id: 'ORD-001',
-		createdAt: '2025-12-29T10:30:00Z',
-		status: 'PREPARING',
-		currentStep: 'Preparing',
-		totalAmount: 45.5,
-		items: [
-			{
-				name: 'Spicy Miso Ramen',
-				price: 15.5,
-				quantity: 2,
-				modifiers: ['Large', 'Extra Egg'],
-			},
-			{ name: 'Classic Pad Thai', price: 14.0, quantity: 1, modifiers: [] },
-		],
-		rejectionReason: null,
-	},
-	{
-		id: 'ORD-002',
-		createdAt: '2025-12-29T09:15:00Z',
-		status: 'READY',
-		currentStep: 'Ready',
-		totalAmount: 27.5,
-		items: [{ name: 'Beef Pho', price: 13.5, quantity: 2, modifiers: ['Rare Beef'] }],
-		rejectionReason: null,
-	},
-	{
-		id: 'ORD-003',
-		createdAt: '2025-12-29T08:45:00Z',
-		status: 'REJECTED',
-		currentStep: null,
-		totalAmount: 24.0,
-		items: [{ name: 'Dan Dan Noodles', price: 12.0, quantity: 2, modifiers: [] }],
-		rejectionReason: 'Out of ingredients - Sichuan peppercorns',
-	},
-	{
-		id: 'ORD-004',
-		createdAt: '2025-12-28T19:30:00Z',
-		status: 'RECEIVED',
-		currentStep: 'Received',
-		totalAmount: 33.0,
-		items: [
-			{ name: 'Veggie Burger', price: 11.5, quantity: 1, modifiers: ['Cheese'] },
-			{ name: 'Greek Salad', price: 9.0, quantity: 1, modifiers: [] },
-			{ name: 'Tomato Soup', price: 8.0, quantity: 1, modifiers: [] },
-		],
-		rejectionReason: null,
-	},
-]
-
 const OrderManagementInterface = () => {
 	// Get tenantId/ownerId and tableId from URL params
 	// Supports both legacy route (/order/:tenantId/table/:tableId) and new multi-tenant route (/r/:ownerId/order/table/:tableId)
@@ -135,12 +85,13 @@ const OrderManagementInterface = () => {
 	const tableId = params.tableId
 
 	// Alert context for custom alerts/confirms
-	const { showAlert, showConfirm } = useAlert()
+	const { showAlert } = useAlert()
 
 	// State management
 	const [cartItems, setCartItems] = useState([]) // { id, name, price, qty, totalPrice, modifiers, specialNotes, imageUrl }
 	const [view, setView] = useState('MENU') // MENU | ORDERS | CART
-	const [orders, setOrders] = useState(mockOrders) // Orders history
+	const [orders, setOrders] = useState([]) // Orders history (fetched from backend)
+	const [loadingOrders, setLoadingOrders] = useState(false)
 
 	// Settings state
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -159,7 +110,7 @@ const OrderManagementInterface = () => {
 	const totalItemsInCart = cartItems.reduce((acc, item) => acc + item.qty, 0)
 
 	// Fetch cart from backend
-	const fetchCart = async () => {
+	const fetchCart = useCallback(async () => {
 		try {
 			if (!tenantId || !tableId) {
 				console.warn('⚠️ fetchCart: Missing tenantId or tableId')
@@ -206,12 +157,109 @@ const OrderManagementInterface = () => {
 				status: error.response?.status,
 			})
 		}
-	}
+	}, [tenantId, tableId])
+
+	// Fetch customer's unpaid orders
+	const fetchOrders = useCallback(async () => {
+		try {
+			if (!tenantId || !tableId) {
+				console.warn('⚠️ fetchOrders: Missing tenantId or tableId')
+				return
+			}
+
+			setLoadingOrders(true)
+			console.log('📥 Fetching unpaid orders for table:', tableId)
+
+			const response = await getOrdersAPI({
+				tenantId,
+				tableId, // Filter by customer's table
+				paymentStatus: 'PENDING', // Only unpaid orders
+				page: 1,
+				limit: 50, // Get up to 50 recent orders
+			})
+
+			console.log('📥 Orders response:', response)
+			const fetchedOrders = response?.orders || []
+			setOrders(fetchedOrders)
+			console.log(`✅ Fetched ${fetchedOrders.length} unpaid orders`)
+		} catch (error) {
+			console.error('❌ Error fetching orders:', error)
+			console.error('❌ Fetch orders error details:', {
+				message: error.message,
+				response: error.response?.data,
+				status: error.response?.status,
+			})
+			setOrders([]) // Clear orders on error
+		} finally {
+			setLoadingOrders(false)
+		}
+	}, [tenantId, tableId])
 
 	// Load cart on component mount
 	useEffect(() => {
 		fetchCart()
-	}, [tenantId, tableId])
+	}, [tenantId, tableId, fetchCart])
+
+	// Fetch orders when view changes to 'ORDERS' or on mount
+	useEffect(() => {
+		if (view === 'ORDERS') {
+			fetchOrders()
+		}
+	}, [view, fetchOrders])
+
+	// WebSocket setup for real-time order updates (Customer side)
+	useEffect(() => {
+		if (!tenantId || !tableId) {
+			return
+		}
+
+		const token = window.accessToken || localStorage.getItem('authToken')
+		if (!token) {
+			console.warn('⚠️ No auth token found for WebSocket')
+			return
+		}
+
+		console.log('🔌 Setting up WebSocket for customer order updates')
+		console.log('📍 Table:', tableId, 'Tenant:', tenantId)
+
+		// Connect to WebSocket
+		socketClient.connect(token)
+
+		// Event handler functions
+		const handleItemsAccepted = (payload) => {
+			console.log('✅ Items accepted:', payload)
+			fetchOrders() // Refresh orders to show updated status
+		}
+
+		const handleItemsReady = (payload) => {
+			console.log('🍽️ Items ready:', payload)
+			fetchOrders() // Refresh orders to show updated status
+		}
+
+		const handleItemsServed = (payload) => {
+			console.log('✨ Items served:', payload)
+			fetchOrders() // Refresh orders to show updated status
+		}
+
+		const handleItemsRejected = (payload) => {
+			console.log('❌ Items rejected:', payload)
+			fetchOrders() // Refresh orders to show rejection
+		}
+
+		// Register event listeners
+		socketClient.on('order.items.accepted', handleItemsAccepted)
+		socketClient.on('order.items.ready', handleItemsReady)
+		socketClient.on('order.items.served', handleItemsServed)
+		socketClient.on('order.items.rejected', handleItemsRejected)
+
+		// Cleanup: Remove event listeners on unmount
+		return () => {
+			socketClient.off('order.items.accepted', handleItemsAccepted)
+			socketClient.off('order.items.ready', handleItemsReady)
+			socketClient.off('order.items.served', handleItemsServed)
+			socketClient.off('order.items.rejected', handleItemsRejected)
+		}
+	}, [tenantId, tableId, fetchOrders])
 
 	// Handle adding item to cart from MenuPage
 	const handleAddToCart = async (cartItem) => {
@@ -241,10 +289,7 @@ const OrderManagementInterface = () => {
 			console.log('📍 POST URL:', `/tenants/${tenantId}/tables/${tableId}/cart/items`)
 
 			console.log('⏳ Sending POST request at:', new Date().toISOString())
-			const response = await apiClient.post(
-				`/tenants/${tenantId}/tables/${tableId}/cart/items`,
-				payload,
-			)
+			await apiClient.post(`/tenants/${tenantId}/tables/${tableId}/cart/items`, payload)
 			console.log('⏱️ POST request completed at:', new Date().toISOString())
 			// Reload entire cart from backend to ensure sync
 			console.log('🔄 Reloading cart from backend...')
@@ -311,7 +356,11 @@ const OrderManagementInterface = () => {
 				/>
 				{/* CONTENT VIEWS */}
 				{view === 'ORDERS' && (
-					<OrdersPage orders={orders} onBrowseMenu={() => setView('MENU')} />
+					<OrdersPage
+						orders={orders}
+						loading={loadingOrders}
+						onBrowseMenu={() => setView('MENU')}
+					/>
 				)}
 				{view === 'MENU' && (
 					<MenuPage tenantId={tenantId} onAddToCart={handleAddToCart} />
