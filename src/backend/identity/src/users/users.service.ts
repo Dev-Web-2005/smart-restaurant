@@ -57,10 +57,12 @@ export class UsersService {
 	async Register(
 		data: RegisterUserWithProfileRequestDto,
 	): Promise<RegisterUserResponseDto> {
-		const rolesString = data.roles || ['USER'];
-		if (!rolesString.includes('USER')) {
-			rolesString.push('USER');
+		const rolesString = data.roles || [];
+		console.log('Requested roles for registration:', rolesString);
+		if (rolesString.length === 0) {
+			rolesString.push(RoleEnum[RoleEnum.USER]);
 		}
+		console.log('Final roles for registration:', rolesString);
 		const roles: Role[] = [];
 		for (const role of rolesString) {
 			const roleInt: number = RoleEnum[role as keyof typeof RoleEnum];

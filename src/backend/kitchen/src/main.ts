@@ -32,6 +32,17 @@ async function bootstrap() {
 	}
 
 	const port = parseInt(process.env.PORT, 10);
+
+	// TCP Microservice for API Gateway communication
+	app.connectMicroservice<MicroserviceOptions>({
+		transport: Transport.TCP,
+		options: {
+			host: '0.0.0.0',
+			port: port,
+		},
+	});
+
+	// RabbitMQ Microservice for receiving events from Order Service
 	app.connectMicroservice<MicroserviceOptions>({
 		transport: Transport.RMQ,
 		options: {
@@ -49,6 +60,7 @@ async function bootstrap() {
 		},
 	});
 
+	// Dead Letter Queue for failed messages
 	app.connectMicroservice<MicroserviceOptions>({
 		transport: Transport.RMQ,
 		options: {
@@ -84,10 +96,8 @@ async function bootstrap() {
 	);
 
 	await app.startAllMicroservices();
-	console.log(`Kitchen Service is running on port ${port}`);
-
-	await app.listen(port, '127.0.0.1');
-	console.log(`HTTP Health endpoint listening on 127.0.0.1:${port}`);
+	console.log(`Kitchen Service TCP listening on port ${port}`);
+	console.log(`Kitchen Service RabbitMQ listening on queue ${name}_queue`);
 
 	process.on('SIGINT', () => {
 		console.log('SIGINT received. Shutting down gracefully...');
