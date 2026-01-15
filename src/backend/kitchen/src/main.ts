@@ -32,6 +32,16 @@ async function bootstrap() {
 	}
 
 	const port = parseInt(process.env.PORT, 10);
+
+	// 1. TCP Transport for API Gateway RPC calls (kitchen:get-display, etc.)
+	app.connectMicroservice<MicroserviceOptions>({
+		transport: Transport.TCP,
+		options: {
+			port: port,
+		},
+	});
+
+	// 2. RabbitMQ Transport for events from Order Service (order.items.accepted)
 	app.connectMicroservice<MicroserviceOptions>({
 		transport: Transport.RMQ,
 		options: {
@@ -49,6 +59,7 @@ async function bootstrap() {
 		},
 	});
 
+	// 3. RabbitMQ DLQ listener
 	app.connectMicroservice<MicroserviceOptions>({
 		transport: Transport.RMQ,
 		options: {
