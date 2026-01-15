@@ -1,8 +1,15 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+	Injectable,
+	Logger,
+	OnModuleDestroy,
+	OnModuleInit,
+	Inject,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, Not, MoreThan } from 'typeorm';
-import { RpcException } from '@nestjs/microservices';
+import { RpcException, ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 import * as amqp from 'amqplib';
 
 import { KitchenTicket, KitchenTicketItem } from '../common/entities';
@@ -49,26 +56,30 @@ import ErrorCode from '@shared/exceptions/error-code';
 /**
  * KitchenService
  *
- * Core business logic for Kitchen Display System (KDS)
+ * THIN KITCHEN LAYER - Display Enrichment Service
  *
- * BEST PRACTICE ARCHITECTURE (Toast POS, Square KDS, Oracle MICROS):
- * - Tickets are created when waiter accepts order items
- * - Real-time timer tracking for preparation times
- * - Priority management for expediting
- * - Station routing for multi-station kitchens
- * - Bump screen workflow for completion
- * - Recall functionality for remakes
+ * ARCHITECTURE PRINCIPLE:
+ * Order Service is the SINGLE SOURCE OF TRUTH for item status.
+ * Kitchen Service only manages display-related data:
+ * - Timers (elapsed time tracking)
+ * - Priority (expediting workflow)
+ * - Station assignments (routing items to stations)
+ * - Ticket grouping (visual organization for KDS)
  *
- * Key Features:
- * 1. Receive items from Order Service via RabbitMQ
- * 2. Create and manage kitchen tickets
- * 3. Track elapsed time with configurable thresholds
- * 4. Update Order Service when items are ready
- * 5. Publish events to RabbitMQ for WebSocket broadcast via API Gateway
+ * KEY FLOWS:
+ * 1. Order.items.accepted → Kitchen creates display tracking record
+ * 2. Cook starts → Kitchen calls Order Service RPC → Order broadcasts order.items.preparing
+ * 3. Cook ready → Kitchen calls Order Service RPC → Order broadcasts order.items.ready
+ * 4. All apps receive the same order.items.* events (single source of truth)
  *
- * Architecture (Best Practice):
- * Kitchen Service → RabbitMQ (order_events_exchange) → API Gateway → WebSocket clients
- * This follows the same pattern as Order Service for consistency
+ * WHAT KITCHEN OWNS:
+ * - KitchenTicket: Display grouping, timers, priority
+ * - Elapsed time tracking with color thresholds
+ * - Statistics and KPI tracking
+ *
+ * WHAT KITCHEN DOES NOT OWN:
+ * - Item status (PENDING, PREPARING, READY) - owned by Order Service
+ * - Broadcasting item status changes - done by Order Service
  */
 @Injectable()
 export class KitchenService implements OnModuleInit, OnModuleDestroy {
@@ -90,6 +101,7 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 		@InjectRepository(KitchenTicketItem)
 		private readonly ticketItemRepository: Repository<KitchenTicketItem>,
 		private readonly configService: ConfigService,
+		@Inject('ORDER_SERVICE') private readonly orderClient: ClientProxy,
 	) {}
 
 	/**
@@ -98,7 +110,7 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 	async onModuleInit() {
 		await this.initializeRabbitMQ();
 		this.startTicketTimers();
-		this.logger.log('✅ KitchenService initialized');
+		this.logger.log('✅ KitchenService initialized (Thin Kitchen Layer)');
 	}
 
 	/**
@@ -111,14 +123,14 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 	}
 
 	/**
-	 * Initialize RabbitMQ connection
+	 * Initialize RabbitMQ connection (only for timer broadcasts)
 	 */
 	private async initializeRabbitMQ() {
 		try {
 			const amqpUrl = this.configService.get<string>('CONNECTION_AMQP');
 			this.amqpConnection = await amqp.connect(amqpUrl);
 			this.amqpChannel = await this.amqpConnection.createChannel();
-			this.logger.log('✅ RabbitMQ channel initialized');
+			this.logger.log('✅ RabbitMQ channel initialized for timer broadcasts');
 		} catch (error) {
 			this.logger.error(`❌ Failed to initialize RabbitMQ: ${error.message}`);
 		}
@@ -137,7 +149,7 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 	}
 
 	/**
-	 * Publish event to RabbitMQ exchange
+	 * Publish event to RabbitMQ exchange (only for kitchen.timers.update)
 	 */
 	private async publishToExchange(
 		exchangeName: string,
@@ -159,9 +171,48 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 				headers: { pattern: eventPattern },
 			});
 
-			this.logger.log(`✅ Published '${eventPattern}' to '${exchangeName}'`);
+			// Only log for non-timer events to reduce noise
+			if (!eventPattern.includes('timers')) {
+				this.logger.log(`✅ Published '${eventPattern}' to '${exchangeName}'`);
+			}
 		} catch (error) {
 			this.logger.error(`❌ Error publishing: ${error.message}`);
+		}
+	}
+
+	/**
+	 * Call Order Service RPC to update item status
+	 * This is the KEY integration point - Kitchen delegates status to Order Service
+	 */
+	private async callOrderServiceUpdateItems(
+		orderId: string,
+		tenantId: string,
+		itemIds: string[],
+		status: string,
+	): Promise<void> {
+		try {
+			const orderApiKey = this.configService.get<string>('ORDER_API_KEY');
+
+			await firstValueFrom(
+				this.orderClient.send('orders:update-items-status', {
+					orderApiKey,
+					orderId,
+					tenantId,
+					itemIds,
+					status, // 'PREPARING' | 'READY'
+				}),
+			);
+
+			this.logger.log(
+				`✅ Order Service updated ${itemIds.length} items to ${status} for order ${orderId}`,
+			);
+		} catch (error) {
+			this.logger.error(`❌ Failed to call Order Service: ${error.message}`, error.stack);
+			throw new RpcException({
+				code: ErrorCode.INTERNAL_SERVER_ERROR.code,
+				message: `Failed to update order items: ${error.message}`,
+				status: ErrorCode.INTERNAL_SERVER_ERROR.httpStatus,
+			});
 		}
 	}
 
@@ -293,20 +344,24 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 	// ==================== EVENT HANDLERS ====================
 
 	/**
-	 * Handle incoming prepare items event from Order Service
-	 * Creates a new kitchen ticket with the items
+	 * Handle incoming order.items.accepted event from Order Service
+	 * Creates a display tracking record (ticket) for kitchen
+	 *
+	 * NOTE: This is triggered by Order Service broadcasting order.items.accepted
+	 * Kitchen creates a local record to track timers, priority, and display grouping
+	 * Kitchen does NOT broadcast events - Order Service already did that
 	 */
 	async handlePrepareItems(dto: PrepareItemsEventDto): Promise<KitchenTicketResponseDto> {
 		this.validateApiKey(dto.kitchenApiKey);
 
 		this.logger.log(
-			`Creating ticket for order ${dto.orderId}, table ${dto.tableId} with ${dto.items.length} items`,
+			`📥 Creating display ticket for order ${dto.orderId}, table ${dto.tableId} with ${dto.items.length} items`,
 		);
 
 		// Generate ticket number
 		const ticketNumber = this.generateTicketNumber();
 
-		// Create ticket
+		// Create ticket (display grouping record)
 		const ticket = this.ticketRepository.create({
 			tenantId: dto.tenantId,
 			orderId: dto.orderId,
@@ -328,7 +383,7 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 		// Save ticket first to get ID
 		const savedTicket = await this.ticketRepository.save(ticket);
 
-		// Create ticket items
+		// Create ticket items (display references to OrderItem)
 		const ticketItems: KitchenTicketItem[] = [];
 		for (const item of dto.items) {
 			const ticketItem = this.ticketItemRepository.create({
@@ -337,7 +392,7 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 				menuItemId: item.menuItemId,
 				name: item.name,
 				quantity: item.quantity,
-				status: KitchenTicketItemStatus.PENDING,
+				status: KitchenTicketItemStatus.PENDING, // Display status mirrors order
 				station: KitchenStationType.GENERAL, // TODO: Route based on menu item category
 				modifiers: item.modifiers?.map((m) => ({
 					groupName: m.modifierGroupName || 'Modifier',
@@ -356,16 +411,13 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 		await this.ticketItemRepository.save(ticketItems);
 		savedTicket.items = ticketItems;
 
-		this.logger.log(`✅ Created ticket ${ticketNumber} with ${ticketItems.length} items`);
+		this.logger.log(
+			`✅ Created display ticket ${ticketNumber} with ${ticketItems.length} items`,
+		);
 
-		// Publish event to RabbitMQ for WebSocket broadcast via API Gateway
-		await this.publishToExchange('order_events_exchange', 'kitchen.ticket.new', {
-			tenantId: dto.tenantId,
-			orderId: dto.orderId,
-			tableId: dto.tableId,
-			ticket: this.mapToTicketResponse(savedTicket),
-			timestamp: new Date(),
-		});
+		// NOTE: We do NOT broadcast kitchen.ticket.new event
+		// The Order Service already broadcast order.items.accepted
+		// All clients receive that unified event
 
 		return this.mapToTicketResponse(savedTicket);
 	}
@@ -511,10 +563,13 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 		};
 	}
 
-	// ==================== TICKET OPERATIONS ====================
+	// ==================== TICKET OPERATIONS (Calls Order Service RPC) ====================
 
 	/**
-	 * Start preparing a ticket (PENDING → IN_PROGRESS)
+	 * Start preparing a ticket
+	 * - Updates local display status
+	 * - Calls Order Service RPC to update item status to PREPARING
+	 * - Order Service will broadcast order.items.preparing to all clients
 	 */
 	async startTicket(dto: StartTicketRequestDto): Promise<KitchenTicketResponseDto> {
 		this.validateApiKey(dto.kitchenApiKey);
@@ -540,13 +595,21 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 			});
 		}
 
-		// Update ticket
+		// 1. Call Order Service RPC to update items to PREPARING
+		const orderItemIds = ticket.items.map((i) => i.orderItemId);
+		await this.callOrderServiceUpdateItems(
+			ticket.orderId,
+			dto.tenantId,
+			orderItemIds,
+			'PREPARING',
+		);
+
+		// 2. Update local display status
 		ticket.status = KitchenTicketStatus.IN_PROGRESS;
 		ticket.startedAt = new Date();
 		if (dto.cookId) ticket.assignedCookId = dto.cookId;
 		if (dto.cookName) ticket.assignedCookName = dto.cookName;
 
-		// Start all pending items
 		for (const item of ticket.items) {
 			if (item.status === KitchenTicketItemStatus.PENDING) {
 				item.status = KitchenTicketItemStatus.PREPARING;
@@ -557,19 +620,10 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 		await this.ticketRepository.save(ticket);
 		await this.ticketItemRepository.save(ticket.items);
 
-		this.logger.log(`✅ Started ticket ${ticket.ticketNumber}`);
+		this.logger.log(`✅ Started ticket ${ticket.ticketNumber} - Order Service notified`);
 
-		// Publish event to RabbitMQ for WebSocket broadcast
-		await this.publishToExchange('order_events_exchange', 'kitchen.ticket.started', {
-			tenantId: dto.tenantId,
-			orderId: ticket.orderId,
-			tableId: ticket.tableId,
-			ticket: this.mapToTicketResponse(ticket),
-			timestamp: new Date(),
-		});
-
-		// Update Order Service - items now PREPARING
-		await this.notifyOrderService(ticket, 'PREPARING');
+		// NOTE: We do NOT publish kitchen.ticket.started
+		// Order Service broadcasts order.items.preparing which all clients receive
 
 		return this.mapToTicketResponse(ticket);
 	}
@@ -622,8 +676,14 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 		await this.ticketRepository.save(ticket);
 		await this.ticketItemRepository.save(itemsToStart);
 
-		// Notify Order Service
-		await this.notifyOrderServiceItems(ticket, itemsToStart, 'PREPARING');
+		// Update item status in Order Service (source of truth)
+		const orderItemIds = itemsToStart.map((i) => i.orderItemId);
+		await this.callOrderServiceUpdateItems(
+			ticket.orderId,
+			dto.tenantId,
+			orderItemIds,
+			'PREPARING',
+		);
 
 		return this.mapToTicketResponse(ticket);
 	}
@@ -676,7 +736,8 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 
 			this.logger.log(`✅ Ticket ${ticket.ticketNumber} is fully ready`);
 
-			// Publish ready event to RabbitMQ for expo/waiter notification
+			// Publish ticket-level ready event for expo/waiter notification (display-only)
+			// This is a Kitchen display event, not an item status event
 			await this.publishToExchange('order_events_exchange', 'kitchen.ticket.ready', {
 				tenantId: dto.tenantId,
 				orderId: ticket.orderId,
@@ -686,8 +747,15 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 			});
 		}
 
-		// Notify Order Service
-		await this.notifyOrderServiceItems(ticket, itemsToMark, 'READY');
+		// Update item status in Order Service (source of truth)
+		// Order Service will broadcast order.items.ready to all clients
+		const orderItemIds = itemsToMark.map((i) => i.orderItemId);
+		await this.callOrderServiceUpdateItems(
+			ticket.orderId,
+			dto.tenantId,
+			orderItemIds,
+			'READY',
+		);
 
 		return this.mapToTicketResponse(ticket);
 	}
@@ -1051,60 +1119,6 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 	}
 
 	// ==================== HELPER METHODS ====================
-
-	/**
-	 * Notify Order Service about item status changes
-	 */
-	private async notifyOrderService(ticket: KitchenTicket, status: string): Promise<void> {
-		try {
-			const orderApiKey = this.configService.get<string>('ORDER_API_KEY');
-
-			await this.publishToExchange(
-				'order_events_exchange',
-				`kitchen.items.${status.toLowerCase()}`,
-				{
-					orderApiKey,
-					orderId: ticket.orderId,
-					tenantId: ticket.tenantId,
-					ticketId: ticket.id,
-					status,
-					itemIds: ticket.items.map((i) => i.orderItemId),
-					updatedAt: new Date(),
-				},
-			);
-		} catch (error) {
-			this.logger.error(`Failed to notify Order Service: ${error.message}`);
-		}
-	}
-
-	/**
-	 * Notify Order Service about specific item status changes
-	 */
-	private async notifyOrderServiceItems(
-		ticket: KitchenTicket,
-		items: KitchenTicketItem[],
-		status: string,
-	): Promise<void> {
-		try {
-			const orderApiKey = this.configService.get<string>('ORDER_API_KEY');
-
-			await this.publishToExchange(
-				'order_events_exchange',
-				`kitchen.items.${status.toLowerCase()}`,
-				{
-					orderApiKey,
-					orderId: ticket.orderId,
-					tenantId: ticket.tenantId,
-					ticketId: ticket.id,
-					status,
-					itemIds: items.map((i) => i.orderItemId),
-					updatedAt: new Date(),
-				},
-			);
-		} catch (error) {
-			this.logger.error(`Failed to notify Order Service: ${error.message}`);
-		}
-	}
 
 	/**
 	 * Map entity to response DTO

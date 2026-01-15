@@ -27,43 +27,77 @@ The Kitchen Service implements a professional **Kitchen Display System (KDS)** f
 - Per-tenant timer thresholds
 - Tenant-specific statistics
 
-## 🏗️ Architecture
+## 🏗️ Architecture: Thin Kitchen Layer Pattern
+
+The Kitchen Service follows the **"Thin Kitchen Layer"** pattern where:
+
+- **Order Service** is the **SINGLE SOURCE OF TRUTH** for item status
+- **Kitchen Service** manages **display-only data** (timers, priority, station assignments)
+- Kitchen actions **call Order Service RPC** to update item status
+- Order Service broadcasts **unified `order.items.*` events** to all clients
 
 ```
-                              RabbitMQ Exchange
-                           (order_events_exchange)
-                                    │
-                     ┌──────────────┼──────────────┐
-                     │              │              │
-                     ▼              ▼              ▼
-┌──────────────┐  events   ┌──────────────┐  events   ┌──────────────┐
-│ Order Service│ ─────────▶│Kitchen Service│◀─────────│ Waiter Service│
-└──────────────┘           └──────────────┘           └──────────────┘
-       │                          │                          │
-       │ kitchen.prepare_items    │ kitchen.ticket.*         │
-       └──────────────────────────┼──────────────────────────┘
-                                  │
-                                  ▼
-                         ┌──────────────┐
-                         │ API Gateway  │
-                         │ (WebSocket)  │
-                         └──────────────┘
-                                  │
-                        ┌─────────┼─────────┐
-                        ▼         ▼         ▼
-                    Kitchen    Waiter   Customer
-                     (KDS)    Dashboard   App
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          EVENT FLOW                                      │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  1. Order Service accepts items → emits 'kitchen.prepare_items'         │
+│                     │                                                    │
+│                     ▼                                                    │
+│  2. Kitchen Service receives event                                       │
+│     - Creates display ticket (local DB)                                  │
+│     - Manages timers, priority, station                                  │
+│                     │                                                    │
+│                     ▼                                                    │
+│  3. Cook starts preparing (via API Gateway RPC)                          │
+│     - Kitchen calls Order Service RPC: 'orders:update-items-status'     │
+│     - Order Service updates items → emits 'order.items.preparing'       │
+│     - Kitchen updates local display status                               │
+│                     │                                                    │
+│                     ▼                                                    │
+│  4. Cook marks items ready                                               │
+│     - Kitchen calls Order Service RPC: 'orders:update-items-status'     │
+│     - Order Service updates items → emits 'order.items.ready'           │
+│     - Kitchen emits 'kitchen.ticket.ready' (display event for expo)     │
+│                     │                                                    │
+│                     ▼                                                    │
+│  5. API Gateway broadcasts to all connected clients                      │
+│     - Customer App receives 'order.items.ready'                          │
+│     - Waiter App receives 'order.items.ready'                            │
+│     - Kitchen App receives 'order.items.ready' + 'kitchen.ticket.ready' │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Event Flow (Synchronized with Order Service)
+### Key Design Decisions
 
-1. **Customer orders items** → Order Service creates order with PENDING items
-2. **Waiter accepts items** → Order Service emits `kitchen.prepare_items`
-3. **Kitchen creates ticket** → Kitchen emits `kitchen.ticket.new`
-4. **Cook starts preparing** → Kitchen emits `kitchen.ticket.started` + `order.items.preparing`
-5. **Items ready** → Kitchen emits `kitchen.ticket.ready` + `order.items.ready`
-6. **Ticket bumped** → Kitchen emits `kitchen.ticket.completed`
-7. **API Gateway** receives all events and broadcasts via WebSocket
+| Concern             | Responsibility  | Why                                   |
+| ------------------- | --------------- | ------------------------------------- |
+| Item Status         | Order Service   | Single source of truth, no dual state |
+| Display Timers      | Kitchen Service | KDS-specific feature                  |
+| Priority Management | Kitchen Service | Kitchen workflow optimization         |
+| Station Routing     | Kitchen Service | Kitchen-specific organization         |
+| WebSocket Events    | Order Service   | Unified events for all clients        |
+| Ticket Display      | Kitchen Service | Visual grouping for cooks             |
+
+### Event Types
+
+**Order Service Events (Item Status):**
+
+- `order.items.new` - New items added to order
+- `order.items.accepted` - Items accepted by waiter
+- `order.items.preparing` - Cook started preparing
+- `order.items.ready` - Items ready for pickup
+- `order.items.served` - Items delivered to customer
+- `order.items.rejected` - Items rejected
+
+**Kitchen Service Events (Display Only):**
+
+- `kitchen.ticket.ready` - All items in ticket ready (for waiter expo)
+- `kitchen.ticket.completed` - Ticket bumped by cook/expo
+- `kitchen.ticket.priority` - Priority changed
+- `kitchen.items.recalled` - Items need to be remade
+- `kitchen.timers.update` - Real-time timer updates (every 5s)
 
 ## 📊 Database Entities
 
