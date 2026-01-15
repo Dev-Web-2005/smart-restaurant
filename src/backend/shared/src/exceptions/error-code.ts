@@ -422,6 +422,29 @@ export default class ErrorCode {
 		403
 	);
 
+	// ==================== KITCHEN (4700-4799) ====================
+
+	/** Kitchen item not found */
+	static readonly KITCHEN_ITEM_NOT_FOUND: ErrorCode = new ErrorCode(
+		4701,
+		"Kitchen item not found",
+		404
+	);
+
+	/** Invalid kitchen item status transition */
+	static readonly INVALID_KITCHEN_STATUS_TRANSITION: ErrorCode = new ErrorCode(
+		4702,
+		"Invalid kitchen item status transition",
+		400
+	);
+
+	/** Invalid kitchen API key */
+	static readonly INVALID_KITCHEN_API_KEY: ErrorCode = new ErrorCode(
+		4703,
+		"Invalid Kitchen API key",
+		401
+	);
+
 	// ==================== PAYMENT (5000-5999) ====================
 	// Reserved for payment service
 
