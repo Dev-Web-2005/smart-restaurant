@@ -487,12 +487,16 @@ const OrderManagement = () => {
 				return
 			}
 
+			console.log('📡 Fetching orders for tenant:', tenantId)
+
 			// Fetch all orders (we'll filter by view on frontend)
 			const response = await getOrdersAPI({
 				tenantId,
 				page: 1,
 				limit: 100, // Get more orders to show across all tabs
 			})
+
+			console.log('✅ Orders fetched:', response)
 
 			if (response?.code === 1000 && response?.data) {
 				// Backend returns PaginatedOrdersResponseDto: { orders, total, page, limit, totalPages }
@@ -506,10 +510,10 @@ const OrderManagement = () => {
 	}
 
 	/**
-	 * Initial load
+	 * Initial load + WebSocket setup
 	 */
 	useEffect(() => {
-		const initialize = async () => {
+		const initializeOrders = async () => {
 			try {
 				// Request notification permission
 				if ('Notification' in window && Notification.permission === 'default') {
@@ -520,6 +524,65 @@ const OrderManagement = () => {
 
 				// Fetch initial orders
 				await fetchOrders()
+
+				// Setup WebSocket connection
+			const authToken = window.accessToken || localStorage.getItem('authToken')
+			const tenantId = user?.tenantId || localStorage.getItem('currentTenantId')
+
+			console.log('🔍 WebSocket setup check:', {
+				hasAuthToken: !!authToken,
+				hasTenantId: !!tenantId,
+				userRole: user?.role,
+				tokenPreview: authToken ? authToken.substring(0, 20) + '...' : 'NONE',
+			})
+
+			if (authToken && tenantId) {
+				console.log('🔌 Connecting to WebSocket with token...')
+
+				// Connect WebSocket
+				socketClient.connect(authToken)
+
+				// Wait a bit for connection to establish
+				await new Promise((resolve) => setTimeout(resolve, 500))
+
+				console.log('📡 WebSocket setup complete, listeners registered')
+
+						// Show notification
+						if (payload?.data) {
+							const { tableId, items, customerName } = payload.data
+							const itemCount = items?.length || 0
+
+							// You can use a notification system here
+							console.log(
+								`📢 New Order Alert: ${itemCount} item(s) from ${
+									customerName || 'Customer'
+								} at Table ${tableId}`,
+							)
+
+							// Optionally show browser notification
+							if ('Notification' in window && Notification.permission === 'granted') {
+								new Notification('New Order Received', {
+									body: `${itemCount} item(s) from Table ${tableId}`,
+									icon: '/logo.png',
+								})
+							}
+						}
+
+						// Refresh orders list to show new pending items
+						fetchOrders(true) // silent refresh
+					})
+
+					// Listen for other order events (optional)
+					socketClient.on('order.items.accepted', (payload) => {
+						console.log('✅ Order items accepted:', payload)
+						fetchOrders(true)
+					})
+
+					socketClient.on('order.items.ready', (payload) => {
+						console.log('🍽️ Order items ready:', payload)
+						fetchOrders(true)
+					})
+				}
 			} catch (error) {
 				console.error('❌ Error initializing orders:', error)
 			} finally {
@@ -527,92 +590,17 @@ const OrderManagement = () => {
 			}
 		}
 
-		initialize()
-	}, []) // Run once on mount
+		initializeOrders()
 
-	/**
-	 * WebSocket setup - Separate useEffect to prevent reconnections
-	 */
-	useEffect(() => {
-		const setupWebSocket = () => {
-			// Use window.accessToken (set by authAPI after login/refresh)
-			const authToken = window.accessToken || localStorage.getItem('authToken')
-			const tenantId =
-				user?.tenantId || user?.userId || localStorage.getItem('currentTenantId')
-
-			if (!authToken || !tenantId) {
-				console.error(
-					'❌ [OrderManagement] No token or tenantId, skipping WebSocket setup',
-				)
-				return
-			}
-
-			// Only connect if not already connected
-			if (socketClient.isSocketConnected()) {
-				console.log(
-					'🔵 [OrderManagement] WebSocket already connected, reusing connection',
-				)
-				return
-			}
-
-			// Connect WebSocket
-			socketClient.connect(authToken)
-
-			// Define event handlers
-			const handleNewOrderItems = (payload) => {
-				console.log('🆕 [OrderManagement] New order received')
-
-				// Show notification
-				if (payload?.data) {
-					const { tableId, items } = payload.data
-					const itemCount = items?.length || 0
-
-					// Optionally show browser notification
-					if ('Notification' in window && Notification.permission === 'granted') {
-						new Notification('New Order Received', {
-							body: `${itemCount} item(s) from Table ${tableId}`,
-							icon: '/logo.png',
-						})
-					}
-				}
-
-				// Refresh orders list to show new pending items
-				fetchOrders(true) // silent refresh
-			}
-
-			const handleItemsAccepted = (payload) => {
-				console.log('✅ [OrderManagement] Order items accepted')
-				fetchOrders(true)
-			}
-
-			const handleItemsReady = (payload) => {
-				console.log('🍽️ [OrderManagement] Order items ready')
-				fetchOrders(true)
-			}
-
-			// Listen for events
-			socketClient.on('order.items.new', handleNewOrderItems)
-			socketClient.on('order.items.accepted', handleItemsAccepted)
-			socketClient.on('order.items.ready', handleItemsReady)
-		}
-
-		// Only setup WebSocket if user is available
-		const effectiveTenantId = user?.tenantId || user?.userId
-		if (effectiveTenantId) {
-			setupWebSocket()
-		} else {
-			console.error(
-				'❌ [OrderManagement] User authentication required for real-time updates',
-			)
-		}
-
-		// Cleanup only on unmount (not on re-render)
+		// Cleanup WebSocket on unmount
 		return () => {
+			console.log('🔌 Disconnecting WebSocket...')
 			socketClient.off('order.items.new')
 			socketClient.off('order.items.accepted')
 			socketClient.off('order.items.ready')
+			socketClient.disconnect()
 		}
-	}, [user?.tenantId, user?.userId]) // Reconnect if tenantId or userId changes
+	}, [user])
 
 	// Filter orders based on view and search
 	useEffect(() => {
@@ -1002,6 +990,32 @@ const OrderManagement = () => {
 
 														{/* Action Buttons - Right side */}
 														<div className="flex flex-col gap-2 items-end">
+															{/* PENDING item buttons */}
+															{item.status === ITEM_STATUS.PENDING && (
+																<>
+																	<button
+																		onClick={() => handleAcceptItems(order.id, [item.id])}
+																		title="Accept item"
+																		className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded text-sm font-medium transition-colors flex items-center gap-1.5"
+																	>
+																		<span className="material-symbols-outlined text-base">
+																			check
+																		</span>
+																		Accept
+																	</button>
+																	<button
+																		onClick={() => handleRejectItems(order.id, [item.id])}
+																		title="Reject item"
+																		className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-sm font-medium transition-colors flex items-center gap-1.5"
+																	>
+																		<span className="material-symbols-outlined text-base">
+																			close
+																		</span>
+																		Reject
+																	</button>
+																</>
+															)}
+
 															{/* READY item button */}
 															{item.status === ITEM_STATUS.READY && (
 																<button

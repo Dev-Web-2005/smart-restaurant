@@ -55,17 +55,76 @@ export const generateStaffAccountAPI = async (role) => {
 }
 
 /**
- * Get all staff accounts (placeholder - not implemented yet in backend)
+ * Get staff/chef accounts list
+ * API: GET /identity/users/staff-chef
+ * @param {Object} params - Query parameters
+ * @param {string} params.role - Optional: Filter by role ('STAFF' or 'CHEF')
+ * @param {number} params.page - Page number (default: 1)
+ * @param {number} params.limit - Items per page (default: 100)
+ * @param {boolean} params.isActive - Optional: Filter by active status
+ * @returns {Promise} Response with list of staff accounts
+ */
+export const getStaffChefListAPI = async (params = {}) => {
+	try {
+		const { role, page = 1, limit = 100, isActive } = params
+
+		const queryParams = new URLSearchParams()
+		if (role) queryParams.append('role', role)
+		queryParams.append('page', page.toString())
+		queryParams.append('limit', limit.toString())
+		if (isActive !== undefined) queryParams.append('isActive', isActive.toString())
+
+		console.log('📤 Fetching staff/chef list with params:', params)
+		const response = await apiClient.get(
+			`/identity/users/staff-chef?${queryParams.toString()}`,
+		)
+
+		console.log('📥 Raw API response:', response)
+		const { code, message, data } = response.data
+
+		// Success: code 200 or 1000
+		if (code === 200 || code === 1000) {
+			console.log('✅ Success! Staff list data:', data)
+			return {
+				success: true,
+				data: {
+					items: data.data || [],
+					total: data.total || 0,
+					page: data.page || 1,
+					limit: data.limit || 100,
+					totalPages: data.totalPages || 1,
+				},
+				message: message || 'Staff list retrieved successfully',
+			}
+		} else {
+			console.error('❌ API returned error code:', code, 'message:', message)
+			return {
+				success: false,
+				data: { items: [], total: 0 },
+				message: message || 'Failed to fetch staff list',
+			}
+		}
+	} catch (error) {
+		console.error('❌ Get staff list error:', error)
+		console.error('Error details:', {
+			message: error.message,
+			response: error.response?.data,
+			status: error.response?.status,
+		})
+		return {
+			success: false,
+			data: { items: [], total: 0 },
+			message: error.response?.data?.message || 'Failed to fetch staff list',
+		}
+	}
+}
+
+/**
+ * Get all staff accounts (alias for getStaffChefListAPI)
  * @returns {Promise} Response with list of staff accounts
  */
 export const getAllStaffAccountsAPI = async () => {
-	// This endpoint may not exist yet - using mock for now
-	// TODO: Implement backend endpoint /identity/users/staff
-	return {
-		success: true,
-		data: [],
-		message: 'Feature not implemented yet',
-	}
+	return await getStaffChefListAPI()
 }
 
 /**
@@ -84,15 +143,78 @@ export const updateStaffAccountAPI = async () => {
 }
 
 /**
- * Delete/disable staff account (placeholder - not implemented yet in backend)
- * @param {string} userId - User ID to delete/disable
+ * Toggle staff account active status
+ * API: PATCH /identity/users/:userId/status
+ * @param {string} userId - User ID to toggle
+ * @param {boolean} isActive - New active status
  * @returns {Promise} Response with confirmation
  */
-export const deleteStaffAccountAPI = async () => {
-	// This endpoint may not exist yet
-	// TODO: Implement backend endpoint DELETE /identity/users/:userId
-	return {
-		success: true,
-		message: 'Feature not implemented yet',
+export const toggleStaffStatusAPI = async (userId, isActive) => {
+	try {
+		console.log(`📤 Toggling user ${userId} status to ${isActive}`)
+		const response = await apiClient.patch(`/identity/users/${userId}/status`, {
+			isActive,
+		})
+
+		console.log('📥 Raw API response:', response)
+		const { code, message, data } = response.data
+
+		if (code === 200 || code === 1000) {
+			console.log('✅ Success! User status updated:', data)
+			return {
+				success: true,
+				data,
+				message: message || 'User status updated successfully',
+			}
+		} else {
+			console.error('❌ API returned error code:', code, 'message:', message)
+			return {
+				success: false,
+				message: message || 'Failed to update user status',
+			}
+		}
+	} catch (error) {
+		console.error('❌ Toggle user status error:', error)
+		return {
+			success: false,
+			message: error.response?.data?.message || 'Failed to update user status',
+		}
+	}
+}
+
+/**
+ * Delete staff account permanently
+ * API: DELETE /identity/users/:userId
+ * @param {string} userId - User ID to delete
+ * @returns {Promise} Response with confirmation
+ */
+export const deleteStaffAccountAPI = async (userId) => {
+	try {
+		console.log(`📤 Deleting user ${userId}`)
+		const response = await apiClient.delete(`/identity/users/${userId}`)
+
+		console.log('📥 Raw API response:', response)
+		const { code, message, data } = response.data
+
+		if (code === 200 || code === 1000) {
+			console.log('✅ Success! User deleted:', data)
+			return {
+				success: true,
+				data,
+				message: message || 'User deleted successfully',
+			}
+		} else {
+			console.error('❌ API returned error code:', code, 'message:', message)
+			return {
+				success: false,
+				message: message || 'Failed to delete user',
+			}
+		}
+	} catch (error) {
+		console.error('❌ Delete user error:', error)
+		return {
+			success: false,
+			message: error.response?.data?.message || 'Failed to delete user',
+		}
 	}
 }

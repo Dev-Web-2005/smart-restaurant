@@ -192,7 +192,7 @@ const KitchenDisplay = () => {
 	// Toggle item selection
 	const toggleSelectItem = (itemId) => {
 		setSelectedItems((prev) =>
-			prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId]
+			prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId],
 		)
 	}
 
@@ -211,9 +211,12 @@ const KitchenDisplay = () => {
 		const elapsedSeconds = Math.floor((elapsedMs % 60000) / 1000)
 
 		return {
-			display: `${elapsedMinutes.toString().padStart(2, '0')}:${elapsedSeconds.toString().padStart(2, '0')}`,
+			display: `${elapsedMinutes.toString().padStart(2, '0')}:${elapsedSeconds
+				.toString()
+				.padStart(2, '0')}`,
 			elapsedMinutes,
-			isWarning: elapsedMinutes >= SLA_WARNING_THRESHOLD && elapsedMinutes < SLA_DANGER_THRESHOLD,
+			isWarning:
+				elapsedMinutes >= SLA_WARNING_THRESHOLD && elapsedMinutes < SLA_DANGER_THRESHOLD,
 			isDanger: elapsedMinutes >= SLA_DANGER_THRESHOLD,
 		}
 	}
@@ -248,7 +251,11 @@ const KitchenDisplay = () => {
 				<div className="flex items-center gap-6">
 					<h1 className="text-3xl font-bold text-orange-500">🍳 Kitchen Display</h1>
 					<div className="text-xl text-gray-300">
-						{currentTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+						{currentTime.toLocaleTimeString('vi-VN', {
+							hour: '2-digit',
+							minute: '2-digit',
+							second: '2-digit',
+						})}
 					</div>
 				</div>
 
@@ -268,18 +275,22 @@ const KitchenDisplay = () => {
 					</div>
 					{stats.delayedCount > 0 && (
 						<div className="text-center">
-							<div className="text-4xl font-bold text-red-500 animate-pulse">{stats.delayedCount}</div>
+							<div className="text-4xl font-bold text-red-500 animate-pulse">
+								{stats.delayedCount}
+							</div>
 							<div className="text-sm text-red-400">Delayed!</div>
 						</div>
 					)}
-					
+
 					{/* Divider */}
 					<div className="h-12 w-px bg-gray-600" />
-					
+
 					{/* User Info & Logout */}
 					<div className="flex items-center gap-4">
 						<div className="text-right">
-							<div className="text-white font-semibold">{user?.name || 'Kitchen Staff'}</div>
+							<div className="text-white font-semibold">
+								{user?.name || 'Kitchen Staff'}
+							</div>
 							<div className="text-sm text-gray-400">{user?.email || 'Chef'}</div>
 						</div>
 						<button
@@ -363,25 +374,25 @@ const KitchenDisplay = () => {
 									key={item.id}
 									onClick={() => toggleSelectItem(item.id)}
 									className={`rounded-xl overflow-hidden cursor-pointer transition-all transform hover:scale-[1.02] ${
-										isSelected
-											? 'ring-4 ring-orange-500'
-											: 'ring-1 ring-gray-700'
+										isSelected ? 'ring-4 ring-orange-500' : 'ring-1 ring-gray-700'
 									} ${
 										timeInfo.isDanger
 											? 'bg-red-900/50'
 											: timeInfo.isWarning
-												? 'bg-yellow-900/30'
-												: 'bg-gray-800'
+											? 'bg-yellow-900/30'
+											: 'bg-gray-800'
 									}`}
 								>
 									{/* Header with Table & Status */}
-									<div className={`px-4 py-3 flex justify-between items-center ${getStatusColor(item.status)}`}>
+									<div
+										className={`px-4 py-3 flex justify-between items-center ${getStatusColor(
+											item.status,
+										)}`}
+									>
 										<span className="text-2xl font-bold">
 											Table {item.tableId?.slice(-4) || '???'}
 										</span>
-										<span className="text-lg font-semibold uppercase">
-											{item.status}
-										</span>
+										<span className="text-lg font-semibold uppercase">{item.status}</span>
 									</div>
 
 									{/* Item Info */}
@@ -418,8 +429,8 @@ const KitchenDisplay = () => {
 												timeInfo.isDanger
 													? 'bg-red-600 text-white animate-pulse'
 													: timeInfo.isWarning
-														? 'bg-yellow-600 text-black'
-														: 'bg-gray-700 text-white'
+													? 'bg-yellow-600 text-black'
+													: 'bg-gray-700 text-white'
 											}`}
 										>
 											{timeInfo.display}
@@ -462,10 +473,12 @@ const KitchenDisplay = () => {
 			<footer className="fixed bottom-0 left-0 right-0 bg-gray-800 px-6 py-3 border-t border-gray-700">
 				<div className="flex justify-between items-center">
 					<div className="text-gray-400">
-						Average prep time: <span className="text-white font-bold">{stats.averagePrepTime} min</span>
+						Average prep time:{' '}
+						<span className="text-white font-bold">{stats.averagePrepTime} min</span>
 					</div>
 					<div className="text-gray-400">
-						SLA: <span className="text-yellow-400">⚠️ {SLA_WARNING_THRESHOLD}min</span> | <span className="text-red-400">🔴 {SLA_DANGER_THRESHOLD}min</span>
+						SLA: <span className="text-yellow-400">⚠️ {SLA_WARNING_THRESHOLD}min</span> |{' '}
+						<span className="text-red-400">🔴 {SLA_DANGER_THRESHOLD}min</span>
 					</div>
 				</div>
 			</footer>

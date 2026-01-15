@@ -1,5 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
+import { useAlert } from '../../../contexts/AlertContext'
+import apiClient from '../../../services/apiClient'
 
 // Import page components
 import MenuPage from './pages/MenuPage'
@@ -132,6 +134,9 @@ const OrderManagementInterface = () => {
 	const tenantId = params.tenantId || params.ownerId // Support both param names
 	const tableId = params.tableId
 
+	// Alert context for custom alerts/confirms
+	const { showAlert, showConfirm } = useAlert()
+
 	// State management
 	const [cartItems, setCartItems] = useState([]) // { id, name, price, qty, totalPrice, modifiers, specialNotes, imageUrl }
 	const [view, setView] = useState('MENU') // MENU | ORDERS | CART
@@ -153,40 +158,124 @@ const OrderManagementInterface = () => {
 	// Calculate total items in cart
 	const totalItemsInCart = cartItems.reduce((acc, item) => acc + item.qty, 0)
 
+	// Fetch cart from backend
+	const fetchCart = async () => {
+		try {
+			if (!tenantId || !tableId) {
+				console.warn('⚠️ fetchCart: Missing tenantId or tableId')
+				return
+			}
+
+			console.log('📥 Fetching cart from:', `/tenants/${tenantId}/tables/${tableId}/cart`)
+			const response = await apiClient.get(`/tenants/${tenantId}/tables/${tableId}/cart`)
+			console.log('📥 Cart response:', response.data)
+
+			const backendCart = response.data?.data || {}
+			const backendItems = backendCart.items || []
+
+			// Map backend cart items to frontend format
+			const mappedItems = backendItems.map((item) => {
+				const modifierTotal =
+					item.modifiers?.reduce((sum, mod) => sum + (mod.price || 0), 0) || 0
+				return {
+					id: item.menuItemId,
+					name: item.name,
+					price: item.price,
+					qty: item.quantity,
+					totalPrice: item.total || (item.price + modifierTotal) * item.quantity,
+					modifiers:
+						item.modifiers?.map((mod) => ({
+							groupId: mod.modifierGroupId,
+							optionId: mod.modifierOptionId,
+							name: mod.name,
+							price: mod.price,
+						})) || [],
+					specialNotes: item.notes || '',
+					itemKey: item.itemKey,
+					uniqueKey: `${item.menuItemId}-${JSON.stringify(item.modifiers || [])}`,
+				}
+			})
+
+			setCartItems(mappedItems)
+			console.log('✅ Cart fetched successfully:', mappedItems.length, 'items')
+		} catch (error) {
+			console.error('❌ Error fetching cart:', error)
+			console.error('❌ Fetch cart error details:', {
+				message: error.message,
+				response: error.response?.data,
+				status: error.response?.status,
+			})
+		}
+	}
+
+	// Load cart on component mount
+	useEffect(() => {
+		fetchCart()
+	}, [tenantId, tableId])
+
 	// Handle adding item to cart from MenuPage
-	const handleAddToCart = (cartItem) => {
-		// Cart item structure: { id, name, description, price, qty, totalPrice, modifiers, specialNotes, imageUrl }
-		// Generate unique key for cart item based on dish ID and modifiers
-		const modifierKey = JSON.stringify(cartItem.modifiers || [])
-		const uniqueKey = `${cartItem.id}-${modifierKey}`
+	const handleAddToCart = async (cartItem) => {
+		console.log('🎯 handleAddToCart called with:', cartItem)
+		console.log('🔑 tenantId:', tenantId, '| tableId:', tableId)
 
-		// Check if exact same item (with same modifiers) exists
-		const existingIndex = cartItems.findIndex((item) => {
-			const itemModifierKey = JSON.stringify(item.modifiers || [])
-			return `${item.id}-${itemModifierKey}` === uniqueKey
-		})
+		try {
+			// Cart item structure: { id, name, description, price, qty, totalPrice, modifiers, specialNotes, imageUrl }
 
-		if (existingIndex !== -1) {
-			// Update quantity if same item with same modifiers exists
-			setCartItems((prev) =>
-				prev.map((item, index) =>
-					index === existingIndex
-						? {
-								...item,
-								qty: item.qty + cartItem.qty,
-								totalPrice:
-									(item.qty + cartItem.qty) * (cartItem.totalPrice / cartItem.qty),
-						  }
-						: item,
-				),
+			// Call backend API to add to cart
+			const payload = {
+				menuItemId: cartItem.id,
+				name: cartItem.name,
+				quantity: cartItem.qty,
+				price: cartItem.price, // Base price
+				modifiers:
+					cartItem.modifiers?.map((mod) => ({
+						modifierGroupId: mod.groupId,
+						modifierOptionId: mod.optionId,
+						name: mod.label || mod.name,
+						price: mod.priceDelta || 0,
+					})) || [],
+				notes: cartItem.specialNotes || '',
+			}
+
+			console.log('📦 Payload to send:', JSON.stringify(payload, null, 2))
+			console.log('📍 POST URL:', `/tenants/${tenantId}/tables/${tableId}/cart/items`)
+
+			console.log('⏳ Sending POST request at:', new Date().toISOString())
+			const response = await apiClient.post(
+				`/tenants/${tenantId}/tables/${tableId}/cart/items`,
+				payload,
 			)
-		} else {
-			// Add as new cart item if different modifiers
-			setCartItems((prev) => [...prev, { ...cartItem, uniqueKey }])
+			console.log('⏱️ POST request completed at:', new Date().toISOString())
+			// Reload entire cart from backend to ensure sync
+			console.log('🔄 Reloading cart from backend...')
+			await fetchCart()
+			console.log('✅ Cart reloaded successfully')
+
+			// Show success alert
+			showAlert(
+				'Added to Cart',
+				`${cartItem.name} has been added to your cart`,
+				'success',
+				3000,
+			)
+		} catch (error) {
+			console.error('❌ Error adding to cart:', error)
+			console.error('❌ Error details:', {
+				message: error.message,
+				response: error.response?.data,
+				status: error.response?.status,
+			})
+			showAlert(
+				'Error',
+				error.response?.data?.message || 'Failed to add item to cart',
+				'error',
+				3000,
+			)
 		}
 	}
 
 	const handleClearCart = () => {
+		// Clear cart - confirmation is handled by CartPage
 		setCartItems([])
 	}
 
@@ -220,22 +309,22 @@ const OrderManagementInterface = () => {
 					setIsSettingsOpen={setIsSettingsOpen}
 					tenantId={tenantId}
 				/>
-
 				{/* CONTENT VIEWS */}
 				{view === 'ORDERS' && (
 					<OrdersPage orders={orders} onBrowseMenu={() => setView('MENU')} />
 				)}
-
 				{view === 'MENU' && (
 					<MenuPage tenantId={tenantId} onAddToCart={handleAddToCart} />
 				)}
-
 				{view === 'CART' && (
 					<CartPage
 						cartItems={cartItems}
 						onClearCart={handleClearCart}
 						onUpdateCart={handleUpdateCart}
+						onRefreshCart={fetchCart}
 						onClose={() => setView('MENU')}
+						tenantId={tenantId}
+						tableId={tableId}
 					/>
 				)}
 

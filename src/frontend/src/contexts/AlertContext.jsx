@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react'
 import CustomAlert from '../components/common/CustomAlert'
+import CustomConfirm from '../components/common/CustomConfirm'
 
 const AlertContext = createContext()
 
@@ -24,16 +25,42 @@ export const AlertProvider = ({ children }) => {
 	}, [])
 
 	/**
-	 * Hiển thị confirm dialog
-	 * @param {string} title - Tiêu đề
-	 * @param {string} message - Nội dung
-	 * @returns {Promise<boolean>} - true nếu user chọn OK, false nếu Cancel
+	 * Hiển thị confirm dialog với CustomConfirm component
+	 * @param {Object|string} options - Cấu hình confirm dialog hoặc title (string)
+	 * @param {string} options.title - Tiêu đề
+	 * @param {string} options.message - Nội dung
+	 * @param {'info' | 'warning' | 'danger' | 'success'} options.type - Loại confirm
+	 * @param {string} options.confirmText - Text nút xác nhận
+	 * @param {string} options.cancelText - Text nút hủy
+	 * @param {boolean} options.showIcon - Hiển thị icon
+	 * @param {string} message - Nội dung (nếu options là string)
+	 * @returns {Promise<boolean>} - true nếu user chọn Confirm, false nếu Cancel
 	 */
-	const showConfirm = useCallback((title, message) => {
+	const showConfirm = useCallback((options, message) => {
+		// Support both old signature (title, message) and new object-based signature
+		let config
+		if (typeof options === 'string') {
+			config = {
+				title: options,
+				message: message || '',
+				type: 'info',
+				confirmText: 'Confirm',
+				cancelText: 'Cancel',
+				showIcon: true,
+			}
+		} else {
+			config = {
+				type: 'info',
+				confirmText: 'Confirm',
+				cancelText: 'Cancel',
+				showIcon: true,
+				...options,
+			}
+		}
+
 		return new Promise((resolve) => {
 			setConfirmDialog({
-				title,
-				message,
+				...config,
 				onConfirm: () => {
 					setConfirmDialog(null)
 					resolve(true)
@@ -134,30 +161,19 @@ export const AlertProvider = ({ children }) => {
 				</div>
 			</div>
 
-			{/* Confirm Dialog - Modal */}
+			{/* Confirm Dialog - Using CustomConfirm */}
 			{confirmDialog && (
-				<div className="fixed inset-0 z-[100001] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-					<div className="bg-gradient-to-br from-gray-900 to-black border-2 border-white/20 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fadeIn">
-						<h3 className="text-xl font-bold text-white mb-3">{confirmDialog.title}</h3>
-						<p className="text-gray-300 text-sm leading-relaxed mb-6 whitespace-pre-line">
-							{confirmDialog.message}
-						</p>
-						<div className="flex gap-3 justify-end">
-							<button
-								onClick={confirmDialog.onCancel}
-								className="px-5 py-2.5 bg-gray-600/20 border-2 border-gray-600/30 text-gray-300 rounded-lg hover:bg-gray-600/40 hover:border-gray-500 transition-all font-semibold"
-							>
-								Hủy
-							</button>
-							<button
-								onClick={confirmDialog.onConfirm}
-								className="px-5 py-2.5 bg-blue-600/20 border-2 border-blue-600/30 text-blue-400 rounded-lg hover:bg-blue-600/40 hover:border-blue-500 transition-all font-semibold"
-							>
-								Xác nhận
-							</button>
-						</div>
-					</div>
-				</div>
+				<CustomConfirm
+					isOpen={true}
+					title={confirmDialog.title}
+					message={confirmDialog.message}
+					type={confirmDialog.type}
+					confirmText={confirmDialog.confirmText}
+					cancelText={confirmDialog.cancelText}
+					showIcon={confirmDialog.showIcon}
+					onConfirm={confirmDialog.onConfirm}
+					onCancel={confirmDialog.onCancel}
+				/>
 			)}
 		</AlertContext.Provider>
 	)
