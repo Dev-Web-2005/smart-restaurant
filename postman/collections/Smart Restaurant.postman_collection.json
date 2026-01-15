@@ -3035,7 +3035,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"itemIds\": [\n    \"82a837f0-5e4b-44ae-aee6-5afec8a1372a\"\n  ],\n  \"status\": \"ACCEPTED\",  // PENDING | ACCEPTED | PREPARING | READY | SERVED | REJECTED | CANCELLED\n  //\"rejectionReason\": \"Out of stock\",  // Required if status = REJECTED\n  \"waiterId\": \"d95e73fb-b861-40eb-ba09-eff4b79084ef\"  // Optional\n}",
+              "raw": "{\n  \"itemIds\": [\n    \"9f62fc87-6a36-429f-b5d3-d6f50df9152c\"\n  ],\n  \"status\": \"ACCEPTED\",  // PENDING | ACCEPTED | PREPARING | READY | SERVED | REJECTED | CANCELLED\n  //\"rejectionReason\": \"Out of stock\",  // Required if status = REJECTED\n  \"waiterId\": \"2c93c61a-8c20-4824-af30-f4c7733b8405\"  // Optional\n}",
               "options": {
                 "raw": {
                   "language": "json"
