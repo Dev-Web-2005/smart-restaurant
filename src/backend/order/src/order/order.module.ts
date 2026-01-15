@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config'; // Import ConfigService
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { OrderController } from './order.controller';
 import { OrderService } from './order.service';
 import { Order, OrderItem } from '../common/entities';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { CacheModule } from '@nestjs/cache-manager'; // Import CacheModule
-import { redisStore } from 'cache-manager-redis-yet'; // Import redisStore
+import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-yet';
 import { CartModule } from 'src/cart/cart.module';
 
 /**
@@ -14,14 +15,23 @@ import { CartModule } from 'src/cart/cart.module';
  *
  * Encapsulates order management functionality
  * Provides CRUD operations and order lifecycle management
+ * Emits WebSocket events for real-time updates
  */
 @Module({
 	imports: [
 		// 1. Load ConfigModule đầu tiên và set isGlobal
 		ConfigModule.forRoot({
 			isGlobal: true,
-			envFilePath: '.env', // Đảm bảo đường dẫn đúng
+			envFilePath: '.env',
 		}),
+
+		// 2. EventEmitter for WebSocket integration
+		EventEmitterModule.forRoot({
+			wildcard: true,
+			delimiter: '.',
+			maxListeners: 100,
+		}),
+
 		TypeOrmModule.forFeature([Order, OrderItem]),
 
 		// 2. Cấu hình Redis Cache
@@ -41,7 +51,7 @@ import { CartModule } from 'src/cart/cart.module';
 
 		ClientsModule.registerAsync([
 			{
-				name: 'WAITER_SERVICE',
+				name: 'ORDER_EVENTS',
 				imports: [ConfigModule],
 				inject: [ConfigService],
 				useFactory: (configService: ConfigService) => ({
@@ -50,19 +60,15 @@ import { CartModule } from 'src/cart/cart.module';
 						urls: [
 							configService.get<string>('CONNECTION_AMQP') || 'amqp://localhost:5672',
 						],
-						queue:
-							(configService.get<string>('QUEUE_NAME_OF_WAITER') || 'local_waiter') +
-							'_queue',
+						// ✅ PUBLISH-SUBSCRIBE PATTERN: Emit to Exchange (not queue)
+						// NestJS ClientProxy: 'queue' field is used as exchange name when routingKey is present
+						// routingKey: '' means fanout pattern (broadcast to all bound queues)
+						queue: 'order_events_exchange', // Exchange name (not a queue)
+						routingKey: '', // Empty routing key = fanout broadcast
+						noAck: true, // ✅ Fire-and-forget: No reply consumer needed for fanout
+						persistent: true, // Message durability
 						queueOptions: {
 							durable: true,
-							arguments: {
-								'x-dead-letter-exchange':
-									(configService.get<string>('QUEUE_NAME_OF_WAITER') || 'local_waiter') +
-									'_dlx_exchange',
-								'x-dead-letter-routing-key':
-									(configService.get<string>('QUEUE_NAME_OF_WAITER') || 'local_waiter') +
-									'_dlq',
-							},
 						},
 					},
 				}),

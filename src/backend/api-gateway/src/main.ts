@@ -5,8 +5,92 @@ import { RpcExceptionFilter } from './common/filters/rpc-exception.filter';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { TransformResponseInterceptor } from './common/interceptors/transform-response.interceptor';
 import CookieParser from 'cookie-parser';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import * as amqp from 'amqplib';
+import * as dotenv from 'dotenv';
+dotenv.config();
+
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
+
+	// ============================================================
+	// RabbitMQ Pub/Sub Configuration
+	// Subscribe to order events via Exchange (not direct queue)
+	// ============================================================
+	const connection = await amqp.connect(process.env.CONNECTION_AMQP);
+	const channel = await connection.createChannel();
+	const queueName: string = process.env.NAME_QUEUE || 'local_api_gateway';
+	const exchangeName = 'order_events_exchange';
+
+	try {
+		// 1. Create fanout exchange for order events
+		await channel.assertExchange(exchangeName, 'fanout', {
+			durable: true,
+		});
+		console.log(`✅ Exchange created: ${exchangeName}`);
+
+		// 2. Setup Dead Letter Queue for failed messages
+		await channel.assertExchange(queueName + '_dlx_exchange', 'direct', {
+			durable: true,
+		});
+		await channel.assertQueue(queueName + '_dlq', {
+			durable: true,
+		});
+		await channel.bindQueue(
+			queueName + '_dlq',
+			queueName + '_dlx_exchange',
+			queueName + '_dlq',
+		);
+
+		// 3. Setup main queue with DLX configuration
+		await channel.assertQueue(queueName + '_queue', {
+			durable: true,
+			arguments: {
+				'x-dead-letter-exchange': queueName + '_dlx_exchange',
+				'x-dead-letter-routing-key': queueName + '_dlq',
+			},
+		});
+		console.log(`✅ Queue created: ${queueName}_queue`);
+
+		// 4. Bind queue to exchange (Pub/Sub pattern)
+		await channel.bindQueue(queueName + '_queue', exchangeName, '');
+		console.log(`✅ Queue bound to exchange: ${queueName}_queue → ${exchangeName}`);
+	} finally {
+		await channel.close();
+		await connection.close();
+	}
+
+	// Connect to RabbitMQ microservice (listen to queue)
+	app.connectMicroservice<MicroserviceOptions>({
+		transport: Transport.RMQ,
+		options: {
+			urls: [process.env.CONNECTION_AMQP],
+			queue: queueName + '_queue',
+			prefetchCount: 1,
+			queueOptions: {
+				durable: true,
+				noAck: false,
+				arguments: {
+					'x-dead-letter-exchange': queueName + '_dlx_exchange',
+					'x-dead-letter-routing-key': queueName + '_dlq',
+				},
+			},
+		},
+	});
+
+	// Connect to Dead Letter Queue
+	app.connectMicroservice<MicroserviceOptions>({
+		transport: Transport.RMQ,
+		options: {
+			urls: [process.env.CONNECTION_AMQP],
+			queue: queueName + '_dlq',
+			prefetchCount: 1,
+			queueOptions: {
+				durable: true,
+				noAck: false,
+			},
+		},
+	});
 
 	// Register Cookie Parser middleware
 	app.use(CookieParser());
@@ -66,6 +150,10 @@ async function bootstrap() {
 		allowedHeaders: 'Content-Type,Authorization,x-api-key',
 		exposedHeaders: 'Set-Cookie',
 	});
+
+	// Start all microservices
+	await app.startAllMicroservices();
+	console.log('✅ RabbitMQ microservices started');
 
 	await app.listen(parseInt(process.env.PORT, 10) ?? 8888);
 

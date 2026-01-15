@@ -16,10 +16,15 @@ import { NotificationController } from './services/notification/notification.con
 import { OrderController } from './services/order/order.controller';
 import { CartController } from './services/cart/cart.controller';
 import { WaiterController } from './services/waiter/waiter.controller';
+import { WebsocketModule } from './websocket/websocket.module';
 
 @Module({
 	imports: [
 		ConfigModule.forRoot({ isGlobal: true }),
+
+		// WebSocket Module for real-time communications
+		WebsocketModule,
+
 		ClientsModule.register([
 			{
 				name: 'IDENTITY_SERVICE',

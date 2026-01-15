@@ -1,7 +1,8 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, Not } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Order, OrderItem } from '../common/entities';
 import {
 	OrderStatus,
@@ -40,10 +41,13 @@ import {
 import { ClientProxy } from '@nestjs/microservices/client/client-proxy';
 import { firstValueFrom } from 'rxjs';
 import { CartService } from 'src/cart/cart.service';
+import * as amqp from 'amqplib';
 
 @Injectable()
-export class OrderService {
+export class OrderService implements OnModuleDestroy {
 	private readonly logger = new Logger(OrderService.name);
+	private amqpConnection: amqp.Connection;
+	private amqpChannel: amqp.Channel;
 
 	constructor(
 		@InjectRepository(Order)
@@ -53,8 +57,89 @@ export class OrderService {
 		private readonly cartService: CartService,
 		@Inject('PRODUCT_SERVICE') private readonly productClient: ClientProxy,
 		private readonly configService: ConfigService,
-		@Inject('WAITER_SERVICE') private readonly waiterClient: ClientProxy,
-	) {}
+		@Inject('ORDER_EVENTS') private readonly orderEventsClient: ClientProxy,
+		private readonly eventEmitter: EventEmitter2,
+	) {
+		this.initializeRabbitMQ();
+	}
+
+	/**
+	 * Initialize RabbitMQ connection for direct exchange publishing
+	 * NestJS ClientProxy doesn't support fanout exchange properly
+	 */
+	private async initializeRabbitMQ() {
+		try {
+			const amqpUrl = this.configService.get<string>('CONNECTION_AMQP');
+			this.amqpConnection = await amqp.connect(amqpUrl);
+			this.amqpChannel = await this.amqpConnection.createChannel();
+			this.logger.log('✅ RabbitMQ channel initialized for event publishing');
+		} catch (error) {
+			this.logger.error(`❌ Failed to initialize RabbitMQ: ${error.message}`);
+		}
+	}
+
+	/**
+	 * Cleanup RabbitMQ connection on service destruction
+	 */
+	async onModuleDestroy() {
+		try {
+			if (this.amqpChannel) {
+				await this.amqpChannel.close();
+			}
+			if (this.amqpConnection) {
+				await this.amqpConnection.close();
+			}
+			this.logger.log('✅ RabbitMQ connection closed');
+		} catch (error) {
+			this.logger.error(`❌ Error closing RabbitMQ connection: ${error.message}`);
+		}
+	}
+
+	/**
+	 * Publish event to RabbitMQ exchange using amqplib directly
+	 * This ensures proper fanout pattern broadcasting
+	 */
+	private async publishToExchange(
+		exchangeName: string,
+		eventPattern: string,
+		payload: any,
+	): Promise<void> {
+		try {
+			if (!this.amqpChannel) {
+				await this.initializeRabbitMQ();
+			}
+
+			// ✅ CRITICAL FIX: Wrap payload in NestJS message format
+			// NestJS expects: { pattern: 'event.name', data: {...} }
+			const nestJsMessage = {
+				pattern: eventPattern,
+				data: payload,
+			};
+
+			const message = Buffer.from(JSON.stringify(nestJsMessage));
+			const published = this.amqpChannel.publish(
+				exchangeName,
+				'', // Empty routing key for fanout
+				message,
+				{
+					persistent: true,
+					contentType: 'application/json',
+					// Also set pattern in headers for compatibility
+					headers: {
+						pattern: eventPattern,
+					},
+				},
+			);
+
+			if (published) {
+				this.logger.log(`✅ Published '${eventPattern}' to exchange '${exchangeName}'`);
+			} else {
+				this.logger.warn(`⚠️ Failed to publish '${eventPattern}' - channel buffer full`);
+			}
+		} catch (error) {
+			this.logger.error(`❌ Error publishing to exchange: ${error.message}`, error.stack);
+		}
+	}
 
 	/**
 	 * Validate API key
@@ -349,16 +434,37 @@ export class OrderService {
 			`Checkout success: Order ${finalOrder.id} | Table ${dto.tableId} | ${isNewOrder ? 'NEW' : 'APPENDED'} | Items added: ${newOrderItems.length} | Total items: ${finalOrder.items.length}`,
 		);
 
-		// DONE: Emit RabbitMQ event CHỈ CHO CÁC MÓN MỚI
-		// Để tránh bếp nấu lại các món cũ!
+		// ✅ Emit RabbitMQ event CHỈ CHO CÁC MÓN MỚI
+		// Pub/Sub Pattern: Publish to Exchange → Fanout to all subscribers
+		// Event này sẽ được nhận bởi:
+		// 1. Waiter Service (queue: local_waiter_queue) → Tạo notification
+		// 2. API Gateway (queue: local_api_gateway_queue) → Broadcast WebSocket
 		if (newOrderItems.length > 0) {
-			this.waiterClient.emit('order.new_items', {
+			const eventPayload = {
 				waiterApiKey: this.configService.get<string>('WAITER_API_KEY'),
 				orderId: finalOrder.id,
 				tenantId: dto.tenantId,
 				tableId: dto.tableId,
-				items: newOrderItems, // Only new items
-			});
+				items: newOrderItems, // ✅ FULL OrderItem objects
+				orderType: orderTypeToString(finalOrder.orderType),
+				customerName: dto.customerName,
+				notes: dto.notes,
+			};
+
+			this.logger.log(
+				`📡 Publishing 'order.new_items' to Exchange: ${JSON.stringify({
+					orderId: finalOrder.id,
+					tableId: dto.tableId,
+					itemCount: newOrderItems.length,
+				})}`,
+			);
+
+			// ✅ Use amqplib directly for proper fanout exchange publishing
+			await this.publishToExchange(
+				'order_events_exchange',
+				'order.new_items',
+				eventPayload,
+			);
 		}
 
 		return this.mapToOrderResponse(finalOrder);
@@ -695,15 +801,24 @@ export class OrderService {
 			`Updated ${updatedItems.length} items to status ${OrderItemStatusLabels[dto.status]} for order ${dto.orderId}`,
 		);
 
-		// TODO: Send notification via RabbitMQ for kitchen/waiter
-		// this.notificationClient.emit('order-items.status-updated', {
-		//   orderId: order.id,
-		//   tenantId: order.tenantId,
-		//   tableId: order.tableId,
-		//   itemIds: dto.itemIds,
-		//   newStatus: OrderItemStatusLabels[dto.status],
-		//   updatedBy: dto.waiterId,
-		// });
+		// ✅ Emit RabbitMQ event for status changes
+		// Pub/Sub Pattern: Publish to Exchange → Both services receive
+		const rabbitEventName = `order.items.${OrderItemStatusLabels[dtoStatus].toLowerCase()}`;
+
+		const eventPayload = {
+			waiterApiKey: this.configService.get<string>('WAITER_API_KEY'),
+			orderId: order.id,
+			tableId: order.tableId,
+			tenantId: dto.tenantId,
+			items: updatedItems, // ✅ FULL item objects
+			status: OrderItemStatusLabels[dtoStatus],
+			updatedBy: dto.waiterId,
+			rejectionReason: dto.rejectionReason,
+			updatedAt: new Date(),
+		};
+
+		// ✅ Use amqplib directly for proper fanout exchange publishing
+		await this.publishToExchange('order_events_exchange', rabbitEventName, eventPayload);
 
 		return this.mapToOrderResponse(order);
 	}
@@ -994,7 +1109,7 @@ export class OrderService {
 
 		// Emit to Kitchen Service for preparation
 		const kitchenApiKey = this.configService.get<string>('KITCHEN_API_KEY');
-		this.waiterClient.emit('kitchen.prepare_items', {
+		this.orderEventsClient.emit('kitchen.prepare_items', {
 			kitchenApiKey,
 			orderId: dto.orderId,
 			tableId: order.tableId,
@@ -1013,6 +1128,8 @@ export class OrderService {
 		this.logger.log(
 			`Accepted ${itemsToAccept.length} items from order ${dto.orderId}, sent to kitchen`,
 		);
+
+		// ❌ REMOVED: Không dùng hàm này nữa - use updateOrderItemsStatus() instead
 
 		// Reload order with updated items
 		const updatedOrder = await this.orderRepository.findOne({
@@ -1100,6 +1217,8 @@ export class OrderService {
 
 		// TODO: Emit notification to customer about rejected items
 		// this.notificationClient.emit('customer.items_rejected', {...})
+
+		// ❌ REMOVED: Không dùng hàm này nữa - use updateOrderItemsStatus() instead
 
 		// Reload order with updated items
 		const updatedOrder = await this.orderRepository.findOne({

@@ -12,13 +12,23 @@ async function bootstrap() {
 	const connection = await amqp.connect(process.env.CONNECTION_AMQP);
 	const channel = await connection.createChannel();
 	const name: string = process.env.NAME_QUEUE || 'local_waiter';
+	const exchangeName = 'order_events_exchange';
+
 	try {
+		// 1. Create fanout exchange for order events (shared with API Gateway)
+		await channel.assertExchange(exchangeName, 'fanout', {
+			durable: true,
+		});
+		console.log(`✅ Exchange created: ${exchangeName}`);
+
+		// 2. Setup Dead Letter Queue
 		await channel.assertExchange(name + '_dlx_exchange', 'direct', { durable: true });
 		await channel.assertQueue(name + '_dlq', {
 			durable: true,
 		});
-
 		await channel.bindQueue(name + '_dlq', name + '_dlx_exchange', name + '_dlq');
+
+		// 3. Setup main queue
 		await channel.assertQueue(name + '_queue', {
 			durable: true,
 			arguments: {
@@ -26,6 +36,11 @@ async function bootstrap() {
 				'x-dead-letter-routing-key': name + '_dlq',
 			},
 		});
+		console.log(`✅ Queue created: ${name}_queue`);
+
+		// 4. Bind queue to exchange (Pub/Sub pattern)
+		await channel.bindQueue(name + '_queue', exchangeName, '');
+		console.log(`✅ Queue bound to exchange: ${name}_queue → ${exchangeName}`);
 	} finally {
 		await channel.close();
 		await connection.close();
