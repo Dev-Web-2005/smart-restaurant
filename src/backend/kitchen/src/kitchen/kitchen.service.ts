@@ -1,15 +1,8 @@
-import {
-	Inject,
-	Injectable,
-	Logger,
-	OnModuleDestroy,
-	OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, Not, LessThan, MoreThan } from 'typeorm';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { RpcException, ClientProxy } from '@nestjs/microservices';
+import { Repository, In, Not, MoreThan } from 'typeorm';
+import { RpcException } from '@nestjs/microservices';
 import * as amqp from 'amqplib';
 
 import { KitchenTicket, KitchenTicketItem } from '../common/entities';
@@ -17,18 +10,14 @@ import {
 	KitchenTicketStatus,
 	KitchenTicketStatusLabels,
 	KitchenTicketStatusFromString,
-	isValidKitchenTicketStatusTransition,
 } from '../common/enums/ticket-status.enum';
 import {
 	KitchenTicketItemStatus,
 	KitchenTicketItemStatusLabels,
-	KitchenTicketItemStatusFromString,
-	isValidKitchenItemStatusTransition,
 } from '../common/enums/ticket-item-status.enum';
 import {
 	KitchenTicketPriority,
 	KitchenTicketPriorityLabels,
-	KitchenTicketPriorityFromString,
 } from '../common/enums/ticket-priority.enum';
 import { KitchenStationType } from '../common/enums/station-type.enum';
 
@@ -75,7 +64,11 @@ import ErrorCode from '@shared/exceptions/error-code';
  * 2. Create and manage kitchen tickets
  * 3. Track elapsed time with configurable thresholds
  * 4. Update Order Service when items are ready
- * 5. Emit WebSocket events for real-time KDS updates
+ * 5. Publish events to RabbitMQ for WebSocket broadcast via API Gateway
+ *
+ * Architecture (Best Practice):
+ * Kitchen Service → RabbitMQ (order_events_exchange) → API Gateway → WebSocket clients
+ * This follows the same pattern as Order Service for consistency
  */
 @Injectable()
 export class KitchenService implements OnModuleInit, OnModuleDestroy {
@@ -97,8 +90,6 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 		@InjectRepository(KitchenTicketItem)
 		private readonly ticketItemRepository: Repository<KitchenTicketItem>,
 		private readonly configService: ConfigService,
-		private readonly eventEmitter: EventEmitter2,
-		@Inject('KITCHEN_EVENTS') private readonly kitchenEventsClient: ClientProxy,
 	) {}
 
 	/**
@@ -218,16 +209,31 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 
 			await this.ticketRepository.save(activeTickets);
 
-			// Emit timer updates for WebSocket broadcast (throttled to every 5 seconds)
+			// Publish timer updates to RabbitMQ for WebSocket broadcast (throttled to every 5 seconds)
+			// Group tickets by tenantId and emit separate events for multi-tenant support
 			if (Date.now() % 5000 < 1000) {
-				this.eventEmitter.emit('kitchen.timers.update', {
-					tickets: activeTickets.map((t) => ({
-						id: t.id,
-						tenantId: t.tenantId,
-						elapsedSeconds: t.elapsedSeconds,
-						ageColor: this.getAgeColor(t),
-					})),
-				});
+				const ticketsByTenant = activeTickets.reduce(
+					(acc, t) => {
+						if (!acc[t.tenantId]) acc[t.tenantId] = [];
+						acc[t.tenantId].push({
+							id: t.id,
+							ticketNumber: t.ticketNumber,
+							elapsedSeconds: t.elapsedSeconds,
+							elapsedFormatted: this.formatElapsedTime(t.elapsedSeconds),
+							ageColor: this.getAgeColor(t),
+						});
+						return acc;
+					},
+					{} as Record<string, any[]>,
+				);
+
+				for (const [tenantId, tickets] of Object.entries(ticketsByTenant)) {
+					await this.publishToExchange('order_events_exchange', 'kitchen.timers.update', {
+						tenantId,
+						tickets,
+						timestamp: new Date(),
+					});
+				}
 			}
 		} catch (error) {
 			// Silently handle - timer will try again next second
@@ -352,10 +358,13 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 
 		this.logger.log(`✅ Created ticket ${ticketNumber} with ${ticketItems.length} items`);
 
-		// Emit event for WebSocket broadcast
-		this.eventEmitter.emit('kitchen.ticket.new', {
+		// Publish event to RabbitMQ for WebSocket broadcast via API Gateway
+		await this.publishToExchange('order_events_exchange', 'kitchen.ticket.new', {
 			tenantId: dto.tenantId,
+			orderId: dto.orderId,
+			tableId: dto.tableId,
 			ticket: this.mapToTicketResponse(savedTicket),
+			timestamp: new Date(),
 		});
 
 		return this.mapToTicketResponse(savedTicket);
@@ -550,10 +559,13 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 
 		this.logger.log(`✅ Started ticket ${ticket.ticketNumber}`);
 
-		// Emit event
-		this.eventEmitter.emit('kitchen.ticket.started', {
+		// Publish event to RabbitMQ for WebSocket broadcast
+		await this.publishToExchange('order_events_exchange', 'kitchen.ticket.started', {
 			tenantId: dto.tenantId,
+			orderId: ticket.orderId,
+			tableId: ticket.tableId,
 			ticket: this.mapToTicketResponse(ticket),
+			timestamp: new Date(),
 		});
 
 		// Update Order Service - items now PREPARING
@@ -664,10 +676,13 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 
 			this.logger.log(`✅ Ticket ${ticket.ticketNumber} is fully ready`);
 
-			// Emit ready event for expo/waiter notification
-			this.eventEmitter.emit('kitchen.ticket.ready', {
+			// Publish ready event to RabbitMQ for expo/waiter notification
+			await this.publishToExchange('order_events_exchange', 'kitchen.ticket.ready', {
 				tenantId: dto.tenantId,
+				orderId: ticket.orderId,
+				tableId: ticket.tableId,
 				ticket: this.mapToTicketResponse(ticket),
+				timestamp: new Date(),
 			});
 		}
 
@@ -711,11 +726,14 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 
 		this.logger.log(`✅ Bumped ticket ${ticket.ticketNumber}`);
 
-		// Emit event
-		this.eventEmitter.emit('kitchen.ticket.bumped', {
+		// Publish event to RabbitMQ for WebSocket broadcast
+		await this.publishToExchange('order_events_exchange', 'kitchen.ticket.completed', {
 			tenantId: dto.tenantId,
+			orderId: ticket.orderId,
+			tableId: ticket.tableId,
 			ticketId: ticket.id,
 			ticketNumber: ticket.ticketNumber,
+			timestamp: new Date(),
 		});
 
 		return this.mapToTicketResponse(ticket);
@@ -764,12 +782,20 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 			`⚠️ Recalled ${itemsToRecall.length} items on ticket ${ticket.ticketNumber}: ${dto.reason}`,
 		);
 
-		// Emit recall event
-		this.eventEmitter.emit('kitchen.items.recalled', {
+		// Publish recall event to RabbitMQ for WebSocket broadcast
+		await this.publishToExchange('order_events_exchange', 'kitchen.items.recalled', {
 			tenantId: dto.tenantId,
+			orderId: ticket.orderId,
+			tableId: ticket.tableId,
 			ticketId: ticket.id,
-			items: itemsToRecall.map((i) => ({ id: i.id, name: i.name })),
+			ticketNumber: ticket.ticketNumber,
+			items: itemsToRecall.map((i) => ({
+				id: i.id,
+				name: i.name,
+				orderItemId: i.orderItemId,
+			})),
 			reason: dto.reason,
+			timestamp: new Date(),
 		});
 
 		return this.mapToTicketResponse(ticket);
@@ -890,14 +916,16 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 			`🔥 Updated ticket ${ticket.ticketNumber} priority: ${KitchenTicketPriorityLabels[oldPriority]} → ${KitchenTicketPriorityLabels[dto.priority]}`,
 		);
 
-		// Emit priority change event
-		if (dto.priority >= KitchenTicketPriority.URGENT) {
-			this.eventEmitter.emit('kitchen.ticket.priority', {
-				tenantId: dto.tenantId,
-				ticket: this.mapToTicketResponse(ticket),
-				newPriority: KitchenTicketPriorityLabels[dto.priority],
-			});
-		}
+		// Publish priority change event to RabbitMQ for WebSocket broadcast
+		await this.publishToExchange('order_events_exchange', 'kitchen.ticket.priority', {
+			tenantId: dto.tenantId,
+			orderId: ticket.orderId,
+			tableId: ticket.tableId,
+			ticket: this.mapToTicketResponse(ticket),
+			oldPriority: KitchenTicketPriorityLabels[oldPriority],
+			newPriority: KitchenTicketPriorityLabels[dto.priority],
+			timestamp: new Date(),
+		});
 
 		return this.mapToTicketResponse(ticket);
 	}

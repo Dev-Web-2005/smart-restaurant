@@ -435,4 +435,408 @@ export class EventEmitterService {
 
 		this.logger.log(`[WebSocket] Emitted 'order.items.rejected' to room: ${orderRoom}`);
 	}
+
+	// ==================== KITCHEN SERVICE BROADCAST METHODS ====================
+
+	/**
+	 * Broadcast new kitchen ticket
+	 * Target room: Kitchen room + Waiter room
+	 */
+	broadcastKitchenTicketNew(data: {
+		tenantId: string;
+		orderId: string;
+		tableId: string;
+		ticket: any;
+	}): void {
+		if (!this.server) {
+			this.logger.warn('Socket.IO server not initialized, cannot broadcast');
+			return;
+		}
+
+		const eventPayload: WebSocketEventPayload = {
+			event: 'kitchen.ticket.new',
+			data: {
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				tableId: data.tableId,
+				ticket: data.ticket,
+				createdAt: new Date(),
+			},
+			timestamp: new Date(),
+			metadata: {
+				tenantId: data.tenantId,
+				sourceService: 'kitchen-service',
+			},
+		};
+
+		// Emit to kitchen room
+		const kitchenRoom = `tenant:${data.tenantId}:kitchen`;
+		this.server.to(kitchenRoom).emit('kitchen.ticket.new', eventPayload);
+
+		// Also emit to waiter room (for order tracking)
+		const waiterRoom = `tenant:${data.tenantId}:waiters`;
+		this.server.to(waiterRoom).emit('kitchen.ticket.new', eventPayload);
+
+		this.logger.log(
+			`[WebSocket] Emitted 'kitchen.ticket.new' to rooms: ${kitchenRoom}, ${waiterRoom}`,
+		);
+	}
+
+	/**
+	 * Broadcast kitchen ticket started
+	 * Target room: Kitchen room + Customer order room
+	 */
+	broadcastKitchenTicketStarted(data: {
+		tenantId: string;
+		orderId: string;
+		tableId: string;
+		ticket: any;
+	}): void {
+		if (!this.server) {
+			this.logger.warn('Socket.IO server not initialized, cannot broadcast');
+			return;
+		}
+
+		const eventPayload: WebSocketEventPayload = {
+			event: 'kitchen.ticket.started',
+			data: {
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				tableId: data.tableId,
+				ticket: data.ticket,
+				startedAt: new Date(),
+			},
+			timestamp: new Date(),
+			metadata: {
+				tenantId: data.tenantId,
+				sourceService: 'kitchen-service',
+			},
+		};
+
+		// Emit to kitchen room
+		const kitchenRoom = `tenant:${data.tenantId}:kitchen`;
+		this.server.to(kitchenRoom).emit('kitchen.ticket.started', eventPayload);
+
+		// Emit to customer order room
+		const orderRoom = `tenant:${data.tenantId}:order:${data.orderId}`;
+		this.server.to(orderRoom).emit('kitchen.ticket.started', eventPayload);
+
+		this.logger.log(
+			`[WebSocket] Emitted 'kitchen.ticket.started' to rooms: ${kitchenRoom}, ${orderRoom}`,
+		);
+	}
+
+	/**
+	 * Broadcast kitchen ticket ready
+	 * Target room: Kitchen room + Waiter room + Customer order room
+	 */
+	broadcastKitchenTicketReady(data: {
+		tenantId: string;
+		orderId: string;
+		tableId: string;
+		ticket: any;
+	}): void {
+		if (!this.server) {
+			this.logger.warn('Socket.IO server not initialized, cannot broadcast');
+			return;
+		}
+
+		const eventPayload: WebSocketEventPayload = {
+			event: 'kitchen.ticket.ready',
+			data: {
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				tableId: data.tableId,
+				ticket: data.ticket,
+				readyAt: new Date(),
+			},
+			timestamp: new Date(),
+			metadata: {
+				tenantId: data.tenantId,
+				sourceService: 'kitchen-service',
+			},
+		};
+
+		// Emit to kitchen room
+		const kitchenRoom = `tenant:${data.tenantId}:kitchen`;
+		this.server.to(kitchenRoom).emit('kitchen.ticket.ready', eventPayload);
+
+		// Emit to waiter room (pickup notification)
+		const waiterRoom = `tenant:${data.tenantId}:waiters`;
+		this.server.to(waiterRoom).emit('kitchen.ticket.ready', eventPayload);
+
+		// Emit to customer order room
+		const orderRoom = `tenant:${data.tenantId}:order:${data.orderId}`;
+		this.server.to(orderRoom).emit('kitchen.ticket.ready', eventPayload);
+
+		this.logger.log(
+			`[WebSocket] Emitted 'kitchen.ticket.ready' to rooms: ${kitchenRoom}, ${waiterRoom}, ${orderRoom}`,
+		);
+	}
+
+	/**
+	 * Broadcast kitchen ticket completed (bumped)
+	 * Target room: Kitchen room + Waiter room
+	 */
+	broadcastKitchenTicketCompleted(data: {
+		tenantId: string;
+		orderId: string;
+		tableId: string;
+		ticketId: string;
+		ticketNumber: string;
+	}): void {
+		if (!this.server) {
+			this.logger.warn('Socket.IO server not initialized, cannot broadcast');
+			return;
+		}
+
+		const eventPayload: WebSocketEventPayload = {
+			event: 'kitchen.ticket.completed',
+			data: {
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				tableId: data.tableId,
+				ticketId: data.ticketId,
+				ticketNumber: data.ticketNumber,
+				completedAt: new Date(),
+			},
+			timestamp: new Date(),
+			metadata: {
+				tenantId: data.tenantId,
+				sourceService: 'kitchen-service',
+			},
+		};
+
+		// Emit to kitchen room
+		const kitchenRoom = `tenant:${data.tenantId}:kitchen`;
+		this.server.to(kitchenRoom).emit('kitchen.ticket.completed', eventPayload);
+
+		// Emit to waiter room
+		const waiterRoom = `tenant:${data.tenantId}:waiters`;
+		this.server.to(waiterRoom).emit('kitchen.ticket.completed', eventPayload);
+
+		this.logger.log(
+			`[WebSocket] Emitted 'kitchen.ticket.completed' to rooms: ${kitchenRoom}, ${waiterRoom}`,
+		);
+	}
+
+	/**
+	 * Broadcast kitchen ticket priority changed
+	 * Target room: Kitchen room only
+	 */
+	broadcastKitchenTicketPriority(data: {
+		tenantId: string;
+		orderId: string;
+		tableId: string;
+		ticket: any;
+		oldPriority: string;
+		newPriority: string;
+	}): void {
+		if (!this.server) {
+			this.logger.warn('Socket.IO server not initialized, cannot broadcast');
+			return;
+		}
+
+		const eventPayload: WebSocketEventPayload = {
+			event: 'kitchen.ticket.priority',
+			data: {
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				tableId: data.tableId,
+				ticket: data.ticket,
+				oldPriority: data.oldPriority,
+				newPriority: data.newPriority,
+				updatedAt: new Date(),
+			},
+			timestamp: new Date(),
+			metadata: {
+				tenantId: data.tenantId,
+				sourceService: 'kitchen-service',
+			},
+		};
+
+		// Emit to kitchen room only (internal kitchen event)
+		const kitchenRoom = `tenant:${data.tenantId}:kitchen`;
+		this.server.to(kitchenRoom).emit('kitchen.ticket.priority', eventPayload);
+
+		this.logger.log(
+			`[WebSocket] Emitted 'kitchen.ticket.priority' (${data.oldPriority} → ${data.newPriority}) to room: ${kitchenRoom}`,
+		);
+	}
+
+	/**
+	 * Broadcast kitchen items recalled
+	 * Target room: Kitchen room + Waiter room
+	 */
+	broadcastKitchenItemsRecalled(data: {
+		tenantId: string;
+		orderId: string;
+		tableId: string;
+		ticketId: string;
+		ticketNumber: string;
+		items: any[];
+		reason: string;
+	}): void {
+		if (!this.server) {
+			this.logger.warn('Socket.IO server not initialized, cannot broadcast');
+			return;
+		}
+
+		const eventPayload: WebSocketEventPayload = {
+			event: 'kitchen.items.recalled',
+			data: {
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				tableId: data.tableId,
+				ticketId: data.ticketId,
+				ticketNumber: data.ticketNumber,
+				items: data.items,
+				reason: data.reason,
+				recalledAt: new Date(),
+			},
+			timestamp: new Date(),
+			metadata: {
+				tenantId: data.tenantId,
+				sourceService: 'kitchen-service',
+			},
+		};
+
+		// Emit to kitchen room
+		const kitchenRoom = `tenant:${data.tenantId}:kitchen`;
+		this.server.to(kitchenRoom).emit('kitchen.items.recalled', eventPayload);
+
+		// Emit to waiter room (awareness)
+		const waiterRoom = `tenant:${data.tenantId}:waiters`;
+		this.server.to(waiterRoom).emit('kitchen.items.recalled', eventPayload);
+
+		this.logger.log(
+			`[WebSocket] Emitted 'kitchen.items.recalled' to rooms: ${kitchenRoom}, ${waiterRoom}`,
+		);
+	}
+
+	/**
+	 * Broadcast kitchen timers update (throttled every 5 seconds)
+	 * Target room: Kitchen room only
+	 */
+	broadcastKitchenTimersUpdate(data: { tenantId: string; tickets: any[] }): void {
+		if (!this.server) {
+			return; // Silently return - don't spam logs for timer updates
+		}
+
+		const eventPayload: WebSocketEventPayload = {
+			event: 'kitchen.timers.update',
+			data: {
+				tenantId: data.tenantId,
+				tickets: data.tickets,
+				timestamp: new Date(),
+			},
+			timestamp: new Date(),
+			metadata: {
+				tenantId: data.tenantId,
+				sourceService: 'kitchen-service',
+			},
+		};
+
+		// Emit to kitchen room only (KDS display update)
+		const kitchenRoom = `tenant:${data.tenantId}:kitchen`;
+		this.server.to(kitchenRoom).emit('kitchen.timers.update', eventPayload);
+
+		// Don't log to avoid spam - this runs every 5 seconds
+	}
+
+	/**
+	 * Broadcast kitchen items preparing
+	 * Target room: Kitchen room + Customer order room
+	 */
+	broadcastKitchenItemsPreparing(data: {
+		tenantId: string;
+		orderId: string;
+		ticketId: string;
+		itemIds: string[];
+		status: string;
+	}): void {
+		if (!this.server) {
+			this.logger.warn('Socket.IO server not initialized, cannot broadcast');
+			return;
+		}
+
+		const eventPayload: WebSocketEventPayload = {
+			event: 'kitchen.items.preparing',
+			data: {
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				ticketId: data.ticketId,
+				itemIds: data.itemIds,
+				status: data.status,
+				startedAt: new Date(),
+			},
+			timestamp: new Date(),
+			metadata: {
+				tenantId: data.tenantId,
+				sourceService: 'kitchen-service',
+			},
+		};
+
+		// Emit to kitchen room
+		const kitchenRoom = `tenant:${data.tenantId}:kitchen`;
+		this.server.to(kitchenRoom).emit('kitchen.items.preparing', eventPayload);
+
+		// Emit to customer order room
+		const orderRoom = `tenant:${data.tenantId}:order:${data.orderId}`;
+		this.server.to(orderRoom).emit('kitchen.items.preparing', eventPayload);
+
+		this.logger.log(
+			`[WebSocket] Emitted 'kitchen.items.preparing' to rooms: ${kitchenRoom}, ${orderRoom}`,
+		);
+	}
+
+	/**
+	 * Broadcast kitchen items ready
+	 * Target room: Kitchen room + Waiter room + Customer order room
+	 */
+	broadcastKitchenItemsReady(data: {
+		tenantId: string;
+		orderId: string;
+		ticketId: string;
+		itemIds: string[];
+		status: string;
+	}): void {
+		if (!this.server) {
+			this.logger.warn('Socket.IO server not initialized, cannot broadcast');
+			return;
+		}
+
+		const eventPayload: WebSocketEventPayload = {
+			event: 'kitchen.items.ready',
+			data: {
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				ticketId: data.ticketId,
+				itemIds: data.itemIds,
+				status: data.status,
+				readyAt: new Date(),
+			},
+			timestamp: new Date(),
+			metadata: {
+				tenantId: data.tenantId,
+				sourceService: 'kitchen-service',
+			},
+		};
+
+		// Emit to kitchen room
+		const kitchenRoom = `tenant:${data.tenantId}:kitchen`;
+		this.server.to(kitchenRoom).emit('kitchen.items.ready', eventPayload);
+
+		// Emit to waiter room
+		const waiterRoom = `tenant:${data.tenantId}:waiters`;
+		this.server.to(waiterRoom).emit('kitchen.items.ready', eventPayload);
+
+		// Emit to customer order room
+		const orderRoom = `tenant:${data.tenantId}:order:${data.orderId}`;
+		this.server.to(orderRoom).emit('kitchen.items.ready', eventPayload);
+
+		this.logger.log(
+			`[WebSocket] Emitted 'kitchen.items.ready' to rooms: ${kitchenRoom}, ${waiterRoom}, ${orderRoom}`,
+		);
+	}
 }
