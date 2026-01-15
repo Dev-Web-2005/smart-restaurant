@@ -5,20 +5,12 @@ import {
 	CreateDateColumn,
 	UpdateDateColumn,
 	Index,
-	ManyToOne,
-	JoinColumn,
 } from 'typeorm';
 
-/**
- * KitchenItemStatus Enum
- *
- * Represents the status of an item in the kitchen
- * Mirrors OrderItemStatus but specific to kitchen processing
- */
 export enum KitchenItemStatus {
-	PENDING = 0, // Waiting to be started
-	PREPARING = 1, // Currently being prepared
-	READY = 2, // Ready for pickup
+	PENDING = 0,
+	PREPARING = 1,
+	READY = 2,
 }
 
 export const KitchenItemStatusLabels: Record<KitchenItemStatus, string> = {
@@ -27,12 +19,6 @@ export const KitchenItemStatusLabels: Record<KitchenItemStatus, string> = {
 	[KitchenItemStatus.READY]: 'READY',
 };
 
-/**
- * Kitchen Item Entity
- *
- * Represents an item in the Kitchen Display System
- * Tracks preparation status and timing for SLA monitoring
- */
 @Entity('kitchen_items')
 @Index(['tenantId', 'status'])
 @Index(['tenantId', 'orderId'])
@@ -76,7 +62,6 @@ export class KitchenItem {
 	@Column({ type: 'int', default: 0 })
 	priority: number;
 
-	// Timing for SLA tracking
 	@Column({ type: 'timestamp', name: 'received_at' })
 	receivedAt: Date;
 
@@ -86,7 +71,6 @@ export class KitchenItem {
 	@Column({ type: 'timestamp', name: 'completed_at', nullable: true })
 	completedAt: Date;
 
-	// Estimated prep time in minutes (from menu item config or default)
 	@Column({ type: 'int', name: 'estimated_prep_time', default: 15 })
 	estimatedPrepTime: number;
 
@@ -99,15 +83,9 @@ export class KitchenItem {
 	@UpdateDateColumn({ name: 'updated_at' })
 	updatedAt: Date;
 
-	// Virtual field for table number (populated from table service)
 	tableNumber?: string;
 }
 
-/**
- * Kitchen Item History Entity
- *
- * Tracks status changes for analytics and reporting
- */
 @Entity('kitchen_item_history')
 @Index(['kitchenItemId'])
 @Index(['tenantId', 'createdAt'])

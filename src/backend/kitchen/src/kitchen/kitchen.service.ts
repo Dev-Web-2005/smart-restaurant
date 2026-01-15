@@ -1,8 +1,8 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, Not } from 'typeorm';
+import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
-import { RpcException, ClientProxy } from '@nestjs/microservices';
+import { ClientProxy } from '@nestjs/microservices';
 import { Inject } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 import * as amqp from 'amqplib';
@@ -13,6 +13,7 @@ import {
 	KitchenItemStatus,
 	KitchenItemStatusLabels,
 } from '../common/entities';
+import AppException from '@shared/exceptions/app-exception';
 import ErrorCode from '@shared/exceptions/error-code';
 
 @Injectable()
@@ -86,11 +87,7 @@ export class KitchenService implements OnModuleDestroy {
 	private validateApiKey(providedKey: string): void {
 		const validKey = this.configService.get<string>('KITCHEN_API_KEY');
 		if (providedKey !== validKey) {
-			throw new RpcException({
-				code: ErrorCode.UNAUTHORIZED.code,
-				message: 'Invalid Kitchen API key',
-				status: ErrorCode.UNAUTHORIZED.httpStatus,
-			});
+			throw new AppException(ErrorCode.INVALID_KITCHEN_API_KEY);
 		}
 	}
 
@@ -252,19 +249,11 @@ export class KitchenService implements OnModuleDestroy {
 		});
 
 		if (!item) {
-			throw new RpcException({
-				code: ErrorCode.NOT_FOUND_RESOURCE.code,
-				message: 'Kitchen item not found',
-				status: ErrorCode.NOT_FOUND_RESOURCE.httpStatus,
-			});
+			throw new AppException(ErrorCode.KITCHEN_ITEM_NOT_FOUND);
 		}
 
 		if (item.status !== KitchenItemStatus.PENDING) {
-			throw new RpcException({
-				code: ErrorCode.INVALID_ORDER_STATUS_TRANSITION.code,
-				message: `Cannot start preparing item with status ${KitchenItemStatusLabels[item.status]}`,
-				status: ErrorCode.INVALID_ORDER_STATUS_TRANSITION.httpStatus,
-			});
+			throw new AppException(ErrorCode.INVALID_KITCHEN_STATUS_TRANSITION);
 		}
 
 		const now = new Date();
@@ -316,19 +305,11 @@ export class KitchenService implements OnModuleDestroy {
 		});
 
 		if (!item) {
-			throw new RpcException({
-				code: ErrorCode.NOT_FOUND_RESOURCE.code,
-				message: 'Kitchen item not found',
-				status: ErrorCode.NOT_FOUND_RESOURCE.httpStatus,
-			});
+			throw new AppException(ErrorCode.KITCHEN_ITEM_NOT_FOUND);
 		}
 
 		if (item.status !== KitchenItemStatus.PREPARING) {
-			throw new RpcException({
-				code: ErrorCode.INVALID_ORDER_STATUS_TRANSITION.code,
-				message: `Cannot mark ready item with status ${KitchenItemStatusLabels[item.status]}`,
-				status: ErrorCode.INVALID_ORDER_STATUS_TRANSITION.httpStatus,
-			});
+			throw new AppException(ErrorCode.INVALID_KITCHEN_STATUS_TRANSITION);
 		}
 
 		const now = new Date();
@@ -492,9 +473,6 @@ export class KitchenService implements OnModuleDestroy {
 		};
 	}
 
-	/**
-	 * Get preparation history for analytics
-	 */
 	async getHistory(data: {
 		kitchenApiKey: string;
 		tenantId: string;
@@ -538,9 +516,6 @@ export class KitchenService implements OnModuleDestroy {
 		};
 	}
 
-	/**
-	 * Update Order Service item status via TCP
-	 */
 	private async updateOrderItemStatus(
 		tenantId: string,
 		orderId: string,
@@ -559,7 +534,7 @@ export class KitchenService implements OnModuleDestroy {
 					orderId,
 					itemIds: [orderItemId],
 					status,
-					waiterId: chefId, // Use chefId as updater
+					waiterId: chefId,
 				}),
 			);
 
@@ -569,9 +544,6 @@ export class KitchenService implements OnModuleDestroy {
 		}
 	}
 
-	/**
-	 * Map entity to response DTO
-	 */
 	private mapToResponse(item: KitchenItem): any {
 		const now = new Date();
 		let elapsedMinutes = 0;
@@ -605,7 +577,7 @@ export class KitchenService implements OnModuleDestroy {
 			completedAt: item.completedAt,
 			estimatedPrepTime: item.estimatedPrepTime,
 			chefId: item.chefId,
-			// Timing info for UI
+
 			elapsedMinutes,
 			remainingMinutes,
 			isDelayed,
