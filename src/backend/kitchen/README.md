@@ -1,98 +1,260 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Kitchen Service - Kitchen Display System (KDS)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## 📋 Overview
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+The Kitchen Service implements a professional **Kitchen Display System (KDS)** for the Smart Restaurant multi-tenant platform. It follows industry best practices from Toast POS, Square KDS, and Oracle MICROS systems.
 
-## Description
+## 🎯 Key Features
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+### Core Functionality
 
-## Project setup
+- **Ticket Management**: Create and manage kitchen tickets from accepted orders
+- **Real-time Timers**: Track elapsed preparation time with color-coded thresholds
+- **Priority System**: NORMAL → HIGH → URGENT → FIRE priority levels
+- **Station Routing**: Route items to specific kitchen stations (Grill, Fry, Cold, etc.)
+- **Bump Screen Workflow**: Complete tickets when all items are ready
 
-```bash
-$ npm install
+### Item-Level Tracking
+
+- Individual item status: PENDING → PREPARING → READY
+- Recall/remake functionality with reason tracking
+- Allergy and rush item flags
+- Per-item elapsed time tracking
+
+### Multi-Tenant Support
+
+- Complete tenant isolation
+- Per-tenant timer thresholds
+- Tenant-specific statistics
+
+## 🏗️ Architecture
+
+```
+┌──────────────────┐         ┌──────────────────┐         ┌──────────────────┐
+│  Order Service   │────────▶│  Kitchen Service │────────▶│ Notification Svc │
+│ (Accept Items)   │  event  │  (KDS Tickets)   │  event  │  (WebSocket)     │
+└──────────────────┘         └──────────────────┘         └──────────────────┘
+        │                            │                            │
+        │                            │                            │
+        ▼                            ▼                            ▼
+   RabbitMQ              PostgreSQL Database              KDS Frontend
+ (order_events)          (kitchen_tickets)               (Real-time UI)
 ```
 
-## Compile and run the project
+## 📊 Database Entities
 
-```bash
-# development
-$ npm run start
+### KitchenTicket
 
-# watch mode
-$ npm run start:dev
+| Field             | Type   | Description                                       |
+| ----------------- | ------ | ------------------------------------------------- |
+| id                | UUID   | Primary key                                       |
+| tenantId          | UUID   | Multi-tenant isolation                            |
+| orderId           | UUID   | Reference to order                                |
+| tableId           | String | Table identifier                                  |
+| ticketNumber      | String | Daily sequential number (#001, #002)              |
+| status            | Enum   | PENDING, IN_PROGRESS, READY, COMPLETED, CANCELLED |
+| priority          | Enum   | NORMAL (0), HIGH (1), URGENT (2), FIRE (3)        |
+| elapsedSeconds    | Int    | Timer tracking                                    |
+| warningThreshold  | Int    | Seconds before yellow alert (default: 600)        |
+| criticalThreshold | Int    | Seconds before red alert (default: 900)           |
 
-# production mode
-$ npm run start:prod
+### KitchenTicketItem
+
+| Field       | Type    | Description                                               |
+| ----------- | ------- | --------------------------------------------------------- |
+| id          | UUID    | Primary key                                               |
+| ticketId    | UUID    | Parent ticket                                             |
+| orderItemId | UUID    | Reference to order item                                   |
+| name        | String  | Menu item name                                            |
+| quantity    | Int     | Number of items                                           |
+| status      | Enum    | PENDING, PREPARING, READY, CANCELLED, RECALLED            |
+| station     | Enum    | GRILL, FRY, SAUTE, COLD, DESSERT, BEVERAGE, GENERAL, EXPO |
+| modifiers   | JSONB   | Selected modifiers for display                            |
+| isAllergy   | Boolean | Allergy alert flag                                        |
+| isRush      | Boolean | Rush item flag                                            |
+
+## 🔄 Ticket Lifecycle
+
+```
+PENDING ──────┬──────▶ IN_PROGRESS ──────▶ READY ──────▶ COMPLETED
+              │                             │
+              │                             │ (recall)
+              │                             ▼
+              └──────▶ CANCELLED         RECALLED ───▶ PENDING
 ```
 
-## Run tests
+## 🎛️ RPC Patterns (Message Patterns)
 
-```bash
-# unit tests
-$ npm run test
+### Query Endpoints
 
-# e2e tests
-$ npm run test:e2e
+| Pattern               | Description                 |
+| --------------------- | --------------------------- |
+| `kitchen:get-display` | Get active KDS display data |
+| `kitchen:get-tickets` | Get tickets with filtering  |
+| `kitchen:get-ticket`  | Get single ticket by ID     |
+| `kitchen:get-stats`   | Get kitchen statistics      |
 
-# test coverage
-$ npm run test:cov
+### Ticket Operations
+
+| Pattern                    | Description                             |
+| -------------------------- | --------------------------------------- |
+| `kitchen:start-ticket`     | Start preparing (PENDING → IN_PROGRESS) |
+| `kitchen:start-items`      | Start specific items                    |
+| `kitchen:mark-items-ready` | Mark items as ready                     |
+| `kitchen:bump-ticket`      | Complete/bump ticket                    |
+| `kitchen:recall-items`     | Recall items for remake                 |
+| `kitchen:cancel-items`     | Cancel specific items                   |
+| `kitchen:cancel-ticket`    | Cancel entire ticket                    |
+| `kitchen:update-priority`  | Change ticket priority                  |
+| `kitchen:toggle-timer`     | Pause/resume timer                      |
+
+### Event Patterns
+
+| Pattern                 | Description                      |
+| ----------------------- | -------------------------------- |
+| `kitchen.prepare_items` | Receive items from Order Service |
+
+## ⏱️ Timer System
+
+The kitchen service implements real-time timer tracking:
+
+1. **Automatic Timer Start**: Timer begins when ticket is created
+2. **Color Thresholds**:
+   - 🟢 Green: Under warning threshold (default < 10 min)
+   - 🟡 Yellow: Between warning and critical (default 10-15 min)
+   - 🔴 Red: Over critical threshold (default > 15 min)
+3. **Pause/Resume**: Timers can be paused (e.g., waiting for customer)
+4. **Per-Item Tracking**: Each item tracks its own prep time
+
+## 📡 Event Flow
+
+### Order Accepted → Kitchen Ticket Created
+
+```
+1. Waiter accepts items in Order Service
+2. Order Service emits 'kitchen.prepare_items' to RabbitMQ
+3. Kitchen Service creates ticket with items
+4. Kitchen Service emits 'kitchen.ticket.new' for WebSocket
+5. KDS Frontend displays new ticket
 ```
 
-## Deployment
+### Item Ready → Order Service Updated
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+```
+1. Cook marks item ready in KDS
+2. Kitchen Service updates item status
+3. Kitchen Service emits 'kitchen.items.ready' to RabbitMQ
+4. Order Service updates OrderItem status
+5. Waiter notified item is ready for pickup
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## 🚀 Quick Start
 
-## Resources
+### 1. Install Dependencies
 
-Check out a few resources that may come in handy when working with NestJS:
+```bash
+cd src/backend/kitchen
+npm install
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### 2. Configure Environment
 
-## Support
+```env
+PORT=8086
+CONNECTION_AMQP=amqp://user:pass@localhost:5672
+KITCHEN_API_KEY=your-api-key
+ORDER_API_KEY=order-service-api-key
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+HOST_DB=localhost
+PORT_DB=5432
+USERNAME_DB=postgres
+PASSWORD_DB=password
+DATABASE_DB=kitchen_db
 
-## Stay in touch
+WARNING_THRESHOLD=600
+CRITICAL_THRESHOLD=900
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+### 3. Start Service
 
-## License
+```bash
+npm run start:dev
+```
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## 📈 Statistics & KPIs
+
+The kitchen service tracks:
+
+- Average preparation time
+- Average wait time (before cooking starts)
+- Tickets/items per hour
+- On-time completion percentage
+- Recall rate (quality metric)
+- Hourly distribution (for staffing)
+
+## 🔐 Security
+
+- API key validation for all operations
+- Tenant isolation on all queries
+- RabbitMQ message authentication
+
+## 📖 API Examples
+
+### Get Kitchen Display
+
+```json
+{
+	"kitchenApiKey": "your-api-key",
+	"tenantId": "tenant-uuid"
+}
+```
+
+### Start Ticket
+
+```json
+{
+	"kitchenApiKey": "your-api-key",
+	"tenantId": "tenant-uuid",
+	"ticketId": "ticket-uuid",
+	"cookId": "cook-uuid",
+	"cookName": "John"
+}
+```
+
+### Mark Items Ready
+
+```json
+{
+	"kitchenApiKey": "your-api-key",
+	"tenantId": "tenant-uuid",
+	"ticketId": "ticket-uuid",
+	"itemIds": ["item-1", "item-2"]
+}
+```
+
+### Update Priority (Fire!)
+
+```json
+{
+	"kitchenApiKey": "your-api-key",
+	"tenantId": "tenant-uuid",
+	"ticketId": "ticket-uuid",
+	"priority": 3
+}
+```
+
+## 🔧 Maintenance
+
+### Health Check
+
+GET `http://localhost:8086/`
+
+### Logs
+
+Located in `logs-kitchen/` directory with daily rotation.
+
+---
+
+**Version:** 1.0.0  
+**Author:** Smart Restaurant Team  
+**Last Updated:** January 2026
