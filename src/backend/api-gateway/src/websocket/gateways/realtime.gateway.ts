@@ -74,6 +74,13 @@ export class RealtimeGateway
 	 * 4. Track connection
 	 */
 	async handleConnection(@ConnectedSocket() client: Socket) {
+		this.logger.log(`🟢 [Connection] New client connecting: ${client.id}`);
+		this.logger.log(`🟢 [Connection] Auth data:`, JSON.stringify(client.handshake.auth));
+		this.logger.log(
+			`🟢 [Connection] Query params:`,
+			JSON.stringify(client.handshake.query),
+		);
+
 		try {
 			// ✅ Manually authenticate BEFORE accessing user data
 			this.logger.log(`[${client.id}] New connection attempt...`);
@@ -110,6 +117,14 @@ export class RealtimeGateway
 
 			// Track connection
 			this.connectionTracker.trackConnection(client, user);
+
+			this.logger.log(`✅ [Connection] Successfully authenticated:`, {
+				clientId: client.id,
+				userId: user.userId,
+				role: user.role,
+				isGuest: user.isGuest || false,
+				tenantId: user.tenantId,
+			});
 
 			// Send welcome message
 			client.emit('connection.success', {
@@ -167,19 +182,36 @@ export class RealtimeGateway
 		@ConnectedSocket() client: Socket,
 		@MessageBody() data: JoinOrderRoomDto,
 	) {
+		this.logger.log(`🔵 [order.join] Received from client ${client.id}`);
+		this.logger.log(`🔵 [order.join] Payload:`, JSON.stringify(data));
+		this.logger.log(`🔵 [order.join] User data:`, JSON.stringify(client.data.user));
+
 		try {
 			const user: SocketUser = client.data.user;
+
+			if (!user) {
+				this.logger.error(`❌ [order.join] No user data found on socket ${client.id}`);
+				return {
+					success: false,
+					error: 'Unauthorized - No user data',
+				};
+			}
+
+			this.logger.log(`✅ [order.join] Joining order room: ${data.orderId}`);
 			await this.roomManager.joinOrderRoom(client, user, data.orderId);
 
 			this.connectionTracker.updateActivity(client.id);
 
-			return {
+			const response = {
 				success: true,
 				message: `Joined order room: ${data.orderId}`,
 				orderId: data.orderId,
 			};
+
+			this.logger.log(`✅ [order.join] Response:`, JSON.stringify(response));
+			return response;
 		} catch (error) {
-			this.logger.error(`Failed to join order room: ${error.message}`);
+			this.logger.error(`❌ [order.join] Failed: ${error.message}`, error.stack);
 			return {
 				success: false,
 				error: error.message,
