@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { useAlert } from '../../../../contexts/AlertContext'
 import apiClient from '../../../../services/apiClient'
+import { clearCartAPI } from '../../../../services/api/cartAPI'
 
 const CartPage = ({
 	cartItems,
@@ -300,13 +301,33 @@ const CartPage = ({
 										cancelText: 'Cancel',
 									})
 									if (confirmed) {
-										onClearCart()
-										showAlert(
-											'Cart Cleared',
-											'All items have been removed',
-											'success',
-											3000,
-										)
+										try {
+											// Call API to clear cart on backend
+											await apiClient.delete(`/tenants/${tenantId}/tables/${tableId}/cart`)
+											
+											// Update local state
+											onClearCart()
+											
+											// Refresh cart from backend
+											if (onRefreshCart) {
+												await onRefreshCart()
+											}
+											
+											showAlert(
+												'Cart Cleared',
+												'All items have been removed from your cart',
+												'success',
+												3000,
+											)
+										} catch (error) {
+											console.error('❌ Error clearing cart:', error)
+											showAlert(
+												'Clear Failed',
+												error.response?.data?.message || 'Failed to clear cart. Please try again.',
+												'error',
+												5000,
+											)
+										}
 									}
 								}}
 								className="flex-1 sm:flex-none px-4 sm:px-6 py-3 rounded-lg bg-red-500/20 text-red-400 text-sm sm:text-base font-bold hover:bg-red-500/30 transition-colors"
