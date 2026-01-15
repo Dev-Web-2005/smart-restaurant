@@ -30,16 +30,40 @@ The Kitchen Service implements a professional **Kitchen Display System (KDS)** f
 ## 🏗️ Architecture
 
 ```
-┌──────────────────┐         ┌──────────────────┐         ┌──────────────────┐
-│  Order Service   │────────▶│  Kitchen Service │────────▶│ Notification Svc │
-│ (Accept Items)   │  event  │  (KDS Tickets)   │  event  │  (WebSocket)     │
-└──────────────────┘         └──────────────────┘         └──────────────────┘
-        │                            │                            │
-        │                            │                            │
-        ▼                            ▼                            ▼
-   RabbitMQ              PostgreSQL Database              KDS Frontend
- (order_events)          (kitchen_tickets)               (Real-time UI)
+                              RabbitMQ Exchange
+                           (order_events_exchange)
+                                    │
+                     ┌──────────────┼──────────────┐
+                     │              │              │
+                     ▼              ▼              ▼
+┌──────────────┐  events   ┌──────────────┐  events   ┌──────────────┐
+│ Order Service│ ─────────▶│Kitchen Service│◀─────────│ Waiter Service│
+└──────────────┘           └──────────────┘           └──────────────┘
+       │                          │                          │
+       │ kitchen.prepare_items    │ kitchen.ticket.*         │
+       └──────────────────────────┼──────────────────────────┘
+                                  │
+                                  ▼
+                         ┌──────────────┐
+                         │ API Gateway  │
+                         │ (WebSocket)  │
+                         └──────────────┘
+                                  │
+                        ┌─────────┼─────────┐
+                        ▼         ▼         ▼
+                    Kitchen    Waiter   Customer
+                     (KDS)    Dashboard   App
 ```
+
+### Event Flow (Synchronized with Order Service)
+
+1. **Customer orders items** → Order Service creates order with PENDING items
+2. **Waiter accepts items** → Order Service emits `kitchen.prepare_items`
+3. **Kitchen creates ticket** → Kitchen emits `kitchen.ticket.new`
+4. **Cook starts preparing** → Kitchen emits `kitchen.ticket.started` + `order.items.preparing`
+5. **Items ready** → Kitchen emits `kitchen.ticket.ready` + `order.items.ready`
+6. **Ticket bumped** → Kitchen emits `kitchen.ticket.completed`
+7. **API Gateway** receives all events and broadcasts via WebSocket
 
 ## 📊 Database Entities
 
@@ -108,11 +132,25 @@ PENDING ──────┬──────▶ IN_PROGRESS ─────�
 | `kitchen:update-priority`  | Change ticket priority                  |
 | `kitchen:toggle-timer`     | Pause/resume timer                      |
 
-### Event Patterns
+### Event Patterns (Inbound)
 
 | Pattern                 | Description                      |
 | ----------------------- | -------------------------------- |
 | `kitchen.prepare_items` | Receive items from Order Service |
+
+### Event Patterns (Outbound to RabbitMQ → API Gateway → WebSocket)
+
+| Pattern                    | Target Rooms                      | Description                    |
+| -------------------------- | --------------------------------- | ------------------------------ |
+| `kitchen.ticket.new`       | kitchen, waiters                  | New ticket created             |
+| `kitchen.ticket.started`   | kitchen, order:{orderId}          | Cook started preparing         |
+| `kitchen.ticket.ready`     | kitchen, waiters, order:{orderId} | All items ready for pickup     |
+| `kitchen.ticket.completed` | kitchen, waiters                  | Ticket bumped/completed        |
+| `kitchen.ticket.priority`  | kitchen                           | Priority changed (fire/urgent) |
+| `kitchen.items.recalled`   | kitchen, waiters                  | Items need remake              |
+| `kitchen.items.preparing`  | order_events_exchange             | Notify Order Service           |
+| `kitchen.items.ready`      | order_events_exchange             | Notify Order Service           |
+| `kitchen.timers.update`    | kitchen                           | Timer updates (every 5 sec)    |
 
 ## ⏱️ Timer System
 
@@ -126,27 +164,38 @@ The kitchen service implements real-time timer tracking:
 3. **Pause/Resume**: Timers can be paused (e.g., waiting for customer)
 4. **Per-Item Tracking**: Each item tracks its own prep time
 
-## 📡 Event Flow
+## 📡 Event Flow (Complete Lifecycle)
 
 ### Order Accepted → Kitchen Ticket Created
 
 ```
-1. Waiter accepts items in Order Service
-2. Order Service emits 'kitchen.prepare_items' to RabbitMQ
-3. Kitchen Service creates ticket with items
-4. Kitchen Service emits 'kitchen.ticket.new' for WebSocket
-5. KDS Frontend displays new ticket
+1. Customer orders → Order created with PENDING items
+2. Waiter accepts items → Order Service emits 'kitchen.prepare_items'
+3. Kitchen Service receives event → Creates ticket
+4. Kitchen Service publishes 'kitchen.ticket.new' to RabbitMQ
+5. API Gateway receives → Broadcasts to WebSocket (kitchen room)
+6. KDS Frontend displays new ticket
 ```
 
-### Item Ready → Order Service Updated
+### Cook Prepares → Item Ready → Waiter Notified
 
 ```
-1. Cook marks item ready in KDS
-2. Kitchen Service updates item status
-3. Kitchen Service emits 'kitchen.items.ready' to RabbitMQ
-4. Order Service updates OrderItem status
-5. Waiter notified item is ready for pickup
+1. Cook clicks "Start" on KDS → Kitchen Service updates ticket
+2. Kitchen publishes 'kitchen.ticket.started' + 'kitchen.items.preparing'
+3. API Gateway broadcasts to WebSocket (kitchen + order rooms)
+4. Order Service receives 'kitchen.items.preparing' → Updates OrderItem status
+5. Cook marks items ready → Kitchen publishes 'kitchen.items.ready'
+6. API Gateway broadcasts to waiter room → Waiter notified for pickup
+7. Order Service updates OrderItem status to READY
 ```
+
+### WebSocket Room Targets
+
+| Room Pattern                   | Recipients                   |
+| ------------------------------ | ---------------------------- |
+| `tenant:{tenantId}:kitchen`    | KDS displays, kitchen staff  |
+| `tenant:{tenantId}:waiters`    | Waiter tablets/apps          |
+| `tenant:{tenantId}:order:{id}` | Customer viewing their order |
 
 ## 🚀 Quick Start
 

@@ -251,4 +251,226 @@ export class WebsocketEventController {
 			throw error;
 		}
 	}
+
+	// ==================== KITCHEN SERVICE EVENTS ====================
+
+	/**
+	 * EVENT: New kitchen ticket created
+	 * Triggered when Order Service accepts items and Kitchen creates a ticket
+	 */
+	@EventPattern('kitchen.ticket.new')
+	async handleKitchenTicketNew(@Payload() data: any, @Ctx() context: RmqContext) {
+		try {
+			this.logger.log(
+				`[RabbitMQ] Received kitchen.ticket.new for order ${data.orderId}, ticket ${data.ticket?.ticketNumber}`,
+			);
+
+			this.eventEmitterService.broadcastKitchenTicketNew({
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				tableId: data.tableId,
+				ticket: data.ticket,
+			});
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle kitchen.ticket.new: ${error.message}`,
+			);
+			throw error;
+		}
+	}
+
+	/**
+	 * EVENT: Kitchen ticket started (cook began preparing)
+	 */
+	@EventPattern('kitchen.ticket.started')
+	async handleKitchenTicketStarted(@Payload() data: any, @Ctx() context: RmqContext) {
+		try {
+			this.logger.log(
+				`[RabbitMQ] Received kitchen.ticket.started for ticket ${data.ticket?.ticketNumber}`,
+			);
+
+			this.eventEmitterService.broadcastKitchenTicketStarted({
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				tableId: data.tableId,
+				ticket: data.ticket,
+			});
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle kitchen.ticket.started: ${error.message}`,
+			);
+			throw error;
+		}
+	}
+
+	/**
+	 * EVENT: Kitchen ticket ready (all items prepared)
+	 */
+	@EventPattern('kitchen.ticket.ready')
+	async handleKitchenTicketReady(@Payload() data: any, @Ctx() context: RmqContext) {
+		try {
+			this.logger.log(
+				`[RabbitMQ] Received kitchen.ticket.ready for ticket ${data.ticket?.ticketNumber}`,
+			);
+
+			this.eventEmitterService.broadcastKitchenTicketReady({
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				tableId: data.tableId,
+				ticket: data.ticket,
+			});
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle kitchen.ticket.ready: ${error.message}`,
+			);
+			throw error;
+		}
+	}
+
+	/**
+	 * EVENT: Kitchen ticket completed (bumped by cook/expo)
+	 */
+	@EventPattern('kitchen.ticket.completed')
+	async handleKitchenTicketCompleted(@Payload() data: any, @Ctx() context: RmqContext) {
+		try {
+			this.logger.log(
+				`[RabbitMQ] Received kitchen.ticket.completed for ticket ${data.ticketNumber}`,
+			);
+
+			this.eventEmitterService.broadcastKitchenTicketCompleted({
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				tableId: data.tableId,
+				ticketId: data.ticketId,
+				ticketNumber: data.ticketNumber,
+			});
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle kitchen.ticket.completed: ${error.message}`,
+			);
+			throw error;
+		}
+	}
+
+	/**
+	 * EVENT: Kitchen ticket priority changed
+	 */
+	@EventPattern('kitchen.ticket.priority')
+	async handleKitchenTicketPriority(@Payload() data: any, @Ctx() context: RmqContext) {
+		try {
+			this.logger.log(
+				`[RabbitMQ] Received kitchen.ticket.priority for ticket ${data.ticket?.ticketNumber}: ${data.oldPriority} → ${data.newPriority}`,
+			);
+
+			this.eventEmitterService.broadcastKitchenTicketPriority({
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				tableId: data.tableId,
+				ticket: data.ticket,
+				oldPriority: data.oldPriority,
+				newPriority: data.newPriority,
+			});
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle kitchen.ticket.priority: ${error.message}`,
+			);
+			throw error;
+		}
+	}
+
+	/**
+	 * EVENT: Kitchen items recalled (need to remake)
+	 */
+	@EventPattern('kitchen.items.recalled')
+	async handleKitchenItemsRecalled(@Payload() data: any, @Ctx() context: RmqContext) {
+		try {
+			this.logger.log(
+				`[RabbitMQ] Received kitchen.items.recalled for ticket ${data.ticketNumber}: ${data.reason}`,
+			);
+
+			this.eventEmitterService.broadcastKitchenItemsRecalled({
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				tableId: data.tableId,
+				ticketId: data.ticketId,
+				ticketNumber: data.ticketNumber,
+				items: data.items,
+				reason: data.reason,
+			});
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle kitchen.items.recalled: ${error.message}`,
+			);
+			throw error;
+		}
+	}
+
+	/**
+	 * EVENT: Kitchen timers update (throttled every 5 seconds)
+	 */
+	@EventPattern('kitchen.timers.update')
+	async handleKitchenTimersUpdate(@Payload() data: any, @Ctx() context: RmqContext) {
+		try {
+			// Don't log every 5 seconds to avoid log spam
+			this.eventEmitterService.broadcastKitchenTimersUpdate({
+				tenantId: data.tenantId,
+				tickets: data.tickets,
+			});
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle kitchen.timers.update: ${error.message}`,
+			);
+			throw error;
+		}
+	}
+
+	/**
+	 * EVENT: Kitchen items preparing (individual items started)
+	 */
+	@EventPattern('kitchen.items.preparing')
+	async handleKitchenItemsPreparing(@Payload() data: any, @Ctx() context: RmqContext) {
+		try {
+			this.logger.log(
+				`[RabbitMQ] Received kitchen.items.preparing for order ${data.orderId}`,
+			);
+
+			this.eventEmitterService.broadcastKitchenItemsPreparing({
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				ticketId: data.ticketId,
+				itemIds: data.itemIds,
+				status: data.status,
+			});
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle kitchen.items.preparing: ${error.message}`,
+			);
+			throw error;
+		}
+	}
+
+	/**
+	 * EVENT: Kitchen items ready (individual items ready)
+	 */
+	@EventPattern('kitchen.items.ready')
+	async handleKitchenItemsReady(@Payload() data: any, @Ctx() context: RmqContext) {
+		try {
+			this.logger.log(
+				`[RabbitMQ] Received kitchen.items.ready for order ${data.orderId}`,
+			);
+
+			this.eventEmitterService.broadcastKitchenItemsReady({
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				ticketId: data.ticketId,
+				itemIds: data.itemIds,
+				status: data.status,
+			});
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle kitchen.items.ready: ${error.message}`,
+			);
+			throw error;
+		}
+	}
 }

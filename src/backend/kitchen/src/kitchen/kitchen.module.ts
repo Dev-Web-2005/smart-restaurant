@@ -1,8 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { EventEmitterModule } from '@nestjs/event-emitter';
-import { ClientsModule, Transport } from '@nestjs/microservices';
+import { ConfigModule } from '@nestjs/config';
 import { KitchenController } from './kitchen.controller';
 import { KitchenService } from './kitchen.service';
 import { KitchenTicket, KitchenTicketItem } from '../common/entities';
@@ -17,7 +15,10 @@ import { KitchenTicket, KitchenTicketItem } from '../common/entities';
  * - Real-time timer tracking for preparation times
  * - Priority management for expediting
  * - Bump screen workflow for completion
- * - WebSocket events for real-time KDS updates
+ * - Publish events to RabbitMQ for WebSocket broadcast via API Gateway
+ *
+ * Architecture (Consistent with Order Service):
+ * Kitchen Service → RabbitMQ (order_events_exchange) → API Gateway → WebSocket clients
  *
  * Features:
  * - Ticket management with status lifecycle
@@ -25,6 +26,10 @@ import { KitchenTicket, KitchenTicketItem } from '../common/entities';
  * - Elapsed time timers with color thresholds
  * - Statistics and KPI tracking
  * - Recall/remake functionality
+ *
+ * NOTE: This module uses amqplib directly for RabbitMQ publishing
+ * instead of NestJS ClientsModule. This ensures proper fanout exchange
+ * pattern broadcasting, consistent with the Order Service approach.
  */
 @Module({
 	imports: [
@@ -34,39 +39,11 @@ import { KitchenTicket, KitchenTicketItem } from '../common/entities';
 			envFilePath: '.env',
 		}),
 
-		// 2. EventEmitter for WebSocket integration
-		EventEmitterModule.forRoot({
-			wildcard: true,
-			delimiter: '.',
-			maxListeners: 100,
-		}),
-
-		// 3. TypeORM for ticket persistence
+		// 2. TypeORM for ticket persistence
 		TypeOrmModule.forFeature([KitchenTicket, KitchenTicketItem]),
 
-		// 4. RabbitMQ Client for publishing events
-		ClientsModule.registerAsync([
-			{
-				name: 'KITCHEN_EVENTS',
-				imports: [ConfigModule],
-				inject: [ConfigService],
-				useFactory: (configService: ConfigService) => ({
-					transport: Transport.RMQ,
-					options: {
-						urls: [
-							configService.get<string>('CONNECTION_AMQP') || 'amqp://localhost:5672',
-						],
-						queue: 'order_events_exchange', // Publish to same exchange as Order Service
-						routingKey: '',
-						noAck: true,
-						persistent: true,
-						queueOptions: {
-							durable: true,
-						},
-					},
-				}),
-			},
-		]),
+		// NOTE: RabbitMQ publishing is done via amqplib directly in KitchenService
+		// This is consistent with Order Service pattern for proper fanout broadcasting
 	],
 	controllers: [KitchenController],
 	providers: [KitchenService],
