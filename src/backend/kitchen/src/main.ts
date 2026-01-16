@@ -28,7 +28,7 @@ async function bootstrap() {
 		});
 		await channel.bindQueue(name + '_dlq', name + '_dlx_exchange', name + '_dlq');
 
-		// 3. Setup main queue
+		// 3. Setup main queue (keep DLX arguments for queue structure consistency)
 		await channel.assertQueue(name + '_queue', {
 			durable: true,
 			arguments: {
@@ -65,6 +65,10 @@ async function bootstrap() {
 			prefetchCount: 1,
 			queueOptions: {
 				durable: true,
+				arguments: {
+					'x-dead-letter-exchange': name + '_dlx_exchange',
+					'x-dead-letter-routing-key': name + '_dlq',
+				},
 			},
 			// ✅ noAck: true - Kitchen creates display tickets (not critical business logic)
 			// Avoids ACK conflicts with manual RabbitMQ channel used for publishing
