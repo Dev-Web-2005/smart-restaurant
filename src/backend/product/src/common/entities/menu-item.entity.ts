@@ -46,6 +46,9 @@ export class MenuItem {
 	@Column({ type: 'boolean', default: false })
 	isChefRecommended: boolean;
 
+	@Column({ type: 'int', default: 0 })
+	orderCount: number; // Track total times this item has been ordered
+
 	@CreateDateColumn()
 	createdAt: Date;
 
