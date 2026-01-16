@@ -83,6 +83,14 @@ import { KitchenController } from './services/kitchen/kitchen.controller';
 					port: +process.env.PORT_WAITER_SERVICE || 8088,
 				},
 			},
+			{
+				name: 'KITCHEN_SERVICE',
+				transport: Transport.TCP,
+				options: {
+					host: process.env.HOST_KITCHEN_SERVICE || 'localhost',
+					port: +process.env.PORT_KITCHEN_SERVICE || 8086,
+				},
+			},
 		]),
 	],
 	controllers: [
