@@ -87,28 +87,57 @@ export class CategoryService {
 			queryBuilder.andWhere('category.status = :status', { status: statusValue });
 		}
 
+		// Fuzzy search using pg_trgm with similarity ranking
 		if (dto.search) {
-			queryBuilder.andWhere('category.name ILIKE :search', {
-				search: `%${dto.search}%`,
-			});
+			const searchTerm = dto.search.trim();
+
+			// Use pg_trgm similarity operator (%) for fuzzy matching
+			// Searches both name and description with similarity threshold
+			queryBuilder.andWhere(
+				`(
+					category.name % :search OR 
+					category.description % :search OR
+					category.name ILIKE :searchPattern OR
+					category.description ILIKE :searchPattern
+				)`,
+				{
+					search: searchTerm,
+					searchPattern: `%${searchTerm}%`,
+				},
+			);
+
+			// Add similarity score for ranking
+			queryBuilder.addSelect(
+				`GREATEST(
+					similarity(category.name, :search),
+					similarity(COALESCE(category.description, ''), :search)
+				)`,
+				'similarity_score',
+			);
 		}
 
 		// Apply sorting
 		const sortBy = dto.sortBy || CategorySortBy.DISPLAY_ORDER;
 		const sortOrder = dto.sortOrder || SortOrder.ASC;
 
-		switch (sortBy) {
-			case CategorySortBy.NAME:
-				queryBuilder.orderBy('category.name', sortOrder);
-				break;
-			case CategorySortBy.CREATED_AT:
-				queryBuilder.orderBy('category.createdAt', sortOrder);
-				break;
-			case CategorySortBy.DISPLAY_ORDER:
-			default:
-				queryBuilder.orderBy('category.displayOrder', sortOrder);
-				queryBuilder.addOrderBy('category.createdAt', SortOrder.ASC);
-				break;
+		// If search is active and no explicit sort specified, prioritize by similarity
+		if (dto.search && !dto.sortBy) {
+			queryBuilder.orderBy('similarity_score', 'DESC');
+			queryBuilder.addOrderBy('category.displayOrder', 'ASC');
+		} else {
+			switch (sortBy) {
+				case CategorySortBy.NAME:
+					queryBuilder.orderBy('category.name', sortOrder);
+					break;
+				case CategorySortBy.CREATED_AT:
+					queryBuilder.orderBy('category.createdAt', sortOrder);
+					break;
+				case CategorySortBy.DISPLAY_ORDER:
+				default:
+					queryBuilder.orderBy('category.displayOrder', sortOrder);
+					queryBuilder.addOrderBy('category.createdAt', SortOrder.ASC);
+					break;
+			}
 		}
 
 		const categories = await queryBuilder.getMany();

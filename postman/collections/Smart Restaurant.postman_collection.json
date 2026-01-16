@@ -2295,7 +2295,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"username\": \"waiter1\",\r\n    \"password\": \"StrongPassword!123\"\r\n}",
+              "raw": "{\r\n    // \"username\": \"waiter1\",\r\n    \"username\": \"kitchen1\",\r\n    \"password\": \"StrongPassword!123\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3035,7 +3035,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"itemIds\": [\n    \"9f62fc87-6a36-429f-b5d3-d6f50df9152c\"\n  ],\n  \"status\": \"ACCEPTED\",  // PENDING | ACCEPTED | PREPARING | READY | SERVED | REJECTED | CANCELLED\n  //\"rejectionReason\": \"Out of stock\",  // Required if status = REJECTED\n  \"waiterId\": \"2c93c61a-8c20-4824-af30-f4c7733b8405\"  // Optional\n}",
+              "raw": "{\n  \"itemIds\": [\n    \"ed448540-2655-486b-b929-c689124314e9\"\n  ],\n  \"status\": \"ACCEPTED\",  // PENDING | ACCEPTED | PREPARING | READY | SERVED | REJECTED | CANCELLED\n  //\"rejectionReason\": \"Out of stock\",  // Required if status = REJECTED\n  \"waiterId\": \"2c93c61a-8c20-4824-af30-f4c7733b8405\"  // Optional\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3159,7 +3159,7 @@
           "response": []
         },
         {
-          "name": "Accept Order Items",
+          "name": "Accept Order Items (Deprecated)",
           "id": "order-accept-items-001",
           "request": {
             "auth": {
@@ -3209,7 +3209,7 @@
           "response": []
         },
         {
-          "name": "Reject Order Items",
+          "name": "Reject Order Items (Deprecated)",
           "id": "order-reject-items-001",
           "request": {
             "auth": {
@@ -3458,7 +3458,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"menuItemId\": \"c0365bc5-c946-45df-8eb2-e8c0bd240b6d\",\n  \"name\": \"Fruit Salad\",\n  \"quantity\": 1,\n  \"price\": 10.99,\n  \"modifiers\": [\n    {\n      \"modifierGroupId\": \"61649a87-9b54-4b65-84dc-f1d6b7367cb3\",\n      \"modifierOptionId\": \"de183f95-bc1d-4762-bcaf-5012f31f6203\",\n      \"name\": \"Large Size\",\n      \"price\": 2\n    }\n  ],\n  \"notes\": \"Extra onions please\"\n}",
+              "raw": "{\n  \"menuItemId\": \"c0365bc5-c946-45df-8eb2-e8c0bd240b6d\",\n  \"name\": \"Ceasar Salad\",\n  \"quantity\": 1,\n  \"price\": 12.99,\n  \"modifiers\": [\n    {\n      \"modifierGroupId\": \"61649a87-9b54-4b65-84dc-f1d6b7367cb3\",\n      \"modifierOptionId\": \"de183f95-bc1d-4762-bcaf-5012f31f6203\",\n      \"name\": \"Large Size\",\n      \"price\": 2\n    }\n  ],\n  \"notes\": \"Extra onions please\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3709,6 +3709,636 @@
         }
       ],
       "id": "cart-folder-main-001"
+    },
+    {
+      "name": "Kitchen",
+      "item": [
+        {
+          "name": "Get Kitchen Display",
+          "id": "kitchen-display-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/display",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "display"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Tickets",
+          "id": "kitchen-tickets-list-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets?page=1&limit=20&status=IN_PROGRESS&priority=0",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "uuid": "0da49b5f-cc6e-4c53-b566-f24f7fb3c0ae"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "uuid": "4fe22f4d-6afe-4170-bc40-3abf5cbb8884"
+                },
+                {
+                  "key": "status",
+                  "value": "IN_PROGRESS",
+                  "uuid": "a38a840a-e939-427d-a931-befaf5dc9bf1"
+                },
+                {
+                  "key": "priority",
+                  "value": "0",
+                  "uuid": "0c7a4e84-3e3e-4d74-9063-0d6219ff90b0"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Ticket By ID",
+          "id": "kitchen-ticket-byid-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/fe350f9b-e509-46db-ba7a-d13f2c31ab9c",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "fe350f9b-e509-46db-ba7a-d13f2c31ab9c"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Start Ticket",
+          "id": "kitchen-start-ticket-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cookId\": \"0c50f7b1-8cd9-40d8-b14a-591e7c098501\", // fake uuid\n  \"cookName\": \"Chef Gordon\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/07ed6e87-7d51-4032-ab77-c8f3da71d831/start",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "07ed6e87-7d51-4032-ab77-c8f3da71d831",
+                "start"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Start Items",
+          "id": "kitchen-start-items-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemIds\": [\n    \"item-uuid-001\",\n    \"item-uuid-002\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/550e8400-e29b-41d4-a716-446655440000/items/start",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "550e8400-e29b-41d4-a716-446655440000",
+                "items",
+                "start"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Items Ready",
+          "id": "kitchen-items-ready-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemIds\": [\n    \"f2bdb31c-3a9e-4cec-8f12-8b1ee336a7d2\" // KitchenTicketItem ID\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/07ed6e87-7d51-4032-ab77-c8f3da71d831/items/ready",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "07ed6e87-7d51-4032-ab77-c8f3da71d831",
+                "items",
+                "ready"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Bump Ticket",
+          "id": "kitchen-bump-ticket-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/07ed6e87-7d51-4032-ab77-c8f3da71d831/bump",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "07ed6e87-7d51-4032-ab77-c8f3da71d831",
+                "bump"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Recall Items",
+          "id": "kitchen-recall-items-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemIds\": [\n    \"item-uuid-001\"\n  ],\n  \"reason\": \"Customer requested modification - extra spicy\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/550e8400-e29b-41d4-a716-446655440000/items/recall",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "550e8400-e29b-41d4-a716-446655440000",
+                "items",
+                "recall"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Items",
+          "id": "kitchen-cancel-items-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemIds\": [\n    \"item-uuid-003\"\n  ],\n  \"reason\": \"Out of ingredients - salmon\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/550e8400-e29b-41d4-a716-446655440000/items/cancel",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "550e8400-e29b-41d4-a716-446655440000",
+                "items",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Ticket",
+          "id": "kitchen-cancel-ticket-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Customer left the restaurant\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/550e8400-e29b-41d4-a716-446655440000/cancel",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "550e8400-e29b-41d4-a716-446655440000",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Priority",
+          "id": "kitchen-update-priority-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"priority\": \"FIRE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/550e8400-e29b-41d4-a716-446655440000/priority",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "550e8400-e29b-41d4-a716-446655440000",
+                "priority"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Timer",
+          "id": "kitchen-toggle-timer-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pause\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/550e8400-e29b-41d4-a716-446655440000/timer",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "550e8400-e29b-41d4-a716-446655440000",
+                "timer"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Kitchen Statistics",
+          "id": "kitchen-stats-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/stats",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "stats"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "kitchen-folder-main-001"
     },
     {
       "name": "Update Floor",

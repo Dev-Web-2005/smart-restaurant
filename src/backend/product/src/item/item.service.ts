@@ -149,32 +149,61 @@ export class ItemService {
 			});
 		}
 
-		// Search by name (case-insensitive)
+		// Fuzzy search using pg_trgm with similarity ranking
 		if (dto.search) {
-			queryBuilder.andWhere('LOWER(item.name) LIKE LOWER(:search)', {
-				search: `%${dto.search}%`,
-			});
+			const searchTerm = dto.search.trim();
+
+			// Use pg_trgm similarity operator (%) for fuzzy matching
+			// Searches both name and description with similarity threshold
+			// Default similarity threshold is 0.3 (configurable via set_limit)
+			queryBuilder.andWhere(
+				`(
+					item.name % :search OR 
+					item.description % :search OR
+					item.name ILIKE :searchPattern OR
+					item.description ILIKE :searchPattern
+				)`,
+				{
+					search: searchTerm,
+					searchPattern: `%${searchTerm}%`,
+				},
+			);
+
+			// Add similarity score for ranking (higher similarity = better match)
+			queryBuilder.addSelect(
+				`GREATEST(
+					similarity(item.name, :search),
+					similarity(COALESCE(item.description, ''), :search)
+				)`,
+				'similarity_score',
+			);
 		}
 
 		// Sorting
 		const sortBy = dto.sortBy || MenuItemSortBy.CREATED_AT;
 		const sortOrder = dto.sortOrder || SortOrder.DESC;
 
-		switch (sortBy) {
-			case MenuItemSortBy.PRICE:
-				queryBuilder.orderBy('item.price', sortOrder);
-				break;
-			case MenuItemSortBy.NAME:
-				queryBuilder.orderBy('item.name', sortOrder);
-				break;
-			case MenuItemSortBy.POPULARITY:
-				// Future: join with order_items and count
-				queryBuilder.orderBy('item.createdAt', sortOrder);
-				break;
-			case MenuItemSortBy.CREATED_AT:
-			default:
-				queryBuilder.orderBy('item.createdAt', sortOrder);
-				break;
+		// If search is active and no explicit sort specified, prioritize by similarity
+		if (dto.search && !dto.sortBy) {
+			queryBuilder.orderBy('similarity_score', 'DESC');
+			queryBuilder.addOrderBy('item.name', 'ASC');
+		} else {
+			switch (sortBy) {
+				case MenuItemSortBy.PRICE:
+					queryBuilder.orderBy('item.price', sortOrder);
+					break;
+				case MenuItemSortBy.NAME:
+					queryBuilder.orderBy('item.name', sortOrder);
+					break;
+				case MenuItemSortBy.POPULARITY:
+					// Future: join with order_items and count
+					queryBuilder.orderBy('item.createdAt', sortOrder);
+					break;
+				case MenuItemSortBy.CREATED_AT:
+				default:
+					queryBuilder.orderBy('item.createdAt', sortOrder);
+					break;
+			}
 		}
 
 		// Sort photos within each item (primary first, then by display order)

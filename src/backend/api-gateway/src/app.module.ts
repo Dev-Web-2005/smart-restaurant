@@ -17,6 +17,7 @@ import { OrderController } from './services/order/order.controller';
 import { CartController } from './services/cart/cart.controller';
 import { WaiterController } from './services/waiter/waiter.controller';
 import { WebsocketModule } from './websocket/websocket.module';
+import { KitchenController } from './services/kitchen/kitchen.controller';
 
 @Module({
 	imports: [
@@ -82,6 +83,14 @@ import { WebsocketModule } from './websocket/websocket.module';
 					port: +process.env.PORT_WAITER_SERVICE || 8088,
 				},
 			},
+			{
+				name: 'KITCHEN_SERVICE',
+				transport: Transport.TCP,
+				options: {
+					host: process.env.HOST_KITCHEN_SERVICE || 'localhost',
+					port: +process.env.PORT_KITCHEN_SERVICE || 8086,
+				},
+			},
 		]),
 	],
 	controllers: [
@@ -96,6 +105,7 @@ import { WebsocketModule } from './websocket/websocket.module';
 		OrderController,
 		CartController,
 		WaiterController,
+		KitchenController,
 	],
 	providers: [AppService],
 })

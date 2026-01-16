@@ -15,7 +15,7 @@ if (import.meta.env.DEV && USE_MOCK_API) {
 	mockAPI = await import('../services/api/mockAuthAPI')
 }
 
-const { loginAPI, logoutAPI, registerAPI, getCurrentUserAPI, refreshTokenAPI } =
+const { loginAPI, loginWithOwnerAPI, logoutAPI, registerAPI, getCurrentUserAPI, refreshTokenAPI } =
 	USE_MOCK_API && mockAPI ? mockAPI : realAPI
 
 const UserContext = createContext()
@@ -29,7 +29,20 @@ export const UserProvider = ({ children }) => {
 	// State lưu dữ liệu signup tạm thời
 	const [pendingSignupData, setPendingSignupData] = useState(null)
 
-	// Login function
+	/**
+	 * Map backend roles to frontend role names
+	 */
+	const mapUserRole = (roles) => {
+		if (!roles || roles.length === 0) return 'User'
+		if (roles.includes('ADMIN')) return 'Super Administrator'
+		if (roles.includes('CHEF')) return 'Chef'
+		if (roles.includes('STAFF')) return 'Staff'
+		if (roles.includes('CUSTOMER')) return 'Customer'
+		if (roles.includes('USER')) return 'User'
+		return 'User'
+	}
+
+	// Login function (for Owner/Admin - no ownerId)
 	const login = async (username, password) => {
 		setLoading(true)
 		try {
@@ -44,7 +57,7 @@ export const UserProvider = ({ children }) => {
 
 				const userData = {
 					...result.user,
-					role: result.user.roles.includes('ADMIN') ? 'Super Administrator' : 'User',
+					role: mapUserRole(result.user.roles),
 					name: result.user.username,
 				}
 				setUser(userData)
@@ -56,6 +69,45 @@ export const UserProvider = ({ children }) => {
 				return { success: true, user: userData }
 			} else {
 				// ❌ Login failed
+				setLoading(false)
+				return { success: false, message: result.message }
+			}
+		} catch (error) {
+			setLoading(false)
+			return { success: false, message: 'Login failed. Please try again.' }
+		}
+	}
+
+	// Login with ownerId (for Staff/Chef/Customer in multi-tenant)
+	const loginWithOwner = async (username, password, ownerId) => {
+		setLoading(true)
+		try {
+			const result = await loginWithOwnerAPI(username, password, ownerId)
+
+			if (result.success) {
+				// ✅ Store access token in memory
+				if (result.accessToken) {
+					window.accessToken = result.accessToken
+					console.log('✅ Access token stored (tenant login)')
+				}
+
+				const userData = {
+					...result.user,
+					role: mapUserRole(result.user.roles),
+					name: result.user.username,
+					ownerId: result.user.ownerId || ownerId,
+				}
+				setUser(userData)
+				localStorage.setItem('user', JSON.stringify(result.user))
+				sessionStorage.setItem('tabSession', Date.now().toString())
+				
+				// Store tenant context
+				localStorage.setItem('currentTenantId', result.user.ownerId || ownerId)
+				window.currentTenantId = result.user.ownerId || ownerId
+
+				setLoading(false)
+				return { success: true, user: userData }
+			} else {
 				setLoading(false)
 				return { success: false, message: result.message }
 			}
@@ -116,7 +168,10 @@ export const UserProvider = ({ children }) => {
 			// Always clear local state
 			setUser(null)
 			window.accessToken = null // ✅ Clear access token from memory
+			window.currentTenantId = null // ✅ Clear tenant context from memory
 			sessionStorage.removeItem('tabSession') // ✅ Clear tab session
+			localStorage.removeItem('currentTenantId') // ✅ Clear tenant from storage
+			localStorage.removeItem('user') // ✅ Clear user data
 			setPendingSignupData(null)
 		}
 	}
@@ -192,14 +247,21 @@ export const UserProvider = ({ children }) => {
 					const roles = refreshResult.user.roles || []
 					const userData = {
 						...refreshResult.user,
-						role: roles.includes('ADMIN') ? 'Super Administrator' : 'User',
+						role: mapUserRole(roles),
 						name: refreshResult.user.username || refreshResult.user.email,
+						ownerId: refreshResult.user.ownerId || null,
 					}
 					setUser(userData)
 					// ✅ Save user to localStorage for F5 persistence
 					localStorage.setItem('user', JSON.stringify(refreshResult.user))
 					// ✅ Restore tab session marker
 					sessionStorage.setItem('tabSession', Date.now().toString())
+					
+					// Restore tenant context if available
+					if (refreshResult.user.ownerId) {
+						localStorage.setItem('currentTenantId', refreshResult.user.ownerId)
+						window.currentTenantId = refreshResult.user.ownerId
+					}
 				} else {
 					// ❌ Refresh token expired or invalid
 					window.accessToken = null
@@ -221,6 +283,7 @@ export const UserProvider = ({ children }) => {
 		user,
 		loading,
 		login,
+		loginWithOwner,
 		logout,
 		startSignup,
 		completeOnboarding,
