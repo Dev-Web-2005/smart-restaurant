@@ -2269,6 +2269,117 @@
 						}
 					],
 					"id": "d7f09ab3-8d2e-45e5-bc51-b58902cbda94"
+				},
+				{
+					"name": "Reviews",
+					"item": [
+						{
+							"name": "Create Review",
+							"id": "create-review-001",
+							"request": {
+								"auth": {
+									"type": "bearer",
+									"bearer": [
+										{
+											"key": "token",
+											"value": "{{accessToken}}",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"userId\": \"{{userId}}\",\n    \"userName\": \"John Doe\",\n    \"rating\": 5,\n    \"comment\": \"Absolutely delicious! The best pasta I've ever had. Highly recommended!\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/:tenantId/items/:itemId/reviews",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										":tenantId",
+										"items",
+										":itemId",
+										"reviews"
+									],
+									"variable": [
+										{
+											"key": "tenantId",
+											"value": "d95e73fb-b861-40eb-ba09-eff4b79084ef"
+										},
+										{
+											"key": "itemId",
+											"value": "your-menu-item-id-here"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get Reviews for Menu Item",
+							"id": "get-reviews-001",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "x-api-key",
+										"value": "{{x-api-key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{baseURL}}/api/v1/tenants/:tenantId/items/:itemId/reviews?page=1&limit=10",
+									"host": ["{{baseURL}}"],
+									"path": [
+										"api",
+										"v1",
+										"tenants",
+										":tenantId",
+										"items",
+										":itemId",
+										"reviews"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "1"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									],
+									"variable": [
+										{
+											"key": "tenantId",
+											"value": "d95e73fb-b861-40eb-ba09-eff4b79084ef"
+										},
+										{
+											"key": "itemId",
+											"value": "your-menu-item-id-here"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"id": "reviews-folder-001"
 				}
 			],
 			"id": "8ab72cfb-05a5-48fc-bc3b-0dd9bb65b6ec"
