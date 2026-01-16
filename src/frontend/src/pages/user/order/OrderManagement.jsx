@@ -887,8 +887,18 @@ const OrderManagement = () => {
 
 				// Show notification
 				if (payload?.data) {
-					const { tableId, items } = payload.data
+					const { orderId, tableId, items } = payload.data
 					const itemCount = items?.length || 0
+
+					// Auto-expand the new order to show items immediately
+					if (orderId) {
+						console.log('🔓 [OrderManagement] Auto-expanding new order:', orderId)
+						setExpandedOrders((prev) => {
+							const newSet = new Set(prev)
+							newSet.add(orderId)
+							return newSet
+						})
+					}
 
 					// Optionally show browser notification
 					if ('Notification' in window && Notification.permission === 'granted') {

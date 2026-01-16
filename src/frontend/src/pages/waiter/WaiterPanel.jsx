@@ -130,6 +130,7 @@ const WaiterPanel = () => {
 	const [ordersView, setOrdersView] = useState('PENDING') // PENDING, READY, SERVED, PAYMENT
 	const [searchQuery, setSearchQuery] = useState('')
 	const [expandedOrders, setExpandedOrders] = useState(new Set())
+	const [processingOrders, setProcessingOrders] = useState(new Set()) // Track orders being processed
 
 	// === HELP State (Keep existing logic) ===
 	const [helpRequests, setHelpRequests] = useState(mockHelpRequests)
@@ -142,8 +143,9 @@ const WaiterPanel = () => {
 			try {
 				// if (!_silent) setRefreshing(true) // Not displayed in UI
 
+				// For STAFF role, tenantId is stored in user.ownerId (restaurant owner's ID)
 				const tenantId =
-					user?.tenantId || ownerId || localStorage.getItem('currentTenantId')
+					user?.ownerId || ownerId || localStorage.getItem('currentTenantId')
 				if (!tenantId) {
 					console.warn('⚠️ No tenantId found, skipping order fetch')
 					return
@@ -179,18 +181,27 @@ const WaiterPanel = () => {
 				// if (!_silent) setRefreshing(false) // Not displayed in UI
 			}
 		},
-		[user?.tenantId, ownerId],
+		[user?.ownerId, ownerId],
 	) // Dependencies for useCallback
 
 	/**
 	 * Accept order items (waiter accepts pending items)
+	 * Uses updateOrderItemsStatus() via PATCH /items-status
+	 * This emits 'order.items.accepted' WebSocket event for customer notification
+	 *
 	 * @param {string} orderId - Order ID
 	 * @param {Array<string>} itemIds - Array of item IDs to accept
 	 */
 	const handleAcceptItems = async (orderId, itemIds) => {
+		// Prevent double-click
+		if (processingOrders.has(orderId)) {
+			console.warn('⚠️ Already processing order:', orderId)
+			return
+		}
+
 		try {
-			const tenantId =
-				user?.tenantId || ownerId || localStorage.getItem('currentTenantId')
+			// For STAFF role, tenantId is stored in user.ownerId (restaurant owner's ID)
+			const tenantId = user?.ownerId || ownerId || localStorage.getItem('currentTenantId')
 			const waiterId = user?.userId
 
 			if (!tenantId || !waiterId) {
@@ -203,8 +214,13 @@ const WaiterPanel = () => {
 				return
 			}
 
-			console.log(`✅ Accepting ${itemIds.length} items from order ${orderId}`)
+			// Mark order as processing
+			setProcessingOrders((prev) => new Set(prev).add(orderId))
 
+			console.log(`✅ Accepting ${itemIds.length} items from order ${orderId}`)
+			console.log(`📋 Item IDs to accept:`, itemIds)
+
+			// Call API to accept items - uses PATCH /items-status with status='ACCEPTED'
 			await acceptOrderItemsAPI({
 				tenantId,
 				orderId,
@@ -212,26 +228,86 @@ const WaiterPanel = () => {
 				waiterId,
 			})
 
-			console.log('✅ Items accepted successfully')
+			console.log('✅ Items accepted successfully by backend')
 			showSuccess('Items accepted and sent to kitchen')
 
-			// Refresh orders to get updated status
-			await fetchOrders(true)
+			// 🔄 RETRY FETCH with exponential backoff until data is updated
+			// Backend might have cache or read replica lag
+			let retryCount = 0
+			const maxRetries = 3
+			let dataUpdated = false
+
+			while (retryCount < maxRetries && !dataUpdated) {
+				const delayMs = 300 + retryCount * 500 // 300ms, 800ms, 1300ms
+				console.log(`⏳ Waiting ${delayMs}ms before fetch attempt ${retryCount + 1}...`)
+				await new Promise((resolve) => setTimeout(resolve, delayMs))
+
+				console.log(`🔄 Fetch attempt ${retryCount + 1}/${maxRetries}...`)
+				await fetchOrders(true)
+
+				// Check if items were actually updated
+				const currentOrder = orders.find((o) => o.id === orderId)
+				if (currentOrder) {
+					const stillPending = currentOrder.items.some(
+						(item) => itemIds.includes(item.id) && item.status === ITEM_STATUS.PENDING,
+					)
+					if (!stillPending) {
+						dataUpdated = true
+						console.log('✅ Data updated successfully!')
+						break
+					} else {
+						console.warn(
+							`⚠️ Data still stale on attempt ${retryCount + 1}, items still PENDING`,
+						)
+					}
+				} else {
+					// Order not found - might have moved to different status
+					dataUpdated = true
+					console.log('✅ Order moved to different status (accepted successfully)')
+					break
+				}
+
+				retryCount++
+			}
+
+			if (!dataUpdated) {
+				console.warn(
+					'⚠️ Data may still be stale after all retries - possible backend cache issue',
+				)
+			}
 		} catch (error) {
 			console.error('❌ Error accepting items:', error)
 			alert(error.response?.data?.message || 'Failed to accept items')
+			// Fetch fresh data on error
+			await fetchOrders(true)
+		} finally {
+			// Remove from processing
+			setProcessingOrders((prev) => {
+				const next = new Set(prev)
+				next.delete(orderId)
+				return next
+			})
 		}
 	}
 
 	/**
 	 * Reject order items (waiter rejects pending items with reason)
+	 * Uses updateOrderItemsStatus() via PATCH /items-status with status='REJECTED'
+	 * This emits 'order.items.rejected' WebSocket event for customer notification
+	 *
 	 * @param {string} orderId - Order ID
 	 * @param {Array<string>} itemIds - Array of item IDs to reject
 	 */
 	const handleRejectItems = async (orderId, itemIds) => {
+		// Prevent double-click
+		if (processingOrders.has(orderId)) {
+			console.warn('⚠️ Already processing order:', orderId)
+			return
+		}
+
 		try {
-			const tenantId =
-				user?.tenantId || ownerId || localStorage.getItem('currentTenantId')
+			// For STAFF role, tenantId is stored in user.ownerId (restaurant owner's ID)
+			const tenantId = user?.ownerId || ownerId || localStorage.getItem('currentTenantId')
 			const waiterId = user?.userId
 
 			if (!tenantId || !waiterId) {
@@ -257,8 +333,12 @@ const WaiterPanel = () => {
 				return
 			}
 
+			// Mark order as processing
+			setProcessingOrders((prev) => new Set(prev).add(orderId))
+
 			console.log(`❌ Rejecting ${itemIds.length} items from order ${orderId}`)
 
+			// Call API to reject items - uses PATCH /items-status with status='REJECTED'
 			await rejectOrderItemsAPI({
 				tenantId,
 				orderId,
@@ -275,18 +355,34 @@ const WaiterPanel = () => {
 		} catch (error) {
 			console.error('❌ Error rejecting items:', error)
 			alert(error.response?.data?.message || 'Failed to reject items')
+		} finally {
+			// Remove from processing
+			setProcessingOrders((prev) => {
+				const next = new Set(prev)
+				next.delete(orderId)
+				return next
+			})
 		}
 	}
 
 	/**
 	 * Mark order items as served (waiter delivered food to customer)
+	 * Uses updateOrderItemsStatus() via PATCH /items-status with status='SERVED'
+	 * This emits 'order.items.served' WebSocket event for customer notification
+	 *
 	 * @param {string} orderId - Order ID
 	 * @param {Array<string>} itemIds - Array of item IDs to mark as served
 	 */
 	const handleMarkServed = async (orderId, itemIds) => {
+		// Prevent double-click
+		if (processingOrders.has(orderId)) {
+			console.warn('⚠️ Already processing order:', orderId)
+			return
+		}
+
 		try {
-			const tenantId =
-				user?.tenantId || ownerId || localStorage.getItem('currentTenantId')
+			// For STAFF role, tenantId is stored in user.ownerId (restaurant owner's ID)
+			const tenantId = user?.ownerId || ownerId || localStorage.getItem('currentTenantId')
 			const waiterId = user?.userId
 
 			if (!tenantId || !waiterId) {
@@ -299,8 +395,12 @@ const WaiterPanel = () => {
 				return
 			}
 
+			// Mark order as processing
+			setProcessingOrders((prev) => new Set(prev).add(orderId))
+
 			console.log(`✅ Marking ${itemIds.length} items as served from order ${orderId}`)
 
+			// Call API to mark items served - uses PATCH /items-status with status='SERVED'
 			await markItemsServedAPI({
 				tenantId,
 				orderId,
@@ -316,6 +416,13 @@ const WaiterPanel = () => {
 		} catch (error) {
 			console.error('❌ Error marking items as served:', error)
 			alert(error.response?.data?.message || 'Failed to mark items as served')
+		} finally {
+			// Remove from processing
+			setProcessingOrders((prev) => {
+				const next = new Set(prev)
+				next.delete(orderId)
+				return next
+			})
 		}
 	}
 
@@ -326,8 +433,8 @@ const WaiterPanel = () => {
 	 */
 	const handleMarkPaid = async (orderId, paymentMethod) => {
 		try {
-			const tenantId =
-				user?.tenantId || ownerId || localStorage.getItem('currentTenantId')
+			// For STAFF role, tenantId is stored in user.ownerId (restaurant owner's ID)
+			const tenantId = user?.ownerId || ownerId || localStorage.getItem('currentTenantId')
 
 			if (!tenantId) {
 				console.error('❌ Missing tenantId')
@@ -402,41 +509,52 @@ const WaiterPanel = () => {
 
 	/**
 	 * WebSocket setup - Separate useEffect to prevent reconnections
+	 * NOTE: STAFF role auto-joins 'tenant:{tenantId}:waiters' room on backend
+	 * This is handled by room-manager.service.ts based on JWT token role
 	 */
 	useEffect(() => {
-		const setupWebSocket = () => {
+		const setupWebSocket = async () => {
 			// Use window.accessToken (set by authAPI after login/refresh)
 			const authToken = window.accessToken || localStorage.getItem('authToken')
-			const tenantId =
-				user?.tenantId ||
-				user?.userId ||
-				ownerId ||
-				localStorage.getItem('currentTenantId')
+			// For STAFF role, tenantId is stored in user.ownerId (restaurant owner's ID)
+			// IMPORTANT: Do NOT use user.userId as tenantId - that's the waiter's ID, not the restaurant's
+			const tenantId = user?.ownerId || ownerId || localStorage.getItem('currentTenantId')
 
 			if (!authToken || !tenantId) {
 				console.error('❌ [WaiterPanel] No token or tenantId, skipping WebSocket setup')
 				return
 			}
 
-			// Only connect if not already connected
-			if (socketClient.isSocketConnected()) {
+			// Connect WebSocket if not already connected
+			if (!socketClient.isSocketConnected()) {
+				socketClient.connect(authToken)
+
+				// Wait for connection before registering listeners
+				try {
+					await socketClient.waitForConnection(5000)
+					console.log('✅ [WaiterPanel] WebSocket connected successfully')
+					console.log(
+						'📍 [WaiterPanel] STAFF role will auto-join tenant:waiters room via backend',
+					)
+				} catch (error) {
+					console.error('❌ [WaiterPanel] WebSocket connection failed:', error.message)
+					return
+				}
+			} else {
 				console.log('🔵 [WaiterPanel] WebSocket already connected, reusing connection')
-				return
 			}
 
-			// Connect WebSocket
-			socketClient.connect(authToken)
-
-			// Define event handlers
+			// Define event handlers for STAFF/WAITER
 			const handleNewOrderItems = (payload) => {
 				console.log('🆕 [WaiterPanel] New order received', payload)
+				console.log('🔄 [WaiterPanel] Refreshing orders after new order received')
 
 				// Show notification
 				if (payload?.data) {
 					const { tableId, items } = payload.data
 					const itemCount = items?.length || 0
 
-					// Optionally show browser notification
+					// Browser notification for new orders
 					if ('Notification' in window && Notification.permission === 'granted') {
 						new Notification('New Order Received', {
 							body: `${itemCount} item(s) from Table ${tableId}`,
@@ -446,41 +564,85 @@ const WaiterPanel = () => {
 				}
 
 				// Refresh orders list to show new pending items
-				console.log('🔄 [WaiterPanel] Refreshing orders after new order received')
 				fetchOrders(true) // silent refresh
 			}
 
 			const handleItemsAccepted = (payload) => {
 				console.log('✅ [WaiterPanel] Order items accepted', payload)
+				console.log('🔄 [WaiterPanel] Refreshing orders after items accepted')
+				fetchOrders(true)
+			}
+
+			const handleItemsRejected = (payload) => {
+				console.log('❌ [WaiterPanel] Order items rejected', payload)
+				console.log('🔄 [WaiterPanel] Refreshing orders after items rejected')
+				fetchOrders(true)
+			}
+
+			const handleItemsPreparing = (payload) => {
+				console.log('🍳 [WaiterPanel] Order items preparing', payload)
+				console.log('🔄 [WaiterPanel] Refreshing orders after items preparing')
 				fetchOrders(true)
 			}
 
 			const handleItemsReady = (payload) => {
 				console.log('🍽️ [WaiterPanel] Order items ready', payload)
+				console.log('🔄 [WaiterPanel] Refreshing orders after items ready')
+
+				// Show notification for ready items (waiter needs to pick up)
+				if (payload?.data) {
+					const itemCount = payload.data.items?.length || 0
+					const tableId = payload.data.tableId
+
+					if ('Notification' in window && Notification.permission === 'granted') {
+						new Notification('Items Ready for Pickup!', {
+							body: `${itemCount} item(s) ready for Table ${tableId}`,
+							icon: '/logo.png',
+						})
+					}
+				}
+
 				fetchOrders(true)
 			}
 
-			// Listen for events
+			const handleItemsServed = (payload) => {
+				console.log('🍴 [WaiterPanel] Order items served', payload)
+				console.log('🔄 [WaiterPanel] Refreshing orders after items served')
+				fetchOrders(true)
+			}
+
+			// Listen for events - these are sent to tenant:waiters room
 			socketClient.on('order.items.new', handleNewOrderItems)
 			socketClient.on('order.items.accepted', handleItemsAccepted)
+			socketClient.on('order.items.rejected', handleItemsRejected)
+			socketClient.on('order.items.preparing', handleItemsPreparing)
 			socketClient.on('order.items.ready', handleItemsReady)
+			socketClient.on('order.items.served', handleItemsServed)
 		}
 
 		// Only setup WebSocket if user is available
-		const effectiveTenantId = user?.tenantId || user?.userId || ownerId
+		// For STAFF role, tenantId is stored in user.ownerId
+		const effectiveTenantId =
+			user?.ownerId || ownerId || localStorage.getItem('currentTenantId')
 		if (effectiveTenantId) {
 			setupWebSocket()
 		} else {
 			console.error('❌ [WaiterPanel] User authentication required for real-time updates')
 		}
 
-		// Cleanup only on unmount (not on re-render)
+		// Cleanup with proper handler references - remove all listeners for these events
 		return () => {
+			// Note: socketClient.off without callback removes all listeners for the event
+			// This is acceptable for cleanup as we're unmounting the component
 			socketClient.off('order.items.new')
 			socketClient.off('order.items.accepted')
+			socketClient.off('order.items.rejected')
+			socketClient.off('order.items.preparing')
 			socketClient.off('order.items.ready')
+			socketClient.off('order.items.served')
+			console.log('🔴 [WaiterPanel] WebSocket listeners removed')
 		}
-	}, [user?.tenantId, user?.userId, ownerId, fetchOrders]) // Include fetchOrders in dependencies
+	}, [user?.ownerId, ownerId, fetchOrders]) // Include fetchOrders to ensure handlers always use current version
 
 	/**
 	 * Filter orders based on view and search
