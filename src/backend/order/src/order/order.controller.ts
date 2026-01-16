@@ -13,6 +13,7 @@ import {
 	CreateOrderRequestDto,
 	GetOrderRequestDto,
 	GetOrdersRequestDto,
+	GetOrderHistoryRequestDto,
 	AddItemsToOrderRequestDto,
 	UpdateOrderStatusRequestDto,
 	UpdateOrderItemsStatusRequestDto,
@@ -96,6 +97,27 @@ export class OrderController {
 		return handleRpcCall(async () => {
 			const result = await this.orderService.getOrders(dto);
 			return new HttpResponse(1000, 'Orders retrieved successfully', result);
+		});
+	}
+
+	/**
+	 * Get customer order history
+	 * RPC Pattern: 'orders:get-history'
+	 *
+	 * Returns all past orders for a specific customer account
+	 * Only available for logged-in customers (not guest customers)
+	 *
+	 * Supports filtering by:
+	 * - status (PENDING, IN_PROGRESS, COMPLETED, CANCELLED)
+	 * - paymentStatus (PENDING, PAID, etc.)
+	 * - pagination (page, limit)
+	 * - sorting (createdAt, updatedAt, total)
+	 */
+	@MessagePattern('orders:get-history')
+	async getOrderHistory(dto: GetOrderHistoryRequestDto) {
+		return handleRpcCall(async () => {
+			const result = await this.orderService.getOrderHistory(dto);
+			return new HttpResponse(1000, 'Order history retrieved successfully', result);
 		});
 	}
 

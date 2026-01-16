@@ -26,6 +26,7 @@ import {
 	CreateOrderRequestDto,
 	GetOrderRequestDto,
 	GetOrdersRequestDto,
+	GetOrderHistoryRequestDto,
 	AddItemsToOrderRequestDto,
 	UpdateOrderStatusRequestDto,
 	UpdateOrderItemsStatusRequestDto,
@@ -541,6 +542,68 @@ export class OrderService implements OnModuleDestroy {
 
 		// Get total count and paginated results
 		const [orders, total] = await queryBuilder.skip(skip).take(limit).getManyAndCount();
+
+		return {
+			orders: orders.map((order) => this.mapToOrderResponse(order)),
+			total,
+			page,
+			limit,
+			totalPages: Math.ceil(total / limit),
+		};
+	}
+
+	/**
+	 * Get customer order history
+	 *
+	 * Returns all past orders linked to a customer account
+	 * Only available for logged-in customers (not guest customers)
+	 *
+	 * Business Rules:
+	 * - Customer must have customerId (logged in)
+	 * - Returns orders sorted by createdAt DESC (newest first)
+	 * - Supports pagination and filtering
+	 * - Includes order items for detailed history
+	 */
+	async getOrderHistory(
+		dto: GetOrderHistoryRequestDto,
+	): Promise<PaginatedOrdersResponseDto> {
+		this.validateApiKey(dto.orderApiKey);
+
+		const page = dto.page || 1;
+		const limit = dto.limit || 20;
+		const skip = (page - 1) * limit;
+
+		// Build query - filter by customerId
+		const queryBuilder = this.orderRepository
+			.createQueryBuilder('order')
+			.leftJoinAndSelect('order.items', 'items')
+			.where('order.tenantId = :tenantId', { tenantId: dto.tenantId })
+			.andWhere('order.customerId = :customerId', { customerId: dto.customerId });
+
+		// Apply optional filters
+		if (dto.status) {
+			const statusEnum = orderStatusFromString(dto.status);
+			queryBuilder.andWhere('order.status = :status', { status: statusEnum });
+		}
+
+		if (dto.paymentStatus) {
+			const paymentStatusEnum = paymentStatusFromString(dto.paymentStatus);
+			queryBuilder.andWhere('order.paymentStatus = :paymentStatus', {
+				paymentStatus: paymentStatusEnum,
+			});
+		}
+
+		// Apply sorting - default to newest first
+		const sortBy = dto.sortBy || 'createdAt';
+		const sortOrder = dto.sortOrder || 'DESC';
+		queryBuilder.orderBy(`order.${sortBy}`, sortOrder);
+
+		// Get total count and paginated results
+		const [orders, total] = await queryBuilder.skip(skip).take(limit).getManyAndCount();
+
+		this.logger.log(
+			`Retrieved ${orders.length} order history records for customer ${dto.customerId}`,
+		);
 
 		return {
 			orders: orders.map((order) => this.mapToOrderResponse(order)),

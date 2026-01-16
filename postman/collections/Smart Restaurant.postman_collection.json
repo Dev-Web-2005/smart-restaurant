@@ -2939,6 +2939,82 @@
 					"response": []
 				},
 				{
+					"name": "Get Customer Order History",
+					"id": "get-order-history-009",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "m",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/customer/d95e73fb-b861-40eb-ba09-eff4b79084ef/history?page=1&limit=10",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"orders",
+								"customer",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"history"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "COMPLETED",
+									"uuid": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+									"disabled": true
+								},
+								{
+									"key": "paymentStatus",
+									"value": "PAID",
+									"uuid": "b2c3d4e5-f6a7-8901-2345-67890abcdef1",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"uuid": "c3d4e5f6-a7b8-9012-3456-7890abcdef12"
+								},
+								{
+									"key": "limit",
+									"value": "10",
+									"uuid": "d4e5f6a7-b8c9-0123-4567-890abcdef123"
+								},
+								{
+									"key": "sortBy",
+									"value": "createdAt",
+									"uuid": "e5f6a7b8-c9d0-1234-5678-90abcdef1234",
+									"disabled": true
+								},
+								{
+									"key": "sortOrder",
+									"value": "DESC",
+									"uuid": "f6a7b8c9-d0e1-2345-6789-0abcdef12345",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get order history for a specific customer account.\n\n**Authentication Required:**\n- Must be logged-in customer (USER role)\n- Bearer token required\n- API key required\n\n**Use Case:**\n- Customer views their past orders\n- Only available for logged-in customers (not guest customers)\n- Returns orders sorted by newest first\n\n**Query Parameters:**\n- page: Page number (default: 1)\n- limit: Items per page (default: 20)\n- status: Filter by order status (PENDING, IN_PROGRESS, COMPLETED, CANCELLED)\n- paymentStatus: Filter by payment status (PENDING, PAID, etc.)\n- sortBy: Sort field (createdAt, updatedAt, total) (default: createdAt)\n- sortOrder: Sort direction (ASC, DESC) (default: DESC)\n\n**Response:**\n- orders: Array of order objects with items\n- total: Total order count\n- page: Current page\n- limit: Items per page\n- totalPages: Total pages"
+					},
+					"response": []
+				},
+				{
 					"name": "Add Items to Order",
 					"id": "add-items-to-order-004",
 					"request": {
