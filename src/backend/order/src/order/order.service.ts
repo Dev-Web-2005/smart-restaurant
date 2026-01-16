@@ -802,20 +802,38 @@ export class OrderService implements OnModuleDestroy {
 		);
 
 		// ✅ Emit RabbitMQ event for status changes
-		// Pub/Sub Pattern: Publish to Exchange → Both services receive
+		// Pub/Sub Pattern: Publish to Exchange → All services receive
 		const rabbitEventName = `order.items.${OrderItemStatusLabels[dtoStatus].toLowerCase()}`;
 
+		// Base payload for all events
 		const eventPayload = {
-			waiterApiKey: this.configService.get<string>('WAITER_API_KEY'),
 			orderId: order.id,
 			tableId: order.tableId,
 			tenantId: dto.tenantId,
-			items: updatedItems, // ✅ FULL item objects
+			items: updatedItems, // ✅ FULL item objects with all data
 			status: OrderItemStatusLabels[dtoStatus],
 			updatedBy: dto.waiterId,
 			rejectionReason: dto.rejectionReason,
 			updatedAt: new Date(),
 		};
+
+		// Enhanced payload for ACCEPTED status (Kitchen Service needs extra data)
+		if (dtoStatus === OrderItemStatus.ACCEPTED) {
+			Object.assign(eventPayload, {
+				kitchenApiKey: this.configService.get<string>('KITCHEN_API_KEY'),
+				waiterApiKey: this.configService.get<string>('WAITER_API_KEY'),
+				waiterId: dto.waiterId,
+				tableNumber: order.tableId, // Kitchen display
+				customerName: order.customerName,
+				orderType: order.orderType,
+				notes: order.notes,
+				priority: 0, // Default priority, Kitchen can adjust
+			});
+
+			this.logger.log(
+				`📨 Sending ${updatedItems.length} ACCEPTED items to Kitchen Service via order.items.accepted`,
+			);
+		}
 
 		// ✅ Use amqplib directly for proper fanout exchange publishing
 		await this.publishToExchange('order_events_exchange', rabbitEventName, eventPayload);
@@ -1052,6 +1070,7 @@ export class OrderService implements OnModuleDestroy {
 	 * @param dto - Accept items request from waiter
 	 * @returns Updated order with accepted items
 	 */
+	/*
 	async acceptItems(dto: {
 		orderApiKey: string;
 		orderId: string;
@@ -1139,6 +1158,7 @@ export class OrderService implements OnModuleDestroy {
 
 		return this.mapToOrderResponse(updatedOrder);
 	}
+	*/
 
 	/**
 	 * Reject order items - ITEM-CENTRIC ARCHITECTURE
@@ -1155,6 +1175,7 @@ export class OrderService implements OnModuleDestroy {
 	 * @param dto - Reject items request from waiter
 	 * @returns Updated order with rejected items
 	 */
+	/*
 	async rejectItems(dto: {
 		orderApiKey: string;
 		orderId: string;
@@ -1228,6 +1249,7 @@ export class OrderService implements OnModuleDestroy {
 
 		return this.mapToOrderResponse(updatedOrder);
 	}
+	*/
 
 	/**
 	 * Helper: Map Order entity to OrderResponseDto

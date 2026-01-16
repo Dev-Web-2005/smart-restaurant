@@ -347,12 +347,19 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 	 * Handle incoming order.items.accepted event from Order Service
 	 * Creates a display tracking record (ticket) for kitchen
 	 *
-	 * NOTE: This is triggered by Order Service broadcasting order.items.accepted
-	 * Kitchen creates a local record to track timers, priority, and display grouping
-	 * Kitchen does NOT broadcast events - Order Service already did that
+	 * UNIFIED EVENT ARCHITECTURE:
+	 * - Waiter accepts items → Order Service broadcasts order.items.accepted
+	 * - Kitchen Service listens to order.items.accepted (same event as API Gateway)
+	 * - Creates local tracking record for timers, priority, and display grouping
+	 * - Broadcasts kitchen.ticket.new for KDS display updates
+	 *
+	 * This replaces the old kitchen.prepare_items event for simpler architecture
 	 */
-	async handlePrepareItems(dto: PrepareItemsEventDto): Promise<KitchenTicketResponseDto> {
-		this.validateApiKey(dto.kitchenApiKey);
+	async handlePrepareItems(dto: any): Promise<KitchenTicketResponseDto> {
+		// Validate API key (if present in payload)
+		if (dto.kitchenApiKey) {
+			this.validateApiKey(dto.kitchenApiKey);
+		}
 
 		this.logger.log(
 			`📥 Creating display ticket for order ${dto.orderId}, table ${dto.tableId} with ${dto.items.length} items`,

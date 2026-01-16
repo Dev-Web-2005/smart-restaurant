@@ -63,23 +63,25 @@ export class KitchenController {
 	// ==================== EVENT HANDLERS ====================
 
 	/**
-	 * EVENT: Receive items to prepare from Order Service
+	 * EVENT: Receive accepted items from Order Service
 	 *
-	 * Triggered when waiter accepts order items
-	 * Creates a new kitchen ticket with the items
+	 * Triggered when waiter accepts order items via updateOrderItemsStatus(ACCEPTED)
+	 * Creates a new kitchen ticket with the items for display
 	 *
-	 * Flow: Order Service → RabbitMQ → Kitchen Service
+	 * Flow: Waiter → Order Service → RabbitMQ (order.items.accepted) → Kitchen Service
+	 *
+	 * This replaces the old kitchen.prepare_items event for unified architecture
 	 */
-	@EventPattern('kitchen.prepare_items')
-	async handlePrepareItems(
-		@Payload() data: PrepareItemsEventDto,
+	@EventPattern('order.items.accepted')
+	async handleAcceptedItems(
+		@Payload() data: any, // Using any since it's the same payload as order.items.accepted
 		@Ctx() context: RmqContext,
 	) {
 		const channel = context.getChannelRef();
 		const message = context.getMessage();
 
 		this.logger.log(
-			`🍳 [EVENT] Received kitchen.prepare_items for order ${data.orderId}`,
+			`🍳 [EVENT] Received order.items.accepted for order ${data.orderId} - Creating kitchen ticket`,
 		);
 
 		try {
