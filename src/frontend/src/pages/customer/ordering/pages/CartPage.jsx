@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react'
 import { useAlert } from '../../../../contexts/AlertContext'
 import apiClient from '../../../../services/apiClient'
 import { clearCartAPI } from '../../../../services/api/cartAPI'
+import { getOrderByIdAPI } from '../../../../services/api/orderAPI'
+import socketClient from '../../../../services/websocket/socketClient'
 
 const CartPage = ({
 	cartItems,
@@ -65,6 +67,46 @@ const CartPage = ({
 			)
 
 			console.log('✅ Checkout success:', response.data)
+
+			// Extract orderId from response
+			const orderId = response.data?.data?.id
+
+			if (orderId) {
+				console.log('💾 Saving orderId to localStorage:', orderId)
+
+				// Save orderId to localStorage for this table session
+				const orderSession = {
+					orderId,
+					tenantId,
+					tableId,
+					createdAt: new Date().toISOString(),
+				}
+				localStorage.setItem('currentOrderSession', JSON.stringify(orderSession))
+
+				// Join WebSocket room for real-time order updates
+				if (socketClient.isSocketConnected()) {
+					console.log('🔌 Joining order room:', orderId)
+					socketClient.joinOrderRoom(orderId).then((response) => {
+						if (response?.success) {
+							console.log('✅ Successfully joined order room:', orderId)
+						} else {
+							console.error('❌ Failed to join order room:', response)
+						}
+					})
+				} else {
+					console.warn('⚠️ Socket not connected, cannot join room')
+				}
+
+				// Fetch full order details to verify
+				try {
+					const orderDetails = await getOrderByIdAPI({ tenantId, orderId })
+					console.log('✅ Order details fetched:', orderDetails)
+				} catch (fetchError) {
+					console.error('⚠️ Failed to fetch order details:', fetchError)
+				}
+			} else {
+				console.error('⚠️ No orderId in response:', response.data)
+			}
 
 			showAlert(
 				'Order Placed',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react'
 import ReactDOM from 'react-dom'
 import { useUser } from '../../../contexts/UserContext'
 import { useNotifications } from '../../../contexts/NotificationContext'
@@ -479,6 +479,7 @@ const OrderManagement = () => {
 	const [selectedView, setSelectedView] = useState('PENDING') // PENDING, READY, SERVED, PAYMENT
 	const [searchQuery, setSearchQuery] = useState('')
 	const [expandedOrders, setExpandedOrders] = useState(new Set())
+	const [processingOrders, setProcessingOrders] = useState(new Set()) // Track orders being processed
 
 	/**
 	 * Fetch orders from API
@@ -491,7 +492,7 @@ const OrderManagement = () => {
 				const tenantId = user?.tenantId || localStorage.getItem('currentTenantId')
 				if (!tenantId) {
 					console.warn('⚠️ No tenantId found, skipping order fetch')
-					return
+					return null
 				}
 
 				console.log('🔄 Fetching orders for tenant:', tenantId)
@@ -513,13 +514,16 @@ const OrderManagement = () => {
 					const fetchedOrders = response.data.orders || []
 					console.log('✅ Orders fetched:', fetchedOrders.length)
 					setOrders(fetchedOrders)
+					return fetchedOrders // Return for verification
 				} else {
 					console.warn('⚠️ Unexpected response format:', response)
 					setOrders([])
+					return []
 				}
 			} catch (error) {
 				console.error('❌ Error fetching orders:', error)
 				setOrders([])
+				return []
 			} finally {
 				if (!silent) setRefreshing(false)
 			}
@@ -533,6 +537,12 @@ const OrderManagement = () => {
 	 * @param {Array<string>} itemIds - Array of item IDs to accept
 	 */
 	const handleAcceptItems = async (orderId, itemIds) => {
+		// Prevent double-click
+		if (processingOrders.has(orderId)) {
+			console.warn('⚠️ Already processing order:', orderId)
+			return
+		}
+
 		try {
 			const tenantId = user?.tenantId || localStorage.getItem('currentTenantId')
 			const waiterId = user?.userId
@@ -547,8 +557,13 @@ const OrderManagement = () => {
 				return
 			}
 
-			console.log(`✅ Accepting ${itemIds.length} items from order ${orderId}`)
+			// Mark order as processing
+			setProcessingOrders((prev) => new Set(prev).add(orderId))
 
+			console.log(`✅ Accepting ${itemIds.length} items from order ${orderId}`)
+			console.log(`📋 Item IDs to accept:`, itemIds)
+
+			// Call API to accept items
 			await acceptOrderItemsAPI({
 				tenantId,
 				orderId,
@@ -556,13 +571,69 @@ const OrderManagement = () => {
 				waiterId,
 			})
 
-			console.log('✅ Items accepted successfully')
+			console.log('✅ Items accepted successfully by backend')
 
-			// Refresh orders to get updated status
-			await fetchOrders(true)
+			// 🔄 RETRY FETCH with exponential backoff until data is updated
+			// Backend might have cache or read replica lag
+			let retryCount = 0
+			const maxRetries = 3
+			let dataUpdated = false
+
+			while (retryCount < maxRetries && !dataUpdated) {
+				const delayMs = 300 + retryCount * 500 // 300ms, 800ms, 1300ms
+				console.log(`⏳ Waiting ${delayMs}ms before fetch attempt ${retryCount + 1}...`)
+				await new Promise((resolve) => setTimeout(resolve, delayMs))
+
+				console.log(`🔄 Fetch attempt ${retryCount + 1}/${maxRetries}...`)
+				const freshOrders = await fetchOrders(true)
+
+				// Check if items were actually updated in fetched data
+				if (freshOrders && Array.isArray(freshOrders)) {
+					const currentOrder = freshOrders.find((o) => o.id === orderId)
+					if (currentOrder) {
+						const stillPending = currentOrder.items.some(
+							(item) => itemIds.includes(item.id) && item.status === ITEM_STATUS.PENDING,
+						)
+						if (!stillPending) {
+							dataUpdated = true
+							console.log('✅ Data updated successfully!')
+							break
+						} else {
+							console.warn(
+								`⚠️ Data still stale on attempt ${retryCount + 1}, items still PENDING:`,
+								currentOrder.items
+									.filter((item) => itemIds.includes(item.id))
+									.map((i) => ({ id: i.id.slice(0, 8), status: i.status })),
+							)
+						}
+					} else {
+						// Order not found - might have moved to different status
+						dataUpdated = true
+						console.log('✅ Order moved to different status (accepted successfully)')
+						break
+					}
+				}
+
+				retryCount++
+			}
+
+			if (!dataUpdated) {
+				console.warn(
+					'⚠️ Data may still be stale after all retries - possible backend cache issue',
+				)
+			}
 		} catch (error) {
 			console.error('❌ Error accepting items:', error)
 			alert(error.response?.data?.message || 'Failed to accept items')
+			// Fetch fresh data on error
+			await fetchOrders(true)
+		} finally {
+			// Remove from processing
+			setProcessingOrders((prev) => {
+				const next = new Set(prev)
+				next.delete(orderId)
+				return next
+			})
 		}
 	}
 
@@ -572,6 +643,12 @@ const OrderManagement = () => {
 	 * @param {Array<string>} itemIds - Array of item IDs to reject
 	 */
 	const handleRejectItems = async (orderId, itemIds) => {
+		// Prevent double-click
+		if (processingOrders.has(orderId)) {
+			console.warn('⚠️ Already processing order:', orderId)
+			return
+		}
+
 		try {
 			const tenantId = user?.tenantId || localStorage.getItem('currentTenantId')
 			const waiterId = user?.userId
@@ -599,6 +676,9 @@ const OrderManagement = () => {
 				return
 			}
 
+			// Mark order as processing
+			setProcessingOrders((prev) => new Set(prev).add(orderId))
+
 			console.log(`❌ Rejecting ${itemIds.length} items from order ${orderId}`)
 
 			await rejectOrderItemsAPI({
@@ -616,6 +696,13 @@ const OrderManagement = () => {
 		} catch (error) {
 			console.error('❌ Error rejecting items:', error)
 			alert(error.response?.data?.message || 'Failed to reject items')
+		} finally {
+			// Remove from processing
+			setProcessingOrders((prev) => {
+				const next = new Set(prev)
+				next.delete(orderId)
+				return next
+			})
 		}
 	}
 
@@ -625,6 +712,12 @@ const OrderManagement = () => {
 	 * @param {Array<string>} itemIds - Array of item IDs to mark as served
 	 */
 	const handleMarkServed = async (orderId, itemIds) => {
+		// Prevent double-click
+		if (processingOrders.has(orderId)) {
+			console.warn('⚠️ Already processing order:', orderId)
+			return
+		}
+
 		try {
 			const tenantId = user?.tenantId || localStorage.getItem('currentTenantId')
 			const waiterId = user?.userId
@@ -638,6 +731,9 @@ const OrderManagement = () => {
 				console.warn('⚠️ No items to mark as served')
 				return
 			}
+
+			// Mark order as processing
+			setProcessingOrders((prev) => new Set(prev).add(orderId))
 
 			console.log(`✅ Marking ${itemIds.length} items as served from order ${orderId}`)
 
@@ -655,6 +751,13 @@ const OrderManagement = () => {
 		} catch (error) {
 			console.error('❌ Error marking items as served:', error)
 			alert(error.response?.data?.message || 'Failed to mark items as served')
+		} finally {
+			// Remove from processing
+			setProcessingOrders((prev) => {
+				const next = new Set(prev)
+				next.delete(orderId)
+				return next
+			})
 		}
 	}
 
@@ -664,29 +767,53 @@ const OrderManagement = () => {
 	 * @param {string} paymentMethod - Payment method (CASH, CARD, MOMO, etc.)
 	 */
 	const handleMarkPaid = async (orderId, paymentMethod) => {
+		// Prevent double-click
+		if (processingOrders.has(orderId)) {
+			console.warn('⚠️ Already processing order:', orderId)
+			return
+		}
+
 		try {
 			const tenantId = user?.tenantId || localStorage.getItem('currentTenantId')
 
 			if (!tenantId) {
 				console.error('❌ Missing tenantId')
+				alert('Error: Missing tenant ID')
 				return
 			}
 
-			console.log(`💰 Marking order ${orderId} as paid via ${paymentMethod}`)
+			// Mark order as processing
+			setProcessingOrders((prev) => new Set(prev).add(orderId))
 
-			await markOrderPaidAPI({
+			console.log(`💰 Marking order ${orderId} as paid via ${paymentMethod}`)
+			console.log('Request params:', { tenantId, orderId, paymentMethod })
+
+			const response = await markOrderPaidAPI({
 				tenantId,
 				orderId,
 				paymentMethod,
 			})
 
-			console.log('✅ Order marked as paid successfully')
+			console.log('✅ Order marked as paid successfully:', response)
+			alert(`✅ Payment confirmed via ${paymentMethod}`)
 
 			// Refresh orders to get updated status
 			await fetchOrders(true)
 		} catch (error) {
 			console.error('❌ Error marking order as paid:', error)
+			console.error('Error details:', {
+				message: error.message,
+				response: error.response?.data,
+				status: error.response?.status,
+			})
 			alert(error.response?.data?.message || 'Failed to mark order as paid')
+		} finally {
+			// Remove from processing
+			setProcessingOrders((prev) => {
+				const next = new Set(prev)
+				next.delete(orderId)
+				return next
+			})
 		}
 	}
 
@@ -719,7 +846,7 @@ const OrderManagement = () => {
 	 * WebSocket setup - Separate useEffect to prevent reconnections
 	 */
 	useEffect(() => {
-		const setupWebSocket = () => {
+		const setupWebSocket = async () => {
 			// Use window.accessToken (set by authAPI after login/refresh)
 			const authToken = window.accessToken || localStorage.getItem('authToken')
 			const tenantId =
@@ -732,16 +859,26 @@ const OrderManagement = () => {
 				return
 			}
 
-			// Only connect if not already connected
-			if (socketClient.isSocketConnected()) {
+			// Connect WebSocket if not already connected
+			if (!socketClient.isSocketConnected()) {
+				socketClient.connect(authToken)
+
+				// Wait for connection before registering listeners
+				try {
+					await socketClient.waitForConnection(5000)
+					console.log('✅ [OrderManagement] WebSocket connected successfully')
+				} catch (error) {
+					console.error(
+						'❌ [OrderManagement] WebSocket connection failed:',
+						error.message,
+					)
+					return
+				}
+			} else {
 				console.log(
 					'🔵 [OrderManagement] WebSocket already connected, reusing connection',
 				)
-				return
 			}
-
-			// Connect WebSocket
-			socketClient.connect(authToken)
 
 			// Define event handlers
 			const handleNewOrderItems = (payload) => {
@@ -794,17 +931,31 @@ const OrderManagement = () => {
 			)
 		}
 
-		// Cleanup only on unmount (not on re-render)
+		// Cleanup with proper handler references - remove all listeners for these events
 		return () => {
+			// Note: socketClient.off without callback removes all listeners for the event
+			// This is acceptable for cleanup as we're unmounting the component
 			socketClient.off('order.items.new')
 			socketClient.off('order.items.accepted')
 			socketClient.off('order.items.ready')
+			console.log('🔴 [OrderManagement] WebSocket listeners removed')
 		}
 	}, [user?.tenantId, user?.userId, fetchOrders]) // Include fetchOrders to ensure handlers always use current version
 
 	// Filter orders based on view and search
 	useEffect(() => {
 		let filtered = [...orders]
+
+		console.log('🔍 Filtering orders:', {
+			view: selectedView,
+			totalOrders: orders.length,
+			orders: orders.map((o) => ({
+				id: o.id.slice(0, 8),
+				items: o.items.length,
+				itemStatuses: o.items.map((i) => i.status),
+				paymentStatus: o.paymentStatus,
+			})),
+		})
 
 		// Filter by view
 		if (selectedView === 'PENDING') {
@@ -835,13 +986,48 @@ const OrderManagement = () => {
 				})
 				.filter(Boolean)
 		} else if (selectedView === 'PAYMENT') {
-			// Show orders waiting for payment (all items served, payment pending)
+			// Show orders waiting for payment (all non-rejected items served, payment pending)
 			filtered = filtered.filter((order) => {
 				if (!order.items || order.items.length === 0) return false
-				const allServed = order.items.every((item) => item.status === ITEM_STATUS.SERVED)
-				return allServed && order.paymentStatus === PAYMENT_STATUS.PENDING
+
+				// Exclude rejected/cancelled items from the check
+				const activeItems = order.items.filter(
+					(item) =>
+						item.status !== ITEM_STATUS.REJECTED && item.status !== ITEM_STATUS.CANCELLED,
+				)
+
+				// If no active items (all rejected), skip this order
+				if (activeItems.length === 0) return false
+
+				// Check if all active items are served
+				const allActiveServed = activeItems.every(
+					(item) => item.status === ITEM_STATUS.SERVED,
+				)
+				const needsPayment =
+					allActiveServed && order.paymentStatus === PAYMENT_STATUS.PENDING
+
+				// Detailed item status breakdown
+				const statusBreakdown = order.items.reduce((acc, item) => {
+					acc[item.status] = (acc[item.status] || 0) + 1
+					return acc
+				}, {})
+
+				console.log(`💰 Payment filter for order ${order.id.slice(0, 8)}:`, {
+					allActiveServed,
+					paymentStatus: order.paymentStatus,
+					needsPayment,
+					totalItems: order.items.length,
+					activeItems: activeItems.length,
+					rejectedItems: order.items.length - activeItems.length,
+					statusBreakdown,
+					itemDetails: order.items.map((i) => ({ name: i.name, status: i.status })),
+				})
+
+				return needsPayment
 			})
 		}
+
+		console.log(`✅ Filtered result (${selectedView}):`, filtered.length, 'orders')
 
 		// Filter by search query (table name or item name)
 		if (searchQuery.trim()) {
@@ -1048,11 +1234,19 @@ const OrderManagement = () => {
 				) : (
 					<div className="space-y-4">
 						{filteredOrders.map((order) => {
-							const allServed = order.items.every(
-								(item) => item.status === ITEM_STATUS.SERVED,
+							// Exclude rejected/cancelled items when checking if ready for payment
+							const activeItems = order.items.filter(
+								(item) =>
+									item.status !== ITEM_STATUS.REJECTED &&
+									item.status !== ITEM_STATUS.CANCELLED,
 							)
+
+							const allActiveServed =
+								activeItems.length > 0 &&
+								activeItems.every((item) => item.status === ITEM_STATUS.SERVED)
+
 							const needsPayment =
-								allServed && order.paymentStatus === PAYMENT_STATUS.PENDING
+								allActiveServed && order.paymentStatus === PAYMENT_STATUS.PENDING
 
 							return (
 								<div
@@ -1111,38 +1305,54 @@ const OrderManagement = () => {
 												) && (
 													<div className="flex justify-end gap-2 mb-3">
 														<button
-															onClick={() =>
+															onClick={(e) => {
+																e.stopPropagation()
 																handleRejectItems(
 																	order.id,
 																	order.items
 																		.filter((item) => item.status === ITEM_STATUS.PENDING)
 																		.map((item) => item.id),
 																)
-															}
+															}}
+															disabled={processingOrders.has(order.id)}
 															title="Reject all pending items"
-															className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-sm font-medium transition-colors flex items-center gap-1.5"
+															className={`px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded text-sm font-medium transition-colors flex items-center gap-1.5 ${
+																processingOrders.has(order.id)
+																	? 'opacity-50 cursor-not-allowed'
+																	: ''
+															}`}
 														>
 															<span className="material-symbols-outlined text-base">
 																close
 															</span>
-															Reject All
+															{processingOrders.has(order.id)
+																? 'Processing...'
+																: 'Reject All'}
 														</button>
 														<button
-															onClick={() =>
+															onClick={(e) => {
+																e.stopPropagation()
 																handleAcceptItems(
 																	order.id,
 																	order.items
 																		.filter((item) => item.status === ITEM_STATUS.PENDING)
 																		.map((item) => item.id),
 																)
-															}
+															}}
+															disabled={processingOrders.has(order.id)}
 															title="Accept all pending items"
-															className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded text-sm font-medium transition-colors flex items-center gap-1.5"
+															className={`px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded text-sm font-medium transition-colors flex items-center gap-1.5 ${
+																processingOrders.has(order.id)
+																	? 'opacity-50 cursor-not-allowed'
+																	: ''
+															}`}
 														>
 															<span className="material-symbols-outlined text-base">
 																check
 															</span>
-															Accept All
+															{processingOrders.has(order.id)
+																? 'Processing...'
+																: 'Accept All'}
 														</button>
 													</div>
 												)}
@@ -1193,14 +1403,24 @@ const OrderManagement = () => {
 															{/* READY item button */}
 															{item.status === ITEM_STATUS.READY && (
 																<button
-																	onClick={() => handleMarkServed(order.id, [item.id])}
+																	onClick={(e) => {
+																		e.stopPropagation()
+																		handleMarkServed(order.id, [item.id])
+																	}}
+																	disabled={processingOrders.has(order.id)}
 																	title="Mark as served"
-																	className="px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded text-sm font-medium transition-colors flex items-center gap-1.5"
+																	className={`px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded text-sm font-medium transition-colors flex items-center gap-1.5 ${
+																		processingOrders.has(order.id)
+																			? 'opacity-50 cursor-not-allowed'
+																			: ''
+																	}`}
 																>
 																	<span className="material-symbols-outlined text-base">
 																		check_circle
 																	</span>
-																	Served
+																	{processingOrders.has(order.id)
+																		? 'Processing...'
+																		: 'Served'}
 																</button>
 															)}
 														</div>
@@ -1215,6 +1435,32 @@ const OrderManagement = () => {
 														<p className="text-white font-semibold mb-3">
 															Payment Summary
 														</p>
+
+														{/* Rejected Items Warning */}
+														{order.items.some(
+															(item) => item.status === ITEM_STATUS.REJECTED,
+														) && (
+															<div className="mb-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+																<p className="text-red-400 text-sm font-medium flex items-center gap-2">
+																	<span className="material-symbols-outlined text-base">
+																		info
+																	</span>
+																	Note: Rejected items are excluded from payment
+																</p>
+																<ul className="mt-2 space-y-1">
+																	{order.items
+																		.filter(
+																			(item) => item.status === ITEM_STATUS.REJECTED,
+																		)
+																		.map((item, idx) => (
+																			<li key={idx} className="text-red-300 text-xs ml-6">
+																				• {item.name} (x{item.quantity}) -{' '}
+																				{item.rejectionReason || 'No reason provided'}
+																			</li>
+																		))}
+																</ul>
+															</div>
+														)}
 
 														{/* Price Breakdown */}
 														<div className="space-y-2 mb-3">
@@ -1235,7 +1481,9 @@ const OrderManagement = () => {
 																</div>
 															)}
 															<div className="border-t border-white/20 pt-2 mt-2 flex justify-between">
-																<span className="text-white font-semibold">Total:</span>
+																<span className="text-white font-semibold">
+																	Total to Pay:
+																</span>
 																<span className="text-blue-400 text-xl font-bold">
 																	{formatPrice(order.total)} VND
 																</span>
@@ -1245,24 +1493,55 @@ const OrderManagement = () => {
 
 													<div className="flex gap-2">
 														<button
-															onClick={() => handleMarkPaid(order.id, 'CASH')}
-															className="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors"
+															onClick={(e) => {
+																e.stopPropagation()
+																handleMarkPaid(order.id, 'CASH')
+															}}
+															disabled={processingOrders.has(order.id)}
+															className={`flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+																processingOrders.has(order.id)
+																	? 'opacity-50 cursor-not-allowed'
+																	: ''
+															}`}
 														>
-															💵 Cash
+															<span>💵</span>
+															{processingOrders.has(order.id) ? 'Processing...' : 'Cash'}
 														</button>
 														<button
-															onClick={() => handleMarkPaid(order.id, 'CARD')}
-															className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+															onClick={(e) => {
+																e.stopPropagation()
+																handleMarkPaid(order.id, 'CARD')
+															}}
+															disabled={processingOrders.has(order.id)}
+															className={`flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+																processingOrders.has(order.id)
+																	? 'opacity-50 cursor-not-allowed'
+																	: ''
+															}`}
 														>
-															💳 Card
+															<span>💳</span>
+															{processingOrders.has(order.id) ? 'Processing...' : 'Card'}
 														</button>
 														<button
-															onClick={() => handleMarkPaid(order.id, 'MOMO')}
-															className="flex-1 px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-medium transition-colors"
+															onClick={(e) => {
+																e.stopPropagation()
+																handleMarkPaid(order.id, 'MOMO')
+															}}
+															disabled={processingOrders.has(order.id)}
+															className={`flex-1 px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+																processingOrders.has(order.id)
+																	? 'opacity-50 cursor-not-allowed'
+																	: ''
+															}`}
 														>
-															📱 MoMo
+															<span>📱</span>
+															{processingOrders.has(order.id) ? 'Processing...' : 'MoMo'}
 														</button>
 													</div>
+
+													<p className="text-xs text-gray-400 mt-3 text-center">
+														Complete payment to finish this order
+													</p>
 												</div>
 											)}
 										</div>

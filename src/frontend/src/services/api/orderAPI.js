@@ -79,6 +79,9 @@ export const getOrderByIdAPI = async ({ tenantId, orderId }) => {
 
 /**
  * Accept order items (waiter accepts pending items)
+ * Uses PATCH /items-status endpoint with status="ACCEPTED"
+ * This triggers WebSocket event 'order.items.accepted' for customer notification
+ *
  * @param {Object} params - Request parameters
  * @param {string} params.tenantId - Tenant ID (UUID)
  * @param {string} params.orderId - Order ID (UUID)
@@ -101,10 +104,13 @@ export const acceptOrderItemsAPI = async ({ tenantId, orderId, itemIds, waiterId
 			throw new Error('Waiter ID is required and must be a string')
 		}
 
-		const response = await apiClient.post(
-			`/tenants/${tenantId}/orders/${orderId}/accept-items`,
+		// ✅ Use PATCH /items-status instead of POST /accept-items
+		// This endpoint emits 'order.items.accepted' via RabbitMQ → WebSocket
+		const response = await apiClient.patch(
+			`/tenants/${tenantId}/orders/${orderId}/items-status`,
 			{
 				itemIds,
+				status: 'ACCEPTED', // Must be string, not number
 				waiterId,
 			},
 		)
@@ -118,12 +124,15 @@ export const acceptOrderItemsAPI = async ({ tenantId, orderId, itemIds, waiterId
 
 /**
  * Reject order items (waiter rejects pending items)
+ * Uses PATCH /items-status endpoint with status="REJECTED"
+ * This triggers WebSocket event 'order.items.rejected' for customer notification
+ *
  * @param {Object} params - Request parameters
  * @param {string} params.tenantId - Tenant ID (UUID)
  * @param {string} params.orderId - Order ID (UUID)
  * @param {Array<string>} params.itemIds - Array of order item IDs to reject
  * @param {string} params.waiterId - Waiter ID (UUID)
- * @param {string} params.reason - Rejection reason
+ * @param {string} params.reason - Rejection reason (required)
  * @returns {Promise<Object>} Response with updated order
  */
 export const rejectOrderItemsAPI = async ({
@@ -150,12 +159,15 @@ export const rejectOrderItemsAPI = async ({
 			throw new Error('Rejection reason is required and must be a string')
 		}
 
-		const response = await apiClient.post(
-			`/tenants/${tenantId}/orders/${orderId}/reject-items`,
+		// ✅ Use PATCH /items-status instead of POST /reject-items
+		// This endpoint emits 'order.items.rejected' via RabbitMQ → WebSocket
+		const response = await apiClient.patch(
+			`/tenants/${tenantId}/orders/${orderId}/items-status`,
 			{
 				itemIds,
+				status: 'REJECTED', // Must be string, not number
+				rejectionReason: reason, // Field name matches DTO
 				waiterId,
-				reason,
 			},
 		)
 

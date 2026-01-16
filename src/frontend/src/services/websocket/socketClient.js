@@ -47,6 +47,41 @@ class SocketClient {
 	}
 
 	/**
+	 * Connect as guest (for customers without login)
+	 * @param {string} tenantId - Restaurant tenant ID
+	 * @param {string} tableId - Table ID
+	 * @param {string} guestName - Optional guest name
+	 */
+	connectAsGuest(tenantId, tableId, guestName = 'Guest') {
+		if (this.socket?.connected) {
+			console.log('🔵 [Socket] Already connected')
+			return this.socket
+		}
+
+		const SOCKET_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8888'
+
+		console.log('🔵 [Socket] Connecting as guest to:', SOCKET_URL + '/realtime')
+		console.log('📍 Guest info:', { tenantId, tableId, guestName })
+
+		this.socket = io(`${SOCKET_URL}/realtime`, {
+			auth: {
+				tenantId: tenantId,
+				tableId: tableId,
+				guestName: guestName,
+			},
+			transports: ['websocket', 'polling'],
+			reconnection: true,
+			reconnectionDelay: 1000,
+			reconnectionDelayMax: 5000,
+			reconnectionAttempts: this.maxReconnectAttempts,
+		})
+
+		this.setupEventHandlers()
+
+		return this.socket
+	}
+
+	/**
 	 * Setup default event handlers
 	 */
 	setupEventHandlers() {
@@ -54,6 +89,11 @@ class SocketClient {
 			this.isConnected = true
 			this.reconnectAttempts = 0
 			console.log('✅ [Socket] Connected:', this.socket.id)
+
+			// Re-attach all custom listeners after reconnection
+			// This ensures listeners survive socket reconnection
+			this.reattachListeners()
+
 			this.emit('connection.success', { socketId: this.socket.id })
 		})
 
@@ -135,6 +175,66 @@ class SocketClient {
 	}
 
 	/**
+	 * Re-attach all stored listeners after socket reconnection
+	 * Called automatically on 'connect' event
+	 */
+	reattachListeners() {
+		if (!this.socket) return
+
+		console.log('🔄 [Socket] Re-attaching listeners after reconnect...')
+		this.listeners.forEach((callbacks, event) => {
+			callbacks.forEach((callback) => {
+				// Remove any existing to avoid duplicates
+				this.socket.off(event, callback)
+				// Re-attach
+				this.socket.on(event, callback)
+			})
+			console.log(`🔵 [Socket] Re-attached ${callbacks.size} listener(s) for: ${event}`)
+		})
+	}
+
+	/**
+	 * Wait for socket to be connected
+	 * @returns {Promise<boolean>} - Resolves when connected or rejects on timeout
+	 */
+	waitForConnection(timeout = 5000) {
+		return new Promise((resolve, reject) => {
+			if (this.socket?.connected) {
+				resolve(true)
+				return
+			}
+
+			const timeoutId = setTimeout(() => {
+				reject(new Error('Socket connection timeout'))
+			}, timeout)
+
+			const checkConnection = () => {
+				if (this.socket?.connected) {
+					clearTimeout(timeoutId)
+					resolve(true)
+				}
+			}
+
+			// Check immediately and on connect event
+			this.socket?.on('connect', () => {
+				clearTimeout(timeoutId)
+				resolve(true)
+			})
+
+			// Also poll just in case
+			const pollInterval = setInterval(() => {
+				if (this.socket?.connected) {
+					clearInterval(pollInterval)
+					clearTimeout(timeoutId)
+					resolve(true)
+				}
+			}, 100)
+
+			setTimeout(() => clearInterval(pollInterval), timeout)
+		})
+	}
+
+	/**
 	 * Send ping to keep connection alive
 	 */
 	ping() {
@@ -170,19 +270,32 @@ class SocketClient {
 	/**
 	 * Remove event listener
 	 * @param {string} event
-	 * @param {Function} callback
+	 * @param {Function} callback - Optional. If not provided, removes all listeners for the event
 	 */
 	off(event, callback) {
 		if (!this.socket) return
 
-		this.socket.off(event, callback)
+		if (callback) {
+			// Remove specific callback
+			this.socket.off(event, callback)
 
-		// Remove from tracking
-		if (this.listeners.has(event)) {
-			this.listeners.get(event).delete(callback)
-			if (this.listeners.get(event).size === 0) {
+			// Remove from tracking
+			if (this.listeners.has(event)) {
+				this.listeners.get(event).delete(callback)
+				if (this.listeners.get(event).size === 0) {
+					this.listeners.delete(event)
+				}
+			}
+		} else {
+			// Remove all listeners for this event
+			if (this.listeners.has(event)) {
+				this.listeners.get(event).forEach((cb) => {
+					this.socket.off(event, cb)
+				})
 				this.listeners.delete(event)
 			}
+			// Also remove any directly attached listeners
+			this.socket.removeAllListeners(event)
 		}
 
 		console.log(`🔵 [Socket] Stopped listening to event: ${event}`)

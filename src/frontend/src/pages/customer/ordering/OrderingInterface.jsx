@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAlert } from '../../../contexts/AlertContext'
 import apiClient from '../../../services/apiClient'
-import { getOrdersAPI } from '../../../services/api/orderAPI'
+import { getOrderByIdAPI } from '../../../services/api/orderAPI'
 import socketClient from '../../../services/websocket/socketClient'
 
 // Import page components
@@ -159,7 +159,7 @@ const OrderManagementInterface = () => {
 		}
 	}, [tenantId, tableId])
 
-	// Fetch customer's unpaid orders
+	// Fetch customer's order by orderId from localStorage
 	const fetchOrders = useCallback(async () => {
 		try {
 			if (!tenantId || !tableId) {
@@ -167,21 +167,50 @@ const OrderManagementInterface = () => {
 				return
 			}
 
-			setLoadingOrders(true)
-			console.log('📥 Fetching unpaid orders for table:', tableId)
+			// Check if we have a saved orderId from checkout
+			const orderSessionStr = localStorage.getItem('currentOrderSession')
+			const orderSession = orderSessionStr ? JSON.parse(orderSessionStr) : null
 
-			const response = await getOrdersAPI({
+			if (!orderSession || !orderSession.orderId) {
+				console.log('⚠️ No orderId in localStorage, cannot fetch order')
+				setOrders([])
+				return
+			}
+
+			// Verify orderId belongs to current table
+			if (orderSession.tableId !== tableId) {
+				console.log('⚠️ OrderId belongs to different table, clearing session')
+				localStorage.removeItem('currentOrderSession')
+				setOrders([])
+				return
+			}
+
+			setLoadingOrders(true)
+
+			// Fetch specific order by ID
+			console.log('📥 Fetching order by ID:', orderSession.orderId)
+			const response = await getOrderByIdAPI({
 				tenantId,
-				tableId, // Filter by customer's table
-				paymentStatus: 'PENDING', // Only unpaid orders
-				page: 1,
-				limit: 50, // Get up to 50 recent orders
+				orderId: orderSession.orderId,
 			})
 
-			console.log('📥 Orders response:', response)
-			const fetchedOrders = response?.orders || []
-			setOrders(fetchedOrders)
-			console.log(`✅ Fetched ${fetchedOrders.length} unpaid orders`)
+			console.log('📥 Order details response:', response)
+			const orderData = response?.data
+
+			if (orderData) {
+				// Check if order is still active (not completed/cancelled)
+				if (['COMPLETED', 'CANCELLED'].includes(orderData.status)) {
+					console.log('⚠️ Order is completed/cancelled, clearing session')
+					localStorage.removeItem('currentOrderSession')
+					setOrders([])
+				} else {
+					setOrders([orderData])
+					console.log(`✅ Fetched order by ID: ${orderData.id}`)
+				}
+			} else {
+				console.warn('⚠️ No order data in response')
+				setOrders([])
+			}
 		} catch (error) {
 			console.error('❌ Error fetching orders:', error)
 			console.error('❌ Fetch orders error details:', {
@@ -213,51 +242,90 @@ const OrderManagementInterface = () => {
 			return
 		}
 
-		const token = window.accessToken || localStorage.getItem('authToken')
-		if (!token) {
-			console.warn('⚠️ No auth token found for WebSocket')
-			return
-		}
-
 		console.log('🔌 Setting up WebSocket for customer order updates')
 		console.log('📍 Table:', tableId, 'Tenant:', tenantId)
 
-		// Connect to WebSocket
-		socketClient.connect(token)
+		// Get customer info from localStorage
+		const customerAuthStr = localStorage.getItem('customerAuth')
+		const customerAuth = customerAuthStr ? JSON.parse(customerAuthStr) : null
+		const guestName = customerAuth?.name || customerAuth?.email || 'Guest Customer'
+
+		// Connect to WebSocket as guest (customers don't need JWT token)
+		socketClient.connectAsGuest(tenantId, tableId, guestName)
+
+		// Get current order session from localStorage
+		const orderSessionStr = localStorage.getItem('currentOrderSession')
+		const orderSession = orderSessionStr ? JSON.parse(orderSessionStr) : null
 
 		// Event handler functions
 		const handleItemsAccepted = (payload) => {
-			console.log('✅ Items accepted:', payload)
+			console.log('✅ [Socket Event] Items accepted:', payload)
+			fetchOrders() // Refresh orders to show updated status
+		}
+
+		const handleItemsPreparing = (payload) => {
+			console.log('👨‍🍳 [Socket Event] Items preparing:', payload)
 			fetchOrders() // Refresh orders to show updated status
 		}
 
 		const handleItemsReady = (payload) => {
-			console.log('🍽️ Items ready:', payload)
+			console.log('🍽️ [Socket Event] Items ready:', payload)
 			fetchOrders() // Refresh orders to show updated status
 		}
 
 		const handleItemsServed = (payload) => {
-			console.log('✨ Items served:', payload)
+			console.log('✨ [Socket Event] Items served:', payload)
 			fetchOrders() // Refresh orders to show updated status
 		}
 
 		const handleItemsRejected = (payload) => {
-			console.log('❌ Items rejected:', payload)
+			console.log('❌ [Socket Event] Items rejected:', payload)
 			fetchOrders() // Refresh orders to show rejection
 		}
 
-		// Register event listeners
-		socketClient.on('order.items.accepted', handleItemsAccepted)
-		socketClient.on('order.items.ready', handleItemsReady)
-		socketClient.on('order.items.served', handleItemsServed)
-		socketClient.on('order.items.rejected', handleItemsRejected)
+		// Wait for socket connection, then join order room and register listeners
+		const handleConnectionSuccess = () => {
+			console.log('✅ [Socket] Connection ready, setting up order tracking')
 
-		// Cleanup: Remove event listeners on unmount
+			// Join order room if we have an active order
+			if (orderSession && orderSession.orderId && orderSession.tableId === tableId) {
+				console.log('🚪 Joining order room:', orderSession.orderId)
+				socketClient.joinOrderRoom(orderSession.orderId).then((response) => {
+					if (response.success) {
+						console.log('✅ Successfully joined order room:', orderSession.orderId)
+						// Fetch order immediately after joining to sync current state
+						fetchOrders()
+					} else {
+						console.error('❌ Failed to join order room:', response.error)
+					}
+				})
+			}
+
+			// Register event listeners
+			socketClient.on('order.items.accepted', handleItemsAccepted)
+			socketClient.on('order.items.preparing', handleItemsPreparing)
+			socketClient.on('order.items.ready', handleItemsReady)
+			socketClient.on('order.items.served', handleItemsServed)
+			socketClient.on('order.items.rejected', handleItemsRejected)
+		}
+
+		// Listen for connection success event
+		socketClient.on('connection.success', handleConnectionSuccess)
+
+		// Cleanup: Remove event listeners and leave room on unmount
 		return () => {
+			socketClient.off('connection.success', handleConnectionSuccess)
 			socketClient.off('order.items.accepted', handleItemsAccepted)
+			socketClient.off('order.items.preparing', handleItemsPreparing)
 			socketClient.off('order.items.ready', handleItemsReady)
 			socketClient.off('order.items.served', handleItemsServed)
 			socketClient.off('order.items.rejected', handleItemsRejected)
+
+			// Leave order room if we were in one
+			if (orderSession && orderSession.orderId) {
+				console.log('🚪 Leaving order room:', orderSession.orderId)
+				socketClient.leaveOrderRoom(orderSession.orderId)
+			}
 		}
 	}, [tenantId, tableId, fetchOrders])
 

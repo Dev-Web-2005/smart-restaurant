@@ -8,6 +8,8 @@ import {
 	getOrdersAPI,
 	markItemsPreparingAPI,
 	markItemsReadyAPI,
+	rejectOrderItemsAPI,
+	updateItemsStatusAPI,
 } from '../../../services/api/orderAPI'
 
 /**
@@ -67,6 +69,12 @@ const KitchenManagement = () => {
 	const [selectedStatus, setSelectedStatus] = useState('ACCEPTED') // ACCEPTED, PREPARING
 	const [searchQuery, setSearchQuery] = useState('')
 	const [expandedOrders, setExpandedOrders] = useState(new Set())
+
+	// Batch rejection state
+	const [selectedItems, setSelectedItems] = useState(new Map()) // Map<orderId, Set<itemId>>
+	const [showRejectPopup, setShowRejectPopup] = useState(false)
+	const [rejectionReason, setRejectionReason] = useState('')
+	const [rejectingOrderId, setRejectingOrderId] = useState(null)
 
 	// TTS state management
 	const [isSpeaking] = useState(false)
@@ -330,6 +338,138 @@ const KitchenManagement = () => {
 		}
 	}
 
+	// Toggle item selection for batch rejection
+	const toggleItemSelection = (orderId, itemId) => {
+		setSelectedItems((prev) => {
+			const newMap = new Map(prev)
+			const orderSet = newMap.get(orderId) || new Set()
+
+			if (orderSet.has(itemId)) {
+				orderSet.delete(itemId)
+			} else {
+				orderSet.add(itemId)
+			}
+
+			if (orderSet.size === 0) {
+				newMap.delete(orderId)
+			} else {
+				newMap.set(orderId, orderSet)
+			}
+
+			return newMap
+		})
+	}
+
+	// Clear all selections
+	const clearSelections = () => {
+		setSelectedItems(new Map())
+	}
+
+	// Get selected count for specific order
+	const getSelectedCount = (orderId) => {
+		return selectedItems.get(orderId)?.size || 0
+	}
+
+	// Open reject popup for selected items
+	const openRejectPopup = (orderId) => {
+		setRejectingOrderId(orderId)
+		setShowRejectPopup(true)
+	}
+
+	// Handle batch rejection
+	const handleRejectSelectedItems = async () => {
+		if (!user?.userId || !rejectingOrderId) return
+
+		const reason = rejectionReason.trim()
+		if (!reason) {
+			alert('Please enter a rejection reason')
+			return
+		}
+
+		try {
+			const itemIds = Array.from(selectedItems.get(rejectingOrderId) || [])
+			if (itemIds.length === 0) return
+
+			console.log('🔄 Rejecting selected items:', {
+				orderId: rejectingOrderId,
+				itemIds,
+				reason,
+			})
+
+			await updateItemsStatusAPI({
+				tenantId: user.userId,
+				orderId: rejectingOrderId,
+				itemIds,
+				status: 'REJECTED',
+				rejectionReason: reason,
+				userId: user.userId,
+			})
+
+			console.log('✅ Items rejected successfully')
+
+			// Clear selections for this order
+			setSelectedItems((prev) => {
+				const newMap = new Map(prev)
+				newMap.delete(rejectingOrderId)
+				return newMap
+			})
+
+			// Close popup and reset state
+			setShowRejectPopup(false)
+			setRejectionReason('')
+			setRejectingOrderId(null)
+
+			// Refresh orders
+			await fetchOrders(false)
+
+			alert(`✅ ${itemIds.length} item(s) rejected successfully`)
+		} catch (error) {
+			console.error('❌ Error rejecting items:', error)
+			alert('Failed to reject items. Please try again.')
+		}
+	}
+
+	// Reject item (kitchen cannot cook due to missing ingredients, etc.)
+	const handleRejectItem = async (orderId, itemId, itemName) => {
+		if (!user?.userId) return
+
+		const reason = prompt(
+			`Why reject "${itemName}"?\n\nExamples:\n- Out of ingredients\n- Equipment malfunction\n- Item unavailable`,
+		)
+
+		if (!reason || reason.trim() === '') {
+			console.log('❌ Rejection cancelled - no reason provided')
+			return
+		}
+
+		try {
+			console.log('🚫 Rejecting item from kitchen:', {
+				orderId,
+				itemId,
+				itemName,
+				reason: reason.trim(),
+			})
+
+			await updateItemsStatusAPI({
+				tenantId: user.userId,
+				orderId,
+				itemIds: [itemId],
+				status: 'REJECTED',
+				rejectionReason: reason.trim(),
+				userId: user.userId,
+			})
+
+			console.log('✅ Item rejected successfully')
+			alert(`✅ "${itemName}" has been rejected\nReason: ${reason.trim()}`)
+
+			// Refresh orders after rejection
+			await fetchOrders(false)
+		} catch (error) {
+			console.error('❌ Error rejecting item:', error)
+			alert(error.response?.data?.message || 'Failed to reject item. Please try again.')
+		}
+	}
+
 	// Toggle order expansion
 	const toggleOrderExpansion = (orderId) => {
 		setExpandedOrders((prev) => {
@@ -548,40 +688,68 @@ const KitchenManagement = () => {
 								className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 overflow-hidden"
 							>
 								{/* Order Header */}
-								<div
-									className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/5 transition-colors"
-									onClick={() => toggleOrderExpansion(order.id)}
-								>
-									<div className="flex items-center gap-4">
-										<span className="material-symbols-outlined text-blue-400 text-3xl">
-											table_restaurant
-										</span>
-										<div>
-											<h3 className="text-white text-lg font-semibold">
-												{order.table?.name || `Table ${order.tableId}`}
-											</h3>
-											<p className="text-gray-400 text-sm">
-												{order.items.length} item(s) • Order #{order.id.slice(0, 8)}
-											</p>
+								<div className="p-4 border-b border-white/10">
+									<div
+										className="flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors py-2 px-2 rounded-lg"
+										onClick={() => toggleOrderExpansion(order.id)}
+									>
+										<div className="flex items-center gap-4">
+											<span className="material-symbols-outlined text-blue-400 text-3xl">
+												table_restaurant
+											</span>
+											<div>
+												<h3 className="text-white text-lg font-semibold">
+													{order.table?.name || `Table ${order.tableId}`}
+												</h3>
+												<p className="text-gray-400 text-sm">
+													{order.items.length} item(s) • Order #{order.id.slice(0, 8)}
+												</p>
+											</div>
 										</div>
+
+										<span
+											className={`material-symbols-outlined text-white transition-transform ${
+												expandedOrders.has(order.id) ? 'rotate-180' : ''
+											}`}
+										>
+											expand_more
+										</span>
 									</div>
 
-									<span
-										className={`material-symbols-outlined text-white transition-transform ${
-											expandedOrders.has(order.id) ? 'rotate-180' : ''
-										}`}
-									>
-										expand_more
-									</span>
+									{/* Batch Reject Button - Show when items selected */}
+									{getSelectedCount(order.id) > 0 && (
+										<div className="mt-4 flex justify-end">
+											<button
+												onClick={() => openRejectPopup(order.id)}
+												className="flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 rounded-lg transition-colors"
+											>
+												<span className="material-symbols-outlined">cancel</span>
+												<span className="font-medium">
+													Reject Selected ({getSelectedCount(order.id)})
+												</span>
+											</button>
+										</div>
+									)}
 								</div>
 
 								{/* Order Items (Expanded) */}
 								{expandedOrders.has(order.id) && (
-									<div className="border-t border-white/10 p-4 space-y-3">
+									<div className="p-4 space-y-3">
 										{order.items.map((item) => (
 											<div key={item.id} className="bg-white/5 rounded-lg p-4 space-y-3">
 												{/* Item Info */}
-												<div className="flex items-start justify-between">
+												<div className="flex items-start gap-3">
+													{/* Checkbox for ACCEPTED items only */}
+													{item.status === ITEM_STATUS.ACCEPTED && (
+														<input
+															type="checkbox"
+															checked={selectedItems.get(order.id)?.has(item.id) || false}
+															onChange={() => toggleItemSelection(order.id, item.id)}
+															className="mt-1 w-5 h-5 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-2 focus:ring-blue-500"
+															onClick={(e) => e.stopPropagation()}
+														/>
+													)}
+
 													<div className="flex-1">
 														<div className="flex items-center gap-3 mb-2">
 															<h4 className="text-white font-semibold">{item.name}</h4>
@@ -630,18 +798,32 @@ const KitchenManagement = () => {
 												{/* Action Buttons */}
 												<div className="flex gap-2">
 													{item.status === ITEM_STATUS.ACCEPTED && (
-														<button
-															onClick={() =>
-																handleUpdateItemStatus(
-																	order.id,
-																	[item.id],
-																	ITEM_STATUS.PREPARING,
-																)
-															}
-															className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors"
-														>
-															🔥 Start Cooking
-														</button>
+														<>
+															<button
+																onClick={() =>
+																	handleRejectItem(order.id, item.id, item.name)
+																}
+																className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/50 rounded-lg font-medium transition-colors flex items-center gap-2"
+																title="Reject item (out of ingredients, etc.)"
+															>
+																<span className="material-symbols-outlined text-base">
+																	close
+																</span>
+																Reject
+															</button>
+															<button
+																onClick={() =>
+																	handleUpdateItemStatus(
+																		order.id,
+																		[item.id],
+																		ITEM_STATUS.PREPARING,
+																	)
+																}
+																className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors"
+															>
+																🔥 Start Cooking
+															</button>
+														</>
 													)}
 
 													{item.status === ITEM_STATUS.PREPARING && (
@@ -665,6 +847,58 @@ const KitchenManagement = () => {
 								)}
 							</div>
 						))}
+					</div>
+				)}
+
+				{/* Rejection Reason Popup */}
+				{showRejectPopup && (
+					<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+						<div className="bg-[#1A202C] border border-white/20 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
+							<div className="flex items-center gap-3 mb-4">
+								<span className="material-symbols-outlined text-red-400 text-3xl">
+									cancel
+								</span>
+								<h3 className="text-white text-xl font-bold">Reject Items</h3>
+							</div>
+
+							<p className="text-gray-400 mb-4">
+								You are rejecting{' '}
+								<span className="text-white font-semibold">
+									{getSelectedCount(rejectingOrderId)}
+								</span>{' '}
+								item(s). Please provide a reason:
+							</p>
+
+							<textarea
+								value={rejectionReason}
+								onChange={(e) => setRejectionReason(e.target.value)}
+								placeholder="e.g., Out of ingredients, Equipment malfunction, Item not available..."
+								className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+								rows="4"
+								autoFocus
+							/>
+
+							<div className="flex gap-3 mt-6">
+								<button
+									onClick={handleRejectSelectedItems}
+									disabled={!rejectionReason.trim()}
+									className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+								>
+									<span className="material-symbols-outlined">cancel</span>
+									Confirm Reject
+								</button>
+								<button
+									onClick={() => {
+										setShowRejectPopup(false)
+										setRejectionReason('')
+										setRejectingOrderId(null)
+									}}
+									className="flex-1 px-4 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg font-medium transition-colors border border-white/20"
+								>
+									Cancel
+								</button>
+							</div>
+						</div>
 					</div>
 				)}
 			</div>

@@ -15,8 +15,14 @@ if (import.meta.env.DEV && USE_MOCK_API) {
 	mockAPI = await import('../services/api/mockAuthAPI')
 }
 
-const { loginAPI, loginWithOwnerAPI, logoutAPI, registerAPI, getCurrentUserAPI, refreshTokenAPI } =
-	USE_MOCK_API && mockAPI ? mockAPI : realAPI
+const {
+	loginAPI,
+	loginWithOwnerAPI,
+	logoutAPI,
+	registerAPI,
+	getCurrentUserAPI,
+	refreshTokenAPI,
+} = USE_MOCK_API && mockAPI ? mockAPI : realAPI
 
 const UserContext = createContext()
 
@@ -100,7 +106,7 @@ export const UserProvider = ({ children }) => {
 				setUser(userData)
 				localStorage.setItem('user', JSON.stringify(result.user))
 				sessionStorage.setItem('tabSession', Date.now().toString())
-				
+
 				// Store tenant context
 				localStorage.setItem('currentTenantId', result.user.ownerId || ownerId)
 				window.currentTenantId = result.user.ownerId || ownerId
@@ -256,7 +262,7 @@ export const UserProvider = ({ children }) => {
 					localStorage.setItem('user', JSON.stringify(refreshResult.user))
 					// ✅ Restore tab session marker
 					sessionStorage.setItem('tabSession', Date.now().toString())
-					
+
 					// Restore tenant context if available
 					if (refreshResult.user.ownerId) {
 						localStorage.setItem('currentTenantId', refreshResult.user.ownerId)
