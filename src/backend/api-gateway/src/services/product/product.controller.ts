@@ -542,4 +542,60 @@ export class ProductController {
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
+
+	// ============ REVIEWS ============
+
+	/**
+	 * Create a review for a menu item
+	 * POST /tenants/:tenantId/items/:itemId/reviews
+	 *
+	 * Body:
+	 * {
+	 *   "rating": 5,
+	 *   "comment": "Great dish!"
+	 * }
+	 *
+	 * Requires authentication - userId and userName extracted from JWT
+	 */
+	@Post('tenants/:tenantId/items/:itemId/reviews')
+	@UseGuards(AuthGuard, Role('USER'))
+	createReview(
+		@Param('tenantId') tenantId: string,
+		@Param('itemId') itemId: string,
+		@Body() data: any,
+	) {
+		return this.productClient.send('reviews:create', {
+			...data,
+			tenantId,
+			menuItemId: itemId,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	/**
+	 * Get reviews for a menu item
+	 * GET /tenants/:tenantId/items/:itemId/reviews
+	 *
+	 * Query params:
+	 * - page: number (default: 1)
+	 * - limit: number (default: 10)
+	 *
+	 * Returns paginated reviews with average rating
+	 * Public endpoint - no authentication required
+	 */
+	@Get('tenants/:tenantId/items/:itemId/reviews')
+	getReviews(
+		@Param('tenantId') tenantId: string,
+		@Param('itemId') itemId: string,
+		@Query('page') page?: number,
+		@Query('limit') limit?: number,
+	) {
+		return this.productClient.send('reviews:get-all', {
+			tenantId,
+			menuItemId: itemId,
+			page,
+			limit,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
 }

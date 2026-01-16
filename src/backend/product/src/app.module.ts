@@ -7,6 +7,7 @@ import { CategoryModule } from './category/category.module';
 import { ItemModule } from './item/item.module';
 import { PublicModule } from './public/public.module';
 import { ModifierModule } from './modifier/modifier.module';
+import { ReviewModule } from './review/review.module';
 import {
 	MenuCategory,
 	MenuItem,
@@ -14,6 +15,7 @@ import {
 	ModifierGroup,
 	ModifierOption,
 	MenuItemModifierGroup,
+	MenuItemReview,
 } from './common/entities';
 
 @Module({
@@ -38,6 +40,7 @@ import {
 					ModifierGroup,
 					ModifierOption,
 					MenuItemModifierGroup,
+					MenuItemReview,
 				],
 				synchronize: true,
 				logging: false,
@@ -48,6 +51,7 @@ import {
 		ItemModule,
 		PublicModule,
 		ModifierModule,
+		ReviewModule,
 	],
 	controllers: [AppController],
 	providers: [AppService],
