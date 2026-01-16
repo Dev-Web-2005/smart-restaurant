@@ -87,7 +87,7 @@ export class OrderController {
 	 * - paymentStatus: string (PENDING, PROCESSING, PAID, FAILED, REFUNDED)
 	 */
 	@Get('tenants/:tenantId/orders')
-	@UseGuards(AuthGuard, Role('USER', 'STAFF', 'KITCHEN'))
+	@UseGuards(AuthGuard, Role('USER', 'STAFF', 'CHEF'))
 	getOrders(
 		@Param('tenantId') tenantId: string,
 		@Query('page') page?: number,
@@ -170,7 +170,7 @@ export class OrderController {
 	 * }
 	 */
 	@Patch('tenants/:tenantId/orders/:orderId/status')
-	@UseGuards(AuthGuard, Role('USER', 'STAFF', 'KITCHEN'))
+	@UseGuards(AuthGuard, Role('USER', 'STAFF', 'CHEF'))
 	updateOrderStatus(
 		@Param('tenantId') tenantId: string,
 		@Param('orderId') orderId: string,
@@ -206,7 +206,7 @@ export class OrderController {
 	 * }
 	 */
 	@Patch('tenants/:tenantId/orders/:orderId/items-status')
-	@UseGuards(AuthGuard, Role('USER', 'STAFF', 'KITCHEN'))
+	@UseGuards(AuthGuard, Role('USER', 'STAFF', 'CHEF'))
 	updateOrderItemsStatus(
 		@Param('tenantId') tenantId: string,
 		@Param('orderId') orderId: string,
