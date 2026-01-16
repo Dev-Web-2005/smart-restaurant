@@ -286,6 +286,7 @@ export class OrderController {
 	 * - Kitchen receives notification for accepted items
 	 */
 	// DO NOT USE THIS ENDPOINT FOR NOW, USE ORDER ITEMS STATUS UPDATE INSTEAD
+	/*
 	@Post('tenants/:tenantId/orders/:orderId/accept-items')
 	@UseGuards(AuthGuard, Role('USER', 'STAFF'))
 	acceptOrderItems(
@@ -300,6 +301,7 @@ export class OrderController {
 			orderApiKey: this.configService.get('ORDER_API_KEY'),
 		});
 	}
+	*/
 
 	/**
 	 * Reject specific order items (ITEM-CENTRIC ARCHITECTURE)
@@ -318,6 +320,7 @@ export class OrderController {
 	 * - Customer receives notification with rejection reason
 	 */
 	// DO NOT USE THIS ENDPOINT FOR NOW, USE ORDER ITEMS STATUS UPDATE INSTEAD
+	/*
 	@Post('tenants/:tenantId/orders/:orderId/reject-items')
 	@UseGuards(AuthGuard, Role('USER', 'STAFF'))
 	rejectOrderItems(
@@ -332,4 +335,5 @@ export class OrderController {
 			orderApiKey: this.configService.get('ORDER_API_KEY'),
 		});
 	}
+	*/
 }
