@@ -861,7 +861,7 @@ export class OrderService implements OnModuleDestroy {
 	 * Cancel an order
 	 *
 	 * Business Rules:
-	 * - Can only cancel PENDING or ACCEPTED orders
+	 * - Can only cancel PENDING or IN_PROGRESS orders
 	 */
 	async cancelOrder(dto: CancelOrderRequestDto): Promise<OrderResponseDto> {
 		this.validateApiKey(dto.orderApiKey);
