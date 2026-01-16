@@ -65,12 +65,10 @@ async function bootstrap() {
 			prefetchCount: 1,
 			queueOptions: {
 				durable: true,
-				noAck: false,
-				arguments: {
-					'x-dead-letter-exchange': name + '_dlx_exchange',
-					'x-dead-letter-routing-key': name + '_dlq',
-				},
 			},
+			// ✅ noAck: true - Kitchen creates display tickets (not critical business logic)
+			// Avoids ACK conflicts with manual RabbitMQ channel used for publishing
+			noAck: true,
 		},
 	});
 

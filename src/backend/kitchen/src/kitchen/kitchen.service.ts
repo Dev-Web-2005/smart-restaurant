@@ -368,6 +368,10 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 		// Generate ticket number
 		const ticketNumber = this.generateTicketNumber();
 
+		this.logger.log(`🎟 Generated ticket number ${ticketNumber}`);
+
+		this.logger.log(`🪑 Table ID: ${dto.tableId}, Table Number: ${dto.tableNumber}`);
+
 		// Create ticket (display grouping record)
 		const ticket = this.ticketRepository.create({
 			tenantId: dto.tenantId,

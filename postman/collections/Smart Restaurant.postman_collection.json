@@ -3035,7 +3035,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"itemIds\": [\n    \"9f62fc87-6a36-429f-b5d3-d6f50df9152c\"\n  ],\n  \"status\": \"ACCEPTED\",  // PENDING | ACCEPTED | PREPARING | READY | SERVED | REJECTED | CANCELLED\n  //\"rejectionReason\": \"Out of stock\",  // Required if status = REJECTED\n  \"waiterId\": \"2c93c61a-8c20-4824-af30-f4c7733b8405\"  // Optional\n}",
+              "raw": "{\n  \"itemIds\": [\n    \"69da0747-4a2b-4840-afdc-53145aca0b91\"\n  ],\n  \"status\": \"ACCEPTED\",  // PENDING | ACCEPTED | PREPARING | READY | SERVED | REJECTED | CANCELLED\n  //\"rejectionReason\": \"Out of stock\",  // Required if status = REJECTED\n  \"waiterId\": \"2c93c61a-8c20-4824-af30-f4c7733b8405\"  // Optional\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3458,7 +3458,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"menuItemId\": \"c0365bc5-c946-45df-8eb2-e8c0bd240b6d\",\n  \"name\": \"Fruit Salad\",\n  \"quantity\": 2,\n  \"price\": 10.99,\n  \"modifiers\": [\n    {\n      \"modifierGroupId\": \"61649a87-9b54-4b65-84dc-f1d6b7367cb3\",\n      \"modifierOptionId\": \"de183f95-bc1d-4762-bcaf-5012f31f6203\",\n      \"name\": \"Large Size\",\n      \"price\": 2\n    }\n  ],\n  \"notes\": \"Extra onions please\"\n}",
+              "raw": "{\n  \"menuItemId\": \"c0365bc5-c946-45df-8eb2-e8c0bd240b6d\",\n  \"name\": \"Fruit Salad\",\n  \"quantity\": 1,\n  \"price\": 10.99,\n  \"modifiers\": [\n    {\n      \"modifierGroupId\": \"61649a87-9b54-4b65-84dc-f1d6b7367cb3\",\n      \"modifierOptionId\": \"de183f95-bc1d-4762-bcaf-5012f31f6203\",\n      \"name\": \"Large Size\",\n      \"price\": 2\n    }\n  ],\n  \"notes\": \"Extra onions please\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
