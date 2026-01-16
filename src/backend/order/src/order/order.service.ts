@@ -735,6 +735,22 @@ export class OrderService implements OnModuleDestroy {
 			}
 
 			// Validate status transition
+			this.logger.log(
+				`Before updating item ${item.id}, status: ${OrderItemStatusLabels[item.status]}`,
+			);
+
+			this.logger.log(
+				`Requested new status for item ${item.id}: ${OrderItemStatusLabels[dtoStatus]}`,
+			);
+
+			this.logger.log(
+				`Type of dtoStatus: ${typeof dtoStatus}, Type of item.status: ${typeof item.status}`,
+			);
+
+			this.logger.log(
+				`Is valid transition? ${isValidOrderItemStatusTransition(item.status, dtoStatus)}`,
+			);
+
 			if (!isValidOrderItemStatusTransition(item.status, dtoStatus)) {
 				this.logger.error(
 					`Cannot transition item ${item.name} from ${OrderItemStatusLabels[item.status]} to ${OrderItemStatusLabels[dtoStatus]}`,
