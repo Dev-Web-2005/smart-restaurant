@@ -493,4 +493,53 @@ export class ProductController {
 			limit,
 		});
 	}
+
+	// ============ POPULARITY / ANALYTICS ============
+
+	/**
+	 * Get popular menu items (sorted by order count)
+	 * GET /tenants/:tenantId/items/popular
+	 *
+	 * Query params:
+	 * - limit: number (default: 10, max: 100)
+	 * - categoryId: uuid (optional - filter by category)
+	 *
+	 * Returns items sorted by orderCount descending
+	 * Use for: Homepage highlights, recommendations, trending items
+	 */
+	@Get('tenants/:tenantId/items/popular')
+	getPopularItems(
+		@Param('tenantId') tenantId: string,
+		@Query('limit') limit?: number,
+		@Query('categoryId') categoryId?: string,
+	) {
+		return this.productClient.send('menu-items:get-popular', {
+			tenantId,
+			limit,
+			categoryId,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	/**
+	 * Increment order count for menu items
+	 * POST /tenants/:tenantId/items/increment-order-count
+	 *
+	 * Body:
+	 * {
+	 *   "itemIds": ["uuid1", "uuid2", ...]
+	 * }
+	 *
+	 * This is called by Order Service (internal use)
+	 * Can also be triggered manually for testing/analytics
+	 */
+	@Post('tenants/:tenantId/items/increment-order-count')
+	@UseGuards(AuthGuard, Role('USER', 'STAFF'))
+	incrementOrderCount(@Param('tenantId') tenantId: string, @Body() data: any) {
+		return this.productClient.send('menu-items:increment-order-count', {
+			tenantId,
+			itemIds: data.itemIds,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
 }

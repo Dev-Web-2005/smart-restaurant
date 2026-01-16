@@ -196,8 +196,9 @@ export class ItemService {
 					queryBuilder.orderBy('item.name', sortOrder);
 					break;
 				case MenuItemSortBy.POPULARITY:
-					// Future: join with order_items and count
-					queryBuilder.orderBy('item.createdAt', sortOrder);
+					// Sort by order count (most popular first)
+					queryBuilder.orderBy('item.orderCount', sortOrder);
+					queryBuilder.addOrderBy('item.createdAt', 'DESC'); // Secondary sort by newest
 					break;
 				case MenuItemSortBy.CREATED_AT:
 				default:
@@ -650,6 +651,100 @@ export class ItemService {
 			mimeType: photo.mimeType,
 			fileSize: photo.fileSize ? Number(photo.fileSize) : undefined,
 			createdAt: photo.createdAt,
+		};
+	}
+
+	/**
+	 * Increment order count for menu items
+	 * Called by Order Service when items are ordered
+	 *
+	 * Business Rules:
+	 * - Increments orderCount atomically using SQL UPDATE
+	 * - Can update multiple items at once (batch operation)
+	 * - Only increments if item exists and belongs to tenant
+	 */
+	async incrementOrderCount(dto: {
+		productApiKey: string;
+		tenantId: string;
+		itemIds: string[];
+	}): Promise<{ success: boolean; updated: number }> {
+		this.validateApiKey(dto.productApiKey);
+
+		if (!dto.itemIds || dto.itemIds.length === 0) {
+			return { success: true, updated: 0 };
+		}
+
+		// Atomic increment using query builder
+		const result = await this.menuItemRepository
+			.createQueryBuilder()
+			.update(MenuItem)
+			.set({
+				orderCount: () => '"orderCount" + 1',
+			})
+			.where('id IN (:...itemIds)', { itemIds: dto.itemIds })
+			.andWhere('tenantId = :tenantId', { tenantId: dto.tenantId })
+			.andWhere('deletedAt IS NULL')
+			.execute();
+
+		return {
+			success: true,
+			updated: result.affected || 0,
+		};
+	}
+
+	/**
+	 * Get most popular menu items
+	 * Returns items sorted by orderCount descending
+	 *
+	 * Use Cases:
+	 * - Homepage "Popular Dishes" section
+	 * - Recommendation engine
+	 * - Analytics dashboard
+	 */
+	async getPopularItems(dto: {
+		productApiKey: string;
+		tenantId: string;
+		limit?: number;
+		categoryId?: string;
+	}): Promise<PaginatedMenuItemsResponseDto> {
+		this.validateApiKey(dto.productApiKey);
+
+		const limit = dto.limit && dto.limit > 0 ? Math.min(dto.limit, 100) : 10;
+
+		const queryBuilder = this.menuItemRepository
+			.createQueryBuilder('item')
+			.leftJoinAndSelect('item.category', 'category')
+			.leftJoinAndSelect('item.photos', 'photos')
+			.where('item.tenantId = :tenantId', { tenantId: dto.tenantId })
+			.andWhere('item.deletedAt IS NULL')
+			.andWhere('item.status = :status', { status: MenuItemStatus.AVAILABLE })
+			.andWhere('item.orderCount > 0'); // Only items that have been ordered
+
+		// Filter by category if specified
+		if (dto.categoryId) {
+			queryBuilder.andWhere('item.categoryId = :categoryId', {
+				categoryId: dto.categoryId,
+			});
+		}
+
+		// Sort by popularity (orderCount DESC)
+		queryBuilder.orderBy('item.orderCount', 'DESC');
+		queryBuilder.addOrderBy('item.createdAt', 'DESC');
+
+		// Sort photos within each item
+		queryBuilder.addOrderBy('photos.isPrimary', 'DESC');
+		queryBuilder.addOrderBy('photos.displayOrder', 'ASC');
+
+		queryBuilder.take(limit);
+
+		const [items, total] = await queryBuilder.getManyAndCount();
+
+		return {
+			items: items.map((item) => this.toResponseDto(item, item.category?.name)),
+			total,
+			page: 1,
+			limit,
+			totalPages: 1,
 		};
 	}
 }

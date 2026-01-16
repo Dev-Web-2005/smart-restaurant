@@ -160,4 +160,43 @@ export class ItemController {
 			return new HttpResponse(1000, 'Photo deleted successfully');
 		});
 	}
+
+	// ==================== POPULARITY MANAGEMENT ====================
+
+	/**
+	 * Increment order count for menu items
+	 * RPC Pattern: 'menu-items:increment-order-count'
+	 *
+	 * Called by Order Service when items are ordered
+	 */
+	@MessagePattern('menu-items:increment-order-count')
+	async incrementOrderCount(dto: {
+		productApiKey: string;
+		tenantId: string;
+		itemIds: string[];
+	}) {
+		return handleRpcCall(async () => {
+			const result = await this.itemService.incrementOrderCount(dto);
+			return new HttpResponse(1000, 'Order count incremented successfully', result);
+		});
+	}
+
+	/**
+	 * Get most popular menu items
+	 * RPC Pattern: 'menu-items:get-popular'
+	 *
+	 * Returns items sorted by orderCount (most popular first)
+	 */
+	@MessagePattern('menu-items:get-popular')
+	async getPopularItems(dto: {
+		productApiKey: string;
+		tenantId: string;
+		limit?: number;
+		categoryId?: string;
+	}) {
+		return handleRpcCall(async () => {
+			const result = await this.itemService.getPopularItems(dto);
+			return new HttpResponse(1000, 'Popular items retrieved successfully', result);
+		});
+	}
 }
