@@ -1,101 +1,79 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useUser } from '../../contexts/UserContext'
 import { useAlert } from '../../contexts/AlertContext'
-import { useKitchenSocket } from '../../contexts/KitchenSocketContext'
 import {
-	getKitchenDisplay,
+	getKitchenItems,
 	getKitchenStats,
-	startTicket,
-	markItemsReady,
-	bumpTicket,
-	updateTicketPriority,
-	cancelTicket,
-	recallItems,
+	startPreparing,
+	markReady,
+	batchStartPreparing,
+	batchMarkReady,
 } from '../../services/api/kitchenAPI'
-import TicketCard from './components/TicketCard'
-import KitchenStats from './components/KitchenStats'
-import { Filter, Volume2, VolumeX, RefreshCw, Settings, LogOut } from 'lucide-react'
+
+// SLA Configuration (in minutes)
+const SLA_WARNING_THRESHOLD = 10 // Yellow warning at 10 mins
+const SLA_DANGER_THRESHOLD = 15 // Red danger at 15 mins
 
 /**
  * Kitchen Display System (KDS)
  *
- * Professional KDS inspired by Toast POS, Square KDS, Oracle MICROS
- *
  * Features:
- * - Real-time WebSocket updates
- * - Color-coded timer tracking (green → yellow → red)
- * - Priority management (FIRE, URGENT, HIGH, NORMAL)
- * - Touch-friendly large buttons
- * - Sound alerts for new tickets
- * - Auto-refresh display data
- * - Status filtering (PENDING, IN_PROGRESS, READY)
- * - Bump screen workflow
- * - Performance statistics
+ * - Display items pending/preparing
+ * - Timer & SLA tracking
+ * - Touch-friendly UI
+ * - Large text, high contrast
+ * - Real-time updates via WebSocket
  */
 const KitchenDisplay = () => {
 	const { user, logout } = useUser()
-	const { showSuccess, showError, showWarning, showInfo } = useAlert()
+	const { showSuccess, showError, showWarning } = useAlert()
 	const navigate = useNavigate()
-	const kitchenSocket = useKitchenSocket()
+	const { ownerId } = useParams()
+
+	// Handle logout
+	const handleLogout = () => {
+		logout()
+		if (ownerId) {
+			navigate(`/login/${ownerId}`)
+		} else {
+			navigate('/login')
+		}
+	}
 
 	// State
-	const [tickets, setTickets] = useState([])
-	const [stats, setStats] = useState(null)
+	const [items, setItems] = useState([])
+	const [stats, setStats] = useState({
+		pendingCount: 0,
+		preparingCount: 0,
+		readyCount: 0,
+		averagePrepTime: 0,
+		delayedCount: 0,
+	})
 	const [loading, setLoading] = useState(true)
-	const [filter, setFilter] = useState('ACTIVE') // ACTIVE, PENDING, IN_PROGRESS, READY, ALL
-	const [soundEnabled, setSoundEnabled] = useState(true)
-	const [newTicketIds, setNewTicketIds] = useState(new Set())
+	const [filter, setFilter] = useState('ALL') // ALL, PENDING, PREPARING
+	const [selectedItems, setSelectedItems] = useState([])
+	const [currentTime, setCurrentTime] = useState(new Date())
 
-	// Refs
+	// Refs for interval cleanup
 	const refreshIntervalRef = useRef(null)
-	const audioRef = useRef(null)
+	const timerIntervalRef = useRef(null)
 
-	// Initialize sound
-	useEffect(() => {
-		audioRef.current = new Audio('/notification.mp3') // Add notification sound to public folder
-		audioRef.current.volume = 0.5
-	}, [])
-
-	// Play sound for new tickets
-	const playNotificationSound = useCallback(() => {
-		if (soundEnabled && audioRef.current) {
-			audioRef.current.play().catch((err) => console.warn('Audio play failed:', err))
-		}
-	}, [soundEnabled])
-
-	// Fetch display data
-	const fetchDisplayData = useCallback(async () => {
+	// Fetch kitchen items
+	const fetchItems = useCallback(async () => {
 		try {
-			const result = await getKitchenDisplay()
+			const status = filter === 'ALL' ? undefined : filter
+			const result = await getKitchenItems({ status, limit: 100 })
+
 			if (result.success) {
-				const displayData = result.data
-
-				// Check for new tickets (not in current state)
-				if (tickets.length > 0 && displayData.tickets) {
-					const currentTicketIds = new Set(tickets.map((t) => t.id))
-					const newTickets = displayData.tickets.filter(
-						(t) => !currentTicketIds.has(t.id),
-					)
-
-					if (newTickets.length > 0) {
-						playNotificationSound()
-						// Mark new tickets
-						const newIds = new Set(newTickets.map((t) => t.id))
-						setNewTicketIds(newIds)
-						// Clear "new" status after 5 seconds
-						setTimeout(() => setNewTicketIds(new Set()), 5000)
-					}
-				}
-
-				setTickets(displayData.tickets || [])
+				setItems(result.data.items || [])
 			}
 		} catch (error) {
-			console.error('Error fetching display data:', error)
+			console.error('Error fetching items:', error)
 		}
-	}, [tickets, playNotificationSound])
+	}, [filter])
 
-	// Fetch statistics
+	// Fetch stats
 	const fetchStats = useCallback(async () => {
 		try {
 			const result = await getKitchenStats()
@@ -107,391 +85,403 @@ const KitchenDisplay = () => {
 		}
 	}, [])
 
-	// Initial load
+	// Initial load and refresh interval
 	useEffect(() => {
 		const loadData = async () => {
 			setLoading(true)
-			await Promise.all([fetchDisplayData(), fetchStats()])
+			await Promise.all([fetchItems(), fetchStats()])
 			setLoading(false)
 		}
 
 		loadData()
 
-		// Auto-refresh every 3 seconds (display data)
+		// Auto-refresh every 5 seconds
 		refreshIntervalRef.current = setInterval(() => {
-			fetchDisplayData()
-		}, 3000)
-
-		// Refresh stats every 10 seconds
-		const statsInterval = setInterval(() => {
+			fetchItems()
 			fetchStats()
-		}, 10000)
+		}, 5000)
+
+		// Timer update every second
+		timerIntervalRef.current = setInterval(() => {
+			setCurrentTime(new Date())
+		}, 1000)
 
 		return () => {
 			if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current)
-			clearInterval(statsInterval)
+			if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
 		}
-	}, [fetchDisplayData, fetchStats])
+	}, [fetchItems, fetchStats])
 
-	// WebSocket event handlers
-	useEffect(() => {
-		if (!kitchenSocket?.isConnected) return
-
-		// Listen for new kitchen tickets
-		const handleNewTicket = (payload) => {
-			console.log('🆕 New kitchen ticket:', payload)
-			playNotificationSound()
-			showInfo('New ticket received!')
-			fetchDisplayData()
-			fetchStats()
-		}
-
-		// Listen for ticket ready
-		const handleTicketReady = (payload) => {
-			console.log('✅ Ticket ready:', payload)
-			showSuccess(`Ticket #${payload.data.ticketNumber} is ready!`)
-			fetchDisplayData()
-			fetchStats()
-		}
-
-		// Listen for ticket completed
-		const handleTicketCompleted = (payload) => {
-			console.log('👋 Ticket bumped:', payload)
-			fetchDisplayData()
-			fetchStats()
-		}
-
-		// Listen for priority changes
-		const handlePriorityChange = (payload) => {
-			console.log('🔥 Priority changed:', payload)
-			fetchDisplayData()
-		}
-
-		// Listen for timer updates (every 5 seconds from backend)
-		const handleTimerUpdate = (payload) => {
-			console.log('⏱️ Timer update:', payload)
-			// Update timers without full refresh
-			if (payload.data && payload.data.tickets) {
-				setTickets((prevTickets) =>
-					prevTickets.map((ticket) => {
-						const updated = payload.data.tickets.find((t) => t.id === ticket.id)
-						return updated
-							? {
-									...ticket,
-									elapsedSeconds: updated.elapsedSeconds,
-									elapsedFormatted: updated.elapsedFormatted,
-									ageColor: updated.ageColor,
-							  }
-							: ticket
-					}),
-				)
-			}
-		}
-
-		// Attach listeners
-		const socket = kitchenSocket.socket
-		socket.on('kitchen.ticket.new', handleNewTicket)
-		socket.on('kitchen.ticket.ready', handleTicketReady)
-		socket.on('kitchen.ticket.completed', handleTicketCompleted)
-		socket.on('kitchen.ticket.priority', handlePriorityChange)
-		socket.on('kitchen.timers.update', handleTimerUpdate)
-
-		// Cleanup
-		return () => {
-			socket.off('kitchen.ticket.new', handleNewTicket)
-			socket.off('kitchen.ticket.ready', handleTicketReady)
-			socket.off('kitchen.ticket.completed', handleTicketCompleted)
-			socket.off('kitchen.ticket.priority', handlePriorityChange)
-			socket.off('kitchen.timers.update', handleTimerUpdate)
-		}
-	}, [
-		kitchenSocket,
-		playNotificationSound,
-		fetchDisplayData,
-		fetchStats,
-		showInfo,
-		showSuccess,
-	])
-
-	// Ticket actions
-	const handleStartTicket = useCallback(
-		async (ticketId) => {
-			const result = await startTicket(ticketId)
+	// Handle start preparing
+	const handleStartPreparing = async (itemId) => {
+		try {
+			const result = await startPreparing(itemId)
 			if (result.success) {
-				showSuccess('Ticket started!')
-				fetchDisplayData()
+				showSuccess('Started', 'Started preparing item')
+				fetchItems()
 				fetchStats()
 			} else {
-				showError(result.message || 'Failed to start ticket')
+				showError('Error', result.message)
 			}
-		},
-		[fetchDisplayData, fetchStats, showSuccess, showError],
-	)
-
-	const handleMarkItemsReady = useCallback(
-		async (ticketId, itemIds) => {
-			const result = await markItemsReady(ticketId, itemIds)
-			if (result.success) {
-				showSuccess('Items marked ready!')
-				fetchDisplayData()
-				fetchStats()
-			} else {
-				showError(result.message || 'Failed to mark items ready')
-			}
-		},
-		[fetchDisplayData, fetchStats, showSuccess, showError],
-	)
-
-	const handleBumpTicket = useCallback(
-		async (ticketId) => {
-			const result = await bumpTicket(ticketId)
-			if (result.success) {
-				showSuccess('Ticket bumped!')
-				fetchDisplayData()
-				fetchStats()
-			} else {
-				showError(result.message || 'Failed to bump ticket')
-			}
-		},
-		[fetchDisplayData, fetchStats, showSuccess, showError],
-	)
-
-	const handleUpdatePriority = useCallback(
-		async (ticketId, priority) => {
-			const result = await updateTicketPriority(ticketId, priority)
-			if (result.success) {
-				showSuccess(`Priority updated to ${priority}`)
-				fetchDisplayData()
-			} else {
-				showError(result.message || 'Failed to update priority')
-			}
-		},
-		[fetchDisplayData, showSuccess, showError],
-	)
-
-	const handleCancelTicket = useCallback(
-		async (ticketId) => {
-			if (!confirm('Are you sure you want to cancel this ticket?')) return
-
-			const reason = prompt('Cancellation reason:')
-			if (!reason) return
-
-			const result = await cancelTicket(ticketId, reason)
-			if (result.success) {
-				showWarning('Ticket cancelled')
-				fetchDisplayData()
-				fetchStats()
-			} else {
-				showError(result.message || 'Failed to cancel ticket')
-			}
-		},
-		[fetchDisplayData, fetchStats, showWarning, showError],
-	)
-
-	const handleRecallItems = useCallback(
-		async (ticketId, itemIds) => {
-			const reason = prompt('Recall reason (e.g., customer requested modification):')
-			if (!reason) return
-
-			const result = await recallItems(ticketId, itemIds, reason)
-			if (result.success) {
-				showInfo('Items recalled for remake')
-				fetchDisplayData()
-			} else {
-				showError(result.message || 'Failed to recall items')
-			}
-		},
-		[fetchDisplayData, showInfo, showError],
-	)
-
-	// Filter tickets
-	const filteredTickets = tickets.filter((ticket) => {
-		if (filter === 'ALL') return true
-		if (filter === 'ACTIVE')
-			return (
-				ticket.status === 'PENDING' ||
-				ticket.status === 'IN_PROGRESS' ||
-				ticket.status === 'READY'
-			)
-		return ticket.status === filter
-	})
-
-	// Sort tickets: FIRE → URGENT → HIGH → NORMAL, then by elapsed time (oldest first)
-	const sortedTickets = [...filteredTickets].sort((a, b) => {
-		const priorityOrder = { FIRE: 0, URGENT: 1, HIGH: 2, NORMAL: 3 }
-		const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority]
-		if (priorityDiff !== 0) return priorityDiff
-		return b.elapsedSeconds - a.elapsedSeconds // Oldest first
-	})
-
-	// Handle logout
-	const handleLogout = () => {
-		logout()
-		navigate('/login')
+		} catch (error) {
+			showError('Error', 'Failed to start preparing')
+		}
 	}
 
+	// Handle mark ready
+	const handleMarkReady = async (itemId) => {
+		try {
+			const result = await markReady(itemId)
+			if (result.success) {
+				showSuccess('Ready!', 'Item marked as ready')
+				fetchItems()
+				fetchStats()
+			} else {
+				showError('Error', result.message)
+			}
+		} catch (error) {
+			showError('Error', 'Failed to mark ready')
+		}
+	}
+
+	// Handle batch actions
+	const handleBatchStart = async () => {
+		if (selectedItems.length === 0) return
+
+		const pendingItems = selectedItems.filter((id) => {
+			const item = items.find((i) => i.id === id)
+			return item?.status === 'PENDING'
+		})
+
+		if (pendingItems.length === 0) {
+			showWarning('No Items', 'No pending items selected')
+			return
+		}
+
+		const result = await batchStartPreparing(pendingItems)
+		if (result.success) {
+			showSuccess('Started', `Started preparing ${result.data.updated} items`)
+			setSelectedItems([])
+			fetchItems()
+			fetchStats()
+		}
+	}
+
+	const handleBatchReady = async () => {
+		if (selectedItems.length === 0) return
+
+		const preparingItems = selectedItems.filter((id) => {
+			const item = items.find((i) => i.id === id)
+			return item?.status === 'PREPARING'
+		})
+
+		if (preparingItems.length === 0) {
+			showWarning('No Items', 'No preparing items selected')
+			return
+		}
+
+		const result = await batchMarkReady(preparingItems)
+		if (result.success) {
+			showSuccess('Ready!', `Marked ${result.data.updated} items as ready`)
+			setSelectedItems([])
+			fetchItems()
+			fetchStats()
+		}
+	}
+
+	// Toggle item selection
+	const toggleSelectItem = (itemId) => {
+		setSelectedItems((prev) =>
+			prev.includes(itemId) ? prev.filter((id) => id !== itemId) : [...prev, itemId],
+		)
+	}
+
+	// Calculate time display
+	const getTimeDisplay = (item) => {
+		const now = currentTime.getTime()
+		let elapsedMs = 0
+
+		if (item.status === 'PREPARING' && item.startedAt) {
+			elapsedMs = now - new Date(item.startedAt).getTime()
+		} else if (item.status === 'PENDING' && item.receivedAt) {
+			elapsedMs = now - new Date(item.receivedAt).getTime()
+		}
+
+		const elapsedMinutes = Math.floor(elapsedMs / 60000)
+		const elapsedSeconds = Math.floor((elapsedMs % 60000) / 1000)
+
+		return {
+			display: `${elapsedMinutes.toString().padStart(2, '0')}:${elapsedSeconds
+				.toString()
+				.padStart(2, '0')}`,
+			elapsedMinutes,
+			isWarning:
+				elapsedMinutes >= SLA_WARNING_THRESHOLD && elapsedMinutes < SLA_DANGER_THRESHOLD,
+			isDanger: elapsedMinutes >= SLA_DANGER_THRESHOLD,
+		}
+	}
+
+	// Get status color
+	const getStatusColor = (status) => {
+		switch (status) {
+			case 'PENDING':
+				return 'bg-yellow-500'
+			case 'PREPARING':
+				return 'bg-blue-500'
+			case 'READY':
+				return 'bg-green-500'
+			default:
+				return 'bg-gray-500'
+		}
+	}
+
+	// Loading state
 	if (loading) {
 		return (
-			<div className="min-h-screen bg-gray-100 flex items-center justify-center">
-				<div className="text-center">
-					<RefreshCw className="animate-spin mx-auto mb-4 text-blue-600" size={48} />
-					<div className="text-xl font-semibold">Loading Kitchen Display...</div>
-				</div>
+			<div className="min-h-screen bg-gray-900 flex items-center justify-center">
+				<div className="text-white text-3xl">Loading Kitchen Display...</div>
 			</div>
 		)
 	}
 
 	return (
-		<div className="min-h-screen bg-gray-100">
+		<div className="min-h-screen bg-gray-900 text-white">
 			{/* Header */}
-			<div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
-				<div className="max-w-screen-2xl mx-auto px-6 py-4">
-					<div className="flex items-center justify-between">
-						<div>
-							<h1 className="text-3xl font-bold">🍳 Kitchen Display System</h1>
-							<div className="text-sm opacity-90 mt-1">
-								{user?.restaurantName || 'Smart Restaurant'} • {user?.role || 'Chef'}
-							</div>
-						</div>
-
-						<div className="flex items-center gap-4">
-							{/* WebSocket Status */}
-							<div className="flex items-center gap-2 bg-white/20 px-3 py-2 rounded-lg">
-								<div
-									className={`w-3 h-3 rounded-full ${
-										kitchenSocket?.isConnected
-											? 'bg-green-400 animate-pulse'
-											: 'bg-red-400'
-									}`}
-								/>
-								<span className="text-sm font-medium">
-									{kitchenSocket?.isConnected ? 'Connected' : 'Disconnected'}
-								</span>
-							</div>
-
-							{/* Sound Toggle */}
-							<button
-								onClick={() => setSoundEnabled(!soundEnabled)}
-								className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors"
-								title={soundEnabled ? 'Disable Sound' : 'Enable Sound'}
-							>
-								{soundEnabled ? <Volume2 size={24} /> : <VolumeX size={24} />}
-							</button>
-
-							{/* Refresh */}
-							<button
-								onClick={() => {
-									fetchDisplayData()
-									fetchStats()
-								}}
-								className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors"
-								title="Refresh"
-							>
-								<RefreshCw size={24} />
-							</button>
-
-							{/* Settings */}
-							<button
-								className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors"
-								title="Settings"
-							>
-								<Settings size={24} />
-							</button>
-
-							{/* Logout */}
-							<button
-								onClick={handleLogout}
-								className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg transition-colors font-semibold"
-							>
-								<LogOut size={24} />
-							</button>
-						</div>
+			<header className="bg-gray-800 px-6 py-4 flex items-center justify-between border-b border-gray-700">
+				<div className="flex items-center gap-6">
+					<h1 className="text-3xl font-bold text-orange-500">🍳 Kitchen Display</h1>
+					<div className="text-xl text-gray-300">
+						{currentTime.toLocaleTimeString('vi-VN', {
+							hour: '2-digit',
+							minute: '2-digit',
+							second: '2-digit',
+						})}
 					</div>
 				</div>
-			</div>
 
-			{/* Main Content */}
-			<div className="max-w-screen-2xl mx-auto px-6 py-6">
-				{/* Statistics */}
-				<KitchenStats stats={stats} />
-
-				{/* Filters */}
-				<div className="flex items-center gap-2 mb-6 flex-wrap">
-					<div className="flex items-center gap-2 mr-4">
-						<Filter size={20} className="text-gray-600" />
-						<span className="font-semibold text-gray-700">Filter:</span>
+				{/* Stats & User Info */}
+				<div className="flex items-center gap-8">
+					<div className="text-center">
+						<div className="text-4xl font-bold text-yellow-400">{stats.pendingCount}</div>
+						<div className="text-sm text-gray-400">Pending</div>
 					</div>
-					{['ACTIVE', 'PENDING', 'IN_PROGRESS', 'READY', 'ALL'].map((status) => (
+					<div className="text-center">
+						<div className="text-4xl font-bold text-blue-400">{stats.preparingCount}</div>
+						<div className="text-sm text-gray-400">Preparing</div>
+					</div>
+					<div className="text-center">
+						<div className="text-4xl font-bold text-green-400">{stats.readyCount}</div>
+						<div className="text-sm text-gray-400">Ready</div>
+					</div>
+					{stats.delayedCount > 0 && (
+						<div className="text-center">
+							<div className="text-4xl font-bold text-red-500 animate-pulse">
+								{stats.delayedCount}
+							</div>
+							<div className="text-sm text-red-400">Delayed!</div>
+						</div>
+					)}
+
+					{/* Divider */}
+					<div className="h-12 w-px bg-gray-600" />
+
+					{/* User Info & Logout */}
+					<div className="flex items-center gap-4">
+						<div className="text-right">
+							<div className="text-white font-semibold">
+								{user?.name || 'Kitchen Staff'}
+							</div>
+							<div className="text-sm text-gray-400">{user?.email || 'Chef'}</div>
+						</div>
 						<button
-							key={status}
-							onClick={() => setFilter(status)}
-							className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-								filter === status
-									? 'bg-blue-600 text-white'
-									: 'bg-white text-gray-700 hover:bg-gray-100'
+							onClick={handleLogout}
+							className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-all flex items-center gap-2"
+						>
+							<span>🚪</span>
+							<span>Logout</span>
+						</button>
+					</div>
+				</div>
+			</header>
+
+			{/* Filter & Batch Actions */}
+			<div className="px-6 py-4 bg-gray-800 flex items-center justify-between border-b border-gray-700">
+				{/* Filters */}
+				<div className="flex gap-2">
+					{['ALL', 'PENDING', 'PREPARING'].map((f) => (
+						<button
+							key={f}
+							onClick={() => setFilter(f)}
+							className={`px-6 py-3 rounded-lg text-lg font-semibold transition-all ${
+								filter === f
+									? 'bg-orange-500 text-white'
+									: 'bg-gray-700 text-gray-300 hover:bg-gray-600'
 							}`}
 						>
-							{status.replace('_', ' ')}
-							<span className="ml-2 bg-white/20 px-2 py-1 rounded text-sm">
-								{status === 'ACTIVE'
-									? (stats?.pendingCount || 0) +
-									  (stats?.inProgressCount || 0) +
-									  (stats?.readyCount || 0)
-									: status === 'PENDING'
-									? stats?.pendingCount || 0
-									: status === 'IN_PROGRESS'
-									? stats?.inProgressCount || 0
-									: status === 'READY'
-									? stats?.readyCount || 0
-									: tickets.length}
-							</span>
+							{f}
 						</button>
 					))}
 				</div>
 
-				{/* Tickets Grid */}
-				{sortedTickets.length === 0 ? (
-					<div className="bg-white rounded-lg shadow-md p-12 text-center">
-						<div className="text-6xl mb-4">🎉</div>
-						<div className="text-2xl font-semibold text-gray-700 mb-2">
-							All caught up!
-						</div>
-						<div className="text-gray-500">No tickets to display for this filter</div>
-					</div>
-				) : (
-					<div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-						{sortedTickets.map((ticket) => (
-							<TicketCard
-								key={ticket.id}
-								ticket={ticket}
-								isNew={newTicketIds.has(ticket.id)}
-								onStartTicket={handleStartTicket}
-								onMarkItemsReady={handleMarkItemsReady}
-								onBumpTicket={handleBumpTicket}
-								onUpdatePriority={handleUpdatePriority}
-								onRecall={handleRecallItems}
-								onCancel={handleCancelTicket}
-							/>
-						))}
-					</div>
-				)}
+				{/* Batch Actions */}
+				<div className="flex gap-4">
+					{selectedItems.length > 0 && (
+						<span className="text-lg text-gray-300 self-center">
+							{selectedItems.length} selected
+						</span>
+					)}
+					<button
+						onClick={handleBatchStart}
+						disabled={selectedItems.length === 0}
+						className={`px-6 py-3 rounded-lg text-lg font-semibold transition-all ${
+							selectedItems.length > 0
+								? 'bg-blue-600 hover:bg-blue-700 text-white'
+								: 'bg-gray-700 text-gray-500 cursor-not-allowed'
+						}`}
+					>
+						🔥 Start All
+					</button>
+					<button
+						onClick={handleBatchReady}
+						disabled={selectedItems.length === 0}
+						className={`px-6 py-3 rounded-lg text-lg font-semibold transition-all ${
+							selectedItems.length > 0
+								? 'bg-green-600 hover:bg-green-700 text-white'
+								: 'bg-gray-700 text-gray-500 cursor-not-allowed'
+						}`}
+					>
+						✅ Ready All
+					</button>
+				</div>
 			</div>
 
-			{/* Custom Styles */}
-			<style jsx>{`
-				@keyframes pulse-border {
-					0%,
-					100% {
-						border-color: rgba(59, 130, 246, 0.5);
-					}
-					50% {
-						border-color: rgba(59, 130, 246, 1);
-					}
-				}
-				.animate-pulse-border {
-					animation: pulse-border 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-				}
-			`}</style>
+			{/* Main Content - Item Grid */}
+			<main className="p-6">
+				{items.length === 0 ? (
+					<div className="text-center py-20">
+						<div className="text-6xl mb-4">🎉</div>
+						<div className="text-3xl text-gray-400">No items to prepare</div>
+						<div className="text-xl text-gray-500 mt-2">All caught up!</div>
+					</div>
+				) : (
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+						{items.map((item) => {
+							const timeInfo = getTimeDisplay(item)
+							const isSelected = selectedItems.includes(item.id)
+
+							return (
+								<div
+									key={item.id}
+									onClick={() => toggleSelectItem(item.id)}
+									className={`rounded-xl overflow-hidden cursor-pointer transition-all transform hover:scale-[1.02] ${
+										isSelected ? 'ring-4 ring-orange-500' : 'ring-1 ring-gray-700'
+									} ${
+										timeInfo.isDanger
+											? 'bg-red-900/50'
+											: timeInfo.isWarning
+											? 'bg-yellow-900/30'
+											: 'bg-gray-800'
+									}`}
+								>
+									{/* Header with Table & Status */}
+									<div
+										className={`px-4 py-3 flex justify-between items-center ${getStatusColor(
+											item.status,
+										)}`}
+									>
+										<span className="text-2xl font-bold">
+											Table {item.tableId?.slice(-4) || '???'}
+										</span>
+										<span className="text-lg font-semibold uppercase">{item.status}</span>
+									</div>
+
+									{/* Item Info */}
+									<div className="p-4">
+										<h3 className="text-2xl font-bold mb-2">{item.name}</h3>
+										<div className="text-xl text-gray-300 mb-2">
+											Qty: <span className="font-bold text-white">{item.quantity}</span>
+										</div>
+
+										{/* Modifiers */}
+										{item.modifiers && item.modifiers.length > 0 && (
+											<div className="mb-2">
+												{item.modifiers.map((mod, idx) => (
+													<span
+														key={idx}
+														className="inline-block bg-gray-700 text-gray-200 px-2 py-1 rounded text-sm mr-2 mb-1"
+													>
+														{mod.optionName || mod.modifierGroupName}
+													</span>
+												))}
+											</div>
+										)}
+
+										{/* Notes */}
+										{item.notes && (
+											<div className="bg-yellow-900/50 text-yellow-200 px-3 py-2 rounded-lg text-lg mb-2">
+												📝 {item.notes}
+											</div>
+										)}
+
+										{/* Timer */}
+										<div
+											className={`text-4xl font-mono font-bold text-center py-3 rounded-lg ${
+												timeInfo.isDanger
+													? 'bg-red-600 text-white animate-pulse'
+													: timeInfo.isWarning
+													? 'bg-yellow-600 text-black'
+													: 'bg-gray-700 text-white'
+											}`}
+										>
+											{timeInfo.display}
+										</div>
+									</div>
+
+									{/* Action Buttons */}
+									<div className="px-4 pb-4 flex gap-2">
+										{item.status === 'PENDING' && (
+											<button
+												onClick={(e) => {
+													e.stopPropagation()
+													handleStartPreparing(item.id)
+												}}
+												className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xl font-bold py-4 rounded-lg transition-all active:scale-95"
+											>
+												🔥 START
+											</button>
+										)}
+										{item.status === 'PREPARING' && (
+											<button
+												onClick={(e) => {
+													e.stopPropagation()
+													handleMarkReady(item.id)
+												}}
+												className="flex-1 bg-green-600 hover:bg-green-700 text-white text-xl font-bold py-4 rounded-lg transition-all active:scale-95"
+											>
+												✅ READY
+											</button>
+										)}
+									</div>
+								</div>
+							)
+						})}
+					</div>
+				)}
+			</main>
+
+			{/* Footer Stats */}
+			<footer className="fixed bottom-0 left-0 right-0 bg-gray-800 px-6 py-3 border-t border-gray-700">
+				<div className="flex justify-between items-center">
+					<div className="text-gray-400">
+						Average prep time:{' '}
+						<span className="text-white font-bold">{stats.averagePrepTime} min</span>
+					</div>
+					<div className="text-gray-400">
+						SLA: <span className="text-yellow-400">⚠️ {SLA_WARNING_THRESHOLD}min</span> |{' '}
+						<span className="text-red-400">🔴 {SLA_DANGER_THRESHOLD}min</span>
+					</div>
+				</div>
+			</footer>
 		</div>
 	)
 }

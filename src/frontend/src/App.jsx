@@ -37,6 +37,7 @@ import RestaurantQRHandler from './pages/customer/scan/RestaurantQRHandler'
 import SelectTable from './pages/customer/scan/SelectTable'
 
 import RestaurantQRGenerator from './pages/user/qr/RestaurantQRGenerator'
+import KitchenManagement from './pages/user/kitchen/KitchenManagement'
 
 // Kitchen Display System
 import KitchenDisplay from './pages/kitchen/KitchenDisplay'
@@ -76,7 +77,9 @@ const RoleBasedRedirect = () => {
 		if (userOwnerId) {
 			return <Navigate to={`/r/${userOwnerId}/kitchen`} replace />
 		}
-		return <Navigate to="/login" replace state={{ error: 'Missing restaurant context' }} />
+		return (
+			<Navigate to="/login" replace state={{ error: 'Missing restaurant context' }} />
+		)
 	}
 
 	// Staff redirect to waiter panel (with tenant context)
@@ -84,7 +87,9 @@ const RoleBasedRedirect = () => {
 		if (userOwnerId) {
 			return <Navigate to={`/r/${userOwnerId}/waiter`} replace />
 		}
-		return <Navigate to="/login" replace state={{ error: 'Missing restaurant context' }} />
+		return (
+			<Navigate to="/login" replace state={{ error: 'Missing restaurant context' }} />
+		)
 	}
 
 	// Customer redirect to ordering interface (with tenant context)
@@ -92,7 +97,9 @@ const RoleBasedRedirect = () => {
 		if (userOwnerId) {
 			return <Navigate to={`/r/${userOwnerId}/order/table/0`} replace />
 		}
-		return <Navigate to="/login" replace state={{ error: 'Missing restaurant context' }} />
+		return (
+			<Navigate to="/login" replace state={{ error: 'Missing restaurant context' }} />
+		)
 	}
 
 	// Default: User (Owner) redirect to menu
@@ -113,11 +120,11 @@ function App() {
 									<Route path="/login" element={<UnifiedLogin />} />
 									{/* Login with tenant context (Staff/Chef/Customer) */}
 									<Route path="/login/:ownerId" element={<UnifiedLogin />} />
-									
+
 									{/* Legacy customer login routes (redirect to unified) */}
 									<Route path="/customer-login" element={<CustomerLogin />} />
 									<Route path="/customer-login/:ownerId" element={<CustomerLogin />} />
-									
+
 									{/* Other auth routes */}
 									<Route path="/signup" element={<SignUp />} />
 									<Route path="/customer-signup/:ownerId" element={<SignUp />} />
@@ -175,7 +182,9 @@ function App() {
 											<ProtectedRoute allowedRoles={['Super Administrator']}>
 												{/* TODO: Create UserManagement component */}
 												<div className="flex min-h-screen bg-[#101922] items-center justify-center">
-													<p className="text-white text-xl">👥 User Management - Coming Soon</p>
+													<p className="text-white text-xl">
+														👥 User Management - Coming Soon
+													</p>
 												</div>
 											</ProtectedRoute>
 										}
@@ -227,6 +236,14 @@ function App() {
 										element={
 											<ProtectedRoute allowedRoles={['User']}>
 												<OrderManagement />
+											</ProtectedRoute>
+										}
+									/>
+									<Route
+										path="/user/kitchen"
+										element={
+											<ProtectedRoute allowedRoles={['User']}>
+												<KitchenManagement />
 											</ProtectedRoute>
 										}
 									/>

@@ -7,9 +7,11 @@ import {
 	checkEmailVerificationStatusAPI,
 	resendVerificationEmailAPI,
 } from '../../../../services/api/authAPI'
+import CustomerAuth from './CustomerAuth'
 
 const ProfilePage = ({ onBack }) => {
 	const [customerAuth, setCustomerAuth] = useState(null)
+	const [showAuthModal, setShowAuthModal] = useState(false)
 
 	// Email Verification State
 	const [emailVerified, setEmailVerified] = useState(false)
@@ -22,6 +24,16 @@ const ProfilePage = ({ onBack }) => {
 	const [otpSuccess, setOtpSuccess] = useState('')
 
 	useEffect(() => {
+		// Check if in guest mode first
+		const isGuest = localStorage.getItem('isGuestMode') === 'true'
+
+		if (isGuest) {
+			// Guest mode - no authentication required
+			setCustomerAuth({ isGuest: true })
+			setCheckingEmailStatus(false)
+			return
+		}
+
 		const auth = localStorage.getItem('customerAuth')
 		if (auth) {
 			try {
@@ -160,19 +172,33 @@ const ProfilePage = ({ onBack }) => {
 		window.location.reload() // Reload to reset auth state
 	}
 
-	if (!customerAuth) {
+	const handleAuthSuccess = (customer) => {
+		console.log('✅ Login successful:', customer)
+
+		// Update guest mode flag
+		if (customer?.isGuest) {
+			localStorage.setItem('isGuestMode', 'true')
+		} else {
+			localStorage.setItem('isGuestMode', 'false')
+			if (customer) {
+				localStorage.setItem('customerAuth', JSON.stringify(customer))
+			}
+		}
+
+		// Reload to update state
+		window.location.reload()
+	}
+
+	// Guest mode or not logged in - show auth modal
+	if (customerAuth?.isGuest || !customerAuth) {
 		return (
-			<div className="flex flex-col items-center justify-center h-full p-6">
-				<span className="material-symbols-outlined text-gray-400 text-6xl mb-4">
-					person_off
-				</span>
-				<p className="text-gray-400 text-lg mb-4">You are not logged in</p>
-				<button
-					onClick={onBack}
-					className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-				>
-					Go Back
-				</button>
+			<div className="flex flex-col items-center justify-center h-full relative">
+				<CustomerAuth
+					onClose={() => {
+						if (onBack) onBack()
+					}}
+					onSuccess={handleAuthSuccess}
+				/>
 			</div>
 		)
 	}
