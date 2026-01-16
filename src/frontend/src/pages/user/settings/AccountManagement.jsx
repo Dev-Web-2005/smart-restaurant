@@ -3,7 +3,12 @@ import ReactDOM from 'react-dom'
 import { useAlert } from '../../../contexts/AlertContext'
 import FloatingInputField from '../../../components/form/FloatingInputField'
 import PasswordStrengthIndicator from '../../../components/form/PasswordStrengthIndicator'
-import { generateStaffAccountAPI } from '../../../services/api/staffAPI'
+import {
+	generateStaffAccountAPI,
+	getStaffChefListAPI,
+	toggleStaffStatusAPI,
+	deleteStaffAccountAPI,
+} from '../../../services/api/staffAPI'
 
 // Role options - Backend expects 'STAFF' or 'CHEF'
 const ROLE_OPTIONS = [
@@ -13,24 +18,6 @@ const ROLE_OPTIONS = [
 		label: 'Kitchen Staff',
 		icon: 'soup_kitchen',
 		color: 'text-orange-400',
-	},
-]
-
-// Mock data for existing accounts
-const mockAccounts = [
-	{
-		id: 1,
-		username: 'staff_abc123',
-		role: 'STAFF',
-		isActive: true,
-		createdAt: new Date('2024-01-15').toISOString(),
-	},
-	{
-		id: 2,
-		username: 'chef_def456',
-		role: 'CHEF',
-		isActive: true,
-		createdAt: new Date('2024-01-20').toISOString(),
 	},
 ]
 
@@ -245,18 +232,41 @@ const AccountModal = ({ isOpen, onClose, onSave, editingAccount }) => {
 // Account Card Component
 const AccountCard = ({ account, onEdit, onToggleActive, onDelete }) => {
 	const roleInfo = ROLE_OPTIONS.find((r) => r.value === account.role)
+	const [showPassword, setShowPassword] = useState(false)
 
 	return (
 		<div className="bg-black/40 backdrop-blur-md rounded-xl border border-white/10 p-5 hover:bg-black/50 transition-all">
 			<div className="flex items-start justify-between mb-4">
-				<div className="flex items-center gap-3">
+				<div className="flex items-center gap-3 flex-1">
 					<div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#137fec] to-[#0d6ecc] flex items-center justify-center">
 						<span className="material-symbols-outlined text-white text-2xl">
 							{roleInfo?.icon}
 						</span>
 					</div>
-					<div>
+					<div className="flex-1">
 						<h3 className="text-white font-bold text-lg m-0">{account.username}</h3>
+						{account.generatedPassword && (
+							<div className="mt-1 px-2 py-1 bg-yellow-500/20 border border-yellow-500/50 rounded text-xs text-yellow-300 flex items-center justify-between gap-2">
+								<div className="flex items-center gap-1">
+									<span className="font-semibold">Password:</span>
+									<span className="font-mono">
+										{showPassword ? account.generatedPassword : '••••••••'}
+									</span>
+								</div>
+								<button
+									onClick={(e) => {
+										e.stopPropagation()
+										setShowPassword(!showPassword)
+									}}
+									className="p-0.5 hover:bg-yellow-500/30 rounded transition-colors"
+									title={showPassword ? 'Hide password' : 'Show password'}
+								>
+									<span className="material-symbols-outlined text-sm">
+										{showPassword ? 'visibility_off' : 'visibility'}
+									</span>
+								</button>
+							</div>
+						)}
 						<div className="flex items-center gap-2 mt-1">
 							<span
 								className={`text-sm font-medium ${roleInfo?.color || 'text-gray-400'}`}
@@ -284,13 +294,6 @@ const AccountCard = ({ account, onEdit, onToggleActive, onDelete }) => {
 				</span>
 
 				<div className="flex items-center gap-2">
-					<button
-						onClick={() => onEdit(account)}
-						className="p-2 rounded-lg bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors"
-						title="Edit"
-					>
-						<span className="material-symbols-outlined text-lg">edit</span>
-					</button>
 					<button
 						onClick={() => onToggleActive(account)}
 						className={`p-2 rounded-lg transition-colors ${
@@ -322,25 +325,77 @@ const AccountManagement = () => {
 	const { showSuccess, showError, showConfirm } = useAlert()
 	const [accounts, setAccounts] = useState([])
 	const [loading, setLoading] = useState(true)
+	const [fetchError, setFetchError] = useState(false)
 	const [isModalOpen, setIsModalOpen] = useState(false)
 	const [editingAccount, setEditingAccount] = useState(null)
 	const [searchQuery, setSearchQuery] = useState('')
 	const [roleFilter, setRoleFilter] = useState('ALL')
 
-	const fetchAccounts = async () => {
+	const fetchAccounts = async (retryCount = 0) => {
+		const MAX_RETRIES = 3
+		const RETRY_DELAY = 1000 // 1 second
+
 		setLoading(true)
-		// Simulate API call
-		setTimeout(() => {
-			setAccounts(mockAccounts)
+		setFetchError(false)
+		try {
+			console.log(
+				`🔄 Fetching staff accounts... (Attempt ${retryCount + 1}/${MAX_RETRIES + 1})`,
+			)
+			const result = await getStaffChefListAPI()
+
+			if (result.success) {
+				// Transform API data to match component format
+				const transformedAccounts = result.data.items.map((user) => {
+					// Extract role from user.roles array
+					const roleObj = user.roles?.find((r) => r.name === 'STAFF' || r.name === 'CHEF')
+					const role = roleObj?.name || 'STAFF'
+
+					return {
+						id: user.userId,
+						username: user.username,
+						role: role,
+						isActive: user.isActive ?? true,
+						createdAt: new Date().toISOString(), // API doesn't return createdAt yet
+					}
+				})
+
+				console.log('✅ Fetched accounts:', transformedAccounts)
+				setAccounts(transformedAccounts)
+				setFetchError(false)
+			} else {
+				console.error('❌ Failed to fetch accounts:', result.message)
+				// Retry logic
+				if (retryCount < MAX_RETRIES) {
+					console.log(`⏳ Retrying in ${RETRY_DELAY / 1000}s...`)
+					await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY))
+					return fetchAccounts(retryCount + 1)
+				}
+				setFetchError(true)
+				showError(result.message || 'Failed to load staff accounts. Please try again.')
+				setAccounts([])
+			}
+		} catch (error) {
+			console.error('❌ fetchAccounts error:', error)
+			// Retry logic
+			if (retryCount < MAX_RETRIES) {
+				console.log(`⏳ Retrying in ${RETRY_DELAY / 1000}s...`)
+				await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY))
+				return fetchAccounts(retryCount + 1)
+			}
+			setFetchError(true)
+			showError('Failed to load staff accounts. Please try again.')
+			setAccounts([])
+		} finally {
 			setLoading(false)
-		}, 500)
+		}
 	}
 
-	// Load accounts
+	// Load accounts on mount only
 	useEffect(() => {
 		// eslint-disable-next-line @typescript-eslint/no-floating-promises
 		fetchAccounts()
-	}, [fetchAccounts])
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [])
 
 	const handleCreateAccount = () => {
 		setEditingAccount(null)
@@ -401,13 +456,25 @@ const AccountManagement = () => {
 		)
 
 		if (confirmed) {
-			console.log(`${action} account:`, account.id)
-			setAccounts((prev) =>
-				prev.map((acc) =>
-					acc.id === account.id ? { ...acc, isActive: !acc.isActive } : acc,
-				),
-			)
-			showSuccess(`Account "${account.username}" ${action}d successfully!`)
+			try {
+				console.log(`${action} account:`, account.id)
+				const result = await toggleStaffStatusAPI(account.id, !account.isActive)
+
+				if (result.success) {
+					// Update local state
+					setAccounts((prev) =>
+						prev.map((acc) =>
+							acc.id === account.id ? { ...acc, isActive: !acc.isActive } : acc,
+						),
+					)
+					showSuccess(`Account "${account.username}" ${action}d successfully!`)
+				} else {
+					showError(result.message || `Failed to ${action} account`)
+				}
+			} catch (error) {
+				console.error(`Error ${action}ing account:`, error)
+				showError(`Failed to ${action} account`)
+			}
 		}
 	}
 
@@ -418,9 +485,21 @@ const AccountManagement = () => {
 		)
 
 		if (confirmed) {
-			console.log('Deleting account:', account.id)
-			setAccounts((prev) => prev.filter((acc) => acc.id !== account.id))
-			showSuccess(`Account "${account.username}" deleted successfully!`)
+			try {
+				console.log('Deleting account:', account.id)
+				const result = await deleteStaffAccountAPI(account.id)
+
+				if (result.success) {
+					// Remove from local state
+					setAccounts((prev) => prev.filter((acc) => acc.id !== account.id))
+					showSuccess(`Account "${account.username}" deleted successfully!`)
+				} else {
+					showError(result.message || 'Failed to delete account')
+				}
+			} catch (error) {
+				console.error('Error deleting account:', error)
+				showError('Failed to delete account')
+			}
 		}
 	}
 
@@ -497,6 +576,25 @@ const AccountManagement = () => {
 					<div className="text-center py-12">
 						<div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#137fec] mb-4"></div>
 						<p className="text-[#9dabb9]">Loading accounts...</p>
+					</div>
+				) : fetchError ? (
+					<div className="text-center py-12">
+						<span className="material-symbols-outlined text-6xl text-red-400 mb-4 block">
+							error
+						</span>
+						<p className="text-red-400 text-lg font-semibold mb-2">
+							Failed to load accounts
+						</p>
+						<p className="text-[#9dabb9] mb-4">
+							Unable to fetch staff accounts. Please try again.
+						</p>
+						<button
+							onClick={() => fetchAccounts()}
+							className="px-6 py-2 bg-[#137fec] hover:bg-[#0d6ecc] text-white rounded-lg font-semibold transition-colors flex items-center gap-2 mx-auto"
+						>
+							<span className="material-symbols-outlined">refresh</span>
+							Retry
+						</button>
 					</div>
 				) : filteredAccounts.length > 0 ? (
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -148,8 +148,10 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 						if (option) {
 							return {
 								id: option.id,
+								groupId: group.id, // Add groupId for backend
+								optionId: option.id, // Add optionId for backend
 								groupName: group.name,
-								label: option.name,
+								label: option.label, // Use 'label' from API (not 'name')
 								priceDelta: option.priceDelta || option.priceAdjustment || 0,
 							}
 						}
@@ -162,6 +164,8 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 					if (mod) {
 						return {
 							id: mod.id,
+							groupId: mod.groupId || mod.id, // Fallback
+							optionId: mod.id,
 							groupName: mod.groupName,
 							label: mod.label,
 							priceDelta: mod.priceDelta,

@@ -71,6 +71,26 @@ const RestaurantQRHandler = () => {
 	const handleAuthSuccess = (customer) => {
 		console.log('✅ Customer authenticated:', customer)
 
+		// Handle guest mode
+		if (customer?.isGuest) {
+			console.log('🚶 Guest mode - no authentication required')
+			localStorage.setItem('isGuestMode', 'true')
+			// Remove any existing auth tokens for guest
+			localStorage.removeItem('authToken')
+			localStorage.removeItem('customerAuth')
+			localStorage.removeItem('customerData')
+		} else {
+			// Normal login - store customer data
+			localStorage.setItem('isGuestMode', 'false')
+			if (customer?.token) {
+				localStorage.setItem('authToken', customer.token)
+			}
+			if (customer) {
+				// Store in customerAuth (used by ProfilePage)
+				localStorage.setItem('customerAuth', JSON.stringify(customer))
+			}
+		}
+
 		// Check if tableNumber exists from QR code
 		if (tableNumber) {
 			// Table QR - navigate directly to that table
