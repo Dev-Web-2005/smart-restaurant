@@ -20,6 +20,7 @@
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.10.1",
     "recharts": "^3.5.1",
+    "socket.io-client": "^4.7.5",
     "tailwindcss": "^4.1.17"
   },
   "devDependencies": {
