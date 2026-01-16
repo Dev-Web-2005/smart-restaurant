@@ -49,7 +49,7 @@ export class KitchenTicket {
 	@Column({ type: 'varchar', length: 50, nullable: false })
 	tableId: string; // Table identifier for display
 
-	@Column({ type: 'varchar', length: 20, nullable: true })
+	@Column({ type: 'varchar', length: 60, nullable: true })
 	tableNumber: string; // Human-readable table number (e.g., "A1", "12")
 
 	@Column({ type: 'varchar', length: 20, nullable: true })
