@@ -110,6 +110,46 @@ export class OrderController {
 	}
 
 	/**
+	 * Get customer order history
+	 * GET /tenants/:tenantId/orders/customer/:customerId/history
+	 *
+	 * Returns all past orders linked to a customer account
+	 * Only available for logged-in customers (not guest customers)
+	 *
+	 * Query params:
+	 * - page: number (default: 1)
+	 * - limit: number (default: 20)
+	 * - status: string (PENDING, IN_PROGRESS, COMPLETED, CANCELLED)
+	 * - paymentStatus: string (PENDING, PROCESSING, PAID, FAILED, REFUNDED)
+	 * - sortBy: string (createdAt, updatedAt, total) (default: createdAt)
+	 * - sortOrder: string (ASC, DESC) (default: DESC)
+	 */
+	@Get('tenants/:tenantId/orders/customer/:customerId/history')
+	@UseGuards(AuthGuard, Role('USER'))
+	getOrderHistory(
+		@Param('tenantId') tenantId: string,
+		@Param('customerId') customerId: string,
+		@Query('page') page?: number,
+		@Query('limit') limit?: number,
+		@Query('status') status?: string,
+		@Query('paymentStatus') paymentStatus?: string,
+		@Query('sortBy') sortBy?: string,
+		@Query('sortOrder') sortOrder?: 'ASC' | 'DESC',
+	) {
+		return this.orderClient.send('orders:get-history', {
+			tenantId,
+			customerId,
+			page: page ? +page : 1,
+			limit: limit ? +limit : 20,
+			status,
+			paymentStatus,
+			sortBy,
+			sortOrder,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+
+	/**
 	 * Get order by ID
 	 * GET /tenants/:tenantId/orders/:orderId
 	 */
