@@ -87,7 +87,7 @@ export class OrderController {
 	 * - paymentStatus: string (PENDING, PROCESSING, PAID, FAILED, REFUNDED)
 	 */
 	@Get('tenants/:tenantId/orders')
-	@UseGuards(AuthGuard, Role('USER', 'STAFF', 'KITCHEN'))
+	@UseGuards(AuthGuard, Role('USER', 'STAFF', 'CHEF'))
 	getOrders(
 		@Param('tenantId') tenantId: string,
 		@Query('page') page?: number,
@@ -170,7 +170,7 @@ export class OrderController {
 	 * }
 	 */
 	@Patch('tenants/:tenantId/orders/:orderId/status')
-	@UseGuards(AuthGuard, Role('USER', 'STAFF', 'KITCHEN'))
+	@UseGuards(AuthGuard, Role('USER', 'STAFF', 'CHEF'))
 	updateOrderStatus(
 		@Param('tenantId') tenantId: string,
 		@Param('orderId') orderId: string,
@@ -206,7 +206,7 @@ export class OrderController {
 	 * }
 	 */
 	@Patch('tenants/:tenantId/orders/:orderId/items-status')
-	@UseGuards(AuthGuard, Role('USER', 'STAFF', 'KITCHEN'))
+	@UseGuards(AuthGuard, Role('USER', 'STAFF', 'CHEF'))
 	updateOrderItemsStatus(
 		@Param('tenantId') tenantId: string,
 		@Param('orderId') orderId: string,
@@ -286,6 +286,7 @@ export class OrderController {
 	 * - Kitchen receives notification for accepted items
 	 */
 	// DO NOT USE THIS ENDPOINT FOR NOW, USE ORDER ITEMS STATUS UPDATE INSTEAD
+	/*
 	@Post('tenants/:tenantId/orders/:orderId/accept-items')
 	@UseGuards(AuthGuard, Role('USER', 'STAFF'))
 	acceptOrderItems(
@@ -300,6 +301,7 @@ export class OrderController {
 			orderApiKey: this.configService.get('ORDER_API_KEY'),
 		});
 	}
+	*/
 
 	/**
 	 * Reject specific order items (ITEM-CENTRIC ARCHITECTURE)
@@ -318,6 +320,7 @@ export class OrderController {
 	 * - Customer receives notification with rejection reason
 	 */
 	// DO NOT USE THIS ENDPOINT FOR NOW, USE ORDER ITEMS STATUS UPDATE INSTEAD
+	/*
 	@Post('tenants/:tenantId/orders/:orderId/reject-items')
 	@UseGuards(AuthGuard, Role('USER', 'STAFF'))
 	rejectOrderItems(
@@ -332,4 +335,5 @@ export class OrderController {
 			orderApiKey: this.configService.get('ORDER_API_KEY'),
 		});
 	}
+	*/
 }

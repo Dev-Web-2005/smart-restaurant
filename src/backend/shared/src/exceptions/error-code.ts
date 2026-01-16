@@ -422,6 +422,71 @@ export default class ErrorCode {
 		403
 	);
 
+	// ==================== KITCHEN (4700-4799) ====================
+
+	/** Kitchen ticket not found */
+	static readonly KITCHEN_TICKET_NOT_FOUND: ErrorCode = new ErrorCode(
+		4701,
+		"Kitchen ticket not found",
+		404
+	);
+
+	/** Kitchen ticket item not found */
+	static readonly KITCHEN_TICKET_ITEM_NOT_FOUND: ErrorCode = new ErrorCode(
+		4702,
+		"Kitchen ticket item not found",
+		404
+	);
+
+	/** Invalid kitchen ticket status transition */
+	static readonly INVALID_KITCHEN_TICKET_STATUS: ErrorCode = new ErrorCode(
+		4703,
+		"Invalid kitchen ticket status transition",
+		400
+	);
+
+	/** Invalid kitchen item status transition */
+	static readonly INVALID_KITCHEN_ITEM_STATUS: ErrorCode = new ErrorCode(
+		4704,
+		"Invalid kitchen item status transition",
+		400
+	);
+
+	/** Kitchen ticket already completed */
+	static readonly KITCHEN_TICKET_ALREADY_COMPLETED: ErrorCode = new ErrorCode(
+		4705,
+		"Kitchen ticket is already completed",
+		400
+	);
+
+	/** Kitchen ticket already cancelled */
+	static readonly KITCHEN_TICKET_ALREADY_CANCELLED: ErrorCode = new ErrorCode(
+		4706,
+		"Kitchen ticket is already cancelled",
+		400
+	);
+
+	/** Items not ready for bump */
+	static readonly KITCHEN_ITEMS_NOT_READY: ErrorCode = new ErrorCode(
+		4707,
+		"All items must be ready before bumping ticket",
+		400
+	);
+
+	/** Recall reason required */
+	static readonly KITCHEN_RECALL_REASON_REQUIRED: ErrorCode = new ErrorCode(
+		4708,
+		"Recall reason is required",
+		400
+	);
+
+	/** Kitchen service error */
+	static readonly KITCHEN_SERVICE_ERROR: ErrorCode = new ErrorCode(
+		4709,
+		"Kitchen service error",
+		500
+	);
+
 	// ==================== PAYMENT (5000-5999) ====================
 	// Reserved for payment service
 

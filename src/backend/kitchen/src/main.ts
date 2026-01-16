@@ -12,13 +12,23 @@ async function bootstrap() {
 	const connection = await amqp.connect(process.env.CONNECTION_AMQP);
 	const channel = await connection.createChannel();
 	const name: string = process.env.NAME_QUEUE || 'local_kitchen';
+	const exchangeName = 'order_events_exchange';
+
 	try {
+		// 1. Assert the shared exchange (Order Service publishes events here)
+		await channel.assertExchange(exchangeName, 'fanout', {
+			durable: true,
+		});
+		console.log(`✅ Exchange asserted: ${exchangeName}`);
+
+		// 2. Setup Dead Letter Queue
 		await channel.assertExchange(name + '_dlx_exchange', 'direct', { durable: true });
 		await channel.assertQueue(name + '_dlq', {
 			durable: true,
 		});
-
 		await channel.bindQueue(name + '_dlq', name + '_dlx_exchange', name + '_dlq');
+
+		// 3. Setup main queue (keep DLX arguments for queue structure consistency)
 		await channel.assertQueue(name + '_queue', {
 			durable: true,
 			arguments: {
@@ -26,12 +36,27 @@ async function bootstrap() {
 				'x-dead-letter-routing-key': name + '_dlq',
 			},
 		});
+		console.log(`✅ Queue created: ${name}_queue`);
+
+		// 4. Bind queue to exchange (Pub/Sub pattern - receive Order Service events)
+		await channel.bindQueue(name + '_queue', exchangeName, '');
+		console.log(`✅ Queue bound to exchange: ${name}_queue → ${exchangeName}`);
 	} finally {
 		await channel.close();
 		await connection.close();
 	}
 
 	const port = parseInt(process.env.PORT, 10);
+
+	// 1. TCP Transport for API Gateway RPC calls (kitchen:get-display, etc.)
+	app.connectMicroservice<MicroserviceOptions>({
+		transport: Transport.TCP,
+		options: {
+			port: port,
+		},
+	});
+
+	// 2. RabbitMQ Transport for events from Order Service (order.items.accepted)
 	app.connectMicroservice<MicroserviceOptions>({
 		transport: Transport.RMQ,
 		options: {
@@ -40,15 +65,18 @@ async function bootstrap() {
 			prefetchCount: 1,
 			queueOptions: {
 				durable: true,
-				noAck: false,
 				arguments: {
 					'x-dead-letter-exchange': name + '_dlx_exchange',
 					'x-dead-letter-routing-key': name + '_dlq',
 				},
 			},
+			// ✅ noAck: true - Kitchen creates display tickets (not critical business logic)
+			// Avoids ACK conflicts with manual RabbitMQ channel used for publishing
+			noAck: true,
 		},
 	});
 
+	// 3. RabbitMQ DLQ listener
 	app.connectMicroservice<MicroserviceOptions>({
 		transport: Transport.RMQ,
 		options: {

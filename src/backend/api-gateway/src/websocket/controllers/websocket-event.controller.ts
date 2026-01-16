@@ -251,4 +251,162 @@ export class WebsocketEventController {
 			throw error;
 		}
 	}
+
+	// ==================== KITCHEN SERVICE EVENTS ====================
+	// These are display-only events for Kitchen Display System (KDS)
+	// Item status updates (PREPARING, READY) flow through Order Service instead
+	// using order.items.* events for unified state management
+
+	/**
+	 * EVENT: New kitchen ticket created
+	 * Triggered when Order Service accepts items and Kitchen creates display ticket
+	 * Used by KDS frontend to display new tickets in real-time
+	 */
+	@EventPattern('kitchen.ticket.new')
+	async handleKitchenTicketNew(@Payload() data: any, @Ctx() context: RmqContext) {
+		try {
+			this.logger.log(
+				`[RabbitMQ] Received kitchen.ticket.new for order ${data.orderId}, ticket ${data.ticket?.ticketNumber}`,
+			);
+
+			this.eventEmitterService.broadcastKitchenTicketNew({
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				tableId: data.tableId,
+				ticket: data.ticket,
+			});
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle kitchen.ticket.new: ${error.message}`,
+			);
+			throw error;
+		}
+	}
+
+	/**
+	 * EVENT: Kitchen ticket ready (all items prepared)
+	 * Used by waiter/expo to know when to pick up food
+	 */
+	@EventPattern('kitchen.ticket.ready')
+	async handleKitchenTicketReady(@Payload() data: any, @Ctx() context: RmqContext) {
+		try {
+			this.logger.log(
+				`[RabbitMQ] Received kitchen.ticket.ready for ticket ${data.ticket?.ticketNumber}`,
+			);
+
+			this.eventEmitterService.broadcastKitchenTicketReady({
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				tableId: data.tableId,
+				ticket: data.ticket,
+			});
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle kitchen.ticket.ready: ${error.message}`,
+			);
+			throw error;
+		}
+	}
+
+	/**
+	 * EVENT: Kitchen ticket completed (bumped by cook/expo)
+	 */
+	@EventPattern('kitchen.ticket.completed')
+	async handleKitchenTicketCompleted(@Payload() data: any, @Ctx() context: RmqContext) {
+		try {
+			this.logger.log(
+				`[RabbitMQ] Received kitchen.ticket.completed for ticket ${data.ticketNumber}`,
+			);
+
+			this.eventEmitterService.broadcastKitchenTicketCompleted({
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				tableId: data.tableId,
+				ticketId: data.ticketId,
+				ticketNumber: data.ticketNumber,
+			});
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle kitchen.ticket.completed: ${error.message}`,
+			);
+			throw error;
+		}
+	}
+
+	/**
+	 * EVENT: Kitchen ticket priority changed
+	 */
+	@EventPattern('kitchen.ticket.priority')
+	async handleKitchenTicketPriority(@Payload() data: any, @Ctx() context: RmqContext) {
+		try {
+			this.logger.log(
+				`[RabbitMQ] Received kitchen.ticket.priority for ticket ${data.ticket?.ticketNumber}: ${data.oldPriority} → ${data.newPriority}`,
+			);
+
+			this.eventEmitterService.broadcastKitchenTicketPriority({
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				tableId: data.tableId,
+				ticket: data.ticket,
+				oldPriority: data.oldPriority,
+				newPriority: data.newPriority,
+			});
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle kitchen.ticket.priority: ${error.message}`,
+			);
+			throw error;
+		}
+	}
+
+	/**
+	 * EVENT: Kitchen items recalled (need to remake)
+	 */
+	@EventPattern('kitchen.items.recalled')
+	async handleKitchenItemsRecalled(@Payload() data: any, @Ctx() context: RmqContext) {
+		try {
+			this.logger.log(
+				`[RabbitMQ] Received kitchen.items.recalled for ticket ${data.ticketNumber}: ${data.reason}`,
+			);
+
+			this.eventEmitterService.broadcastKitchenItemsRecalled({
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				tableId: data.tableId,
+				ticketId: data.ticketId,
+				ticketNumber: data.ticketNumber,
+				items: data.items,
+				reason: data.reason,
+			});
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle kitchen.items.recalled: ${error.message}`,
+			);
+			throw error;
+		}
+	}
+
+	/**
+	 * EVENT: Kitchen timers update (throttled every 5 seconds)
+	 * Used by KDS to display real-time elapsed time on tickets
+	 */
+	@EventPattern('kitchen.timers.update')
+	async handleKitchenTimersUpdate(@Payload() data: any, @Ctx() context: RmqContext) {
+		try {
+			// Don't log every 5 seconds to avoid log spam
+			this.eventEmitterService.broadcastKitchenTimersUpdate({
+				tenantId: data.tenantId,
+				tickets: data.tickets,
+			});
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle kitchen.timers.update: ${error.message}`,
+			);
+			throw error;
+		}
+	}
+
+	// NOTE: kitchen.items.preparing and kitchen.items.ready have been removed
+	// Item status updates now flow through Order Service using order.items.* events
+	// This ensures a single source of truth for item status across all apps
 }

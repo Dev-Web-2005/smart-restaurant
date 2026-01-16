@@ -1,98 +1,343 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Kitchen Service - Kitchen Display System (KDS)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## 📋 Overview
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+The Kitchen Service implements a professional **Kitchen Display System (KDS)** for the Smart Restaurant multi-tenant platform. It follows industry best practices from Toast POS, Square KDS, and Oracle MICROS systems.
 
-## Description
+## 🎯 Key Features
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+### Core Functionality
 
-## Project setup
+- **Ticket Management**: Create and manage kitchen tickets from accepted orders
+- **Real-time Timers**: Track elapsed preparation time with color-coded thresholds
+- **Priority System**: NORMAL → HIGH → URGENT → FIRE priority levels
+- **Station Routing**: Route items to specific kitchen stations (Grill, Fry, Cold, etc.)
+- **Bump Screen Workflow**: Complete tickets when all items are ready
 
-```bash
-$ npm install
+### Item-Level Tracking
+
+- Individual item status: PENDING → PREPARING → READY
+- Recall/remake functionality with reason tracking
+- Allergy and rush item flags
+- Per-item elapsed time tracking
+
+### Multi-Tenant Support
+
+- Complete tenant isolation
+- Per-tenant timer thresholds
+- Tenant-specific statistics
+
+## 🏗️ Architecture: Thin Kitchen Layer Pattern
+
+The Kitchen Service follows the **"Thin Kitchen Layer"** pattern where:
+
+- **Order Service** is the **SINGLE SOURCE OF TRUTH** for item status
+- **Kitchen Service** manages **display-only data** (timers, priority, station assignments)
+- Kitchen actions **call Order Service RPC** to update item status
+- Order Service broadcasts **unified `order.items.*` events** to all clients
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          EVENT FLOW                                      │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  1. Order Service accepts items → emits 'kitchen.prepare_items'         │
+│                     │                                                    │
+│                     ▼                                                    │
+│  2. Kitchen Service receives event                                       │
+│     - Creates display ticket (local DB)                                  │
+│     - Manages timers, priority, station                                  │
+│                     │                                                    │
+│                     ▼                                                    │
+│  3. Cook starts preparing (via API Gateway RPC)                          │
+│     - Kitchen calls Order Service RPC: 'orders:update-items-status'     │
+│     - Order Service updates items → emits 'order.items.preparing'       │
+│     - Kitchen updates local display status                               │
+│                     │                                                    │
+│                     ▼                                                    │
+│  4. Cook marks items ready                                               │
+│     - Kitchen calls Order Service RPC: 'orders:update-items-status'     │
+│     - Order Service updates items → emits 'order.items.ready'           │
+│     - Kitchen emits 'kitchen.ticket.ready' (display event for expo)     │
+│                     │                                                    │
+│                     ▼                                                    │
+│  5. API Gateway broadcasts to all connected clients                      │
+│     - Customer App receives 'order.items.ready'                          │
+│     - Waiter App receives 'order.items.ready'                            │
+│     - Kitchen App receives 'order.items.ready' + 'kitchen.ticket.ready' │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Compile and run the project
+### Key Design Decisions
 
-```bash
-# development
-$ npm run start
+| Concern             | Responsibility  | Why                                   |
+| ------------------- | --------------- | ------------------------------------- |
+| Item Status         | Order Service   | Single source of truth, no dual state |
+| Display Timers      | Kitchen Service | KDS-specific feature                  |
+| Priority Management | Kitchen Service | Kitchen workflow optimization         |
+| Station Routing     | Kitchen Service | Kitchen-specific organization         |
+| WebSocket Events    | Order Service   | Unified events for all clients        |
+| Ticket Display      | Kitchen Service | Visual grouping for cooks             |
 
-# watch mode
-$ npm run start:dev
+### Event Types
 
-# production mode
-$ npm run start:prod
+**Order Service Events (Item Status):**
+
+- `order.items.new` - New items added to order
+- `order.items.accepted` - Items accepted by waiter
+- `order.items.preparing` - Cook started preparing
+- `order.items.ready` - Items ready for pickup
+- `order.items.served` - Items delivered to customer
+- `order.items.rejected` - Items rejected
+
+**Kitchen Service Events (Display Only):**
+
+- `kitchen.ticket.ready` - All items in ticket ready (for waiter expo)
+- `kitchen.ticket.completed` - Ticket bumped by cook/expo
+- `kitchen.ticket.priority` - Priority changed
+- `kitchen.items.recalled` - Items need to be remade
+- `kitchen.timers.update` - Real-time timer updates (every 5s)
+
+## 📊 Database Entities
+
+### KitchenTicket
+
+| Field             | Type   | Description                                       |
+| ----------------- | ------ | ------------------------------------------------- |
+| id                | UUID   | Primary key                                       |
+| tenantId          | UUID   | Multi-tenant isolation                            |
+| orderId           | UUID   | Reference to order                                |
+| tableId           | String | Table identifier                                  |
+| ticketNumber      | String | Daily sequential number (#001, #002)              |
+| status            | Enum   | PENDING, IN_PROGRESS, READY, COMPLETED, CANCELLED |
+| priority          | Enum   | NORMAL (0), HIGH (1), URGENT (2), FIRE (3)        |
+| elapsedSeconds    | Int    | Timer tracking                                    |
+| warningThreshold  | Int    | Seconds before yellow alert (default: 600)        |
+| criticalThreshold | Int    | Seconds before red alert (default: 900)           |
+
+### KitchenTicketItem
+
+| Field       | Type    | Description                                               |
+| ----------- | ------- | --------------------------------------------------------- |
+| id          | UUID    | Primary key                                               |
+| ticketId    | UUID    | Parent ticket                                             |
+| orderItemId | UUID    | Reference to order item                                   |
+| name        | String  | Menu item name                                            |
+| quantity    | Int     | Number of items                                           |
+| status      | Enum    | PENDING, PREPARING, READY, CANCELLED, RECALLED            |
+| station     | Enum    | GRILL, FRY, SAUTE, COLD, DESSERT, BEVERAGE, GENERAL, EXPO |
+| modifiers   | JSONB   | Selected modifiers for display                            |
+| isAllergy   | Boolean | Allergy alert flag                                        |
+| isRush      | Boolean | Rush item flag                                            |
+
+## 🔄 Ticket Lifecycle
+
+```
+PENDING ──────┬──────▶ IN_PROGRESS ──────▶ READY ──────▶ COMPLETED
+              │                             │
+              │                             │ (recall)
+              │                             ▼
+              └──────▶ CANCELLED         RECALLED ───▶ PENDING
 ```
 
-## Run tests
+## 🎛️ RPC Patterns (Message Patterns)
 
-```bash
-# unit tests
-$ npm run test
+### Query Endpoints
 
-# e2e tests
-$ npm run test:e2e
+| Pattern               | Description                 |
+| --------------------- | --------------------------- |
+| `kitchen:get-display` | Get active KDS display data |
+| `kitchen:get-tickets` | Get tickets with filtering  |
+| `kitchen:get-ticket`  | Get single ticket by ID     |
+| `kitchen:get-stats`   | Get kitchen statistics      |
 
-# test coverage
-$ npm run test:cov
+### Ticket Operations
+
+| Pattern                    | Description                             |
+| -------------------------- | --------------------------------------- |
+| `kitchen:start-ticket`     | Start preparing (PENDING → IN_PROGRESS) |
+| `kitchen:start-items`      | Start specific items                    |
+| `kitchen:mark-items-ready` | Mark items as ready                     |
+| `kitchen:bump-ticket`      | Complete/bump ticket                    |
+| `kitchen:recall-items`     | Recall items for remake                 |
+| `kitchen:cancel-items`     | Cancel specific items                   |
+| `kitchen:cancel-ticket`    | Cancel entire ticket                    |
+| `kitchen:update-priority`  | Change ticket priority                  |
+| `kitchen:toggle-timer`     | Pause/resume timer                      |
+
+### Event Patterns (Inbound)
+
+| Pattern                 | Description                      |
+| ----------------------- | -------------------------------- |
+| `kitchen.prepare_items` | Receive items from Order Service |
+
+### Event Patterns (Outbound to RabbitMQ → API Gateway → WebSocket)
+
+| Pattern                    | Target Rooms                      | Description                    |
+| -------------------------- | --------------------------------- | ------------------------------ |
+| `kitchen.ticket.new`       | kitchen, waiters                  | New ticket created             |
+| `kitchen.ticket.started`   | kitchen, order:{orderId}          | Cook started preparing         |
+| `kitchen.ticket.ready`     | kitchen, waiters, order:{orderId} | All items ready for pickup     |
+| `kitchen.ticket.completed` | kitchen, waiters                  | Ticket bumped/completed        |
+| `kitchen.ticket.priority`  | kitchen                           | Priority changed (fire/urgent) |
+| `kitchen.items.recalled`   | kitchen, waiters                  | Items need remake              |
+| `kitchen.items.preparing`  | order_events_exchange             | Notify Order Service           |
+| `kitchen.items.ready`      | order_events_exchange             | Notify Order Service           |
+| `kitchen.timers.update`    | kitchen                           | Timer updates (every 5 sec)    |
+
+## ⏱️ Timer System
+
+The kitchen service implements real-time timer tracking:
+
+1. **Automatic Timer Start**: Timer begins when ticket is created
+2. **Color Thresholds**:
+   - 🟢 Green: Under warning threshold (default < 10 min)
+   - 🟡 Yellow: Between warning and critical (default 10-15 min)
+   - 🔴 Red: Over critical threshold (default > 15 min)
+3. **Pause/Resume**: Timers can be paused (e.g., waiting for customer)
+4. **Per-Item Tracking**: Each item tracks its own prep time
+
+## 📡 Event Flow (Complete Lifecycle)
+
+### Order Accepted → Kitchen Ticket Created
+
+```
+1. Customer orders → Order created with PENDING items
+2. Waiter accepts items → Order Service emits 'kitchen.prepare_items'
+3. Kitchen Service receives event → Creates ticket
+4. Kitchen Service publishes 'kitchen.ticket.new' to RabbitMQ
+5. API Gateway receives → Broadcasts to WebSocket (kitchen room)
+6. KDS Frontend displays new ticket
 ```
 
-## Deployment
+### Cook Prepares → Item Ready → Waiter Notified
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+```
+1. Cook clicks "Start" on KDS → Kitchen Service updates ticket
+2. Kitchen publishes 'kitchen.ticket.started' + 'kitchen.items.preparing'
+3. API Gateway broadcasts to WebSocket (kitchen + order rooms)
+4. Order Service receives 'kitchen.items.preparing' → Updates OrderItem status
+5. Cook marks items ready → Kitchen publishes 'kitchen.items.ready'
+6. API Gateway broadcasts to waiter room → Waiter notified for pickup
+7. Order Service updates OrderItem status to READY
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### WebSocket Room Targets
 
-## Resources
+| Room Pattern                   | Recipients                   |
+| ------------------------------ | ---------------------------- |
+| `tenant:{tenantId}:kitchen`    | KDS displays, kitchen staff  |
+| `tenant:{tenantId}:waiters`    | Waiter tablets/apps          |
+| `tenant:{tenantId}:order:{id}` | Customer viewing their order |
 
-Check out a few resources that may come in handy when working with NestJS:
+## 🚀 Quick Start
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### 1. Install Dependencies
 
-## Support
+```bash
+cd src/backend/kitchen
+npm install
+```
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### 2. Configure Environment
 
-## Stay in touch
+```env
+PORT=8086
+CONNECTION_AMQP=amqp://user:pass@localhost:5672
+KITCHEN_API_KEY=your-api-key
+ORDER_API_KEY=order-service-api-key
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+HOST_DB=localhost
+PORT_DB=5432
+USERNAME_DB=postgres
+PASSWORD_DB=password
+DATABASE_DB=kitchen_db
 
-## License
+WARNING_THRESHOLD=600
+CRITICAL_THRESHOLD=900
+```
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+### 3. Start Service
+
+```bash
+npm run start:dev
+```
+
+## 📈 Statistics & KPIs
+
+The kitchen service tracks:
+
+- Average preparation time
+- Average wait time (before cooking starts)
+- Tickets/items per hour
+- On-time completion percentage
+- Recall rate (quality metric)
+- Hourly distribution (for staffing)
+
+## 🔐 Security
+
+- API key validation for all operations
+- Tenant isolation on all queries
+- RabbitMQ message authentication
+
+## 📖 API Examples
+
+### Get Kitchen Display
+
+```json
+{
+	"kitchenApiKey": "your-api-key",
+	"tenantId": "tenant-uuid"
+}
+```
+
+### Start Ticket
+
+```json
+{
+	"kitchenApiKey": "your-api-key",
+	"tenantId": "tenant-uuid",
+	"ticketId": "ticket-uuid",
+	"cookId": "cook-uuid",
+	"cookName": "John"
+}
+```
+
+### Mark Items Ready
+
+```json
+{
+	"kitchenApiKey": "your-api-key",
+	"tenantId": "tenant-uuid",
+	"ticketId": "ticket-uuid",
+	"itemIds": ["item-1", "item-2"]
+}
+```
+
+### Update Priority (Fire!)
+
+```json
+{
+	"kitchenApiKey": "your-api-key",
+	"tenantId": "tenant-uuid",
+	"ticketId": "ticket-uuid",
+	"priority": 3
+}
+```
+
+## 🔧 Maintenance
+
+### Health Check
+
+GET `http://localhost:8086/`
+
+### Logs
+
+Located in `logs-kitchen/` directory with daily rotation.
+
+---
+
+**Version:** 1.0.0  
+**Author:** Smart Restaurant Team  
+**Last Updated:** January 2026

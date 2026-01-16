@@ -20,7 +20,15 @@ export const loginAPI = async (username, password) => {
 		const { code, message, data } = response.data
 
 		if (code === 1000) {
-			const { accessToken, userId, username: userName, email, roles, authorities } = data
+			const {
+				accessToken,
+				userId,
+				username: userName,
+				email,
+				roles,
+				authorities,
+				ownerId,
+			} = data
 
 			// ✅ Don't store in window - will be stored in React state
 			const userData = {
@@ -29,11 +37,24 @@ export const loginAPI = async (username, password) => {
 				email,
 				roles,
 				authorities,
+				ownerId: ownerId || null, // Include ownerId for multi-tenant context
 			}
 			localStorage.setItem('user', JSON.stringify(userData))
 
-			// Set tenantId for table management (userId = tenantId in this system)
-			window.currentTenantId = userId
+			// Set tenantId for table management
+			// ADMIN không có ownerId - chỉ USER (owner) và Staff/Chef/Customer mới có
+			// USER's userId = ownerId của restaurant họ sở hữu
+			// Staff/Chef/Customer's ownerId = userId của owner
+			const isAdmin = roles && roles.includes('ADMIN')
+			if (!isAdmin && ownerId) {
+				window.currentTenantId = ownerId
+				localStorage.setItem('currentTenantId', ownerId)
+			} else if (!isAdmin && roles && roles.includes('USER')) {
+				// USER (owner) - their userId IS the ownerId for their restaurant
+				window.currentTenantId = userId
+				localStorage.setItem('currentTenantId', userId)
+			}
+			// Admin doesn't need tenantId
 
 			return {
 				success: true,
@@ -55,6 +76,90 @@ export const loginAPI = async (username, password) => {
 		switch (errorCode) {
 			case 1001:
 				userMessage = 'Invalid username or password.'
+				break
+			case 2901:
+				userMessage = 'Invalid input. Please check your credentials.'
+				break
+			case 9002:
+				userMessage = 'Cannot connect to server. Please check your internet connection.'
+				break
+			default:
+				userMessage = errorMessage || userMessage
+		}
+
+		return {
+			success: false,
+			message: userMessage,
+			errorCode,
+		}
+	}
+}
+
+/**
+ * Login user with ownerId context (for Staff/Chef/Customer in multi-tenant)
+ * Uses the endpoint: POST /identity/auth/login/:ownerId
+ * @param {string} username - Username or email
+ * @param {string} password - Password
+ * @param {string} ownerId - Restaurant owner's userId (tenant context)
+ * @returns {Promise} Response with user data, access token, and ownerId
+ */
+export const loginWithOwnerAPI = async (username, password, ownerId) => {
+	try {
+		const response = await apiClient.post(`/identity/auth/login/${ownerId}`, {
+			username,
+			password,
+		})
+
+		const { code, message, data } = response.data
+
+		if (code === 1000 || code === 200) {
+			const {
+				accessToken,
+				userId,
+				username: userName,
+				email,
+				roles,
+				authorities,
+				ownerId: responseOwnerId,
+			} = data
+
+			const userData = {
+				userId,
+				username: userName,
+				email,
+				roles,
+				authorities,
+				ownerId: responseOwnerId || ownerId, // Use response ownerId or fallback to param
+			}
+			localStorage.setItem('user', JSON.stringify(userData))
+
+			// Set tenantId for operations
+			window.currentTenantId = responseOwnerId || ownerId
+			localStorage.setItem('currentTenantId', responseOwnerId || ownerId)
+
+			return {
+				success: true,
+				accessToken,
+				user: userData,
+				message,
+			}
+		} else {
+			return {
+				success: false,
+				message: message || 'Login failed',
+			}
+		}
+	} catch (error) {
+		const errorCode = error?.code || error?.response?.data?.code
+		const errorMessage = error?.message || error?.response?.data?.message
+		let userMessage = 'Login failed. Please try again.'
+
+		switch (errorCode) {
+			case 1001:
+				userMessage = 'Invalid username or password.'
+				break
+			case 1004:
+				userMessage = 'Account not found in this restaurant.'
 				break
 			case 2901:
 				userMessage = 'Invalid input. Please check your credentials.'

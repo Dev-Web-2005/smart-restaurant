@@ -230,6 +230,7 @@ export class OrderController {
 	 * 3. Frontend calls this RPC directly
 	 * 4. Order Service updates items → emits to Kitchen
 	 */
+	/*
 	@MessagePattern('orders:accept-items')
 	async acceptItems(@Payload() dto: any) {
 		return handleRpcCall(async () => {
@@ -240,6 +241,7 @@ export class OrderController {
 			return new HttpResponse(1000, 'Items accepted successfully', result);
 		});
 	}
+	*/
 
 	/**
 	 * MESSAGE PATTERN: Reject order items - ITEM-CENTRIC ARCHITECTURE
@@ -253,6 +255,7 @@ export class OrderController {
 	 * 3. Frontend calls this RPC with rejection reason
 	 * 4. Order Service updates items → emits to Notification Service for customer
 	 */
+	/*
 	@MessagePattern('orders:reject-items')
 	async rejectItems(@Payload() dto: any) {
 		return handleRpcCall(async () => {
@@ -263,6 +266,7 @@ export class OrderController {
 			return new HttpResponse(1000, 'Items rejected successfully', result);
 		});
 	}
+	*/
 
 	/**
 	 * EVENT: Handle Dead Letter Queue messages

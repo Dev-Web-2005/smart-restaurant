@@ -126,8 +126,11 @@ const mockOrders = [
 ]
 
 const OrderManagementInterface = () => {
-	// Get tenantId and tableId from URL params
-	const { tenantId, tableId } = useParams()
+	// Get tenantId/ownerId and tableId from URL params
+	// Supports both legacy route (/order/:tenantId/table/:tableId) and new multi-tenant route (/r/:ownerId/order/table/:tableId)
+	const params = useParams()
+	const tenantId = params.tenantId || params.ownerId // Support both param names
+	const tableId = params.tableId
 
 	// State management
 	const [cartItems, setCartItems] = useState([]) // { id, name, price, qty, totalPrice, modifiers, specialNotes, imageUrl }
