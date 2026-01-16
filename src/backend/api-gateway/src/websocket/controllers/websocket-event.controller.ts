@@ -258,6 +258,32 @@ export class WebsocketEventController {
 	// using order.items.* events for unified state management
 
 	/**
+	 * EVENT: New kitchen ticket created
+	 * Triggered when Order Service accepts items and Kitchen creates display ticket
+	 * Used by KDS frontend to display new tickets in real-time
+	 */
+	@EventPattern('kitchen.ticket.new')
+	async handleKitchenTicketNew(@Payload() data: any, @Ctx() context: RmqContext) {
+		try {
+			this.logger.log(
+				`[RabbitMQ] Received kitchen.ticket.new for order ${data.orderId}, ticket ${data.ticket?.ticketNumber}`,
+			);
+
+			this.eventEmitterService.broadcastKitchenTicketNew({
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				tableId: data.tableId,
+				ticket: data.ticket,
+			});
+		} catch (error) {
+			this.logger.error(
+				`[RabbitMQ] Failed to handle kitchen.ticket.new: ${error.message}`,
+			);
+			throw error;
+		}
+	}
+
+	/**
 	 * EVENT: Kitchen ticket ready (all items prepared)
 	 * Used by waiter/expo to know when to pick up food
 	 */

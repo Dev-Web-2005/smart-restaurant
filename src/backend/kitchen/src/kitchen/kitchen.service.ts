@@ -415,9 +415,16 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 			`✅ Created display ticket ${ticketNumber} with ${ticketItems.length} items`,
 		);
 
-		// NOTE: We do NOT broadcast kitchen.ticket.new event
-		// The Order Service already broadcast order.items.accepted
-		// All clients receive that unified event
+		// Broadcast kitchen.ticket.new for KDS real-time display
+		// This is a DISPLAY event (not status) - tells KDS frontend about new ticket
+		// Order Service already broadcast order.items.accepted for status updates
+		await this.publishToExchange('order_events_exchange', 'kitchen.ticket.new', {
+			tenantId: dto.tenantId,
+			orderId: dto.orderId,
+			tableId: dto.tableId,
+			ticket: this.mapToTicketResponse(savedTicket),
+			timestamp: new Date(),
+		});
 
 		return this.mapToTicketResponse(savedTicket);
 	}

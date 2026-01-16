@@ -441,11 +441,60 @@ export class EventEmitterService {
 	// Item status updates (PREPARING, READY) now flow through Order Service
 	// using order.items.* events for unified state management
 	//
-	// REMOVED methods (no longer needed):
-	// - broadcastKitchenTicketNew (Order uses order.items.accepted)
-	// - broadcastKitchenTicketStarted (Order uses order.items.preparing)
-	// - broadcastKitchenItemsPreparing (Order uses order.items.preparing)
-	// - broadcastKitchenItemsReady (Order uses order.items.ready)
+	// Kitchen-specific display events:
+	// - kitchen.ticket.new - New ticket created (display grouping for KDS)
+	// - kitchen.ticket.ready - All items in ticket ready (expo notification)
+	// - kitchen.ticket.completed, priority, recalled, timers - Display state only
+	//
+	// REMOVED status events (now use order.items.* instead):
+	// - broadcastKitchenTicketStarted → Use order.items.preparing
+	// - broadcastKitchenItemsPreparing → Use order.items.preparing
+	// - broadcastKitchenItemsReady → Use order.items.ready
+
+	/**
+	 * Broadcast new kitchen ticket (display event for KDS)
+	 * Target room: Kitchen room + Waiter room
+	 * Used by KDS to display new tickets in real-time
+	 */
+	broadcastKitchenTicketNew(data: {
+		tenantId: string;
+		orderId: string;
+		tableId: string;
+		ticket: any;
+	}): void {
+		if (!this.server) {
+			this.logger.warn('Socket.IO server not initialized, cannot broadcast');
+			return;
+		}
+
+		const eventPayload: WebSocketEventPayload = {
+			event: 'kitchen.ticket.new',
+			data: {
+				tenantId: data.tenantId,
+				orderId: data.orderId,
+				tableId: data.tableId,
+				ticket: data.ticket,
+				createdAt: new Date(),
+			},
+			timestamp: new Date(),
+			metadata: {
+				tenantId: data.tenantId,
+				sourceService: 'kitchen-service',
+			},
+		};
+
+		// Emit to kitchen room (KDS displays)
+		const kitchenRoom = `tenant:${data.tenantId}:kitchen`;
+		this.server.to(kitchenRoom).emit('kitchen.ticket.new', eventPayload);
+
+		// Also emit to waiter room (for order tracking)
+		const waiterRoom = `tenant:${data.tenantId}:waiters`;
+		this.server.to(waiterRoom).emit('kitchen.ticket.new', eventPayload);
+
+		this.logger.log(
+			`[WebSocket] Emitted 'kitchen.ticket.new' to rooms: ${kitchenRoom}, ${waiterRoom}`,
+		);
+	}
 
 	/**
 	 * Broadcast kitchen ticket ready
