@@ -5,6 +5,7 @@ import { LoadingProvider } from './contexts/LoadingContext'
 import { AlertProvider } from './contexts/AlertContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { NotificationProvider } from './contexts/NotificationContext'
+import { KitchenSocketProvider } from './contexts/KitchenSocketContext'
 import ProtectedRoute from './routes/ProtectedRoute'
 
 import UnifiedLogin from './pages/auth/UnifiedLogin'
@@ -278,7 +279,9 @@ function App() {
 										path="/r/:ownerId/kitchen"
 										element={
 											<ProtectedRoute allowedRoles={['User', 'Chef']} requireTenant>
-												<KitchenDisplay />
+												<KitchenSocketProvider>
+													<KitchenDisplay />
+												</KitchenSocketProvider>
 											</ProtectedRoute>
 										}
 									/>
