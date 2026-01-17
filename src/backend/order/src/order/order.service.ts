@@ -2205,6 +2205,7 @@ export class OrderService implements OnModuleDestroy {
 				{
 					headers: {
 						'Content-Type': 'application/json',
+						'x-api-key': this.configService.get<string>('PAYMENT_API_KEY') || '',
 					},
 					timeout: 10000, // 10 second timeout
 				},
