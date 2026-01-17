@@ -1498,10 +1498,10 @@ export class OrderService implements OnModuleDestroy {
 			.createQueryBuilder('item')
 			.select('item.menuItemId', 'menuItemId')
 			.addSelect('item.name', 'menuItemName')
-			.addSelect('SUM(item.quantity)', 'totalQuantity')
-			.addSelect('SUM(item.total)', 'totalRevenue')
-			.addSelect('COUNT(DISTINCT item.orderId)', 'orderCount')
-			.addSelect('AVG(item.unitPrice)', 'averagePrice')
+			.addSelect('SUM(item.quantity)', 'totalquantity')
+			.addSelect('SUM(item.total)', 'totalrevenue')
+			.addSelect('COUNT(DISTINCT item.orderId)', 'ordercount')
+			.addSelect('AVG(item.unitPrice)', 'averageprice')
 			.innerJoin('item.order', 'order')
 			.where('order.tenantId = :tenantId', { tenantId: dto.tenantId })
 			.andWhere('order.createdAt BETWEEN :startDate AND :endDate', {
@@ -1513,7 +1513,7 @@ export class OrderService implements OnModuleDestroy {
 			})
 			.groupBy('item.menuItemId')
 			.addGroupBy('item.name')
-			.orderBy('totalRevenue', 'DESC')
+			.orderBy('totalrevenue', 'DESC')
 			.limit(limit)
 			.getRawMany();
 
@@ -1521,10 +1521,10 @@ export class OrderService implements OnModuleDestroy {
 		const formattedTopItems: TopItemData[] = topItems.map((item) => ({
 			menuItemId: item.menuItemId,
 			menuItemName: item.menuItemName,
-			totalQuantity: parseInt(item.totalQuantity),
-			totalRevenue: parseFloat(item.totalRevenue),
-			orderCount: parseInt(item.orderCount),
-			averagePrice: parseFloat(item.averagePrice),
+			totalQuantity: parseInt(item.totalquantity),
+			totalRevenue: parseFloat(item.totalrevenue),
+			orderCount: parseInt(item.ordercount),
+			averagePrice: parseFloat(item.averageprice),
 			currency: 'VND',
 		}));
 
@@ -1926,7 +1926,7 @@ export class OrderService implements OnModuleDestroy {
 			.createQueryBuilder('item')
 			.select('item.menuItemId', 'menuItemId')
 			.addSelect('item.name', 'menuItemName')
-			.addSelect('SUM(item.quantity)', 'totalQuantity')
+			.addSelect('SUM(item.quantity)', 'totalquantity')
 			.innerJoin('item.order', 'order')
 			.where('order.tenantId = :tenantId', { tenantId })
 			.andWhere('order.createdAt BETWEEN :startDate AND :endDate', {
@@ -1938,7 +1938,7 @@ export class OrderService implements OnModuleDestroy {
 			})
 			.groupBy('item.menuItemId')
 			.addGroupBy('item.name')
-			.orderBy('totalQuantity', 'DESC')
+			.orderBy('totalquantity', 'DESC')
 			.limit(5)
 			.getRawMany();
 
