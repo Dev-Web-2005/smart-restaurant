@@ -385,6 +385,12 @@ export default class ErrorCode {
 		400
 	);
 
+	static readonly INVALID_INPUT: ErrorCode = new ErrorCode(
+		409,
+		"Invalid input provided",
+		400
+	);
+
 	// ==================== WAITER & NOTIFICATION (4600-4699) ====================
 
 	/** Waiter notification not found */
