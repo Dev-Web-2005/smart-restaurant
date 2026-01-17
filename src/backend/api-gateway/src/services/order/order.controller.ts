@@ -30,6 +30,9 @@ import Role from 'src/common/guards/check-role/check-role.guard';
  * - PATCH  /tenants/:tenantId/orders/:orderId/payment - Update payment status
  * - POST   /tenants/:tenantId/orders/:orderId/accept-items - Waiter accepts specific items (ITEM-CENTRIC)
  * - POST   /tenants/:tenantId/orders/:orderId/reject-items - Waiter rejects specific items (ITEM-CENTRIC)
+ * - GET    /tenants/:tenantId/reports/revenue - Get revenue report (ADMIN/TENANT)
+ * - GET    /tenants/:tenantId/reports/top-items - Get top revenue items (ADMIN/TENANT)
+ * - GET    /tenants/:tenantId/reports/analytics - Get analytics dashboard data (ADMIN/TENANT)
  */
 @Controller()
 export class OrderController {
@@ -376,4 +379,136 @@ export class OrderController {
 		});
 	}
 	*/
+
+	// ==================== REPORT ENDPOINTS ====================
+
+	/**
+	 * Get revenue report by time range
+	 * GET /tenants/:tenantId/reports/revenue
+	 *
+	 * Query params:
+	 * - timeRange: DAILY | WEEKLY | MONTHLY | CUSTOM (required)
+	 * - startDate: ISO date string (required for CUSTOM, optional for others)
+	 * - endDate: ISO date string (required for CUSTOM, optional for others)
+	 * - paymentStatus: PAID | PENDING | etc. (default: PAID)
+	 *
+	 * Returns:
+	 * - Time-series revenue data grouped by period
+	 * - Summary statistics (total revenue, orders, average order value)
+	 * - Chart metadata for frontend visualization
+	 *
+	 * Use Cases:
+	 * - Daily revenue tracking for the last 30 days
+	 * - Weekly revenue comparison for last 12 weeks
+	 * - Monthly revenue trends for the year
+	 * - Custom date range analysis
+	 *
+	 * Requires USER role (tenant admin)
+	 */
+	@Get('tenants/:tenantId/reports/revenue')
+	@UseGuards(AuthGuard, Role('USER'))
+	getRevenueReport(
+		@Param('tenantId') tenantId: string,
+		@Query('timeRange') timeRange: string,
+		@Query('startDate') startDate?: string,
+		@Query('endDate') endDate?: string,
+		@Query('paymentStatus') paymentStatus?: string,
+	) {
+		return this.orderClient.send('orders:get-revenue-report', {
+			tenantId,
+			timeRange,
+			startDate,
+			endDate,
+			paymentStatus,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+
+	/**
+	 * Get top revenue items report
+	 * GET /tenants/:tenantId/reports/top-items
+	 *
+	 * Query params:
+	 * - startDate: ISO date string (optional, default: 30 days ago)
+	 * - endDate: ISO date string (optional, default: now)
+	 * - limit: number (optional, default: 10, max: 50)
+	 * - paymentStatus: PAID | PENDING | etc. (default: PAID)
+	 *
+	 * Returns:
+	 * - Ranked list of best-selling items by revenue
+	 * - Quantity sold, order count, average price per item
+	 * - Summary statistics
+	 *
+	 * Use Cases:
+	 * - Identify most profitable menu items
+	 * - Menu optimization decisions
+	 * - Inventory planning
+	 * - Marketing campaign planning
+	 *
+	 * Requires USER role (tenant admin)
+	 */
+	@Get('tenants/:tenantId/reports/top-items')
+	@UseGuards(AuthGuard, Role('USER'))
+	getTopItemsReport(
+		@Param('tenantId') tenantId: string,
+		@Query('startDate') startDate?: string,
+		@Query('endDate') endDate?: string,
+		@Query('limit') limit?: number,
+		@Query('paymentStatus') paymentStatus?: string,
+	) {
+		return this.orderClient.send('orders:get-top-items-report', {
+			tenantId,
+			startDate,
+			endDate,
+			limit: limit ? +limit : undefined,
+			paymentStatus,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+
+	/**
+	 * Get analytics report for dashboard
+	 * GET /tenants/:tenantId/reports/analytics
+	 *
+	 * Query params:
+	 * - startDate: ISO date string (optional, default: 30 days ago)
+	 * - endDate: ISO date string (optional, default: now)
+	 * - paymentStatus: PAID | PENDING | etc. (default: PAID)
+	 *
+	 * Returns comprehensive analytics data:
+	 * - Daily orders trend (time series)
+	 * - Peak hours analysis (24-hour distribution)
+	 * - Popular items trends (top 5 items with daily data)
+	 * - Summary statistics (total orders, revenue, peak hour, busiest day)
+	 * - Chart metadata for multiple visualizations
+	 *
+	 * Use Cases:
+	 * - Analytics dashboard with multiple charts
+	 * - Operational insights (peak hours for staffing)
+	 * - Trend analysis for menu items
+	 * - Business performance overview
+	 *
+	 * Chart-friendly format for:
+	 * - Chart.js (line, bar, radar charts)
+	 * - Recharts (LineChart, BarChart, AreaChart)
+	 * - Any charting library
+	 *
+	 * Requires USER role (tenant admin)
+	 */
+	@Get('tenants/:tenantId/reports/analytics')
+	@UseGuards(AuthGuard, Role('USER'))
+	getAnalyticsReport(
+		@Param('tenantId') tenantId: string,
+		@Query('startDate') startDate?: string,
+		@Query('endDate') endDate?: string,
+		@Query('paymentStatus') paymentStatus?: string,
+	) {
+		return this.orderClient.send('orders:get-analytics-report', {
+			tenantId,
+			startDate,
+			endDate,
+			paymentStatus,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
 }
