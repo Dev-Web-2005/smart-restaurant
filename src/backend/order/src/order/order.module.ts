@@ -104,6 +104,14 @@ import { CartModule } from 'src/cart/cart.module';
 					port: +process.env.PORT_PRODUCT_SERVICE || 8082,
 				},
 			},
+			{
+				name: 'TABLE_SERVICE',
+				transport: Transport.TCP,
+				options: {
+					host: process.env.HOST_TABLE_SERVICE || 'localhost',
+					port: +process.env.PORT_TABLE_SERVICE || 8083,
+				},
+			},
 		]),
 		CartModule,
 	],

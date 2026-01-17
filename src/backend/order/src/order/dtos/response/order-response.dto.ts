@@ -42,6 +42,12 @@ export class OrderResponseDto {
 	id: string;
 	tenantId: string;
 	tableId: string;
+
+	// Table snapshot (denormalized data for display)
+	snapshotTableName?: string; // e.g., "Bàn 1", "VIP 2"
+	snapshotFloorName?: string; // e.g., "Tầng 1", "Sân vườn"
+	snapshotFloorNumber?: number; // Floor ordering number
+
 	customerId: string;
 	customerName: string;
 	orderType: string; // Converted to string from OrderType enum
