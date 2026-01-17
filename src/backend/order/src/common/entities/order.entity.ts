@@ -41,6 +41,16 @@ export class Order {
 	@Index('idx_order_table_id')
 	tableId: string; // Table where customer is seated
 
+	// Data Enrichment: Table snapshot (denormalized for performance & display)
+	@Column({ type: 'varchar', length: 100, nullable: true })
+	snapshotTableName: string; // Table name at order creation time (e.g., "Bàn 1", "VIP 2")
+
+	@Column({ type: 'varchar', length: 100, nullable: true })
+	snapshotFloorName: string; // Floor name at order creation time (e.g., "Tầng 1", "Sân vườn")
+
+	@Column({ type: 'int', nullable: true })
+	snapshotFloorNumber: number; // Floor number at order creation time
+
 	@Column({ type: 'uuid', nullable: true })
 	customerId: string; // Customer who placed the order (nullable for guest orders)
 

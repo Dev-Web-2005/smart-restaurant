@@ -75,6 +75,7 @@ export class OrderService implements OnModuleDestroy {
 		private readonly orderItemRepository: Repository<OrderItem>,
 		private readonly cartService: CartService,
 		@Inject('PRODUCT_SERVICE') private readonly productClient: ClientProxy,
+		@Inject('TABLE_SERVICE') private readonly tableClient: ClientProxy,
 		private readonly configService: ConfigService,
 		@Inject('ORDER_EVENTS') private readonly orderEventsClient: ClientProxy,
 		private readonly eventEmitter: EventEmitter2,
@@ -171,6 +172,52 @@ export class OrderService implements OnModuleDestroy {
 	}
 
 	/**
+	 * Fetch table snapshot data from Table Service
+	 * Returns denormalized table info for order persistence
+	 */
+	private async fetchTableSnapshot(
+		tenantId: string,
+		tableId: string,
+	): Promise<{
+		snapshotTableName?: string;
+		snapshotFloorName?: string;
+		snapshotFloorNumber?: number;
+	}> {
+		try {
+			// Call Table Service to get table details with floor info
+			const tableResponse = await firstValueFrom(
+				this.tableClient.send('tables:get-by-id', {
+					tenantId,
+					tableId,
+					includeFloor: true, // Request floor relationship
+					tableApiKey: this.configService.get<string>('TABLE_API_KEY'),
+				}),
+			);
+
+			if (tableResponse && tableResponse.data) {
+				const table = tableResponse.data;
+				return {
+					snapshotTableName: table.name || null,
+					snapshotFloorName: table.floor?.name || null,
+					snapshotFloorNumber: table.floor?.floorNumber || null,
+				};
+			}
+
+			// If table not found or no data, return empty snapshot
+			this.logger.warn(
+				`⚠️ Table ${tableId} not found in Table Service - saving order without table snapshot`,
+			);
+			return {};
+		} catch (error) {
+			// Non-critical: Don't block order creation if Table Service is down
+			this.logger.error(
+				`❌ Failed to fetch table snapshot for ${tableId}: ${error.message}`,
+			);
+			return {};
+		}
+	}
+
+	/**
 	 * Create a new order
 	 *
 	 * Business Rules:
@@ -206,6 +253,9 @@ export class OrderService implements OnModuleDestroy {
 			? orderTypeFromString(dto.orderType)
 			: OrderType.DINE_IN;
 
+		// 🆕 DATA ENRICHMENT: Fetch table snapshot for denormalization
+		const tableSnapshot = await this.fetchTableSnapshot(dto.tenantId, dto.tableId);
+
 		// Create order
 		const order = this.orderRepository.create({
 			tenantId: dto.tenantId,
@@ -221,6 +271,8 @@ export class OrderService implements OnModuleDestroy {
 			tax: 0,
 			discount: 0,
 			total: 0,
+			// 🆕 Save table snapshot (hard save for display)
+			...tableSnapshot,
 		});
 
 		await this.orderRepository.save(order); // Save to get ID (otherwise FK fails)
@@ -322,6 +374,9 @@ export class OrderService implements OnModuleDestroy {
 				? orderTypeFromString(dto.orderType)
 				: OrderType.DINE_IN;
 
+			// 🆕 DATA ENRICHMENT: Fetch table snapshot for denormalization
+			const tableSnapshot = await this.fetchTableSnapshot(dto.tenantId, dto.tableId);
+
 			currentOrder = this.orderRepository.create({
 				tenantId: dto.tenantId,
 				tableId: dto.tableId,
@@ -336,6 +391,8 @@ export class OrderService implements OnModuleDestroy {
 				tax: 0,
 				discount: 0,
 				total: 0,
+				// 🆕 Save table snapshot (hard save for display)
+				...tableSnapshot,
 			});
 
 			// Save order first to get ID for foreign key
@@ -1357,6 +1414,10 @@ export class OrderService implements OnModuleDestroy {
 			id: order.id,
 			tenantId: order.tenantId,
 			tableId: order.tableId,
+			// 🆕 Table snapshot fields (denormalized for display)
+			snapshotTableName: order.snapshotTableName,
+			snapshotFloorName: order.snapshotFloorName,
+			snapshotFloorNumber: order.snapshotFloorNumber,
 			customerId: order.customerId,
 			customerName: order.customerName,
 			orderType: orderTypeToString(order.orderType),
