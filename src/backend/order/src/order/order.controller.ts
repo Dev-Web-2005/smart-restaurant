@@ -394,6 +394,14 @@ export class OrderController {
 	}
 
 	// ==================== EVENT HANDLERS ====================
+	@EventPattern('payment.get-state')
+	async handlePaymentState(data: { orderId: string; state: number }) {
+		// Handle payment state update events from Payment Service
+		await this.orderService.processPaymentStateUpdate({
+			orderId: data.orderId,
+			state: data.state,
+		});
+	}
 
 	/**
 	 * EVENT: Handle Dead Letter Queue messages

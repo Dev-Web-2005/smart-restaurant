@@ -2262,4 +2262,42 @@ export class OrderService implements OnModuleDestroy {
 			}
 		}
 	}
+
+	async processPaymentStateUpdate(dto: { orderId: string; state: number }) {
+		// Implement the logic to update the payment state of the order
+		this.logger.log(
+			`Processing payment state update for order ${dto.orderId} with state ${dto.state}`,
+		);
+		// Example: Update order payment status based on state
+		const order = await this.orderRepository.findOne({ where: { id: dto.orderId } });
+		if (!order) {
+			throw new AppException(ErrorCode.ORDER_NOT_FOUND);
+		}
+
+		// Map state to payment status
+		switch (dto.state) {
+			case 0: // Fail
+				this.logger.log(`Payment failed for order ${dto.orderId}`);
+				order.paymentStatus = PaymentStatus.FAILED;
+				break;
+			case 1: // Success
+				this.logger.log(`Payment succeeded for order ${dto.orderId}`);
+				order.paymentStatus = PaymentStatus.PAID;
+				break;
+			case 2: // Canceled
+				this.logger.log(`Payment cancelled for order ${dto.orderId}`);
+				order.paymentStatus = PaymentStatus.FAILED;
+				break;
+			default:
+				this.logger.warn(`Unknown payment state ${dto.state} for order ${dto.orderId}`);
+				return;
+		}
+
+		await this.orderRepository.save(order);
+		this.logger.log(
+			`Updated payment status for order ${dto.orderId} to ${paymentStatusToString(
+				order.paymentStatus,
+			)}`,
+		);
+	}
 }

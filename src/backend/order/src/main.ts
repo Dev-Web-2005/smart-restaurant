@@ -49,7 +49,13 @@ async function bootstrap() {
 				'x-dead-letter-routing-key': queueName + '_dlq',
 			},
 		});
-		console.log(`✅ Queue created: ${queueName}_queue`);
+
+		// Payment Service does not need to bind to exchange as it is a direct queue consumer
+		await channel.assertQueue('payment_queue', {
+			durable: true,
+		});
+
+		await channel.console.log(`✅ Queue created: ${queueName}_queue`);
 	} finally {
 		await channel.close();
 		await connection.close();
@@ -91,6 +97,19 @@ async function bootstrap() {
 			queueOptions: {
 				durable: true,
 				noAck: false,
+			},
+		},
+	});
+
+	// 4. Payment Service RabbitMQ listener
+	app.connectMicroservice<MicroserviceOptions>({
+		transport: Transport.RMQ,
+		options: {
+			urls: [process.env.CONNECTION_AMQP],
+			queue: 'payment_queue',
+			prefetchCount: 1,
+			queueOptions: {
+				durable: true,
 			},
 		},
 	});
