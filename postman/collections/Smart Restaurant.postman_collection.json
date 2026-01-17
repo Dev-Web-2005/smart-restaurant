@@ -1430,7 +1430,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"itemIds\": [\n    \"2dc1b28b-76d6-4ee4-935c-8741157d60c6\",\n    \"dd9fb42b-71a0-421d-bdac-41ba34c7ef16\"\n  ]\n}",
+                  "raw": "{\n  \"itemId\": \"dd9fb42b-71a0-421d-bdac-41ba34c7ef16\",\n  \"quantity\": 2\n}",
                   "options": {
                     "raw": {
                       "language": "json"

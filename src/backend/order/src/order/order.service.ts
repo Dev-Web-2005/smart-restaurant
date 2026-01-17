@@ -2039,16 +2039,16 @@ export class OrderService implements OnModuleDestroy {
 		}
 
 		// Increase orderCount of each menu item (for analytics)
-		// for (const item of order.items) {
-		// 	await firstValueFrom(
-		// 		this.productClient.send('menu-items:increment-order-count', {
-		// 			productApiKey: this.configService.get<string>('PRODUCT_API_KEY'),
-		// 			tenantId: order.tenantId,
-		// 			menuItemId: item.menuItemId,
-		// 			quantity: item.quantity,
-		// 		}),
-		// 	);
-		// }
+		for (const item of order.items) {
+			await firstValueFrom(
+				this.productClient.send('menu-items:increment-order-count', {
+					productApiKey: this.configService.get<string>('PRODUCT_API_KEY'),
+					tenantId: order.tenantId,
+					itemId: item.menuItemId,
+					quantity: item.quantity,
+				}),
+			);
+		}
 
 		// Current timestamp for bill generation
 		const now = new Date();
