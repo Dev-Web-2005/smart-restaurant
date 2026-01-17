@@ -30,8 +30,13 @@ const TicketCard = ({
 	}, [ticket.elapsedSeconds])
 
 	// Local timer for accurate seconds
+	// Backend updates every 5 seconds, local timer keeps display smooth
+	// Timer runs for both PENDING and IN_PROGRESS tickets
 	useEffect(() => {
-		if (ticket.status === 'IN_PROGRESS' && !ticket.isPaused) {
+		const isActiveTicket =
+			(ticket.status === 'IN_PROGRESS' || ticket.status === 'PENDING') && !ticket.isPaused
+
+		if (isActiveTicket) {
 			timerRef.current = setInterval(() => {
 				setElapsedSeconds((prev) => prev + 1)
 			}, 1000)
@@ -45,63 +50,61 @@ const TicketCard = ({
 	}, [ticket.status, ticket.isPaused])
 
 	/**
-	 * Get card color based on elapsed time and priority
+	 * Get card color based on elapsed time and priority (Dark glassmorphism theme)
 	 */
 	const getCardStyle = () => {
 		const warningThreshold = 600 // 10 minutes
 		const criticalThreshold = 900 // 15 minutes
 
-		let bgColor = 'bg-white'
-		let borderColor = 'border-gray-300'
-		let textColor = 'text-gray-900'
+		let bgColor = 'bg-white/5'
+		let borderColor = 'border-white/10'
 
 		// Status-based colors
 		if (ticket.status === 'READY') {
-			bgColor = 'bg-green-50'
-			borderColor = 'border-green-500'
+			bgColor = 'bg-green-500/10'
+			borderColor = 'border-green-500/40'
 		} else if (ticket.status === 'COMPLETED') {
-			bgColor = 'bg-gray-100'
-			borderColor = 'border-gray-400'
-			textColor = 'text-gray-600'
+			bgColor = 'bg-gray-500/10'
+			borderColor = 'border-gray-500/30'
 		} else if (ticket.status === 'CANCELLED') {
-			bgColor = 'bg-red-50'
-			borderColor = 'border-red-400'
+			bgColor = 'bg-red-500/10'
+			borderColor = 'border-red-500/30'
 		} else {
 			// Age-based colors for active tickets
 			if (elapsedSeconds >= criticalThreshold) {
-				bgColor = 'bg-red-100'
-				borderColor = 'border-red-600'
+				bgColor = 'bg-red-500/15'
+				borderColor = 'border-red-500/60'
 			} else if (elapsedSeconds >= warningThreshold) {
-				bgColor = 'bg-yellow-100'
-				borderColor = 'border-yellow-500'
+				bgColor = 'bg-yellow-500/10'
+				borderColor = 'border-yellow-500/40'
 			}
 		}
 
 		// Priority override
 		if (ticket.priority === 'FIRE') {
-			bgColor = 'bg-red-200'
-			borderColor = 'border-red-700'
+			bgColor = 'bg-red-500/20'
+			borderColor = 'border-red-500/70'
 		} else if (ticket.priority === 'URGENT') {
-			bgColor = 'bg-orange-100'
-			borderColor = 'border-orange-600'
+			bgColor = 'bg-orange-500/15'
+			borderColor = 'border-orange-500/60'
 		}
 
-		return `${bgColor} ${borderColor} ${textColor}`
+		return `${bgColor} ${borderColor} backdrop-blur-xl`
 	}
 
 	/**
-	 * Get timer color based on elapsed time
+	 * Get timer color based on elapsed time (Dark theme)
 	 */
 	const getTimerColor = () => {
 		const warningThreshold = 600
 		const criticalThreshold = 900
 
 		if (elapsedSeconds >= criticalThreshold) {
-			return 'text-red-700 font-bold animate-pulse'
+			return 'text-red-400 font-bold animate-pulse'
 		} else if (elapsedSeconds >= warningThreshold) {
-			return 'text-yellow-700 font-bold'
+			return 'text-yellow-400 font-bold'
 		}
-		return 'text-gray-700'
+		return 'text-white'
 	}
 
 	/**
@@ -121,19 +124,19 @@ const TicketCard = ({
 			case 'FIRE':
 				return (
 					<span className="px-3 py-1 bg-red-600 text-white font-bold rounded-full text-sm animate-pulse">
-						🔥 FIRE
+						FIRE
 					</span>
 				)
 			case 'URGENT':
 				return (
 					<span className="px-3 py-1 bg-orange-600 text-white font-bold rounded-full text-sm">
-						⚡ URGENT
+						URGENT
 					</span>
 				)
 			case 'HIGH':
 				return (
 					<span className="px-3 py-1 bg-yellow-600 text-white font-semibold rounded-full text-sm">
-						⬆️ HIGH
+						HIGH
 					</span>
 				)
 			default:
@@ -185,20 +188,22 @@ const TicketCard = ({
 	if (isCompact && !isExpanded) {
 		return (
 			<div
-				className={`p-4 rounded-lg border-3 shadow-md cursor-pointer hover:shadow-lg transition-all ${getCardStyle()}`}
+				className={`p-4 rounded-lg border shadow-md cursor-pointer hover:shadow-lg transition-all ${getCardStyle()}`}
 				onClick={() => setIsExpanded(true)}
 			>
 				<div className="flex items-center justify-between mb-2">
 					<div className="flex items-center gap-3">
-						<div className="text-3xl font-bold text-blue-600">#{ticket.ticketNumber}</div>
+						<div className="text-2xl font-bold text-blue-400">#{ticket.ticketNumber}</div>
 						<div className="text-sm">
-							<div className="font-semibold">
+							<div className="font-semibold text-white">
 								Table {ticket.tableNumber || ticket.tableId}
 							</div>
-							<div className="text-xs opacity-75">{ticket.items?.length || 0} items</div>
+							<div className="text-xs text-gray-400">
+								{ticket.items?.length || 0} items
+							</div>
 						</div>
 					</div>
-					<div className={`text-2xl font-bold ${getTimerColor()}`}>
+					<div className={`text-xl font-bold ${getTimerColor()}`}>
 						{formatTime(elapsedSeconds)}
 					</div>
 				</div>
@@ -208,28 +213,30 @@ const TicketCard = ({
 	}
 
 	return (
-		<div className={`p-4 rounded-lg border-3 shadow-lg transition-all ${getCardStyle()}`}>
+		<div className={`p-4 rounded-lg border shadow-lg transition-all ${getCardStyle()}`}>
 			{/* Header */}
 			<div className="flex items-start justify-between mb-3">
-				<div className="flex items-center gap-3">
-					<div className="text-4xl font-bold text-blue-600">#{ticket.ticketNumber}</div>
-					<div>
-						<div className="text-lg font-bold">
+				<div className="flex items-center gap-3 min-w-0 flex-1">
+					<div className="text-2xl md:text-3xl font-bold text-blue-400 flex-shrink-0">
+						#{ticket.ticketNumber}
+					</div>
+					<div className="min-w-0">
+						<div className="text-base md:text-lg font-bold text-white truncate">
 							Table {ticket.tableNumber || ticket.tableId}
 						</div>
 						{ticket.customerName && (
-							<div className="text-sm text-gray-600">{ticket.customerName}</div>
+							<div className="text-sm text-gray-400 truncate">{ticket.customerName}</div>
 						)}
 						<div className="text-xs text-gray-500">
 							Order #{ticket.orderId?.slice(0, 8)}
 						</div>
 					</div>
 				</div>
-				<div className="text-right">
-					<div className={`text-3xl font-bold ${getTimerColor()}`}>
+				<div className="text-right flex-shrink-0">
+					<div className={`text-2xl md:text-3xl font-bold ${getTimerColor()}`}>
 						{formatTime(elapsedSeconds)}
 					</div>
-					<div className="text-xs text-gray-500 mt-1">
+					<div className="text-xs text-gray-400 mt-1">
 						{ticket.status.replace('_', ' ')}
 					</div>
 				</div>
@@ -240,16 +247,16 @@ const TicketCard = ({
 
 			{/* Order Type & Notes */}
 			{(ticket.orderType || ticket.notes) && (
-				<div className="mb-3 p-2 bg-blue-50 rounded text-sm">
+				<div className="mb-3 p-2 bg-blue-500/20 rounded-lg text-sm border border-blue-500/30">
 					{ticket.orderType && (
-						<div className="font-semibold text-blue-700">📋 {ticket.orderType}</div>
+						<div className="font-semibold text-blue-400">📋 {ticket.orderType}</div>
 					)}
-					{ticket.notes && <div className="text-gray-700 mt-1">💬 {ticket.notes}</div>}
+					{ticket.notes && <div className="text-gray-300 mt-1">💬 {ticket.notes}</div>}
 				</div>
 			)}
 
-			{/* Items */}
-			<div className="space-y-2 mb-3">
+			{/* Items - scrollable with max height */}
+			<div className="space-y-2 mb-3 max-h-48 overflow-y-auto scrollbar-hide">
 				{ticket.items?.map((item, idx) => (
 					<TicketItem
 						key={item.id || idx}
@@ -261,19 +268,21 @@ const TicketCard = ({
 			</div>
 
 			{/* Item Status Summary */}
-			<div className="flex gap-2 mb-3 text-sm">
+			<div className="flex flex-wrap gap-2 mb-3 text-xs">
 				{counts.pending > 0 && (
-					<span className="px-2 py-1 bg-gray-200 rounded">
+					<span className="px-2 py-1 bg-gray-500/30 text-gray-300 rounded">
 						⏳ {counts.pending} pending
 					</span>
 				)}
 				{counts.preparing > 0 && (
-					<span className="px-2 py-1 bg-yellow-200 rounded">
+					<span className="px-2 py-1 bg-yellow-500/30 text-yellow-300 rounded">
 						🍳 {counts.preparing} cooking
 					</span>
 				)}
 				{counts.ready > 0 && (
-					<span className="px-2 py-1 bg-green-200 rounded">✅ {counts.ready} ready</span>
+					<span className="px-2 py-1 bg-green-500/30 text-green-300 rounded">
+						✅ {counts.ready} ready
+					</span>
 				)}
 			</div>
 
@@ -282,7 +291,7 @@ const TicketCard = ({
 				{canStart && (
 					<button
 						onClick={() => onStart && onStart(ticket.id)}
-						className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+						className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors text-sm"
 					>
 						🍳 Start Cooking
 					</button>
@@ -296,7 +305,7 @@ const TicketCard = ({
 								ticket.items?.filter((i) => i.status === 'PREPARING').map((i) => i.id),
 							)
 						}
-						className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors"
+						className="px-3 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors text-sm"
 					>
 						✅ Mark Ready
 					</button>
@@ -305,37 +314,10 @@ const TicketCard = ({
 				{canBump && (
 					<button
 						onClick={() => onBump && onBump(ticket.id)}
-						className="col-span-2 px-4 py-3 bg-purple-600 text-white font-bold text-lg rounded-lg hover:bg-purple-700 transition-colors"
+						className="col-span-2 px-3 py-3 bg-purple-500 hover:bg-purple-600 text-white font-bold text-base rounded-lg transition-colors"
 					>
 						🎯 BUMP (Complete)
 					</button>
-				)}
-
-				{/* Priority Controls */}
-				{ticket.status !== 'COMPLETED' && ticket.status !== 'CANCELLED' && (
-					<div className="col-span-2 flex gap-2 mt-2">
-						<button
-							onClick={() => onPriorityChange && onPriorityChange(ticket.id, 'HIGH')}
-							className="flex-1 px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded hover:bg-yellow-200"
-							disabled={ticket.priority === 'HIGH'}
-						>
-							⬆️ High
-						</button>
-						<button
-							onClick={() => onPriorityChange && onPriorityChange(ticket.id, 'URGENT')}
-							className="flex-1 px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded hover:bg-orange-200"
-							disabled={ticket.priority === 'URGENT'}
-						>
-							⚡ Urgent
-						</button>
-						<button
-							onClick={() => onPriorityChange && onPriorityChange(ticket.id, 'FIRE')}
-							className="flex-1 px-2 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200"
-							disabled={ticket.priority === 'FIRE'}
-						>
-							🔥 Fire
-						</button>
-					</div>
 				)}
 			</div>
 

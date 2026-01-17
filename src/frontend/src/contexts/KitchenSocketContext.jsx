@@ -56,9 +56,10 @@ export const KitchenSocketProvider = ({ children }) => {
 
 	const socketRef = useRef(null)
 	const lastTicketSoundRef = useRef(0)
+	const isConnectingRef = useRef(false) // Prevent double connect in Strict Mode
 
-	// Get socket URL from env
-	const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:8888'
+	// Get socket URL from env - use VITE_API_GATEWAY_URL (not VITE_API_URL which has /api/v1)
+	const SOCKET_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8888'
 
 	/**
 	 * Play sound alert for new tickets
@@ -124,16 +125,23 @@ export const KitchenSocketProvider = ({ children }) => {
 
 	// Connect to WebSocket
 	const connect = useCallback(() => {
-		if (socketRef.current?.connected) return
+		// Prevent double connect (React Strict Mode runs effects twice)
+		if (socketRef.current?.connected || isConnectingRef.current) {
+			console.log('🔵 [KitchenSocket] Already connected or connecting, skipping')
+			return
+		}
 
 		const accessToken = window.accessToken
 
 		if (!accessToken) {
-			console.warn('No access token available for WebSocket connection')
+			console.warn(
+				'⚠️ [KitchenSocket] No access token available for WebSocket connection',
+			)
 			return
 		}
 
-		console.log('🔌 Connecting to Kitchen WebSocket...')
+		isConnectingRef.current = true
+		console.log('🔌 [KitchenSocket] Connecting to:', `${SOCKET_URL}/realtime`)
 
 		socketRef.current = io(`${SOCKET_URL}/realtime`, {
 			auth: { token: accessToken },
@@ -146,22 +154,25 @@ export const KitchenSocketProvider = ({ children }) => {
 		// ==================== CONNECTION EVENTS ====================
 
 		socketRef.current.on('connect', () => {
-			console.log('✅ Kitchen WebSocket connected')
+			console.log('✅ [KitchenSocket] Connected successfully')
+			isConnectingRef.current = false
 			setIsConnected(true)
 		})
 
 		socketRef.current.on('disconnect', (reason) => {
-			console.log('❌ Kitchen WebSocket disconnected:', reason)
+			console.log('❌ [KitchenSocket] Disconnected:', reason)
+			isConnectingRef.current = false
 			setIsConnected(false)
 		})
 
 		socketRef.current.on('connect_error', (error) => {
-			console.error('❌ Kitchen WebSocket connection error:', error.message)
+			console.error('❌ [KitchenSocket] Connection error:', error.message)
+			isConnectingRef.current = false
 			setIsConnected(false)
 		})
 
 		socketRef.current.on('connection.success', (data) => {
-			console.log('🎉 Kitchen WebSocket authenticated:', data)
+			console.log('🎉 [KitchenSocket] Authenticated:', data)
 		})
 
 		// ==================== ORDER EVENTS ====================
@@ -294,9 +305,11 @@ export const KitchenSocketProvider = ({ children }) => {
 	// Disconnect from WebSocket
 	const disconnect = useCallback(() => {
 		if (socketRef.current) {
+			console.log('🔌 [KitchenSocket] Disconnecting...')
 			socketRef.current.disconnect()
 			socketRef.current = null
 			setIsConnected(false)
+			isConnectingRef.current = false
 		}
 	}, [])
 
