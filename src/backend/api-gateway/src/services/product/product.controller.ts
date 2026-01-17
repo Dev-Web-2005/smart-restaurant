@@ -559,7 +559,7 @@ export class ProductController {
 	 * Requires authentication - userId and userName extracted from JWT
 	 */
 	@Post('tenants/:tenantId/items/:itemId/reviews')
-	@UseGuards(AuthGuard, Role('USER'))
+	@UseGuards(AuthGuard)
 	createReview(
 		@Param('tenantId') tenantId: string,
 		@Param('itemId') itemId: string,

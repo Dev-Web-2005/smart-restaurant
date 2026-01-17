@@ -1392,7 +1392,8 @@
                     {
                       "key": "limit",
                       "value": "10",
-                      "description": "Number of popular items to return (default: 10, max: 100)"
+                      "description": "Number of popular items to return (default: 10, max: 100)",
+                      "uuid": "d66461a1-a374-4322-9f7b-1af5d084868e"
                     },
                     {
                       "key": "categoryId",
