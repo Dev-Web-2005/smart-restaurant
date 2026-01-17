@@ -2003,7 +2003,7 @@ export class OrderService implements OnModuleDestroy {
 	 * @param dto - GenerateBillRequestDto with tenantId and orderId
 	 * @returns BillResponseDto - Complete bill document
 	 */
-	async generateBill(dto: any): Promise<any> {
+	async generateBill(dto: GenerateBillRequestDto): Promise<BillResponseDto> {
 		this.logger.log(
 			`📄 Generating bill for order: ${dto.orderId} (Tenant: ${dto.tenantId})`,
 		);
@@ -2011,7 +2011,7 @@ export class OrderService implements OnModuleDestroy {
 		// Validate API key
 		const expectedApiKey = this.configService.get<string>('ORDER_API_KEY');
 		if (dto.orderApiKey !== expectedApiKey) {
-			throw new AppException(ErrorCode.UNAUTHORIZED, 'Invalid API key');
+			throw new AppException(ErrorCode.UNAUTHORIZED);
 		}
 
 		// Get the order with all items
@@ -2024,7 +2024,7 @@ export class OrderService implements OnModuleDestroy {
 		});
 
 		if (!order) {
-			throw new AppException(ErrorCode.ORDER_NOT_FOUND, 'Order not found');
+			throw new AppException(ErrorCode.ORDER_NOT_FOUND);
 		}
 
 		const now = new Date();
