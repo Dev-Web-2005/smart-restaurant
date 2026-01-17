@@ -2398,7 +2398,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n    \"userId\": \"{{userId}}\",\n    \"userName\": \"John Doe\",\n    \"rating\": 5,\n    \"comment\": \"Absolutely delicious! The best pasta I've ever had. Highly recommended!\"\n}",
+                  "raw": "{\n    \"userId\": \"beaad7dd-386e-4168-ae9c-fb742619058e\",\n    \"userName\": \"Customer 1\",\n    \"rating\": 5,\n    \"comment\": \"Absolutely delicious! The best salad I've ever had. Highly recommended!\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -2426,7 +2426,7 @@
                     },
                     {
                       "key": "itemId",
-                      "value": "your-menu-item-id-here"
+                      "value": "c0365bc5-c946-45df-8eb2-e8c0bd240b6d"
                     }
                   ]
                 }
@@ -2462,11 +2462,13 @@
                   "query": [
                     {
                       "key": "page",
-                      "value": "1"
+                      "value": "1",
+                      "uuid": "0555d0f4-4cd8-472b-afe0-b4e87b003217"
                     },
                     {
                       "key": "limit",
-                      "value": "10"
+                      "value": "10",
+                      "uuid": "f580f364-b01d-4071-90fd-a0f0fb203793"
                     }
                   ],
                   "variable": [
@@ -2476,7 +2478,7 @@
                     },
                     {
                       "key": "itemId",
-                      "value": "your-menu-item-id-here"
+                      "value": "c0365bc5-c946-45df-8eb2-e8c0bd240b6d"
                     }
                   ]
                 }
@@ -2506,7 +2508,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    // \"username\": \"waiter1\",\r\n    \"username\": \"kitchen1\",\r\n    \"password\": \"StrongPassword!123\"\r\n}",
+              "raw": "{\r\n    // \"username\": \"waiter1\",\r\n    \"username\": \"customer1\",\r\n    \"password\": \"StrongPassword!123\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
