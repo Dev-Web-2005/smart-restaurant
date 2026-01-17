@@ -3768,7 +3768,7 @@
               "variable": [
                 {
                   "key": "orderId",
-                  "value": "{{orderId}}",
+                  "value": "3ee2b82f-9663-4a95-9775-d17c1a05b3c8",
                   "description": "UUID of the order to generate bill for"
                 }
               ]
