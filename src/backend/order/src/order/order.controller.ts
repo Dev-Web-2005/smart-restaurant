@@ -23,6 +23,7 @@ import {
 	GetTopItemsReportRequestDto,
 	GetAnalyticsReportRequestDto,
 	GenerateBillRequestDto,
+	GeneratePaymentQrRequestDto,
 } from './dtos/request';
 import { CheckoutCartDto } from '../cart/dtos/request/checkout-cart.dto';
 
@@ -362,6 +363,33 @@ export class OrderController {
 		return handleRpcCall(async () => {
 			const bill = await this.orderService.generateBill(dto);
 			return new HttpResponse(1000, 'Bill generated successfully', bill);
+		});
+	}
+
+	/**
+	 * Generate payment QR code for an order
+	 * RPC Pattern: 'orders:generate-payment-qr'
+	 *
+	 * Creates a QR code that leads to Stripe payment checkout.
+	 * The QR code encodes the Stripe checkout URL for customer payment.
+	 *
+	 * Business Flow:
+	 * 1. Calls payment service to create Stripe checkout session
+	 * 2. Receives Stripe checkout URL
+	 * 3. Generates QR code encoding the URL
+	 * 4. Returns QR code (base64) and payment details
+	 *
+	 * Use Cases:
+	 * - Customer scans QR code to pay for order
+	 * - Display QR code on table tablet or waiter device
+	 * - Print QR code on bill for contactless payment
+	 * - Send QR code via messaging for remote payment
+	 */
+	@MessagePattern('orders:generate-payment-qr')
+	async generatePaymentQr(dto: any) {
+		return handleRpcCall(async () => {
+			const paymentQr = await this.orderService.generatePaymentQr(dto);
+			return new HttpResponse(1000, 'Payment QR code generated successfully', paymentQr);
 		});
 	}
 

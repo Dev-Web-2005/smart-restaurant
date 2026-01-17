@@ -557,4 +557,70 @@ export class OrderController {
 			orderApiKey: this.configService.get('ORDER_API_KEY'),
 		});
 	}
+
+	/**
+	 * Generate payment QR code for an order
+	 * GET /tenants/:tenantId/orders/:orderId/payment-qr
+	 *
+	 * Creates a QR code that leads to Stripe payment checkout.
+	 * Customers scan the QR code to pay for their order via Stripe.
+	 *
+	 * Business Flow:
+	 * 1. System calls payment service to create Stripe checkout session
+	 * 2. Payment service returns Stripe checkout URL
+	 * 3. System generates QR code encoding the checkout URL
+	 * 4. Customer scans QR code and completes payment on Stripe
+	 * 5. After payment, customer is redirected back to restaurant app
+	 *
+	 * Use Cases:
+	 * - Contactless payment via QR code scan
+	 * - Display QR code on table tablet
+	 * - Display QR code on waiter device
+	 * - Print QR code on bill
+	 * - Send QR code via messaging (WhatsApp, SMS)
+	 * - Email QR code to customer
+	 *
+	 * Response Structure:
+	 * - qrCode: Base64-encoded PNG image of QR code
+	 * - paymentUrl: Stripe checkout URL (also encoded in QR)
+	 * - orderId: Order ID for reference
+	 * - amount: Total amount in cents (e.g., 10000 = $100.00)
+	 * - currency: Currency code (e.g., "usd")
+	 * - sessionId: Stripe session ID (optional)
+	 * - expiresAt: When payment session expires (optional)
+	 *
+	 * Authentication:
+	 * - No authentication required (public payment access)
+	 * - Can add STAFF/CUSTOMER role if needed
+	 *
+	 * Frontend Integration:
+	 * ```html
+	 * <!-- Display QR code as image -->
+	 * <img src="data:image/png;base64,{qrCode}" alt="Payment QR Code" />
+	 *
+	 * <!-- Provide fallback link -->
+	 * <a href="{paymentUrl}" target="_blank">Or click here to pay</a>
+	 *
+	 * <!-- Show amount -->
+	 * <p>Total: ${amount / 100}</p>
+	 * ```
+	 *
+	 * Security:
+	 * - Stripe handles all payment processing securely
+	 * - No credit card info passes through our system
+	 * - Payment URL is single-use and expires after 24 hours
+	 * - Customer redirected back to restaurant app after payment
+	 */
+	@Get('tenants/:tenantId/orders/:orderId/payment-qr')
+	// @UseGuards(AuthGuard, Role('USER', 'STAFF', 'CUSTOMER')) // Optional: Add if you want to restrict access
+	generatePaymentQr(
+		@Param('tenantId') tenantId: string,
+		@Param('orderId') orderId: string,
+	) {
+		return this.orderClient.send('orders:generate-payment-qr', {
+			tenantId,
+			orderId,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
 }

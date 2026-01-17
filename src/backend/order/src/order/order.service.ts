@@ -38,6 +38,7 @@ import {
 	GetAnalyticsReportRequestDto,
 	ReportTimeRange,
 	GenerateBillRequestDto,
+	GeneratePaymentQrRequestDto,
 } from './dtos/request';
 import {
 	OrderResponseDto,
@@ -52,11 +53,14 @@ import {
 	DailyOrderData,
 	PopularItemTrend,
 	BillResponseDto,
+	PaymentQrResponseDto,
 } from './dtos/response';
 import { ClientProxy } from '@nestjs/microservices/client/client-proxy';
 import { firstValueFrom } from 'rxjs';
 import { CartService } from 'src/cart/cart.service';
 import * as amqp from 'amqplib';
+import * as QRCode from 'qrcode';
+import axios from 'axios';
 
 @Injectable()
 export class OrderService implements OnModuleDestroy {
@@ -2121,5 +2125,140 @@ export class OrderService implements OnModuleDestroy {
 		this.logger.log(`✅ Bill generated successfully for order: ${order.id}`);
 
 		return bill;
+	}
+
+	// ==================== PAYMENT QR CODE GENERATION ====================
+
+	/**
+	 * Generate payment QR code for an order
+	 *
+	 * Creates a QR code that encodes the Stripe payment URL for the order.
+	 * This allows customers to scan and pay via Stripe checkout.
+	 *
+	 * Business Flow:
+	 * 1. Validates order exists and belongs to tenant
+	 * 2. Calls payment service to create Stripe checkout session
+	 * 3. Payment service returns Stripe checkout URL
+	 * 4. Generates QR code encoding the checkout URL
+	 * 5. Returns QR code (base64) and payment details
+	 *
+	 * Integration:
+	 * - Calls external payment service at PAYMENT_URL/payment/create-payment
+	 * - Payment service handles Stripe session creation
+	 * - After payment, customer is redirected to URL_HOME
+	 *
+	 * @param dto - GeneratePaymentQrRequestDto with tenantId and orderId
+	 * @returns PaymentQrResponseDto - QR code and payment information
+	 */
+	async generatePaymentQr(
+		dto: GeneratePaymentQrRequestDto,
+	): Promise<PaymentQrResponseDto> {
+		this.logger.log(
+			`💳 Generating payment QR code for order: ${dto.orderId} (Tenant: ${dto.tenantId})`,
+		);
+
+		// Validate API key
+		const expectedApiKey = this.configService.get<string>('ORDER_API_KEY');
+		if (dto.orderApiKey !== expectedApiKey) {
+			throw new AppException(ErrorCode.UNAUTHORIZED);
+		}
+
+		// Get the order with all items
+		const order = await this.orderRepository.findOne({
+			where: {
+				id: dto.orderId,
+				tenantId: dto.tenantId,
+			},
+			relations: ['items'],
+		});
+
+		if (!order) {
+			throw new AppException(ErrorCode.ORDER_NOT_FOUND);
+		}
+
+		// Prepare payment request for external payment service
+		const paymentUrl = this.configService.get<string>('PAYMENT_URL');
+		const urlHome = this.configService.get<string>('URL_HOME');
+
+		// Convert total to cents for USD (multiply by 100)
+		const priceInCents = Math.round(order.total * 100);
+
+		const paymentRequest = {
+			userId: order.id, // Using order ID as userId
+			productName: 'Restaurant Order Payment',
+			description: `Payment for order at table ${order.tableId}`,
+			email: 'customer@restaurant.com', // Hardcoded as requested
+			price: priceInCents, // Total in cents (e.g., 10000 = $100.00)
+			quantity: 1,
+			currency: 'usd',
+			image: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=300', // F&B related image
+			urlHome: urlHome || 'http://localhost:5173', // Fallback to default
+		};
+
+		try {
+			// Call payment service to create Stripe checkout session
+			this.logger.log(`📡 Calling payment service: ${paymentUrl}/payment/create-payment`);
+
+			const response = await axios.post(
+				`${paymentUrl}/payment/create-payment`,
+				paymentRequest,
+				{
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					timeout: 10000, // 10 second timeout
+				},
+			);
+
+			// Extract payment URL from response
+			const paymentCheckoutUrl = response.data?.result?.url;
+			const sessionId = response.data?.result?.sessionId;
+
+			if (!paymentCheckoutUrl) {
+				throw new Error('Payment service did not return a checkout URL');
+			}
+
+			this.logger.log(`✅ Payment session created: ${sessionId}`);
+			this.logger.log(`🔗 Payment URL: ${paymentCheckoutUrl}`);
+
+			// Generate QR code from payment URL
+			const qrCodeBase64 = await QRCode.toDataURL(paymentCheckoutUrl, {
+				errorCorrectionLevel: 'M',
+				type: 'image/png',
+				width: 300,
+				margin: 2,
+			});
+
+			// Remove the data:image/png;base64, prefix for cleaner response
+			const qrCodeData = qrCodeBase64.replace(/^data:image\/png;base64,/, '');
+
+			const paymentQrResponse = {
+				qrCode: qrCodeData,
+				paymentUrl: paymentCheckoutUrl,
+				orderId: order.id,
+				amount: priceInCents,
+				currency: 'usd',
+				sessionId: sessionId || undefined,
+				expiresAt: undefined, // Stripe sessions typically expire after 24 hours
+			};
+
+			this.logger.log(`✅ Payment QR code generated successfully for order: ${order.id}`);
+
+			return paymentQrResponse;
+		} catch (error) {
+			this.logger.error(
+				`❌ Failed to generate payment QR code: ${error.message}`,
+				error.stack,
+			);
+
+			// Throw appropriate error
+			if (error.response) {
+				throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+			} else if (error.code === 'ECONNABORTED') {
+				throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+			} else {
+				throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+			}
+		}
 	}
 }
