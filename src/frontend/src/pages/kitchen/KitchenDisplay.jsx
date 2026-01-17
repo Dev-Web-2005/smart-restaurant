@@ -55,25 +55,51 @@ const KitchenDisplay = () => {
 	const [isFullscreen, setIsFullscreen] = useState(false)
 	const [autoRefresh, setAutoRefresh] = useState(true)
 
+	// Debounce refs to prevent "too many requests" error
+	const fetchDebounceRef = useRef(null)
+	const isFetchingRef = useRef(false)
 	const refreshIntervalRef = useRef(null)
 	const lastFetchRef = useRef(0)
 
 	/**
-	 * Fetch kitchen display data
+	 * Get effective tenantId for current user
+	 * CHEF role uses ownerId (restaurant owner's ID), User/ADMIN uses tenantId
+	 */
+	const getEffectiveTenantId = useCallback(() => {
+		return user?.ownerId || user?.tenantId || localStorage.getItem('currentTenantId')
+	}, [user?.ownerId, user?.tenantId])
+
+	/**
+	 * Fetch kitchen display data with deduplication
 	 */
 	const fetchKitchenData = useCallback(
 		async (silent = false) => {
-			if (!user?.tenantId) return
+			const tenantId = getEffectiveTenantId()
+			if (!tenantId) {
+				console.warn('⚠️ [KitchenDisplay] No tenantId found, skipping fetch')
+				if (!silent) setLoading(false)
+				return
+			}
+
+			// Prevent concurrent fetches
+			if (isFetchingRef.current) {
+				console.log('⏳ [KitchenDisplay] Fetch already in progress, skipping')
+				return
+			}
 
 			// Throttle requests (max 1 per 2 seconds)
 			const now = Date.now()
-			if (now - lastFetchRef.current < 2000) return
+			if (now - lastFetchRef.current < 2000) {
+				console.log('⏳ [KitchenDisplay] Throttled, too soon since last fetch')
+				return
+			}
 			lastFetchRef.current = now
 
+			isFetchingRef.current = true
 			if (!silent) setLoading(true)
 
 			try {
-				const result = await getKitchenDisplay(user.tenantId)
+				const result = await getKitchenDisplay(tenantId)
 
 				if (result.success) {
 					setTickets(result.data.tickets || [])
@@ -84,20 +110,34 @@ const KitchenDisplay = () => {
 				console.error('Error fetching kitchen data:', error)
 				showAlert('error', 'Error loading kitchen display')
 			} finally {
+				isFetchingRef.current = false
 				if (!silent) setLoading(false)
 			}
 		},
-		[user?.tenantId, showAlert],
+		[getEffectiveTenantId, showAlert],
 	)
+
+	/**
+	 * Debounced fetch - coalesces rapid events into single API call
+	 */
+	const debouncedFetchKitchenData = useCallback(() => {
+		if (fetchDebounceRef.current) {
+			clearTimeout(fetchDebounceRef.current)
+		}
+		fetchDebounceRef.current = setTimeout(() => {
+			fetchKitchenData(true) // silent refresh
+		}, 500) // 500ms debounce
+	}, [fetchKitchenData])
 
 	/**
 	 * Fetch kitchen statistics
 	 */
 	const fetchStats = useCallback(async () => {
-		if (!user?.tenantId) return
+		const tenantId = getEffectiveTenantId()
+		if (!tenantId) return
 
 		try {
-			const result = await getKitchenStats(user.tenantId)
+			const result = await getKitchenStats(tenantId)
 
 			if (result.success) {
 				setStats(result.data)
@@ -105,14 +145,17 @@ const KitchenDisplay = () => {
 		} catch (error) {
 			console.error('Error fetching stats:', error)
 		}
-	}, [user?.tenantId])
+	}, [getEffectiveTenantId])
 
 	/**
 	 * Start ticket (PENDING → IN_PROGRESS)
 	 */
 	const handleStartTicket = async (ticketId) => {
+		const tenantId = getEffectiveTenantId()
+		if (!tenantId) return
+
 		try {
-			const result = await startTicket(user.tenantId, ticketId, {
+			const result = await startTicket(tenantId, ticketId, {
 				cookId: user.id,
 				cookName: user.name || user.email,
 			})
@@ -133,8 +176,11 @@ const KitchenDisplay = () => {
 	 * Mark items ready
 	 */
 	const handleMarkReady = async (ticketId, itemIds) => {
+		const tenantId = getEffectiveTenantId()
+		if (!tenantId) return
+
 		try {
-			const result = await markItemsReady(user.tenantId, ticketId, itemIds)
+			const result = await markItemsReady(tenantId, ticketId, itemIds)
 
 			if (result.success) {
 				showAlert('success', 'Items marked ready! ✅')
@@ -152,8 +198,11 @@ const KitchenDisplay = () => {
 	 * Bump ticket (complete)
 	 */
 	const handleBumpTicket = async (ticketId) => {
+		const tenantId = getEffectiveTenantId()
+		if (!tenantId) return
+
 		try {
-			const result = await bumpTicket(user.tenantId, ticketId)
+			const result = await bumpTicket(tenantId, ticketId)
 
 			if (result.success) {
 				showAlert('success', 'Ticket bumped! 🎯')
@@ -172,8 +221,11 @@ const KitchenDisplay = () => {
 	 * Update ticket priority
 	 */
 	const handlePriorityChange = async (ticketId, priority) => {
+		const tenantId = getEffectiveTenantId()
+		if (!tenantId) return
+
 		try {
-			const result = await updateTicketPriority(user.tenantId, ticketId, priority)
+			const result = await updateTicketPriority(tenantId, ticketId, priority)
 
 			if (result.success) {
 				showAlert('success', `Priority updated to ${priority}! ⚡`)
@@ -253,20 +305,20 @@ const KitchenDisplay = () => {
 		// New ticket created
 		const handleNewTicket = (payload) => {
 			console.log('New ticket received:', payload)
-			fetchKitchenData(true)
+			debouncedFetchKitchenData()
 			showAlert('info', `New ticket #${payload.data.ticketNumber} received! 📥`, 3000)
 		}
 
 		// Ticket ready
 		const handleTicketReady = (payload) => {
 			console.log('Ticket ready:', payload)
-			fetchKitchenData(true)
+			debouncedFetchKitchenData()
 		}
 
 		// Ticket completed
 		const handleTicketCompleted = (payload) => {
 			console.log('Ticket completed:', payload)
-			fetchKitchenData(true)
+			debouncedFetchKitchenData()
 		}
 
 		// Timer updates (update local state only)
@@ -296,32 +348,36 @@ const KitchenDisplay = () => {
 		on('kitchen.timers.update', handleTimerUpdate)
 
 		return () => {
+			// Clear debounce timer
+			if (fetchDebounceRef.current) {
+				clearTimeout(fetchDebounceRef.current)
+			}
 			off('kitchen.ticket.new')
 			off('kitchen.ticket.ready')
 			off('kitchen.ticket.completed')
 			off('kitchen.timers.update')
 		}
-	}, [on, off, fetchKitchenData, showAlert])
+	}, [on, off, debouncedFetchKitchenData, showAlert])
 
 	/**
 	 * Handle new tickets from WebSocket
 	 */
 	useEffect(() => {
 		if (newTickets && newTickets.length > 0) {
-			fetchKitchenData(true)
+			debouncedFetchKitchenData()
 			clearNewTickets()
 		}
-	}, [newTickets, clearNewTickets, fetchKitchenData])
+	}, [newTickets, clearNewTickets, debouncedFetchKitchenData])
 
 	/**
 	 * Handle ticket updates from WebSocket
 	 */
 	useEffect(() => {
 		if (ticketUpdates) {
-			fetchKitchenData(true)
+			debouncedFetchKitchenData()
 			clearTicketUpdates()
 		}
-	}, [ticketUpdates, clearTicketUpdates, fetchKitchenData])
+	}, [ticketUpdates, clearTicketUpdates, debouncedFetchKitchenData])
 
 	/**
 	 * Auto-refresh every 30 seconds

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import ReactDOM from 'react-dom'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useUser } from '../../contexts/UserContext'
@@ -135,12 +135,24 @@ const WaiterPanel = () => {
 	// === HELP State (Keep existing logic) ===
 	const [helpRequests, setHelpRequests] = useState(mockHelpRequests)
 
+	// Debounce timer ref for WebSocket events - prevents "too many requests"
+	const fetchDebounceRef = useRef(null)
+	const isFetchingRef = useRef(false)
+
 	/**
 	 * Fetch orders from API - useCallback to stabilize function reference
+	 * Includes isFetching guard to prevent concurrent API calls
 	 */
 	const fetchOrders = useCallback(
 		async (_silent = false) => {
+			// Prevent concurrent fetches
+			if (isFetchingRef.current) {
+				console.log('⏳ [WaiterPanel] Fetch already in progress, skipping')
+				return
+			}
+
 			try {
+				isFetchingRef.current = true
 				// if (!_silent) setRefreshing(true) // Not displayed in UI
 
 				// For STAFF role, tenantId is stored in user.ownerId (restaurant owner's ID)
@@ -178,6 +190,7 @@ const WaiterPanel = () => {
 				console.error('❌ Error fetching orders:', error)
 				setOrders([])
 			} finally {
+				isFetchingRef.current = false
 				// if (!_silent) setRefreshing(false) // Not displayed in UI
 			}
 		},
@@ -511,30 +524,55 @@ const WaiterPanel = () => {
 	 * WebSocket setup - Separate useEffect to prevent reconnections
 	 * NOTE: STAFF role auto-joins 'tenant:{tenantId}:waiters' room on backend
 	 * This is handled by room-manager.service.ts based on JWT token role
+	 *
+	 * IMPORTANT: We pass ownerId from URL to socket auth to ensure correct room joining
+	 * The backend uses this tenantId for room management
+	 *
+	 * SIMPLIFIED PATTERN: Following OrderManagement's proven approach
+	 * - No complex isMounted pattern
+	 * - Simple cleanup with socketClient.off(event) removes all listeners
+	 * - Dependencies only on user identifiers
+	 * - Uses debounced fetch to prevent "too many requests" from rapid events
 	 */
 	useEffect(() => {
+		// Debounced fetch function - coalesces rapid socket events into single API call
+		const debouncedFetch = () => {
+			if (fetchDebounceRef.current) {
+				clearTimeout(fetchDebounceRef.current)
+			}
+			fetchDebounceRef.current = setTimeout(() => {
+				fetchOrders(true) // silent refresh
+			}, 500) // 500ms debounce - prevents rapid API calls
+		}
+
 		const setupWebSocket = async () => {
 			// Use window.accessToken (set by authAPI after login/refresh)
-			const authToken = window.accessToken || localStorage.getItem('authToken')
-			// For STAFF role, tenantId is stored in user.ownerId (restaurant owner's ID)
-			// IMPORTANT: Do NOT use user.userId as tenantId - that's the waiter's ID, not the restaurant's
-			const tenantId = user?.ownerId || ownerId || localStorage.getItem('currentTenantId')
+			const authToken = window.accessToken
+			// For STAFF role, tenantId MUST come from URL ownerId (restaurant's ID)
+			// Priority: ownerId (URL) > user.ownerId > localStorage
+			const tenantId = ownerId || user?.ownerId || localStorage.getItem('currentTenantId')
 
 			if (!authToken || !tenantId) {
 				console.error('❌ [WaiterPanel] No token or tenantId, skipping WebSocket setup')
+				console.log('   authToken:', !!authToken, ', tenantId:', tenantId)
 				return
 			}
 
+			console.log('🔵 [WaiterPanel] Setting up WebSocket with tenantId:', tenantId)
+
 			// Connect WebSocket if not already connected
 			if (!socketClient.isSocketConnected()) {
-				socketClient.connect(authToken)
+				socketClient.connect(authToken, {
+					tenantId: tenantId,
+					waiterId: user?.userId,
+				})
 
 				// Wait for connection before registering listeners
 				try {
 					await socketClient.waitForConnection(5000)
 					console.log('✅ [WaiterPanel] WebSocket connected successfully')
 					console.log(
-						'📍 [WaiterPanel] STAFF role will auto-join tenant:waiters room via backend',
+						`📍 [WaiterPanel] STAFF role will auto-join tenant:${tenantId}:waiters room via backend`,
 					)
 				} catch (error) {
 					console.error('❌ [WaiterPanel] WebSocket connection failed:', error.message)
@@ -544,17 +582,15 @@ const WaiterPanel = () => {
 				console.log('🔵 [WaiterPanel] WebSocket already connected, reusing connection')
 			}
 
-			// Define event handlers for STAFF/WAITER
+			// Define event handlers - all use debouncedFetch to prevent rapid API calls
 			const handleNewOrderItems = (payload) => {
 				console.log('🆕 [WaiterPanel] New order received', payload)
-				console.log('🔄 [WaiterPanel] Refreshing orders after new order received')
 
 				// Show notification
 				if (payload?.data) {
 					const { tableId, items } = payload.data
 					const itemCount = items?.length || 0
 
-					// Browser notification for new orders
 					if ('Notification' in window && Notification.permission === 'granted') {
 						new Notification('New Order Received', {
 							body: `${itemCount} item(s) from Table ${tableId}`,
@@ -563,33 +599,28 @@ const WaiterPanel = () => {
 					}
 				}
 
-				// Refresh orders list to show new pending items
-				fetchOrders(true) // silent refresh
+				// Refresh orders list with debounce
+				debouncedFetch()
 			}
 
 			const handleItemsAccepted = (payload) => {
 				console.log('✅ [WaiterPanel] Order items accepted', payload)
-				console.log('🔄 [WaiterPanel] Refreshing orders after items accepted')
-				fetchOrders(true)
+				debouncedFetch()
 			}
 
 			const handleItemsRejected = (payload) => {
 				console.log('❌ [WaiterPanel] Order items rejected', payload)
-				console.log('🔄 [WaiterPanel] Refreshing orders after items rejected')
-				fetchOrders(true)
+				debouncedFetch()
 			}
 
 			const handleItemsPreparing = (payload) => {
 				console.log('🍳 [WaiterPanel] Order items preparing', payload)
-				console.log('🔄 [WaiterPanel] Refreshing orders after items preparing')
-				fetchOrders(true)
+				debouncedFetch()
 			}
 
 			const handleItemsReady = (payload) => {
 				console.log('🍽️ [WaiterPanel] Order items ready', payload)
-				console.log('🔄 [WaiterPanel] Refreshing orders after items ready')
 
-				// Show notification for ready items (waiter needs to pick up)
 				if (payload?.data) {
 					const itemCount = payload.data.items?.length || 0
 					const tableId = payload.data.tableId
@@ -602,38 +633,41 @@ const WaiterPanel = () => {
 					}
 				}
 
-				fetchOrders(true)
+				debouncedFetch()
 			}
 
 			const handleItemsServed = (payload) => {
 				console.log('🍴 [WaiterPanel] Order items served', payload)
-				console.log('🔄 [WaiterPanel] Refreshing orders after items served')
-				fetchOrders(true)
+				debouncedFetch()
 			}
 
-			// Listen for events - these are sent to tenant:waiters room
+			// Register event listeners
+			console.log('📡 [WaiterPanel] Registering WebSocket event listeners...')
 			socketClient.on('order.items.new', handleNewOrderItems)
 			socketClient.on('order.items.accepted', handleItemsAccepted)
 			socketClient.on('order.items.rejected', handleItemsRejected)
 			socketClient.on('order.items.preparing', handleItemsPreparing)
 			socketClient.on('order.items.ready', handleItemsReady)
 			socketClient.on('order.items.served', handleItemsServed)
+
+			console.log('✅ [WaiterPanel] All WebSocket listeners registered')
 		}
 
-		// Only setup WebSocket if user is available
-		// For STAFF role, tenantId is stored in user.ownerId
-		const effectiveTenantId =
-			user?.ownerId || ownerId || localStorage.getItem('currentTenantId')
+		// Only setup WebSocket if we have user context
+		const effectiveTenantId = ownerId || user?.ownerId
 		if (effectiveTenantId) {
 			setupWebSocket()
 		} else {
 			console.error('❌ [WaiterPanel] User authentication required for real-time updates')
 		}
 
-		// Cleanup with proper handler references - remove all listeners for these events
+		// Cleanup - remove all listeners and clear debounce timer
 		return () => {
-			// Note: socketClient.off without callback removes all listeners for the event
-			// This is acceptable for cleanup as we're unmounting the component
+			// Clear pending debounce timer
+			if (fetchDebounceRef.current) {
+				clearTimeout(fetchDebounceRef.current)
+				fetchDebounceRef.current = null
+			}
 			socketClient.off('order.items.new')
 			socketClient.off('order.items.accepted')
 			socketClient.off('order.items.rejected')
@@ -642,7 +676,7 @@ const WaiterPanel = () => {
 			socketClient.off('order.items.served')
 			console.log('🔴 [WaiterPanel] WebSocket listeners removed')
 		}
-	}, [user?.ownerId, ownerId, fetchOrders]) // Include fetchOrders to ensure handlers always use current version
+	}, [ownerId, user?.ownerId, user?.userId, fetchOrders]) // Include fetchOrders to ensure handlers always use current version
 
 	/**
 	 * Filter orders based on view and search
