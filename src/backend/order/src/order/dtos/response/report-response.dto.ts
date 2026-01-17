@@ -11,7 +11,7 @@ export interface RevenueDataPoint {
 	orderCount: number; // Number of orders in this period
 	totalRevenue: number; // Total revenue (sum of all order totals)
 	averageOrderValue: number; // Average revenue per order
-	currency: string; // Currency code (e.g., "VND")
+	currency: string; // Currency code (e.g., "USD")
 }
 
 /**
@@ -43,7 +43,7 @@ export class RevenueReportResponseDto {
 	metadata: {
 		chartType: 'line' | 'bar' | 'area'; // Recommended chart type
 		xAxisLabel: string; // "Date", "Week", "Month"
-		yAxisLabel: string; // "Revenue (VND)"
+		yAxisLabel: string; // "Revenue (USD)"
 		dataKeys: string[]; // ["totalRevenue", "orderCount", "averageOrderValue"]
 	};
 }

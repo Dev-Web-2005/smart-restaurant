@@ -94,7 +94,7 @@ export class ItemService {
 			name: dto.name,
 			description: dto.description,
 			price: dto.price,
-			currency: dto.currency || 'VND',
+			currency: dto.currency || 'USD',
 			prepTimeMinutes: dto.prepTimeMinutes,
 			status: statusValue,
 			isChefRecommended: dto.isChefRecommended ?? false,
