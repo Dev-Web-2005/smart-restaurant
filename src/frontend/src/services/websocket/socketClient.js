@@ -19,8 +19,12 @@ class SocketClient {
 	/**
 	 * Connect to WebSocket server
 	 * @param {string} token - JWT access token
+	 * @param {Object} options - Optional connection options
+	 * @param {string} options.tenantId - Tenant ID for room joining (ownerId from URL)
+	 * @param {string} options.waiterId - Waiter ID for personal room
+	 * @param {string} options.tableId - Table ID for customer room
 	 */
-	connect(token) {
+	connect(token, options = {}) {
 		if (this.socket?.connected) {
 			console.log('🔵 [Socket] Already connected')
 			return this.socket
@@ -29,10 +33,16 @@ class SocketClient {
 		const SOCKET_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8888'
 
 		console.log('🔵 [Socket] Connecting to:', SOCKET_URL + '/realtime')
+		if (options.tenantId) {
+			console.log('📍 [Socket] Connecting with tenantId:', options.tenantId)
+		}
 
 		this.socket = io(`${SOCKET_URL}/realtime`, {
 			auth: {
 				token: token,
+				tenantId: options.tenantId || undefined,
+				waiterId: options.waiterId || undefined,
+				tableId: options.tableId || undefined,
 			},
 			transports: ['websocket', 'polling'],
 			reconnection: true,
@@ -199,38 +209,60 @@ class SocketClient {
 	 */
 	waitForConnection(timeout = 5000) {
 		return new Promise((resolve, reject) => {
-			if (this.socket?.connected) {
+			// Already connected - resolve immediately
+			if (this.socket?.connected && this.socket?.id) {
 				resolve(true)
 				return
 			}
 
+			let resolved = false // Prevent multiple resolves
+			let pollInterval = null
+
+			const cleanup = () => {
+				if (pollInterval) {
+					clearInterval(pollInterval)
+					pollInterval = null
+				}
+				// Remove the connect listener we added
+				if (this.socket && connectHandler) {
+					this.socket.off('connect', connectHandler)
+				}
+			}
+
 			const timeoutId = setTimeout(() => {
-				reject(new Error('Socket connection timeout'))
+				if (!resolved) {
+					resolved = true
+					cleanup()
+					reject(new Error('Socket connection timeout'))
+				}
 			}, timeout)
 
-			const checkConnection = () => {
-				if (this.socket?.connected) {
+			const doResolve = () => {
+				if (!resolved) {
+					resolved = true
 					clearTimeout(timeoutId)
+					cleanup()
 					resolve(true)
 				}
 			}
 
-			// Check immediately and on connect event
-			this.socket?.on('connect', () => {
-				clearTimeout(timeoutId)
-				resolve(true)
-			})
+			// Handler for 'connect' event - MUST be named so we can remove it
+			const connectHandler = () => {
+				// Only resolve if socket has a valid id (fully connected)
+				if (this.socket?.connected && this.socket?.id) {
+					doResolve()
+				}
+			}
 
-			// Also poll just in case
-			const pollInterval = setInterval(() => {
-				if (this.socket?.connected) {
-					clearInterval(pollInterval)
-					clearTimeout(timeoutId)
-					resolve(true)
+			// Listen for connect event
+			this.socket?.on('connect', connectHandler)
+
+			// Also poll as backup (in case connect event already fired)
+			pollInterval = setInterval(() => {
+				if (this.socket?.connected && this.socket?.id) {
+					doResolve()
 				}
 			}, 100)
-
-			setTimeout(() => clearInterval(pollInterval), timeout)
 		})
 	}
 

@@ -4,6 +4,7 @@ import { useUser } from '../../../contexts/UserContext'
 import { useNotifications } from '../../../contexts/NotificationContext'
 import BasePageLayout from '../../../components/layout/BasePageLayout'
 import { CardSkeleton } from '../../../components/common/LoadingSpinner'
+import CustomCheckbox from '../../../components/common/CustomCheckbox'
 import socketClient from '../../../services/websocket/socketClient'
 import {
 	getOrdersAPI,
@@ -11,6 +12,7 @@ import {
 	rejectOrderItemsAPI,
 	markItemsServedAPI,
 	markOrderPaidAPI,
+	updateItemsStatusAPI,
 } from '../../../services/api/orderAPI'
 
 /**
@@ -481,12 +483,27 @@ const OrderManagement = () => {
 	const [expandedOrders, setExpandedOrders] = useState(new Set())
 	const [processingOrders, setProcessingOrders] = useState(new Set()) // Track orders being processed
 
+	// Multi-select state for batch operations (READY items)
+	const [selectedItems, setSelectedItems] = useState(new Map()) // Map<orderId, Set<itemId>>
+	const [isProcessingBatch, setIsProcessingBatch] = useState(false)
+
+	// Debounce refs to prevent "too many requests" error
+	const fetchDebounceRef = useRef(null)
+	const isFetchingRef = useRef(false)
+
 	/**
-	 * Fetch orders from API
+	 * Fetch orders from API with deduplication
 	 */
 	const fetchOrders = useCallback(
 		async (silent = false) => {
+			// Prevent concurrent fetches
+			if (isFetchingRef.current) {
+				console.log('⏳ [OrderManagement] Fetch already in progress, skipping')
+				return null
+			}
+
 			try {
+				isFetchingRef.current = true
 				if (!silent) setRefreshing(true)
 
 				const tenantId = user?.tenantId || localStorage.getItem('currentTenantId')
@@ -514,6 +531,24 @@ const OrderManagement = () => {
 					const fetchedOrders = response.data.orders || []
 					console.log('✅ Orders fetched:', fetchedOrders.length)
 					setOrders(fetchedOrders)
+
+					// Auto-expand orders that have PENDING items so user can see items immediately
+					const ordersWithPendingItems = fetchedOrders.filter((order) =>
+						order.items?.some((item) => item.status === ITEM_STATUS.PENDING),
+					)
+					if (ordersWithPendingItems.length > 0) {
+						console.log(
+							'🔓 Auto-expanding',
+							ordersWithPendingItems.length,
+							'orders with PENDING items',
+						)
+						setExpandedOrders((prev) => {
+							const newSet = new Set(prev)
+							ordersWithPendingItems.forEach((order) => newSet.add(order.id))
+							return newSet
+						})
+					}
+
 					return fetchedOrders // Return for verification
 				} else {
 					console.warn('⚠️ Unexpected response format:', response)
@@ -525,11 +560,25 @@ const OrderManagement = () => {
 				setOrders([])
 				return []
 			} finally {
+				isFetchingRef.current = false
 				if (!silent) setRefreshing(false)
 			}
 		},
 		[user?.tenantId],
 	)
+
+	/**
+	 * Debounced fetch - coalesces rapid socket events into single API call
+	 * Use this for WebSocket event handlers to prevent "too many requests"
+	 */
+	const debouncedFetchOrders = useCallback(() => {
+		if (fetchDebounceRef.current) {
+			clearTimeout(fetchDebounceRef.current)
+		}
+		fetchDebounceRef.current = setTimeout(() => {
+			fetchOrders(true) // silent refresh
+		}, 500) // 500ms debounce - prevents rapid API calls
+	}, [fetchOrders])
 
 	/**
 	 * Accept order items (waiter accepts pending items)
@@ -761,6 +810,184 @@ const OrderManagement = () => {
 		}
 	}
 
+	// ==================== MULTI-SELECT FUNCTIONS (READY items) ====================
+
+	/**
+	 * Toggle item selection for batch operations
+	 * @param {string} orderId - Order ID
+	 * @param {string} itemId - Item ID to toggle
+	 */
+	const toggleItemSelection = useCallback((orderId, itemId) => {
+		setSelectedItems((prev) => {
+			const newMap = new Map(prev)
+			// Clone the Set to avoid mutating previous state
+			const existingSet = prev.get(orderId)
+			const orderSet = existingSet ? new Set(existingSet) : new Set()
+
+			if (orderSet.has(itemId)) {
+				orderSet.delete(itemId)
+			} else {
+				orderSet.add(itemId)
+			}
+
+			if (orderSet.size === 0) {
+				newMap.delete(orderId)
+			} else {
+				newMap.set(orderId, orderSet)
+			}
+
+			console.log('📊 [OrderManagement] Selected items updated:', {
+				orderId: orderId.slice(0, 8),
+				itemId: itemId.slice(0, 8),
+				action: existingSet?.has(itemId) ? 'removed' : 'added',
+				count: orderSet.size,
+			})
+
+			return newMap
+		})
+	}, [])
+
+	/**
+	 * Get selected count for specific order
+	 * @param {string} orderId - Order ID
+	 * @returns {number} Number of selected items
+	 */
+	const getSelectedCount = (orderId) => {
+		return selectedItems.get(orderId)?.size || 0
+	}
+
+	/**
+	 * Clear all selections
+	 */
+	const clearSelections = () => {
+		setSelectedItems(new Map())
+	}
+
+	/**
+	 * Mark selected READY items as SERVED
+	 * Uses updateItemsStatusAPI which emits WebSocket events
+	 * @param {string} orderId - Order ID
+	 */
+	const handleMarkSelectedServed = async (orderId) => {
+		const tenantId = user?.tenantId || localStorage.getItem('currentTenantId')
+		const waiterId = user?.userId
+
+		if (!tenantId || !waiterId || !orderId) return
+
+		const itemIds = Array.from(selectedItems.get(orderId) || [])
+		if (itemIds.length === 0) {
+			alert('No items selected')
+			return
+		}
+
+		setIsProcessingBatch(true)
+
+		try {
+			console.log('✅ [OrderManagement] Marking selected items as SERVED:', {
+				orderId: orderId.slice(0, 8),
+				itemIds: itemIds.map((id) => id.slice(0, 8)),
+				count: itemIds.length,
+			})
+
+			// Use updateItemsStatusAPI - this triggers WebSocket events via RabbitMQ
+			await updateItemsStatusAPI({
+				tenantId,
+				orderId,
+				itemIds,
+				status: 'SERVED',
+				userId: waiterId,
+			})
+
+			console.log('✅ [OrderManagement] Batch items marked as SERVED')
+
+			// Clear selections for this order
+			setSelectedItems((prev) => {
+				const newMap = new Map(prev)
+				newMap.delete(orderId)
+				return newMap
+			})
+
+			// Refresh orders
+			await fetchOrders(true)
+		} catch (error) {
+			console.error('❌ [OrderManagement] Error marking selected items as served:', error)
+			alert('Failed to mark items as served. Please try again.')
+		} finally {
+			setIsProcessingBatch(false)
+		}
+	}
+
+	/**
+	 * Mark all READY items as SERVED (for current filtered view)
+	 * Groups items by orderId and calls updateItemsStatusAPI for each order
+	 */
+	const handleMarkAllServed = async () => {
+		const tenantId = user?.tenantId || localStorage.getItem('currentTenantId')
+		const waiterId = user?.userId
+
+		if (!tenantId || !waiterId) return
+
+		// Collect all READY items grouped by orderId
+		const itemsByOrder = new Map() // Map<orderId, itemId[]>
+
+		filteredOrders.forEach((order) => {
+			const readyItems = order.items.filter((item) => item.status === ITEM_STATUS.READY)
+			if (readyItems.length > 0) {
+				itemsByOrder.set(
+					order.id,
+					readyItems.map((item) => item.id),
+				)
+			}
+		})
+
+		if (itemsByOrder.size === 0) {
+			alert('No ready items to mark as served')
+			return
+		}
+
+		const totalItems = Array.from(itemsByOrder.values()).reduce(
+			(sum, ids) => sum + ids.length,
+			0,
+		)
+
+		setIsProcessingBatch(true)
+
+		try {
+			console.log('✅ [OrderManagement] Marking all READY items as SERVED:', {
+				orders: itemsByOrder.size,
+				totalItems,
+			})
+
+			// Process each order
+			const promises = Array.from(itemsByOrder.entries()).map(([orderId, itemIds]) =>
+				updateItemsStatusAPI({
+					tenantId,
+					orderId,
+					itemIds,
+					status: 'SERVED',
+					userId: waiterId,
+				}),
+			)
+
+			await Promise.all(promises)
+
+			console.log('✅ [OrderManagement] All items marked as SERVED')
+
+			// Clear all selections
+			setSelectedItems(new Map())
+
+			// Refresh orders
+			await fetchOrders(true)
+		} catch (error) {
+			console.error('❌ [OrderManagement] Error marking all items as served:', error)
+			alert('Failed to mark items as served. Please try again.')
+		} finally {
+			setIsProcessingBatch(false)
+		}
+	}
+
+	// ==================== END MULTI-SELECT FUNCTIONS ====================
+
 	/**
 	 * Mark order as paid (customer completed payment)
 	 * @param {string} orderId - Order ID
@@ -909,20 +1136,20 @@ const OrderManagement = () => {
 					}
 				}
 
-				// Refresh orders list to show new pending items
-				fetchOrders(true) // silent refresh
+				// Refresh orders list to show new pending items (debounced)
+				debouncedFetchOrders()
 			}
 
 			const handleItemsAccepted = (payload) => {
 				console.log('✅ [OrderManagement] Order items accepted', payload)
 				console.log('🔄 [OrderManagement] Refreshing orders after items accepted')
-				fetchOrders(true)
+				debouncedFetchOrders()
 			}
 
 			const handleItemsReady = (payload) => {
 				console.log('🍽️ [OrderManagement] Order items ready', payload)
 				console.log('🔄 [OrderManagement] Refreshing orders after items ready')
-				fetchOrders(true)
+				debouncedFetchOrders()
 			}
 
 			// Listen for events
@@ -943,6 +1170,10 @@ const OrderManagement = () => {
 
 		// Cleanup with proper handler references - remove all listeners for these events
 		return () => {
+			// Clear debounce timer on unmount
+			if (fetchDebounceRef.current) {
+				clearTimeout(fetchDebounceRef.current)
+			}
 			// Note: socketClient.off without callback removes all listeners for the event
 			// This is acceptable for cleanup as we're unmounting the component
 			socketClient.off('order.items.new')
@@ -950,7 +1181,7 @@ const OrderManagement = () => {
 			socketClient.off('order.items.ready')
 			console.log('🔴 [OrderManagement] WebSocket listeners removed')
 		}
-	}, [user?.tenantId, user?.userId, fetchOrders]) // Include fetchOrders to ensure handlers always use current version
+	}, [user?.tenantId, user?.userId, debouncedFetchOrders]) // Use debouncedFetchOrders
 
 	// Filter orders based on view and search
 	useEffect(() => {
@@ -1243,6 +1474,26 @@ const OrderManagement = () => {
 					</div>
 				) : (
 					<div className="space-y-4">
+						{/* Mark All Served button - only show on READY tab */}
+						{selectedView === 'READY' && (
+							<div className="flex justify-end">
+								<button
+									onClick={handleMarkAllServed}
+									disabled={isProcessingBatch}
+									className="px-4 py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-purple-500/50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+								>
+									{isProcessingBatch ? (
+										<span className="material-symbols-outlined animate-spin text-sm">
+											progress_activity
+										</span>
+									) : (
+										<span className="material-symbols-outlined text-sm">done_all</span>
+									)}
+									Mark All Served
+								</button>
+							</div>
+						)}
+
 						{filteredOrders.map((order) => {
 							// Exclude rejected/cancelled items when checking if ready for payment
 							const activeItems = order.items.filter(
@@ -1290,6 +1541,43 @@ const OrderManagement = () => {
 										</div>
 
 										<div className="flex items-center gap-4">
+											{/* Batch Actions when items selected (READY view) */}
+											{selectedView === 'READY' && getSelectedCount(order.id) > 0 && (
+												<div className="flex items-center gap-2">
+													<button
+														onClick={(e) => {
+															e.stopPropagation()
+															handleMarkSelectedServed(order.id)
+														}}
+														disabled={isProcessingBatch}
+														className="px-3 py-1.5 bg-purple-500 hover:bg-purple-600 disabled:bg-purple-500/50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+													>
+														{isProcessingBatch ? (
+															<span className="material-symbols-outlined animate-spin text-sm">
+																progress_activity
+															</span>
+														) : (
+															<span className="material-symbols-outlined text-sm">
+																check_circle
+															</span>
+														)}
+														Mark Served ({getSelectedCount(order.id)})
+													</button>
+													<button
+														onClick={(e) => {
+															e.stopPropagation()
+															clearSelections()
+														}}
+														disabled={isProcessingBatch}
+														className="px-2 py-1.5 bg-gray-600 hover:bg-gray-500 disabled:bg-gray-600/50 disabled:cursor-not-allowed text-white rounded-lg text-sm transition-colors"
+														title="Clear selections"
+													>
+														<span className="material-symbols-outlined text-sm">
+															close
+														</span>
+													</button>
+												</div>
+											)}
 											{selectedView === 'PAYMENT' && (
 												<span className="text-white text-lg font-bold">
 													${formatPrice(order.total)}
@@ -1371,6 +1659,23 @@ const OrderManagement = () => {
 												<div key={item.id} className="bg-white/5 rounded-lg p-4">
 													{/* Item Info and Action Buttons */}
 													<div className="flex items-start justify-between gap-4">
+														{/* Checkbox for READY items */}
+														{item.status === ITEM_STATUS.READY && (
+															<div
+																className="shrink-0 pt-1"
+																onClick={(e) => e.stopPropagation()}
+															>
+																<CustomCheckbox
+																	checked={
+																		selectedItems.get(order.id)?.has(item.id) || false
+																	}
+																	onChange={() => toggleItemSelection(order.id, item.id)}
+																	variant="green"
+																	size="md"
+																	title="Select for batch serving"
+																/>
+															</div>
+														)}
 														<div className="flex-1">
 															<div className="flex items-center gap-3 mb-2">
 																<h4 className="text-white font-semibold">{item.name}</h4>
