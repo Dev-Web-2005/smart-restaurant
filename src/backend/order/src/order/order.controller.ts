@@ -320,11 +320,7 @@ export class OrderController {
 	async getTopItemsReport(dto: GetTopItemsReportRequestDto) {
 		return handleRpcCall(async () => {
 			const report = await this.orderService.getTopItemsReport(dto);
-			return new HttpResponse(
-				1000,
-				'Top items report retrieved successfully',
-				report,
-			);
+			return new HttpResponse(1000, 'Top items report retrieved successfully', report);
 		});
 	}
 
@@ -344,9 +340,6 @@ export class OrderController {
 			return new HttpResponse(1000, 'Analytics report retrieved successfully', report);
 		});
 	}
-
-	/
-	*/
 
 	/**
 	 * EVENT: Handle Dead Letter Queue messages
