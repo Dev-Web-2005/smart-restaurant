@@ -33,11 +33,23 @@ import {
 	CancelOrderRequestDto,
 	UpdatePaymentStatusRequestDto,
 	CreateOrderItemDto,
+	GetRevenueReportRequestDto,
+	GetTopItemsReportRequestDto,
+	GetAnalyticsReportRequestDto,
+	ReportTimeRange,
 } from './dtos/request';
 import {
 	OrderResponseDto,
 	PaginatedOrdersResponseDto,
 	OrderItemResponseDto,
+	RevenueReportResponseDto,
+	RevenueDataPoint,
+	TopItemsReportResponseDto,
+	TopItemData,
+	AnalyticsReportResponseDto,
+	HourlyOrderData,
+	DailyOrderData,
+	PopularItemTrend,
 } from './dtos/response';
 import { ClientProxy } from '@nestjs/microservices/client/client-proxy';
 import { firstValueFrom } from 'rxjs';
@@ -1390,5 +1402,580 @@ export class OrderService implements OnModuleDestroy {
 			createdAt: item.createdAt,
 			updatedAt: item.updatedAt,
 		};
+	}
+
+	// ==================== REPORT FEATURES ====================
+
+	/**
+	 * Get revenue report by time range
+	 *
+	 * Returns time-series revenue data grouped by:
+	 * - DAILY: Revenue per day
+	 * - WEEKLY: Revenue per week
+	 * - MONTHLY: Revenue per month
+	 * - CUSTOM: Custom date range with daily grouping
+	 *
+	 * Only counts PAID orders by default
+	 */
+	async getRevenueReport(
+		dto: GetRevenueReportRequestDto,
+	): Promise<RevenueReportResponseDto> {
+		this.validateApiKey(dto.orderApiKey);
+
+		// Calculate date range based on time range type
+		const { startDate, endDate } = this.calculateDateRange(dto);
+
+		// Build query with payment status filter
+		const paymentStatusFilter = dto.paymentStatus || 'PAID';
+
+		// Query orders in date range
+		const orders = await this.orderRepository
+			.createQueryBuilder('order')
+			.where('order.tenantId = :tenantId', { tenantId: dto.tenantId })
+			.andWhere('order.createdAt BETWEEN :startDate AND :endDate', {
+				startDate,
+				endDate,
+			})
+			.andWhere('order.paymentStatus = :paymentStatus', {
+				paymentStatus: paymentStatusFromString(paymentStatusFilter),
+			})
+			.orderBy('order.createdAt', 'ASC')
+			.getMany();
+
+		// Group data by time period
+		const dataPoints = this.groupRevenueByPeriod(
+			orders,
+			dto.timeRange,
+			startDate,
+			endDate,
+		);
+
+		// Calculate summary
+		const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+		const totalOrders = orders.length;
+		const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+		// Determine chart metadata based on time range
+		const metadata = this.getRevenueChartMetadata(dto.timeRange);
+
+		return {
+			data: dataPoints,
+			summary: {
+				totalRevenue,
+				totalOrders,
+				averageOrderValue,
+				currency: 'VND',
+				timeRange: dto.timeRange,
+				startDate: startDate.toISOString(),
+				endDate: endDate.toISOString(),
+			},
+			metadata,
+		};
+	}
+
+	/**
+	 * Get top revenue items report
+	 *
+	 * Returns best-selling items ranked by revenue
+	 * Useful for identifying popular menu items
+	 */
+	async getTopItemsReport(
+		dto: GetTopItemsReportRequestDto,
+	): Promise<TopItemsReportResponseDto> {
+		this.validateApiKey(dto.orderApiKey);
+
+		// Calculate date range (default: last 30 days)
+		const endDate = dto.endDate ? new Date(dto.endDate) : new Date();
+		const startDate = dto.startDate
+			? new Date(dto.startDate)
+			: new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+		const paymentStatusFilter = dto.paymentStatus || 'PAID';
+		const limit = dto.limit || 10;
+
+		// Query order items with aggregation
+		const topItems = await this.orderItemRepository
+			.createQueryBuilder('item')
+			.select('item.menuItemId', 'menuItemId')
+			.addSelect('item.name', 'menuItemName')
+			.addSelect('SUM(item.quantity)', 'totalQuantity')
+			.addSelect('SUM(item.total)', 'totalRevenue')
+			.addSelect('COUNT(DISTINCT item.orderId)', 'orderCount')
+			.addSelect('AVG(item.unitPrice)', 'averagePrice')
+			.innerJoin('item.order', 'order')
+			.where('order.tenantId = :tenantId', { tenantId: dto.tenantId })
+			.andWhere('order.createdAt BETWEEN :startDate AND :endDate', {
+				startDate,
+				endDate,
+			})
+			.andWhere('order.paymentStatus = :paymentStatus', {
+				paymentStatus: paymentStatusFromString(paymentStatusFilter),
+			})
+			.groupBy('item.menuItemId')
+			.addGroupBy('item.name')
+			.orderBy('totalRevenue', 'DESC')
+			.limit(limit)
+			.getRawMany();
+
+		// Transform to response format
+		const formattedTopItems: TopItemData[] = topItems.map((item) => ({
+			menuItemId: item.menuItemId,
+			menuItemName: item.menuItemName,
+			totalQuantity: parseInt(item.totalQuantity),
+			totalRevenue: parseFloat(item.totalRevenue),
+			orderCount: parseInt(item.orderCount),
+			averagePrice: parseFloat(item.averagePrice),
+			currency: 'VND',
+		}));
+
+		// Calculate summary
+		const totalRevenue = formattedTopItems.reduce(
+			(sum, item) => sum + item.totalRevenue,
+			0,
+		);
+		const totalQuantity = formattedTopItems.reduce(
+			(sum, item) => sum + item.totalQuantity,
+			0,
+		);
+
+		return {
+			topItems: formattedTopItems,
+			summary: {
+				totalItems: formattedTopItems.length,
+				totalRevenue,
+				totalQuantity,
+				currency: 'VND',
+				dateRange: {
+					startDate: startDate.toISOString(),
+					endDate: endDate.toISOString(),
+				},
+			},
+		};
+	}
+
+	/**
+	 * Get analytics report
+	 *
+	 * Returns comprehensive chart data including:
+	 * - Daily orders trend
+	 * - Peak hours analysis
+	 * - Popular items trends
+	 */
+	async getAnalyticsReport(
+		dto: GetAnalyticsReportRequestDto,
+	): Promise<AnalyticsReportResponseDto> {
+		this.validateApiKey(dto.orderApiKey);
+
+		// Calculate date range (default: last 30 days)
+		const endDate = dto.endDate ? new Date(dto.endDate) : new Date();
+		const startDate = dto.startDate
+			? new Date(dto.startDate)
+			: new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+		const paymentStatusFilter = dto.paymentStatus || 'PAID';
+
+		// Query all orders in range
+		const orders = await this.orderRepository
+			.createQueryBuilder('order')
+			.leftJoinAndSelect('order.items', 'items')
+			.where('order.tenantId = :tenantId', { tenantId: dto.tenantId })
+			.andWhere('order.createdAt BETWEEN :startDate AND :endDate', {
+				startDate,
+				endDate,
+			})
+			.andWhere('order.paymentStatus = :paymentStatus', {
+				paymentStatus: paymentStatusFromString(paymentStatusFilter),
+			})
+			.orderBy('order.createdAt', 'ASC')
+			.getMany();
+
+		// 1. Daily orders analysis
+		const dailyOrders = this.analyzeDailyOrders(orders);
+
+		// 2. Peak hours analysis
+		const peakHours = this.analyzePeakHours(orders);
+
+		// 3. Popular items trends (top 5)
+		const popularItems = await this.analyzePopularItems(
+			dto.tenantId,
+			startDate,
+			endDate,
+			paymentStatusFilter,
+		);
+
+		// Calculate summary
+		const totalOrders = orders.length;
+		const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+		const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+		// Find peak hour
+		const peakHourData = peakHours.reduce((max, hour) =>
+			hour.orderCount > max.orderCount ? hour : max,
+		);
+
+		// Find busiest day
+		const busiestDayData = dailyOrders.reduce((max, day) =>
+			day.orderCount > max.orderCount ? day : max,
+		);
+
+		return {
+			dailyOrders,
+			peakHours,
+			popularItems,
+			summary: {
+				totalOrders,
+				totalRevenue,
+				averageOrderValue,
+				peakHour: {
+					hour: peakHourData.hour,
+					hourLabel: peakHourData.hourLabel,
+					orderCount: peakHourData.orderCount,
+				},
+				busiestDay: {
+					date: busiestDayData.date,
+					dayOfWeek: busiestDayData.dayOfWeek,
+					orderCount: busiestDayData.orderCount,
+				},
+				currency: 'VND',
+				dateRange: {
+					startDate: startDate.toISOString(),
+					endDate: endDate.toISOString(),
+				},
+			},
+			metadata: {
+				charts: {
+					dailyOrders: {
+						type: 'line',
+						xAxisLabel: 'Date',
+						yAxisLabel: 'Number of Orders',
+					},
+					peakHours: {
+						type: 'bar',
+						xAxisLabel: 'Hour',
+						yAxisLabel: 'Number of Orders',
+					},
+					popularItems: {
+						type: 'line',
+						xAxisLabel: 'Date',
+						yAxisLabel: 'Quantity Sold',
+					},
+				},
+			},
+		};
+	}
+
+	// ==================== HELPER METHODS FOR REPORTS ====================
+
+	/**
+	 * Calculate start and end dates based on time range type
+	 */
+	private calculateDateRange(dto: GetRevenueReportRequestDto): {
+		startDate: Date;
+		endDate: Date;
+	} {
+		const now = new Date();
+		let startDate: Date;
+		let endDate: Date = new Date(now); // Default to now
+
+		switch (dto.timeRange) {
+			case ReportTimeRange.DAILY:
+				// Last 30 days
+				startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+				break;
+
+			case ReportTimeRange.WEEKLY:
+				// Last 12 weeks (84 days)
+				startDate = new Date(now.getTime() - 84 * 24 * 60 * 60 * 1000);
+				break;
+
+			case ReportTimeRange.MONTHLY:
+				// Last 12 months
+				startDate = new Date(now);
+				startDate.setMonth(now.getMonth() - 12);
+				break;
+
+			case ReportTimeRange.CUSTOM:
+				if (!dto.startDate || !dto.endDate) {
+					throw new AppException(ErrorCode.INVALID_INPUT);
+				}
+				startDate = new Date(dto.startDate);
+				endDate = new Date(dto.endDate);
+				break;
+
+			default:
+				throw new AppException(ErrorCode.INVALID_INPUT);
+		}
+
+		return { startDate, endDate };
+	}
+
+	/**
+	 * Group revenue data by time period
+	 */
+	private groupRevenueByPeriod(
+		orders: Order[],
+		timeRange: ReportTimeRange,
+		startDate: Date,
+		endDate: Date,
+	): RevenueDataPoint[] {
+		const dataMap = new Map<string, RevenueDataPoint>();
+
+		// Initialize all periods in range with zero values
+		const current = new Date(startDate);
+		while (current <= endDate) {
+			const periodKey = this.getPeriodKey(current, timeRange);
+			if (!dataMap.has(periodKey)) {
+				dataMap.set(periodKey, {
+					period: periodKey,
+					date: new Date(current),
+					orderCount: 0,
+					totalRevenue: 0,
+					averageOrderValue: 0,
+					currency: 'VND',
+				});
+			}
+
+			// Increment based on time range
+			if (timeRange === ReportTimeRange.MONTHLY) {
+				current.setMonth(current.getMonth() + 1);
+			} else if (timeRange === ReportTimeRange.WEEKLY) {
+				current.setDate(current.getDate() + 7);
+			} else {
+				current.setDate(current.getDate() + 1);
+			}
+		}
+
+		// Aggregate orders into periods
+		orders.forEach((order) => {
+			const periodKey = this.getPeriodKey(order.createdAt, timeRange);
+			const dataPoint = dataMap.get(periodKey);
+
+			if (dataPoint) {
+				dataPoint.orderCount++;
+				dataPoint.totalRevenue += order.total;
+			}
+		});
+
+		// Calculate averages
+		dataMap.forEach((dataPoint) => {
+			if (dataPoint.orderCount > 0) {
+				dataPoint.averageOrderValue = dataPoint.totalRevenue / dataPoint.orderCount;
+			}
+		});
+
+		return Array.from(dataMap.values()).sort(
+			(a, b) => a.date.getTime() - b.date.getTime(),
+		);
+	}
+
+	/**
+	 * Get period key for grouping (date string format)
+	 */
+	private getPeriodKey(date: Date, timeRange: ReportTimeRange): string {
+		const d = new Date(date);
+
+		switch (timeRange) {
+			case ReportTimeRange.DAILY:
+			case ReportTimeRange.CUSTOM:
+				// Format: "2026-01-17"
+				return d.toISOString().split('T')[0];
+
+			case ReportTimeRange.WEEKLY:
+				// Format: "2026-W03" (ISO week)
+				const weekNumber = this.getWeekNumber(d);
+				return `${d.getFullYear()}-W${String(weekNumber).padStart(2, '0')}`;
+
+			case ReportTimeRange.MONTHLY:
+				// Format: "2026-01"
+				return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+			default:
+				return d.toISOString().split('T')[0];
+		}
+	}
+
+	/**
+	 * Get ISO week number
+	 */
+	private getWeekNumber(date: Date): number {
+		const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+		const dayNum = d.getUTCDay() || 7;
+		d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+		const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+		return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+	}
+
+	/**
+	 * Get chart metadata based on time range
+	 */
+	private getRevenueChartMetadata(timeRange: ReportTimeRange): {
+		chartType: 'line' | 'bar' | 'area';
+		xAxisLabel: string;
+		yAxisLabel: string;
+		dataKeys: string[];
+	} {
+		const metadata = {
+			chartType: 'line' as const,
+			yAxisLabel: 'Revenue (VND)',
+			dataKeys: ['totalRevenue', 'orderCount', 'averageOrderValue'],
+			xAxisLabel: 'Date',
+		};
+
+		switch (timeRange) {
+			case ReportTimeRange.WEEKLY:
+				metadata.xAxisLabel = 'Week';
+				break;
+			case ReportTimeRange.MONTHLY:
+				metadata.xAxisLabel = 'Month';
+				break;
+			default:
+				metadata.xAxisLabel = 'Date';
+		}
+
+		return metadata;
+	}
+
+	/**
+	 * Analyze daily orders
+	 */
+	private analyzeDailyOrders(orders: Order[]): DailyOrderData[] {
+		const dailyMap = new Map<string, DailyOrderData>();
+
+		orders.forEach((order) => {
+			const dateStr = order.createdAt.toISOString().split('T')[0];
+			const dayOfWeek = [
+				'Sunday',
+				'Monday',
+				'Tuesday',
+				'Wednesday',
+				'Thursday',
+				'Friday',
+				'Saturday',
+			][order.createdAt.getDay()];
+
+			if (!dailyMap.has(dateStr)) {
+				dailyMap.set(dateStr, {
+					date: dateStr,
+					dayOfWeek,
+					orderCount: 0,
+					totalRevenue: 0,
+					averageOrderValue: 0,
+				});
+			}
+
+			const dayData = dailyMap.get(dateStr);
+			dayData.orderCount++;
+			dayData.totalRevenue += order.total;
+		});
+
+		// Calculate averages
+		dailyMap.forEach((dayData) => {
+			dayData.averageOrderValue = dayData.totalRevenue / dayData.orderCount;
+		});
+
+		return Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+	}
+
+	/**
+	 * Analyze peak hours (24-hour distribution)
+	 */
+	private analyzePeakHours(orders: Order[]): HourlyOrderData[] {
+		const hourlyMap = new Map<number, HourlyOrderData>();
+
+		// Initialize all 24 hours
+		for (let hour = 0; hour < 24; hour++) {
+			hourlyMap.set(hour, {
+				hour,
+				hourLabel: `${String(hour).padStart(2, '0')}:00`,
+				orderCount: 0,
+				totalRevenue: 0,
+				averageOrderValue: 0,
+			});
+		}
+
+		// Aggregate by hour
+		orders.forEach((order) => {
+			const hour = order.createdAt.getHours();
+			const hourData = hourlyMap.get(hour);
+
+			hourData.orderCount++;
+			hourData.totalRevenue += order.total;
+		});
+
+		// Calculate averages
+		hourlyMap.forEach((hourData) => {
+			if (hourData.orderCount > 0) {
+				hourData.averageOrderValue = hourData.totalRevenue / hourData.orderCount;
+			}
+		});
+
+		return Array.from(hourlyMap.values());
+	}
+
+	/**
+	 * Analyze popular items trends
+	 */
+	private async analyzePopularItems(
+		tenantId: string,
+		startDate: Date,
+		endDate: Date,
+		paymentStatusFilter: string,
+	): Promise<PopularItemTrend[]> {
+		// Get top 5 items by quantity
+		const topItems = await this.orderItemRepository
+			.createQueryBuilder('item')
+			.select('item.menuItemId', 'menuItemId')
+			.addSelect('item.name', 'menuItemName')
+			.addSelect('SUM(item.quantity)', 'totalQuantity')
+			.innerJoin('item.order', 'order')
+			.where('order.tenantId = :tenantId', { tenantId })
+			.andWhere('order.createdAt BETWEEN :startDate AND :endDate', {
+				startDate,
+				endDate,
+			})
+			.andWhere('order.paymentStatus = :paymentStatus', {
+				paymentStatus: paymentStatusFromString(paymentStatusFilter),
+			})
+			.groupBy('item.menuItemId')
+			.addGroupBy('item.name')
+			.orderBy('totalQuantity', 'DESC')
+			.limit(5)
+			.getRawMany();
+
+		// For each top item, get daily trend
+		const trends: PopularItemTrend[] = [];
+
+		for (const item of topItems) {
+			const dailyData = await this.orderItemRepository
+				.createQueryBuilder('item')
+				.select('DATE(order.createdAt)', 'date')
+				.addSelect('SUM(item.quantity)', 'quantity')
+				.addSelect('SUM(item.total)', 'revenue')
+				.innerJoin('item.order', 'order')
+				.where('order.tenantId = :tenantId', { tenantId })
+				.andWhere('item.menuItemId = :menuItemId', { menuItemId: item.menuItemId })
+				.andWhere('order.createdAt BETWEEN :startDate AND :endDate', {
+					startDate,
+					endDate,
+				})
+				.andWhere('order.paymentStatus = :paymentStatus', {
+					paymentStatus: paymentStatusFromString(paymentStatusFilter),
+				})
+				.groupBy('DATE(order.createdAt)')
+				.orderBy('date', 'ASC')
+				.getRawMany();
+
+			trends.push({
+				menuItemId: item.menuItemId,
+				menuItemName: item.menuItemName,
+				dailyData: dailyData.map((d) => ({
+					date: d.date,
+					quantity: parseInt(d.quantity),
+					revenue: parseFloat(d.revenue),
+				})),
+			});
+		}
+
+		return trends;
 	}
 }

@@ -9,3 +9,6 @@ export * from './cancel-order-request.dto';
 export * from './update-payment-status-request.dto';
 export * from './accept-items-request.dto';
 export * from './reject-items-request.dto';
+export * from './get-revenue-report-request.dto';
+export * from './get-top-items-report-request.dto';
+export * from './get-analytics-report-request.dto';

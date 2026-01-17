@@ -19,6 +19,9 @@ import {
 	UpdateOrderItemsStatusRequestDto,
 	CancelOrderRequestDto,
 	UpdatePaymentStatusRequestDto,
+	GetRevenueReportRequestDto,
+	GetTopItemsReportRequestDto,
+	GetAnalyticsReportRequestDto,
 } from './dtos/request';
 import { CheckoutCartDto } from '../cart/dtos/request/checkout-cart.dto';
 
@@ -44,6 +47,9 @@ import { CheckoutCartDto } from '../cart/dtos/request/checkout-cart.dto';
  * - orders:cancel - Cancel an order
  * - orders:update-payment - Update payment status
  * - orders:checkout - Create order from cart
+ * - orders:get-revenue-report - Get revenue report by time range (REPORTS)
+ * - orders:get-top-items-report - Get top revenue items report (REPORTS)
+ * - orders:get-analytics-report - Get analytics report for dashboard (REPORTS)
  */
 @Controller()
 export class OrderController {
@@ -287,7 +293,59 @@ export class OrderController {
 			const result = await this.orderService.rejectItems(dto);
 			return new HttpResponse(1000, 'Items rejected successfully', result);
 		});
+	}/ ==================== REPORT ENDPOINTS ====================
+
+	/**
+	 * Get revenue report by time range
+	 * RPC Pattern: 'orders:get-revenue-report'
+	 *
+	 * Returns time-series revenue data for analytics dashboard
+	 * Supports DAILY, WEEKLY, MONTHLY, and CUSTOM time ranges
+	 */
+	@MessagePattern('orders:get-revenue-report')
+	async getRevenueReport(dto: GetRevenueReportRequestDto) {
+		return handleRpcCall(async () => {
+			const report = await this.orderService.getRevenueReport(dto);
+			return new HttpResponse(1000, 'Revenue report retrieved successfully', report);
+		});
 	}
+
+	/**
+	 * Get top revenue items report
+	 * RPC Pattern: 'orders:get-top-items-report'
+	 *
+	 * Returns best-selling items ranked by revenue
+	 */
+	@MessagePattern('orders:get-top-items-report')
+	async getTopItemsReport(dto: GetTopItemsReportRequestDto) {
+		return handleRpcCall(async () => {
+			const report = await this.orderService.getTopItemsReport(dto);
+			return new HttpResponse(
+				1000,
+				'Top items report retrieved successfully',
+				report,
+			);
+		});
+	}
+
+	/**
+	 * Get analytics report
+	 * RPC Pattern: 'orders:get-analytics-report'
+	 *
+	 * Returns comprehensive analytics including:
+	 * - Daily orders trend
+	 * - Peak hours analysis
+	 * - Popular items trends
+	 */
+	@MessagePattern('orders:get-analytics-report')
+	async getAnalyticsReport(dto: GetAnalyticsReportRequestDto) {
+		return handleRpcCall(async () => {
+			const report = await this.orderService.getAnalyticsReport(dto);
+			return new HttpResponse(1000, 'Analytics report retrieved successfully', report);
+		});
+	}
+
+	/
 	*/
 
 	/**
