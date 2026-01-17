@@ -194,12 +194,15 @@ export class OrderService implements OnModuleDestroy {
 				}),
 			);
 
-			if (tableResponse && tableResponse.data) {
-				const table = tableResponse.data;
+			// ✅ Table Service returns TableDto directly (not wrapped in { data: ... })
+			if (tableResponse) {
+				this.logger.log(
+					`✅ Fetched table snapshot: ${tableResponse.name} (Floor: ${tableResponse.floor?.name || 'N/A'})`,
+				);
 				return {
-					snapshotTableName: table.name || null,
-					snapshotFloorName: table.floor?.name || null,
-					snapshotFloorNumber: table.floor?.floorNumber || null,
+					snapshotTableName: tableResponse.name || null,
+					snapshotFloorName: tableResponse.floor?.name || null,
+					snapshotFloorNumber: tableResponse.floor?.floorNumber || null,
 				};
 			}
 
