@@ -195,7 +195,8 @@ export class ProductController {
 	incrementOrderCount(@Param('tenantId') tenantId: string, @Body() data: any) {
 		return this.productClient.send('menu-items:increment-order-count', {
 			tenantId,
-			itemIds: data.itemIds,
+			itemId: data.itemId,
+			quantity: data.quantity,
 			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
