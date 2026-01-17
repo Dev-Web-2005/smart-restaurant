@@ -15,7 +15,7 @@
     "author": "Smart Restaurant Team",
     "license": "MIT",
     "dependencies": {
-        "@nestjs/microservices": "^10.4.20"
+        "@nestjs/microservices": "^10.4.22"
     },
     "devDependencies": {
         "@types/node": "^20.0.0",
