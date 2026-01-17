@@ -55,7 +55,7 @@ async function bootstrap() {
 			durable: true,
 		});
 
-		await channel.console.log(`✅ Queue created: ${queueName}_queue`);
+		console.log(`✅ Queue created: ${queueName}_queue`);
 	} finally {
 		await channel.close();
 		await connection.close();
@@ -110,6 +110,7 @@ async function bootstrap() {
 			prefetchCount: 1,
 			queueOptions: {
 				durable: true,
+				// noAck: false,
 			},
 		},
 	});
