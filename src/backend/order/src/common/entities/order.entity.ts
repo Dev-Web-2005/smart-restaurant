@@ -95,7 +95,7 @@ export class Order {
 	})
 	total: number; // Final total (subtotal + tax - discount)
 
-	@Column({ type: 'varchar', length: 10, default: 'VND' })
+	@Column({ type: 'varchar', length: 10, default: 'USD' })
 	currency: string;
 
 	@Column({ type: 'text', nullable: true })

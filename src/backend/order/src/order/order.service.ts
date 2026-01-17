@@ -210,7 +210,7 @@ export class OrderService implements OnModuleDestroy {
 			status: OrderStatus.PENDING,
 			paymentStatus: PaymentStatus.PENDING,
 			notes: dto.notes,
-			currency: 'VND',
+			currency: 'USD',
 			subtotal: 0,
 			tax: 0,
 			discount: 0,
@@ -325,7 +325,7 @@ export class OrderService implements OnModuleDestroy {
 				status: OrderStatus.PENDING,
 				paymentStatus: PaymentStatus.PENDING,
 				notes: dto.notes,
-				currency: 'VND',
+				currency: 'USD',
 				subtotal: 0,
 				tax: 0,
 				discount: 0,
@@ -395,7 +395,7 @@ export class OrderService implements OnModuleDestroy {
 						modifierOptionId: modDto.modifierOptionId,
 						optionName: modifierOption.label,
 						price: modifierOption.priceDelta, // REAL price from Product Service
-						currency: 'VND',
+						currency: 'USD',
 					};
 
 					validatedModifiers.push(orderItemModifier);
@@ -421,7 +421,7 @@ export class OrderService implements OnModuleDestroy {
 				total: total,
 				modifiers: validatedModifiers,
 				notes: cartItem.notes,
-				currency: 'VND',
+				currency: 'USD',
 				status: OrderItemStatus.PENDING, // Set initial item status
 			});
 
@@ -1061,7 +1061,7 @@ export class OrderService implements OnModuleDestroy {
 					// 	modifierOptionId: modDto.modifierOptionId,
 					// 	optionName: 'Modifier Option', // Fetch from product service
 					// 	price: 5000, // Fetch from product service
-					// 	currency: 'VND',
+					// 	currency: 'USD',
 					// };
 					const modifierGroupResponse = await firstValueFrom(
 						this.productClient.send('modifier-groups:get', {
@@ -1089,7 +1089,7 @@ export class OrderService implements OnModuleDestroy {
 						modifierOptionId: modDto.modifierOptionId,
 						optionName: modifierOption.label,
 						price: modifierOption.priceDelta,
-						currency: 'VND',
+						currency: 'USD',
 					};
 
 					modifiers.push(orderItemModifier);
@@ -1110,7 +1110,7 @@ export class OrderService implements OnModuleDestroy {
 				subtotal: subtotal,
 				modifiersTotal: modifiersTotal,
 				total: total,
-				currency: 'VND',
+				currency: 'USD',
 				status: OrderItemStatus.PENDING, // Set initial item status
 				modifiers: modifiers,
 				notes: itemDto.notes,
@@ -1464,7 +1464,7 @@ export class OrderService implements OnModuleDestroy {
 				totalRevenue,
 				totalOrders,
 				averageOrderValue,
-				currency: 'VND',
+				currency: 'USD',
 				timeRange: dto.timeRange,
 				startDate: startDate.toISOString(),
 				endDate: endDate.toISOString(),
@@ -1525,7 +1525,7 @@ export class OrderService implements OnModuleDestroy {
 			totalRevenue: parseFloat(item.totalrevenue),
 			orderCount: parseInt(item.ordercount),
 			averagePrice: parseFloat(item.averageprice),
-			currency: 'VND',
+			currency: 'USD',
 		}));
 
 		// Calculate summary
@@ -1544,7 +1544,7 @@ export class OrderService implements OnModuleDestroy {
 				totalItems: formattedTopItems.length,
 				totalRevenue,
 				totalQuantity,
-				currency: 'VND',
+				currency: 'USD',
 				dateRange: {
 					startDate: startDate.toISOString(),
 					endDate: endDate.toISOString(),
@@ -1636,7 +1636,7 @@ export class OrderService implements OnModuleDestroy {
 					dayOfWeek: busiestDayData.dayOfWeek,
 					orderCount: busiestDayData.orderCount,
 				},
-				currency: 'VND',
+				currency: 'USD',
 				dateRange: {
 					startDate: startDate.toISOString(),
 					endDate: endDate.toISOString(),
@@ -1731,7 +1731,7 @@ export class OrderService implements OnModuleDestroy {
 					orderCount: 0,
 					totalRevenue: 0,
 					averageOrderValue: 0,
-					currency: 'VND',
+					currency: 'USD',
 				});
 			}
 
@@ -1816,7 +1816,7 @@ export class OrderService implements OnModuleDestroy {
 	} {
 		const metadata = {
 			chartType: 'line' as const,
-			yAxisLabel: 'Revenue (VND)',
+			yAxisLabel: 'Revenue (USD)',
 			dataKeys: ['totalRevenue', 'orderCount', 'averageOrderValue'],
 			xAxisLabel: 'Date',
 		};
