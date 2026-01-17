@@ -173,7 +173,8 @@ export class ItemController {
 	async incrementOrderCount(dto: {
 		productApiKey: string;
 		tenantId: string;
-		itemIds: string[];
+		itemId: string;
+		quantity: number;
 	}) {
 		return handleRpcCall(async () => {
 			const result = await this.itemService.incrementOrderCount(dto);
