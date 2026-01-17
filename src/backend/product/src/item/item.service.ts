@@ -400,6 +400,7 @@ export class ItemService {
 			prepTimeMinutes: item.prepTimeMinutes,
 			status: menuItemStatusToString(item.status),
 			isChefRecommended: item.isChefRecommended,
+			orderCount: item.orderCount,
 			photos: item.photos?.map((photo) => ({
 				id: photo.id,
 				url: photo.url,
