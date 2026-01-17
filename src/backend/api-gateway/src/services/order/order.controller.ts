@@ -511,4 +511,50 @@ export class OrderController {
 			orderApiKey: this.configService.get('ORDER_API_KEY'),
 		});
 	}
+
+	// ==================== BILL GENERATION ====================
+
+	/**
+	 * Generate bill for a specific order
+	 * GET /tenants/:tenantId/orders/:orderId/bill
+	 *
+	 * Creates a comprehensive bill/invoice document for an order.
+	 * Contains all order details, itemized breakdown, and payment information.
+	 *
+	 * Use Cases:
+	 * - Generate receipt after successful payment
+	 * - Customer requests invoice/receipt
+	 * - Print bill for customer records
+	 * - Email receipt to customer
+	 * - Tax/accounting documentation
+	 * - Download PDF receipt
+	 *
+	 * Response Structure:
+	 * - tenant: Restaurant/tenant information
+	 * - order: Order metadata (table, customer, timestamps)
+	 * - items: Itemized list with prices and modifiers
+	 * - summary: Total breakdown (subtotal, tax, discount, total)
+	 * - payment: Payment details (status, method, transaction ID)
+	 * - billNumber: Unique bill identifier
+	 * - generatedAt: Bill generation timestamp
+	 *
+	 * Authentication:
+	 * - No authentication required (public bill access via order ID)
+	 * - Alternatively can require STAFF/USER role if needed
+	 *
+	 * Frontend Integration:
+	 * - Can render as HTML receipt
+	 * - Can convert to PDF using libraries like jsPDF or react-pdf
+	 * - Can format for thermal printer
+	 * - Can send to customer email
+	 */
+	@Get('tenants/:tenantId/orders/:orderId/bill')
+	// @UseGuards(AuthGuard, Role('USER', 'STAFF')) // Optional: Add if you want to restrict access
+	generateBill(@Param('tenantId') tenantId: string, @Param('orderId') orderId: string) {
+		return this.orderClient.send('orders:generate-bill', {
+			tenantId,
+			orderId,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
 }

@@ -37,6 +37,7 @@ import {
 	GetTopItemsReportRequestDto,
 	GetAnalyticsReportRequestDto,
 	ReportTimeRange,
+	GenerateBillRequestDto,
 } from './dtos/request';
 import {
 	OrderResponseDto,
@@ -50,6 +51,7 @@ import {
 	HourlyOrderData,
 	DailyOrderData,
 	PopularItemTrend,
+	BillResponseDto,
 } from './dtos/response';
 import { ClientProxy } from '@nestjs/microservices/client/client-proxy';
 import { firstValueFrom } from 'rxjs';
@@ -1977,5 +1979,123 @@ export class OrderService implements OnModuleDestroy {
 		}
 
 		return trends;
+	}
+
+	// ==================== BILL GENERATION ====================
+
+	/**
+	 * Generate bill for an order
+	 *
+	 * Creates a comprehensive bill/invoice document for an order.
+	 * Contains all order details, itemized breakdown, and payment information.
+	 *
+	 * Business Rules:
+	 * - Order must exist and belong to the tenant
+	 * - Can generate bill for any order (typically after payment)
+	 * - Bill is a snapshot at generation time
+	 *
+	 * Use Cases:
+	 * - Generate receipt after successful payment
+	 * - Customer requests invoice
+	 * - Print receipt for records
+	 * - Email receipt to customer
+	 *
+	 * @param dto - GenerateBillRequestDto with tenantId and orderId
+	 * @returns BillResponseDto - Complete bill document
+	 */
+	async generateBill(dto: any): Promise<any> {
+		this.logger.log(
+			`📄 Generating bill for order: ${dto.orderId} (Tenant: ${dto.tenantId})`,
+		);
+
+		// Validate API key
+		const expectedApiKey = this.configService.get<string>('ORDER_API_KEY');
+		if (dto.orderApiKey !== expectedApiKey) {
+			throw new AppException(ErrorCode.UNAUTHORIZED, 'Invalid API key');
+		}
+
+		// Get the order with all items
+		const order = await this.orderRepository.findOne({
+			where: {
+				id: dto.orderId,
+				tenantId: dto.tenantId,
+			},
+			relations: ['items'],
+		});
+
+		if (!order) {
+			throw new AppException(ErrorCode.ORDER_NOT_FOUND, 'Order not found');
+		}
+
+		const now = new Date();
+
+		// Build bill items from order items
+		const billItems = order.items.map((item) => ({
+			id: item.id,
+			menuItemId: item.menuItemId,
+			name: item.name,
+			description: item.description || undefined,
+			unitPrice: item.unitPrice,
+			quantity: item.quantity,
+			subtotal: item.subtotal,
+			modifiers: item.modifiers || undefined,
+			modifiersTotal: item.modifiersTotal,
+			total: item.total,
+			notes: item.notes || undefined,
+			status: OrderItemStatusLabels[item.status] || 'UNKNOWN',
+			currency: item.currency,
+		}));
+
+		// Calculate total modifiers
+		const totalModifiers = order.items.reduce(
+			(sum, item) => sum + item.modifiersTotal,
+			0,
+		);
+
+		// Calculate total quantity
+		const totalQuantity = order.items.reduce((sum, item) => sum + item.quantity, 0);
+
+		// Build bill response
+		const bill = {
+			tenant: {
+				tenantId: order.tenantId,
+			},
+			order: {
+				orderId: order.id,
+				tableId: order.tableId,
+				customerId: order.customerId || undefined,
+				customerName: order.customerName || undefined,
+				orderType: orderTypeToString(order.orderType),
+				status: orderStatusToString(order.status),
+				notes: order.notes || undefined,
+				waiterId: order.waiterId || undefined,
+				createdAt: order.createdAt,
+				completedAt: order.completedAt || undefined,
+				generatedAt: now,
+			},
+			items: billItems,
+			summary: {
+				subtotal: order.subtotal,
+				modifiersTotal: totalModifiers,
+				tax: order.tax,
+				discount: order.discount,
+				total: order.total,
+				currency: order.currency,
+				totalItems: order.items.length,
+				totalQuantity: totalQuantity,
+			},
+			payment: {
+				paymentStatus: paymentStatusToString(order.paymentStatus),
+				paymentMethod: order.paymentMethod || undefined,
+				paymentTransactionId: order.paymentTransactionId || undefined,
+				paidAt: order.completedAt || undefined,
+			},
+			billNumber: order.id, // Using order ID as bill number
+			generatedAt: now,
+		};
+
+		this.logger.log(`✅ Bill generated successfully for order: ${order.id}`);
+
+		return bill;
 	}
 }
