@@ -78,7 +78,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/4e40e08c-675a-4825-af78-7028ac86fe69",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/66094127-3af3-4550-9f7b-a17089ad0981",
               "host": [
                 "{{baseURL}}"
               ],
@@ -88,7 +88,7 @@
                 "tenants",
                 "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "tables",
-                "4e40e08c-675a-4825-af78-7028ac86fe69"
+                "66094127-3af3-4550-9f7b-a17089ad0981"
               ]
             }
           },
@@ -4273,7 +4273,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"customerId\": \"d95e73fb-b861-40eb-ba09-eff4b79084ef\",\n  \"customerName\": \"Test Customer 1\",\n  \"orderType\": \"DINE_IN\",\n  \"notes\": \"Allergic to peanuts, please serve warm\"\n}",
+              "raw": "{\n  \"customerId\": \"d95e73fb-b861-40eb-ba09-eff4b79084ef\",\n  \"customerName\": \"Test Customer 2\",\n  \"orderType\": \"DINE_IN\",\n  \"notes\": \"Allergic to peanuts, please serve warm\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
