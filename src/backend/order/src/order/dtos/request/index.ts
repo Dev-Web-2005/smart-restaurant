@@ -1,6 +1,7 @@
 export * from './create-order-request.dto';
 export * from './get-order-request.dto';
 export * from './get-orders-request.dto';
+export * from './get-order-history-request.dto';
 export * from './add-items-to-order-request.dto';
 export * from './update-order-status-request.dto';
 export * from './update-order-items-status-request.dto';
@@ -8,3 +9,8 @@ export * from './cancel-order-request.dto';
 export * from './update-payment-status-request.dto';
 export * from './accept-items-request.dto';
 export * from './reject-items-request.dto';
+export * from './get-revenue-report-request.dto';
+export * from './get-top-items-report-request.dto';
+export * from './get-analytics-report-request.dto';
+export * from './generate-bill-request.dto';
+export * from './generate-payment-qr-request.dto';

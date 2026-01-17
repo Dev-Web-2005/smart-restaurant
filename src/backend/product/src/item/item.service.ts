@@ -94,7 +94,7 @@ export class ItemService {
 			name: dto.name,
 			description: dto.description,
 			price: dto.price,
-			currency: dto.currency || 'VND',
+			currency: dto.currency || 'USD',
 			prepTimeMinutes: dto.prepTimeMinutes,
 			status: statusValue,
 			isChefRecommended: dto.isChefRecommended ?? false,
@@ -400,6 +400,7 @@ export class ItemService {
 			prepTimeMinutes: item.prepTimeMinutes,
 			status: menuItemStatusToString(item.status),
 			isChefRecommended: item.isChefRecommended,
+			orderCount: item.orderCount,
 			photos: item.photos?.map((photo) => ({
 				id: photo.id,
 				url: photo.url,
@@ -666,11 +667,12 @@ export class ItemService {
 	async incrementOrderCount(dto: {
 		productApiKey: string;
 		tenantId: string;
-		itemIds: string[];
+		itemId: string;
+		quantity: number;
 	}): Promise<{ success: boolean; updated: number }> {
 		this.validateApiKey(dto.productApiKey);
 
-		if (!dto.itemIds || dto.itemIds.length === 0) {
+		if (!dto.itemId) {
 			return { success: true, updated: 0 };
 		}
 
@@ -679,9 +681,9 @@ export class ItemService {
 			.createQueryBuilder()
 			.update(MenuItem)
 			.set({
-				orderCount: () => '"orderCount" + 1',
+				orderCount: () => `"orderCount" + ${dto.quantity}`,
 			})
-			.where('id IN (:...itemIds)', { itemIds: dto.itemIds })
+			.where('id = :itemId', { itemId: dto.itemId })
 			.andWhere('tenantId = :tenantId', { tenantId: dto.tenantId })
 			.andWhere('deletedAt IS NULL')
 			.execute();

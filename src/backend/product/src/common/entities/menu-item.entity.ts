@@ -34,7 +34,7 @@ export class MenuItem {
 	@Column('decimal', { precision: 12, scale: 2 })
 	price: number;
 
-	@Column({ default: 'VND', length: 10 })
+	@Column({ default: 'USD', length: 10 })
 	currency: string;
 
 	@Column({ type: 'int', nullable: true })

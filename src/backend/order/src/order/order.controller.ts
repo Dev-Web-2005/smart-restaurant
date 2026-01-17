@@ -13,11 +13,17 @@ import {
 	CreateOrderRequestDto,
 	GetOrderRequestDto,
 	GetOrdersRequestDto,
+	GetOrderHistoryRequestDto,
 	AddItemsToOrderRequestDto,
 	UpdateOrderStatusRequestDto,
 	UpdateOrderItemsStatusRequestDto,
 	CancelOrderRequestDto,
 	UpdatePaymentStatusRequestDto,
+	GetRevenueReportRequestDto,
+	GetTopItemsReportRequestDto,
+	GetAnalyticsReportRequestDto,
+	GenerateBillRequestDto,
+	GeneratePaymentQrRequestDto,
 } from './dtos/request';
 import { CheckoutCartDto } from '../cart/dtos/request/checkout-cart.dto';
 
@@ -43,6 +49,9 @@ import { CheckoutCartDto } from '../cart/dtos/request/checkout-cart.dto';
  * - orders:cancel - Cancel an order
  * - orders:update-payment - Update payment status
  * - orders:checkout - Create order from cart
+ * - orders:get-revenue-report - Get revenue report by time range (REPORTS)
+ * - orders:get-top-items-report - Get top revenue items report (REPORTS)
+ * - orders:get-analytics-report - Get analytics report for dashboard (REPORTS)
  */
 @Controller()
 export class OrderController {
@@ -96,6 +105,27 @@ export class OrderController {
 		return handleRpcCall(async () => {
 			const result = await this.orderService.getOrders(dto);
 			return new HttpResponse(1000, 'Orders retrieved successfully', result);
+		});
+	}
+
+	/**
+	 * Get customer order history
+	 * RPC Pattern: 'orders:get-history'
+	 *
+	 * Returns all past orders for a specific customer account
+	 * Only available for logged-in customers (not guest customers)
+	 *
+	 * Supports filtering by:
+	 * - status (PENDING, IN_PROGRESS, COMPLETED, CANCELLED)
+	 * - paymentStatus (PENDING, PAID, etc.)
+	 * - pagination (page, limit)
+	 * - sorting (createdAt, updatedAt, total)
+	 */
+	@MessagePattern('orders:get-history')
+	async getOrderHistory(dto: GetOrderHistoryRequestDto) {
+		return handleRpcCall(async () => {
+			const result = await this.orderService.getOrderHistory(dto);
+			return new HttpResponse(1000, 'Order history retrieved successfully', result);
 		});
 	}
 
@@ -265,8 +295,113 @@ export class OrderController {
 			const result = await this.orderService.rejectItems(dto);
 			return new HttpResponse(1000, 'Items rejected successfully', result);
 		});
+	}/ ==================== REPORT ENDPOINTS ====================
+
+	/**
+	 * Get revenue report by time range
+	 * RPC Pattern: 'orders:get-revenue-report'
+	 *
+	 * Returns time-series revenue data for analytics dashboard
+	 * Supports DAILY, WEEKLY, MONTHLY, and CUSTOM time ranges
+	 */
+	@MessagePattern('orders:get-revenue-report')
+	async getRevenueReport(dto: GetRevenueReportRequestDto) {
+		return handleRpcCall(async () => {
+			const report = await this.orderService.getRevenueReport(dto);
+			return new HttpResponse(1000, 'Revenue report retrieved successfully', report);
+		});
 	}
-	*/
+
+	/**
+	 * Get top revenue items report
+	 * RPC Pattern: 'orders:get-top-items-report'
+	 *
+	 * Returns best-selling items ranked by revenue
+	 */
+	@MessagePattern('orders:get-top-items-report')
+	async getTopItemsReport(dto: GetTopItemsReportRequestDto) {
+		return handleRpcCall(async () => {
+			const report = await this.orderService.getTopItemsReport(dto);
+			return new HttpResponse(1000, 'Top items report retrieved successfully', report);
+		});
+	}
+
+	/**
+	 * Get analytics report
+	 * RPC Pattern: 'orders:get-analytics-report'
+	 *
+	 * Returns comprehensive analytics including:
+	 * - Daily orders trend
+	 * - Peak hours analysis
+	 * - Popular items trends
+	 */
+	@MessagePattern('orders:get-analytics-report')
+	async getAnalyticsReport(dto: GetAnalyticsReportRequestDto) {
+		return handleRpcCall(async () => {
+			const report = await this.orderService.getAnalyticsReport(dto);
+			return new HttpResponse(1000, 'Analytics report retrieved successfully', report);
+		});
+	}
+
+	// ==================== BILL GENERATION ====================
+
+	/**
+	 * Generate bill for an order
+	 * RPC Pattern: 'orders:generate-bill'
+	 *
+	 * Creates a comprehensive bill/invoice document for an order.
+	 * Contains all order details, itemized breakdown, and payment information.
+	 *
+	 * Business Use Cases:
+	 * - Generate receipt after successful payment
+	 * - Customer requests invoice
+	 * - Print receipt for records
+	 * - Email receipt to customer
+	 */
+	@MessagePattern('orders:generate-bill')
+	async generateBill(dto: any) {
+		return handleRpcCall(async () => {
+			const bill = await this.orderService.generateBill(dto);
+			return new HttpResponse(1000, 'Bill generated successfully', bill);
+		});
+	}
+
+	/**
+	 * Generate payment QR code for an order
+	 * RPC Pattern: 'orders:generate-payment-qr'
+	 *
+	 * Creates a QR code that leads to Stripe payment checkout.
+	 * The QR code encodes the Stripe checkout URL for customer payment.
+	 *
+	 * Business Flow:
+	 * 1. Calls payment service to create Stripe checkout session
+	 * 2. Receives Stripe checkout URL
+	 * 3. Generates QR code encoding the URL
+	 * 4. Returns QR code (base64) and payment details
+	 *
+	 * Use Cases:
+	 * - Customer scans QR code to pay for order
+	 * - Display QR code on table tablet or waiter device
+	 * - Print QR code on bill for contactless payment
+	 * - Send QR code via messaging for remote payment
+	 */
+	@MessagePattern('orders:generate-payment-qr')
+	async generatePaymentQr(dto: any) {
+		return handleRpcCall(async () => {
+			const paymentQr = await this.orderService.generatePaymentQr(dto);
+			return new HttpResponse(1000, 'Payment QR code generated successfully', paymentQr);
+		});
+	}
+
+	// ==================== EVENT HANDLERS ====================
+	@EventPattern('payment.get-state')
+	async handlePaymentState(data: { userId: string; state: number }) {
+		// Handle payment state update events from Payment Service
+		await this.orderService.processPaymentStateUpdate({
+			orderId: data.userId,
+			state: data.state,
+		});
+	}
 
 	/**
 	 * EVENT: Handle Dead Letter Queue messages
