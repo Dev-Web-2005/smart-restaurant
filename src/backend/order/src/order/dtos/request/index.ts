@@ -12,3 +12,4 @@ export * from './reject-items-request.dto';
 export * from './get-revenue-report-request.dto';
 export * from './get-top-items-report-request.dto';
 export * from './get-analytics-report-request.dto';
+export * from './generate-bill-request.dto';

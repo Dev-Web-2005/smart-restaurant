@@ -3533,6 +3533,42 @@
 						"description": "Get comprehensive analytics report for admin dashboard with multiple chart data.\n\n**Authentication Required:**\n- Must be logged-in tenant admin (USER role)\n- Bearer token required\n- API key required\n\n**Use Cases:**\n- Analytics dashboard with multiple visualizations\n- Operational insights for staffing decisions\n- Trend analysis for menu items\n- Business performance overview\n- Peak hour analysis for resource allocation\n\n**Query Parameters:**\n- startDate: ISO date string (optional, default: 30 days ago)\n- endDate: ISO date string (optional, default: now)\n- paymentStatus: PAID | PENDING | etc. (default: PAID)\n\n**Response Includes:**\n1. **dailyOrders**: Daily order trends (date, dayOfWeek, orderCount, totalRevenue, averageOrderValue)\n2. **peakHours**: 24-hour distribution (hour, hourLabel, orderCount, totalRevenue, averageOrderValue)\n3. **popularItems**: Top 5 items with daily trends (menuItemId, menuItemName, dailyData[])\n4. **summary**: Overall statistics (totalOrders, totalRevenue, averageOrderValue, peakHour, busiestDay)\n5. **metadata**: Chart configurations for each visualization type\n\n**Chart Types Supported:**\n- Daily Orders: Line chart or Bar chart\n- Peak Hours: Bar chart or Radar chart\n- Popular Items: Line chart or Area chart\n\n**Frontend Integration:**\n- Chart.js ready format\n- Recharts ready format\n- All data pre-formatted with labels\n- Optimized for real-time dashboard updates"
 					},
 					"response": []
+				},
+				{
+					"name": "Generate Bill",
+					"id": "generate-bill-001",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{x-api-key}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/:orderId/bill",
+							"host": ["{{baseURL}}"],
+							"path": [
+								"api",
+								"v1",
+								"tenants",
+								"d95e73fb-b861-40eb-ba09-eff4b79084ef",
+								"orders",
+								":orderId",
+								"bill"
+							],
+							"variable": [
+								{
+									"key": "orderId",
+									"value": "{{orderId}}",
+									"description": "UUID of the order to generate bill for"
+								}
+							]
+						},
+						"description": "Generate a comprehensive bill/invoice for a specific order.\n\n**Authentication:**\n- No authentication required (public bill access)\n- Can be restricted to STAFF/USER roles if needed (currently commented out in controller)\n- API key required\n\n**Use Cases:**\n- Generate receipt after successful payment\n- Customer requests invoice/receipt\n- Print bill for customer records\n- Email receipt to customer\n- Tax/accounting documentation\n- Download PDF receipt\n- Display bill in customer app\n\n**Path Parameters:**\n- tenantId: UUID of the tenant (restaurant)\n- orderId: UUID of the order to generate bill for\n\n**Response Structure:**\n```json\n{\n  \"tenant\": {\n    \"tenantId\": \"uuid\"\n  },\n  \"order\": {\n    \"orderId\": \"uuid\",\n    \"tableId\": \"uuid\",\n    \"customerId\": \"uuid\",\n    \"customerName\": \"John Doe\",\n    \"orderType\": \"DINE_IN\",\n    \"status\": \"COMPLETED\",\n    \"notes\": \"Allergic to peanuts\",\n    \"waiterId\": \"uuid\",\n    \"createdAt\": \"2026-01-17T10:00:00Z\",\n    \"completedAt\": \"2026-01-17T11:30:00Z\",\n    \"generatedAt\": \"2026-01-17T11:35:00Z\"\n  },\n  \"items\": [\n    {\n      \"id\": \"uuid\",\n      \"menuItemId\": \"uuid\",\n      \"name\": \"Burger\",\n      \"description\": \"Classic beef burger\",\n      \"unitPrice\": 100000,\n      \"quantity\": 2,\n      \"subtotal\": 200000,\n      \"modifiers\": [\n        {\n          \"optionId\": \"uuid\",\n          \"name\": \"Extra Cheese\",\n          \"price\": 10000\n        }\n      ],\n      \"modifiersTotal\": 20000,\n      \"total\": 220000,\n      \"notes\": \"Well done\",\n      \"status\": \"SERVED\",\n      \"currency\": \"VND\"\n    }\n  ],\n  \"summary\": {\n    \"subtotal\": 200000,\n    \"modifiersTotal\": 20000,\n    \"tax\": 22000,\n    \"discount\": 0,\n    \"total\": 242000,\n    \"currency\": \"VND\",\n    \"totalItems\": 1,\n    \"totalQuantity\": 2\n  },\n  \"payment\": {\n    \"paymentStatus\": \"PAID\",\n    \"paymentMethod\": \"ZALOPAY\",\n    \"paymentTransactionId\": \"ZALO123456789\",\n    \"paidAt\": \"2026-01-17T11:30:00Z\"\n  },\n  \"billNumber\": \"uuid\",\n  \"generatedAt\": \"2026-01-17T11:35:00Z\"\n}\n```\n\n**Frontend Integration:**\n- Render as HTML receipt with CSS styling\n- Convert to PDF using libraries:\n  - jsPDF (client-side PDF generation)\n  - react-pdf (React component for PDF)\n  - pdfmake (PDF document generation)\n- Format for thermal printer (58mm or 80mm)\n- Send to customer email as attachment\n- Display in modal/page for customer review\n- Save as invoice for accounting\n\n**Printer-Friendly:**\n- Contains all line items with clear pricing\n- Shows modifiers and special instructions\n- Includes taxes and discounts breakdown\n- Payment method and transaction ID for reference\n- Timestamps for audit trail\n\n**Business Use:**\n- Customer receipt after payment\n- Invoice for corporate customers\n- Tax documentation (VAT receipts)\n- Accounting and bookkeeping\n- Dispute resolution reference\n- Order history documentation"
+					},
+					"response": []
 				}
 			],
 			"id": "96d51aaf-d0f5-4156-a4b9-2f72854f97e9"

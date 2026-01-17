@@ -22,6 +22,7 @@ import {
 	GetRevenueReportRequestDto,
 	GetTopItemsReportRequestDto,
 	GetAnalyticsReportRequestDto,
+	GenerateBillRequestDto,
 } from './dtos/request';
 import { CheckoutCartDto } from '../cart/dtos/request/checkout-cart.dto';
 
@@ -340,6 +341,31 @@ export class OrderController {
 			return new HttpResponse(1000, 'Analytics report retrieved successfully', report);
 		});
 	}
+
+	// ==================== BILL GENERATION ====================
+
+	/**
+	 * Generate bill for an order
+	 * RPC Pattern: 'orders:generate-bill'
+	 *
+	 * Creates a comprehensive bill/invoice document for an order.
+	 * Contains all order details, itemized breakdown, and payment information.
+	 *
+	 * Business Use Cases:
+	 * - Generate receipt after successful payment
+	 * - Customer requests invoice
+	 * - Print receipt for records
+	 * - Email receipt to customer
+	 */
+	@MessagePattern('orders:generate-bill')
+	async generateBill(dto: any) {
+		return handleRpcCall(async () => {
+			const bill = await this.orderService.generateBill(dto);
+			return new HttpResponse(1000, 'Bill generated successfully', bill);
+		});
+	}
+
+	// ==================== EVENT HANDLERS ====================
 
 	/**
 	 * EVENT: Handle Dead Letter Queue messages
