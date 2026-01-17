@@ -2031,6 +2031,16 @@ export class OrderService implements OnModuleDestroy {
 			throw new AppException(ErrorCode.ORDER_NOT_FOUND);
 		}
 
+		if (order.paymentStatus !== PaymentStatus.PAID) {
+			this.logger.warn(
+				`⚠️ Generating bill for unpaid order: ${order.id} (Payment Status: ${paymentStatusToString(
+					order.paymentStatus,
+				)})`,
+			);
+
+			throw new AppException(ErrorCode.ORDER_NOT_PAID);
+		}
+
 		// Set orderStatus to 'completed' if not already
 		if (order.status !== OrderStatus.COMPLETED) {
 			this.logger.log(
