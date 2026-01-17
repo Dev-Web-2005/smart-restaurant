@@ -26,22 +26,41 @@ import {
 	CreateOrderRequestDto,
 	GetOrderRequestDto,
 	GetOrdersRequestDto,
+	GetOrderHistoryRequestDto,
 	AddItemsToOrderRequestDto,
 	UpdateOrderStatusRequestDto,
 	UpdateOrderItemsStatusRequestDto,
 	CancelOrderRequestDto,
 	UpdatePaymentStatusRequestDto,
 	CreateOrderItemDto,
+	GetRevenueReportRequestDto,
+	GetTopItemsReportRequestDto,
+	GetAnalyticsReportRequestDto,
+	ReportTimeRange,
+	GenerateBillRequestDto,
+	GeneratePaymentQrRequestDto,
 } from './dtos/request';
 import {
 	OrderResponseDto,
 	PaginatedOrdersResponseDto,
 	OrderItemResponseDto,
+	RevenueReportResponseDto,
+	RevenueDataPoint,
+	TopItemsReportResponseDto,
+	TopItemData,
+	AnalyticsReportResponseDto,
+	HourlyOrderData,
+	DailyOrderData,
+	PopularItemTrend,
+	BillResponseDto,
+	PaymentQrResponseDto,
 } from './dtos/response';
 import { ClientProxy } from '@nestjs/microservices/client/client-proxy';
 import { firstValueFrom } from 'rxjs';
 import { CartService } from 'src/cart/cart.service';
 import * as amqp from 'amqplib';
+import * as QRCode from 'qrcode';
+import axios from 'axios';
 
 @Injectable()
 export class OrderService implements OnModuleDestroy {
@@ -56,6 +75,7 @@ export class OrderService implements OnModuleDestroy {
 		private readonly orderItemRepository: Repository<OrderItem>,
 		private readonly cartService: CartService,
 		@Inject('PRODUCT_SERVICE') private readonly productClient: ClientProxy,
+		@Inject('TABLE_SERVICE') private readonly tableClient: ClientProxy,
 		private readonly configService: ConfigService,
 		@Inject('ORDER_EVENTS') private readonly orderEventsClient: ClientProxy,
 		private readonly eventEmitter: EventEmitter2,
@@ -152,6 +172,55 @@ export class OrderService implements OnModuleDestroy {
 	}
 
 	/**
+	 * Fetch table snapshot data from Table Service
+	 * Returns denormalized table info for order persistence
+	 */
+	private async fetchTableSnapshot(
+		tenantId: string,
+		tableId: string,
+	): Promise<{
+		snapshotTableName?: string;
+		snapshotFloorName?: string;
+		snapshotFloorNumber?: number;
+	}> {
+		try {
+			// Call Table Service to get table details with floor info
+			const tableResponse = await firstValueFrom(
+				this.tableClient.send('tables:get-by-id', {
+					tenantId,
+					tableId,
+					includeFloor: true, // Request floor relationship
+					tableApiKey: this.configService.get<string>('TABLE_API_KEY'),
+				}),
+			);
+
+			// ✅ Table Service returns TableDto directly (not wrapped in { data: ... })
+			if (tableResponse) {
+				this.logger.log(
+					`✅ Fetched table snapshot: ${tableResponse.name} (Floor: ${tableResponse.floor?.name || 'N/A'})`,
+				);
+				return {
+					snapshotTableName: tableResponse.name || null,
+					snapshotFloorName: tableResponse.floor?.name || null,
+					snapshotFloorNumber: tableResponse.floor?.floorNumber || null,
+				};
+			}
+
+			// If table not found or no data, return empty snapshot
+			this.logger.warn(
+				`⚠️ Table ${tableId} not found in Table Service - saving order without table snapshot`,
+			);
+			return {};
+		} catch (error) {
+			// Non-critical: Don't block order creation if Table Service is down
+			this.logger.error(
+				`❌ Failed to fetch table snapshot for ${tableId}: ${error.message}`,
+			);
+			return {};
+		}
+	}
+
+	/**
 	 * Create a new order
 	 *
 	 * Business Rules:
@@ -187,6 +256,9 @@ export class OrderService implements OnModuleDestroy {
 			? orderTypeFromString(dto.orderType)
 			: OrderType.DINE_IN;
 
+		// 🆕 DATA ENRICHMENT: Fetch table snapshot for denormalization
+		const tableSnapshot = await this.fetchTableSnapshot(dto.tenantId, dto.tableId);
+
 		// Create order
 		const order = this.orderRepository.create({
 			tenantId: dto.tenantId,
@@ -197,11 +269,13 @@ export class OrderService implements OnModuleDestroy {
 			status: OrderStatus.PENDING,
 			paymentStatus: PaymentStatus.PENDING,
 			notes: dto.notes,
-			currency: 'VND',
+			currency: 'USD',
 			subtotal: 0,
 			tax: 0,
 			discount: 0,
 			total: 0,
+			// 🆕 Save table snapshot (hard save for display)
+			...tableSnapshot,
 		});
 
 		await this.orderRepository.save(order); // Save to get ID (otherwise FK fails)
@@ -303,6 +377,9 @@ export class OrderService implements OnModuleDestroy {
 				? orderTypeFromString(dto.orderType)
 				: OrderType.DINE_IN;
 
+			// 🆕 DATA ENRICHMENT: Fetch table snapshot for denormalization
+			const tableSnapshot = await this.fetchTableSnapshot(dto.tenantId, dto.tableId);
+
 			currentOrder = this.orderRepository.create({
 				tenantId: dto.tenantId,
 				tableId: dto.tableId,
@@ -312,11 +389,13 @@ export class OrderService implements OnModuleDestroy {
 				status: OrderStatus.PENDING,
 				paymentStatus: PaymentStatus.PENDING,
 				notes: dto.notes,
-				currency: 'VND',
+				currency: 'USD',
 				subtotal: 0,
 				tax: 0,
 				discount: 0,
 				total: 0,
+				// 🆕 Save table snapshot (hard save for display)
+				...tableSnapshot,
 			});
 
 			// Save order first to get ID for foreign key
@@ -382,7 +461,7 @@ export class OrderService implements OnModuleDestroy {
 						modifierOptionId: modDto.modifierOptionId,
 						optionName: modifierOption.label,
 						price: modifierOption.priceDelta, // REAL price from Product Service
-						currency: 'VND',
+						currency: 'USD',
 					};
 
 					validatedModifiers.push(orderItemModifier);
@@ -408,7 +487,7 @@ export class OrderService implements OnModuleDestroy {
 				total: total,
 				modifiers: validatedModifiers,
 				notes: cartItem.notes,
-				currency: 'VND',
+				currency: 'USD',
 				status: OrderItemStatus.PENDING, // Set initial item status
 			});
 
@@ -541,6 +620,68 @@ export class OrderService implements OnModuleDestroy {
 
 		// Get total count and paginated results
 		const [orders, total] = await queryBuilder.skip(skip).take(limit).getManyAndCount();
+
+		return {
+			orders: orders.map((order) => this.mapToOrderResponse(order)),
+			total,
+			page,
+			limit,
+			totalPages: Math.ceil(total / limit),
+		};
+	}
+
+	/**
+	 * Get customer order history
+	 *
+	 * Returns all past orders linked to a customer account
+	 * Only available for logged-in customers (not guest customers)
+	 *
+	 * Business Rules:
+	 * - Customer must have customerId (logged in)
+	 * - Returns orders sorted by createdAt DESC (newest first)
+	 * - Supports pagination and filtering
+	 * - Includes order items for detailed history
+	 */
+	async getOrderHistory(
+		dto: GetOrderHistoryRequestDto,
+	): Promise<PaginatedOrdersResponseDto> {
+		this.validateApiKey(dto.orderApiKey);
+
+		const page = dto.page || 1;
+		const limit = dto.limit || 20;
+		const skip = (page - 1) * limit;
+
+		// Build query - filter by customerId
+		const queryBuilder = this.orderRepository
+			.createQueryBuilder('order')
+			.leftJoinAndSelect('order.items', 'items')
+			.where('order.tenantId = :tenantId', { tenantId: dto.tenantId })
+			.andWhere('order.customerId = :customerId', { customerId: dto.customerId });
+
+		// Apply optional filters
+		if (dto.status) {
+			const statusEnum = orderStatusFromString(dto.status);
+			queryBuilder.andWhere('order.status = :status', { status: statusEnum });
+		}
+
+		if (dto.paymentStatus) {
+			const paymentStatusEnum = paymentStatusFromString(dto.paymentStatus);
+			queryBuilder.andWhere('order.paymentStatus = :paymentStatus', {
+				paymentStatus: paymentStatusEnum,
+			});
+		}
+
+		// Apply sorting - default to newest first
+		const sortBy = dto.sortBy || 'createdAt';
+		const sortOrder = dto.sortOrder || 'DESC';
+		queryBuilder.orderBy(`order.${sortBy}`, sortOrder);
+
+		// Get total count and paginated results
+		const [orders, total] = await queryBuilder.skip(skip).take(limit).getManyAndCount();
+
+		this.logger.log(
+			`Retrieved ${orders.length} order history records for customer ${dto.customerId}`,
+		);
 
 		return {
 			orders: orders.map((order) => this.mapToOrderResponse(order)),
@@ -986,7 +1127,7 @@ export class OrderService implements OnModuleDestroy {
 					// 	modifierOptionId: modDto.modifierOptionId,
 					// 	optionName: 'Modifier Option', // Fetch from product service
 					// 	price: 5000, // Fetch from product service
-					// 	currency: 'VND',
+					// 	currency: 'USD',
 					// };
 					const modifierGroupResponse = await firstValueFrom(
 						this.productClient.send('modifier-groups:get', {
@@ -1014,7 +1155,7 @@ export class OrderService implements OnModuleDestroy {
 						modifierOptionId: modDto.modifierOptionId,
 						optionName: modifierOption.label,
 						price: modifierOption.priceDelta,
-						currency: 'VND',
+						currency: 'USD',
 					};
 
 					modifiers.push(orderItemModifier);
@@ -1035,7 +1176,7 @@ export class OrderService implements OnModuleDestroy {
 				subtotal: subtotal,
 				modifiersTotal: modifiersTotal,
 				total: total,
-				currency: 'VND',
+				currency: 'USD',
 				status: OrderItemStatus.PENDING, // Set initial item status
 				modifiers: modifiers,
 				notes: itemDto.notes,
@@ -1276,6 +1417,10 @@ export class OrderService implements OnModuleDestroy {
 			id: order.id,
 			tenantId: order.tenantId,
 			tableId: order.tableId,
+			// 🆕 Table snapshot fields (denormalized for display)
+			snapshotTableName: order.snapshotTableName,
+			snapshotFloorName: order.snapshotFloorName,
+			snapshotFloorNumber: order.snapshotFloorNumber,
 			customerId: order.customerId,
 			customerName: order.customerName,
 			orderType: orderTypeToString(order.orderType),
@@ -1327,5 +1472,906 @@ export class OrderService implements OnModuleDestroy {
 			createdAt: item.createdAt,
 			updatedAt: item.updatedAt,
 		};
+	}
+
+	// ==================== REPORT FEATURES ====================
+
+	/**
+	 * Get revenue report by time range
+	 *
+	 * Returns time-series revenue data grouped by:
+	 * - DAILY: Revenue per day
+	 * - WEEKLY: Revenue per week
+	 * - MONTHLY: Revenue per month
+	 * - CUSTOM: Custom date range with daily grouping
+	 *
+	 * Only counts PAID orders by default
+	 */
+	async getRevenueReport(
+		dto: GetRevenueReportRequestDto,
+	): Promise<RevenueReportResponseDto> {
+		this.validateApiKey(dto.orderApiKey);
+
+		// Calculate date range based on time range type
+		const { startDate, endDate } = this.calculateDateRange(dto);
+
+		// Build query with payment status filter
+		const paymentStatusFilter = dto.paymentStatus || 'PAID';
+
+		// Query orders in date range
+		const orders = await this.orderRepository
+			.createQueryBuilder('order')
+			.where('order.tenantId = :tenantId', { tenantId: dto.tenantId })
+			.andWhere('order.createdAt BETWEEN :startDate AND :endDate', {
+				startDate,
+				endDate,
+			})
+			.andWhere('order.paymentStatus = :paymentStatus', {
+				paymentStatus: paymentStatusFromString(paymentStatusFilter),
+			})
+			.orderBy('order.createdAt', 'ASC')
+			.getMany();
+
+		// Group data by time period
+		const dataPoints = this.groupRevenueByPeriod(
+			orders,
+			dto.timeRange,
+			startDate,
+			endDate,
+		);
+
+		// Calculate summary
+		const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+		const totalOrders = orders.length;
+		const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+		// Determine chart metadata based on time range
+		const metadata = this.getRevenueChartMetadata(dto.timeRange);
+
+		return {
+			data: dataPoints,
+			summary: {
+				totalRevenue,
+				totalOrders,
+				averageOrderValue,
+				currency: 'USD',
+				timeRange: dto.timeRange,
+				startDate: startDate.toISOString(),
+				endDate: endDate.toISOString(),
+			},
+			metadata,
+		};
+	}
+
+	/**
+	 * Get top revenue items report
+	 *
+	 * Returns best-selling items ranked by revenue
+	 * Useful for identifying popular menu items
+	 */
+	async getTopItemsReport(
+		dto: GetTopItemsReportRequestDto,
+	): Promise<TopItemsReportResponseDto> {
+		this.validateApiKey(dto.orderApiKey);
+
+		// Calculate date range (default: last 30 days)
+		const endDate = dto.endDate ? new Date(dto.endDate) : new Date();
+		const startDate = dto.startDate
+			? new Date(dto.startDate)
+			: new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+		const paymentStatusFilter = dto.paymentStatus || 'PAID';
+		const limit = dto.limit || 10;
+
+		// Query order items with aggregation
+		const topItems = await this.orderItemRepository
+			.createQueryBuilder('item')
+			.select('item.menuItemId', 'menuItemId')
+			.addSelect('item.name', 'menuItemName')
+			.addSelect('SUM(item.quantity)', 'totalquantity')
+			.addSelect('SUM(item.total)', 'totalrevenue')
+			.addSelect('COUNT(DISTINCT item.orderId)', 'ordercount')
+			.addSelect('AVG(item.unitPrice)', 'averageprice')
+			.innerJoin('item.order', 'order')
+			.where('order.tenantId = :tenantId', { tenantId: dto.tenantId })
+			.andWhere('order.createdAt BETWEEN :startDate AND :endDate', {
+				startDate,
+				endDate,
+			})
+			.andWhere('order.paymentStatus = :paymentStatus', {
+				paymentStatus: paymentStatusFromString(paymentStatusFilter),
+			})
+			.groupBy('item.menuItemId')
+			.addGroupBy('item.name')
+			.orderBy('totalrevenue', 'DESC')
+			.limit(limit)
+			.getRawMany();
+
+		// Transform to response format
+		const formattedTopItems: TopItemData[] = topItems.map((item) => ({
+			menuItemId: item.menuItemId,
+			menuItemName: item.menuItemName,
+			totalQuantity: parseInt(item.totalquantity),
+			totalRevenue: parseFloat(item.totalrevenue),
+			orderCount: parseInt(item.ordercount),
+			averagePrice: parseFloat(item.averageprice),
+			currency: 'USD',
+		}));
+
+		// Calculate summary
+		const totalRevenue = formattedTopItems.reduce(
+			(sum, item) => sum + item.totalRevenue,
+			0,
+		);
+		const totalQuantity = formattedTopItems.reduce(
+			(sum, item) => sum + item.totalQuantity,
+			0,
+		);
+
+		return {
+			topItems: formattedTopItems,
+			summary: {
+				totalItems: formattedTopItems.length,
+				totalRevenue,
+				totalQuantity,
+				currency: 'USD',
+				dateRange: {
+					startDate: startDate.toISOString(),
+					endDate: endDate.toISOString(),
+				},
+			},
+		};
+	}
+
+	/**
+	 * Get analytics report
+	 *
+	 * Returns comprehensive chart data including:
+	 * - Daily orders trend
+	 * - Peak hours analysis
+	 * - Popular items trends
+	 */
+	async getAnalyticsReport(
+		dto: GetAnalyticsReportRequestDto,
+	): Promise<AnalyticsReportResponseDto> {
+		this.validateApiKey(dto.orderApiKey);
+
+		// Calculate date range (default: last 30 days)
+		const endDate = dto.endDate ? new Date(dto.endDate) : new Date();
+		const startDate = dto.startDate
+			? new Date(dto.startDate)
+			: new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+		const paymentStatusFilter = dto.paymentStatus || 'PAID';
+
+		// Query all orders in range
+		const orders = await this.orderRepository
+			.createQueryBuilder('order')
+			.leftJoinAndSelect('order.items', 'items')
+			.where('order.tenantId = :tenantId', { tenantId: dto.tenantId })
+			.andWhere('order.createdAt BETWEEN :startDate AND :endDate', {
+				startDate,
+				endDate,
+			})
+			.andWhere('order.paymentStatus = :paymentStatus', {
+				paymentStatus: paymentStatusFromString(paymentStatusFilter),
+			})
+			.orderBy('order.createdAt', 'ASC')
+			.getMany();
+
+		// 1. Daily orders analysis
+		const dailyOrders = this.analyzeDailyOrders(orders);
+
+		// 2. Peak hours analysis
+		const peakHours = this.analyzePeakHours(orders);
+
+		// 3. Popular items trends (top 5)
+		const popularItems = await this.analyzePopularItems(
+			dto.tenantId,
+			startDate,
+			endDate,
+			paymentStatusFilter,
+		);
+
+		// Calculate summary
+		const totalOrders = orders.length;
+		const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+		const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+		// Find peak hour
+		const peakHourData = peakHours.reduce((max, hour) =>
+			hour.orderCount > max.orderCount ? hour : max,
+		);
+
+		// Find busiest day
+		const busiestDayData = dailyOrders.reduce((max, day) =>
+			day.orderCount > max.orderCount ? day : max,
+		);
+
+		return {
+			dailyOrders,
+			peakHours,
+			popularItems,
+			summary: {
+				totalOrders,
+				totalRevenue,
+				averageOrderValue,
+				peakHour: {
+					hour: peakHourData.hour,
+					hourLabel: peakHourData.hourLabel,
+					orderCount: peakHourData.orderCount,
+				},
+				busiestDay: {
+					date: busiestDayData.date,
+					dayOfWeek: busiestDayData.dayOfWeek,
+					orderCount: busiestDayData.orderCount,
+				},
+				currency: 'USD',
+				dateRange: {
+					startDate: startDate.toISOString(),
+					endDate: endDate.toISOString(),
+				},
+			},
+			metadata: {
+				charts: {
+					dailyOrders: {
+						type: 'line',
+						xAxisLabel: 'Date',
+						yAxisLabel: 'Number of Orders',
+					},
+					peakHours: {
+						type: 'bar',
+						xAxisLabel: 'Hour',
+						yAxisLabel: 'Number of Orders',
+					},
+					popularItems: {
+						type: 'line',
+						xAxisLabel: 'Date',
+						yAxisLabel: 'Quantity Sold',
+					},
+				},
+			},
+		};
+	}
+
+	// ==================== HELPER METHODS FOR REPORTS ====================
+
+	/**
+	 * Calculate start and end dates based on time range type
+	 */
+	private calculateDateRange(dto: GetRevenueReportRequestDto): {
+		startDate: Date;
+		endDate: Date;
+	} {
+		const now = new Date();
+		let startDate: Date;
+		let endDate: Date = new Date(now); // Default to now
+
+		switch (dto.timeRange) {
+			case ReportTimeRange.DAILY:
+				// Last 30 days
+				startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+				break;
+
+			case ReportTimeRange.WEEKLY:
+				// Last 12 weeks (84 days)
+				startDate = new Date(now.getTime() - 84 * 24 * 60 * 60 * 1000);
+				break;
+
+			case ReportTimeRange.MONTHLY:
+				// Last 12 months
+				startDate = new Date(now);
+				startDate.setMonth(now.getMonth() - 12);
+				break;
+
+			case ReportTimeRange.CUSTOM:
+				if (!dto.startDate || !dto.endDate) {
+					throw new AppException(ErrorCode.INVALID_INPUT);
+				}
+				startDate = new Date(dto.startDate);
+				endDate = new Date(dto.endDate);
+				break;
+
+			default:
+				throw new AppException(ErrorCode.INVALID_INPUT);
+		}
+
+		return { startDate, endDate };
+	}
+
+	/**
+	 * Group revenue data by time period
+	 */
+	private groupRevenueByPeriod(
+		orders: Order[],
+		timeRange: ReportTimeRange,
+		startDate: Date,
+		endDate: Date,
+	): RevenueDataPoint[] {
+		const dataMap = new Map<string, RevenueDataPoint>();
+
+		// Initialize all periods in range with zero values
+		const current = new Date(startDate);
+		while (current <= endDate) {
+			const periodKey = this.getPeriodKey(current, timeRange);
+			if (!dataMap.has(periodKey)) {
+				dataMap.set(periodKey, {
+					period: periodKey,
+					date: new Date(current),
+					orderCount: 0,
+					totalRevenue: 0,
+					averageOrderValue: 0,
+					currency: 'USD',
+				});
+			}
+
+			// Increment based on time range
+			if (timeRange === ReportTimeRange.MONTHLY) {
+				current.setMonth(current.getMonth() + 1);
+			} else if (timeRange === ReportTimeRange.WEEKLY) {
+				current.setDate(current.getDate() + 7);
+			} else {
+				current.setDate(current.getDate() + 1);
+			}
+		}
+
+		// Aggregate orders into periods
+		orders.forEach((order) => {
+			const periodKey = this.getPeriodKey(order.createdAt, timeRange);
+			const dataPoint = dataMap.get(periodKey);
+
+			if (dataPoint) {
+				dataPoint.orderCount++;
+				dataPoint.totalRevenue += order.total;
+			}
+		});
+
+		// Calculate averages
+		dataMap.forEach((dataPoint) => {
+			if (dataPoint.orderCount > 0) {
+				dataPoint.averageOrderValue = dataPoint.totalRevenue / dataPoint.orderCount;
+			}
+		});
+
+		return Array.from(dataMap.values()).sort(
+			(a, b) => a.date.getTime() - b.date.getTime(),
+		);
+	}
+
+	/**
+	 * Get period key for grouping (date string format)
+	 */
+	private getPeriodKey(date: Date, timeRange: ReportTimeRange): string {
+		const d = new Date(date);
+
+		switch (timeRange) {
+			case ReportTimeRange.DAILY:
+			case ReportTimeRange.CUSTOM:
+				// Format: "2026-01-17"
+				return d.toISOString().split('T')[0];
+
+			case ReportTimeRange.WEEKLY:
+				// Format: "2026-W03" (ISO week)
+				const weekNumber = this.getWeekNumber(d);
+				return `${d.getFullYear()}-W${String(weekNumber).padStart(2, '0')}`;
+
+			case ReportTimeRange.MONTHLY:
+				// Format: "2026-01"
+				return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+			default:
+				return d.toISOString().split('T')[0];
+		}
+	}
+
+	/**
+	 * Get ISO week number
+	 */
+	private getWeekNumber(date: Date): number {
+		const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+		const dayNum = d.getUTCDay() || 7;
+		d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+		const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+		return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+	}
+
+	/**
+	 * Get chart metadata based on time range
+	 */
+	private getRevenueChartMetadata(timeRange: ReportTimeRange): {
+		chartType: 'line' | 'bar' | 'area';
+		xAxisLabel: string;
+		yAxisLabel: string;
+		dataKeys: string[];
+	} {
+		const metadata = {
+			chartType: 'line' as const,
+			yAxisLabel: 'Revenue (USD)',
+			dataKeys: ['totalRevenue', 'orderCount', 'averageOrderValue'],
+			xAxisLabel: 'Date',
+		};
+
+		switch (timeRange) {
+			case ReportTimeRange.WEEKLY:
+				metadata.xAxisLabel = 'Week';
+				break;
+			case ReportTimeRange.MONTHLY:
+				metadata.xAxisLabel = 'Month';
+				break;
+			default:
+				metadata.xAxisLabel = 'Date';
+		}
+
+		return metadata;
+	}
+
+	/**
+	 * Analyze daily orders
+	 */
+	private analyzeDailyOrders(orders: Order[]): DailyOrderData[] {
+		const dailyMap = new Map<string, DailyOrderData>();
+
+		orders.forEach((order) => {
+			const dateStr = order.createdAt.toISOString().split('T')[0];
+			const dayOfWeek = [
+				'Sunday',
+				'Monday',
+				'Tuesday',
+				'Wednesday',
+				'Thursday',
+				'Friday',
+				'Saturday',
+			][order.createdAt.getDay()];
+
+			if (!dailyMap.has(dateStr)) {
+				dailyMap.set(dateStr, {
+					date: dateStr,
+					dayOfWeek,
+					orderCount: 0,
+					totalRevenue: 0,
+					averageOrderValue: 0,
+				});
+			}
+
+			const dayData = dailyMap.get(dateStr);
+			dayData.orderCount++;
+			dayData.totalRevenue += order.total;
+		});
+
+		// Calculate averages
+		dailyMap.forEach((dayData) => {
+			dayData.averageOrderValue = dayData.totalRevenue / dayData.orderCount;
+		});
+
+		return Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+	}
+
+	/**
+	 * Analyze peak hours (24-hour distribution)
+	 */
+	private analyzePeakHours(orders: Order[]): HourlyOrderData[] {
+		const hourlyMap = new Map<number, HourlyOrderData>();
+
+		// Initialize all 24 hours
+		for (let hour = 0; hour < 24; hour++) {
+			hourlyMap.set(hour, {
+				hour,
+				hourLabel: `${String(hour).padStart(2, '0')}:00`,
+				orderCount: 0,
+				totalRevenue: 0,
+				averageOrderValue: 0,
+			});
+		}
+
+		// Aggregate by hour
+		orders.forEach((order) => {
+			const hour = order.createdAt.getHours();
+			const hourData = hourlyMap.get(hour);
+
+			hourData.orderCount++;
+			hourData.totalRevenue += order.total;
+		});
+
+		// Calculate averages
+		hourlyMap.forEach((hourData) => {
+			if (hourData.orderCount > 0) {
+				hourData.averageOrderValue = hourData.totalRevenue / hourData.orderCount;
+			}
+		});
+
+		return Array.from(hourlyMap.values());
+	}
+
+	/**
+	 * Analyze popular items trends
+	 */
+	private async analyzePopularItems(
+		tenantId: string,
+		startDate: Date,
+		endDate: Date,
+		paymentStatusFilter: string,
+	): Promise<PopularItemTrend[]> {
+		// Get top 5 items by quantity
+		const topItems = await this.orderItemRepository
+			.createQueryBuilder('item')
+			.select('item.menuItemId', 'menuItemId')
+			.addSelect('item.name', 'menuItemName')
+			.addSelect('SUM(item.quantity)', 'totalquantity')
+			.innerJoin('item.order', 'order')
+			.where('order.tenantId = :tenantId', { tenantId })
+			.andWhere('order.createdAt BETWEEN :startDate AND :endDate', {
+				startDate,
+				endDate,
+			})
+			.andWhere('order.paymentStatus = :paymentStatus', {
+				paymentStatus: paymentStatusFromString(paymentStatusFilter),
+			})
+			.groupBy('item.menuItemId')
+			.addGroupBy('item.name')
+			.orderBy('totalquantity', 'DESC')
+			.limit(5)
+			.getRawMany();
+
+		// For each top item, get daily trend
+		const trends: PopularItemTrend[] = [];
+
+		for (const item of topItems) {
+			const dailyData = await this.orderItemRepository
+				.createQueryBuilder('item')
+				.select('DATE(order.createdAt)', 'date')
+				.addSelect('SUM(item.quantity)', 'quantity')
+				.addSelect('SUM(item.total)', 'revenue')
+				.innerJoin('item.order', 'order')
+				.where('order.tenantId = :tenantId', { tenantId })
+				.andWhere('item.menuItemId = :menuItemId', { menuItemId: item.menuItemId })
+				.andWhere('order.createdAt BETWEEN :startDate AND :endDate', {
+					startDate,
+					endDate,
+				})
+				.andWhere('order.paymentStatus = :paymentStatus', {
+					paymentStatus: paymentStatusFromString(paymentStatusFilter),
+				})
+				.groupBy('DATE(order.createdAt)')
+				.orderBy('date', 'ASC')
+				.getRawMany();
+
+			trends.push({
+				menuItemId: item.menuItemId,
+				menuItemName: item.menuItemName,
+				dailyData: dailyData.map((d) => ({
+					date: d.date,
+					quantity: parseInt(d.quantity),
+					revenue: parseFloat(d.revenue),
+				})),
+			});
+		}
+
+		return trends;
+	}
+
+	// ==================== BILL GENERATION ====================
+
+	/**
+	 * Generate bill for an order
+	 *
+	 * Creates a comprehensive bill/invoice document for an order.
+	 * Contains all order details, itemized breakdown, and payment information.
+	 *
+	 * Business Rules:
+	 * - Order must exist and belong to the tenant
+	 * - Can generate bill for any order (typically after payment)
+	 * - Bill is a snapshot at generation time
+	 *
+	 * Use Cases:
+	 * - Generate receipt after successful payment
+	 * - Customer requests invoice
+	 * - Print receipt for records
+	 * - Email receipt to customer
+	 *
+	 * @param dto - GenerateBillRequestDto with tenantId and orderId
+	 * @returns BillResponseDto - Complete bill document
+	 */
+	async generateBill(dto: GenerateBillRequestDto): Promise<BillResponseDto> {
+		this.logger.log(
+			`📄 Generating bill for order: ${dto.orderId} (Tenant: ${dto.tenantId})`,
+		);
+
+		// Validate API key
+		const expectedApiKey = this.configService.get<string>('ORDER_API_KEY');
+		if (dto.orderApiKey !== expectedApiKey) {
+			throw new AppException(ErrorCode.UNAUTHORIZED);
+		}
+
+		// Get the order with all items
+		const order = await this.orderRepository.findOne({
+			where: {
+				id: dto.orderId,
+				tenantId: dto.tenantId,
+			},
+			relations: ['items'],
+		});
+
+		if (!order) {
+			throw new AppException(ErrorCode.ORDER_NOT_FOUND);
+		}
+
+		if (order.paymentStatus !== PaymentStatus.PAID) {
+			this.logger.warn(
+				`⚠️ Generating bill for unpaid order: ${order.id} (Payment Status: ${paymentStatusToString(
+					order.paymentStatus,
+				)})`,
+			);
+
+			throw new AppException(ErrorCode.ORDER_NOT_PAID);
+		}
+
+		// Set orderStatus to 'completed' if not already
+		if (order.status !== OrderStatus.COMPLETED) {
+			this.logger.log(
+				`⚠️ Order ${order.id} is in status ${orderStatusToString(
+					order.status,
+				)}, updating to COMPLETED for bill generation`,
+			);
+			order.status = OrderStatus.COMPLETED;
+			await this.orderRepository.save(order);
+		}
+
+		// Increase orderCount of each menu item (for analytics)
+		for (const item of order.items) {
+			await firstValueFrom(
+				this.productClient.send('menu-items:increment-order-count', {
+					productApiKey: this.configService.get<string>('PRODUCT_API_KEY'),
+					tenantId: order.tenantId,
+					itemId: item.menuItemId,
+					quantity: item.quantity,
+				}),
+			);
+		}
+
+		// Current timestamp for bill generation
+		const now = new Date();
+
+		// Build bill items from order items
+		const billItems = order.items.map((item) => ({
+			id: item.id,
+			menuItemId: item.menuItemId,
+			name: item.name,
+			description: item.description || undefined,
+			unitPrice: item.unitPrice,
+			quantity: item.quantity,
+			subtotal: item.subtotal,
+			modifiers: item.modifiers || undefined,
+			modifiersTotal: item.modifiersTotal,
+			total: item.total,
+			notes: item.notes || undefined,
+			status: OrderItemStatusLabels[item.status] || 'UNKNOWN',
+			currency: item.currency,
+		}));
+
+		// Calculate total modifiers
+		const totalModifiers = order.items.reduce(
+			(sum, item) => sum + item.modifiersTotal,
+			0,
+		);
+
+		// Calculate total quantity
+		const totalQuantity = order.items.reduce((sum, item) => sum + item.quantity, 0);
+
+		// Build bill response
+		const bill = {
+			tenant: {
+				tenantId: order.tenantId,
+			},
+			order: {
+				orderId: order.id,
+				tableId: order.tableId,
+				customerId: order.customerId || undefined,
+				customerName: order.customerName || undefined,
+				orderType: orderTypeToString(order.orderType),
+				status: orderStatusToString(order.status),
+				notes: order.notes || undefined,
+				waiterId: order.waiterId || undefined,
+				createdAt: order.createdAt,
+				completedAt: order.completedAt || undefined,
+				generatedAt: now,
+			},
+			items: billItems,
+			summary: {
+				subtotal: order.subtotal,
+				modifiersTotal: totalModifiers,
+				tax: order.tax,
+				discount: order.discount,
+				total: order.total,
+				currency: order.currency,
+				totalItems: order.items.length,
+				totalQuantity: totalQuantity,
+			},
+			payment: {
+				paymentStatus: paymentStatusToString(order.paymentStatus),
+				paymentMethod: order.paymentMethod || undefined,
+				paymentTransactionId: order.paymentTransactionId || undefined,
+				paidAt: order.completedAt || undefined,
+			},
+			billNumber: order.id, // Using order ID as bill number
+			generatedAt: now,
+		};
+
+		this.logger.log(`✅ Bill generated successfully for order: ${order.id}`);
+
+		return bill;
+	}
+
+	// ==================== PAYMENT QR CODE GENERATION ====================
+
+	/**
+	 * Generate payment QR code for an order
+	 *
+	 * Creates a QR code that encodes the Stripe payment URL for the order.
+	 * This allows customers to scan and pay via Stripe checkout.
+	 *
+	 * Business Flow:
+	 * 1. Validates order exists and belongs to tenant
+	 * 2. Calls payment service to create Stripe checkout session
+	 * 3. Payment service returns Stripe checkout URL
+	 * 4. Generates QR code encoding the checkout URL
+	 * 5. Returns QR code (base64) and payment details
+	 *
+	 * Integration:
+	 * - Calls external payment service at PAYMENT_URL/payment/create-payment
+	 * - Payment service handles Stripe session creation
+	 * - After payment, customer is redirected to URL_HOME
+	 *
+	 * @param dto - GeneratePaymentQrRequestDto with tenantId and orderId
+	 * @returns PaymentQrResponseDto - QR code and payment information
+	 */
+	async generatePaymentQr(
+		dto: GeneratePaymentQrRequestDto,
+	): Promise<PaymentQrResponseDto> {
+		this.logger.log(
+			`💳 Generating payment QR code for order: ${dto.orderId} (Tenant: ${dto.tenantId})`,
+		);
+
+		// Validate API key
+		const expectedApiKey = this.configService.get<string>('ORDER_API_KEY');
+		if (dto.orderApiKey !== expectedApiKey) {
+			throw new AppException(ErrorCode.UNAUTHORIZED);
+		}
+
+		// Get the order with all items
+		const order = await this.orderRepository.findOne({
+			where: {
+				id: dto.orderId,
+				tenantId: dto.tenantId,
+			},
+			relations: ['items'],
+		});
+
+		if (!order) {
+			throw new AppException(ErrorCode.ORDER_NOT_FOUND);
+		}
+
+		// Prepare payment request for external payment service
+		const paymentUrl = this.configService.get<string>('PAYMENT_URL');
+		const urlHome = this.configService.get<string>('URL_HOME');
+
+		// Convert total to cents for USD (multiply by 100)
+		const priceInCents = Math.round(order.total * 100);
+
+		const paymentRequest = {
+			userId: order.id, // Using order ID as userId
+			productName: 'Restaurant Order Payment',
+			description: `Payment for order at table ${order.tableId}`,
+			email: 'customer@restaurant.com', // Hardcoded as requested
+			price: priceInCents, // Total in cents (e.g., 10000 = $100.00)
+			quantity: 1,
+			currency: 'usd',
+			image: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=300', // F&B related image
+			urlHome: urlHome || 'http://localhost:5173', // Fallback to default
+		};
+
+		try {
+			// Call payment service to create Stripe checkout session
+			this.logger.log(`📡 Calling payment service: ${paymentUrl}/payment/create-payment`);
+
+			const response = await axios.post(
+				`${paymentUrl}/payment/create-payment`,
+				paymentRequest,
+				{
+					headers: {
+						'Content-Type': 'application/json',
+						'x-api-key': this.configService.get<string>('PAYMENT_API_KEY') || '',
+					},
+					timeout: 10000, // 10 second timeout
+				},
+			);
+
+			// Extract payment URL from response
+			const paymentCheckoutUrl = response.data?.result?.url;
+			const sessionId = response.data?.result?.sessionId;
+
+			if (!paymentCheckoutUrl) {
+				throw new Error('Payment service did not return a checkout URL');
+			}
+
+			this.logger.log(`✅ Payment session created: ${sessionId}`);
+			this.logger.log(`🔗 Payment URL: ${paymentCheckoutUrl}`);
+
+			// Generate QR code from payment URL
+			const qrCodeBase64 = await QRCode.toDataURL(paymentCheckoutUrl, {
+				errorCorrectionLevel: 'M',
+				type: 'image/png',
+				width: 300,
+				margin: 2,
+			});
+
+			// Remove the data:image/png;base64, prefix for cleaner response
+			const qrCodeData = qrCodeBase64.replace(/^data:image\/png;base64,/, '');
+
+			const paymentQrResponse = {
+				qrCode: qrCodeData,
+				paymentUrl: paymentCheckoutUrl,
+				orderId: order.id,
+				amount: priceInCents,
+				currency: 'usd',
+				sessionId: sessionId || undefined,
+				expiresAt: undefined, // Stripe sessions typically expire after 24 hours
+			};
+
+			this.logger.log(`✅ Payment QR code generated successfully for order: ${order.id}`);
+
+			return paymentQrResponse;
+		} catch (error) {
+			this.logger.error(
+				`❌ Failed to generate payment QR code: ${error.message}`,
+				error.stack,
+			);
+
+			// Throw appropriate error
+			if (error.response) {
+				throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+			} else if (error.code === 'ECONNABORTED') {
+				throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+			} else {
+				throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
+			}
+		}
+	}
+
+	async processPaymentStateUpdate(dto: { orderId: string; state: number }) {
+		// Implement the logic to update the payment state of the order
+		this.logger.log(
+			`Processing payment state update for order ${dto.orderId} with state ${dto.state}`,
+		);
+		// Example: Update order payment status based on state
+		const order = await this.orderRepository.findOne({ where: { id: dto.orderId } });
+		if (!order) {
+			throw new AppException(ErrorCode.ORDER_NOT_FOUND);
+		}
+
+		// Map state to payment status
+		switch (dto.state) {
+			case 0: // Fail
+				this.logger.log(`Payment failed for order ${dto.orderId}`);
+				order.paymentStatus = PaymentStatus.FAILED;
+				break;
+			case 1: // Success
+				this.logger.log(`Payment succeeded for order ${dto.orderId}`);
+				order.paymentStatus = PaymentStatus.PAID;
+				break;
+			case 2: // Canceled
+				this.logger.log(`Payment cancelled for order ${dto.orderId}`);
+				order.paymentStatus = PaymentStatus.FAILED;
+				break;
+			default:
+				this.logger.warn(`Unknown payment state ${dto.state} for order ${dto.orderId}`);
+				return;
+		}
+
+		await this.orderRepository.save(order);
+		this.logger.log(
+			`Updated payment status for order ${dto.orderId} to ${paymentStatusToString(
+				order.paymentStatus,
+			)}`,
+		);
 	}
 }

@@ -80,7 +80,7 @@ export class OrderItem {
 	})
 	total: number; // Final total for this line item (subtotal + modifiersTotal)
 
-	@Column({ type: 'varchar', length: 10, default: 'VND' })
+	@Column({ type: 'varchar', length: 10, default: 'USD' })
 	currency: string;
 
 	@Column({ type: 'int', default: OrderItemStatus.PENDING })

@@ -26,6 +26,7 @@ export class MenuItemResponseDto {
 	prepTimeMinutes?: number;
 	status: string; // "AVAILABLE", "UNAVAILABLE", or "SOLD_OUT"
 	isChefRecommended: boolean;
+	orderCount?: number;
 	photos?: MenuItemPhotoDto[]; // Photos sorted by isPrimary DESC, displayOrder ASC
 	createdAt: Date;
 	updatedAt: Date;

@@ -75,6 +75,26 @@ import { CartModule } from 'src/cart/cart.module';
 			},
 		]),
 
+		ClientsModule.registerAsync([
+			{
+				name: 'PAYMENT_SERVICE',
+				imports: [ConfigModule],
+				inject: [ConfigService],
+				useFactory: (configService: ConfigService) => ({
+					transport: Transport.RMQ,
+					options: {
+						urls: [
+							configService.get<string>('CONNECTION_AMQP') || 'amqp://localhost:5672',
+						],
+						queue: 'payment_queue',
+						queueOptions: {
+							durable: true,
+						},
+					},
+				}),
+			},
+		]),
+
 		ClientsModule.register([
 			{
 				name: 'PRODUCT_SERVICE',
@@ -82,6 +102,14 @@ import { CartModule } from 'src/cart/cart.module';
 				options: {
 					host: process.env.HOST_PRODUCT_SERVICE || 'localhost',
 					port: +process.env.PORT_PRODUCT_SERVICE || 8082,
+				},
+			},
+			{
+				name: 'TABLE_SERVICE',
+				transport: Transport.TCP,
+				options: {
+					host: process.env.HOST_TABLE_SERVICE || 'localhost',
+					port: +process.env.PORT_TABLE_SERVICE || 8083,
 				},
 			},
 		]),
