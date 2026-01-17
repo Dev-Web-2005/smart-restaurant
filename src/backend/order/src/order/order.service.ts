@@ -2027,6 +2027,18 @@ export class OrderService implements OnModuleDestroy {
 			throw new AppException(ErrorCode.ORDER_NOT_FOUND);
 		}
 
+		// Set orderStatus to 'completed' if not already
+		if (order.status !== OrderStatus.COMPLETED) {
+			this.logger.log(
+				`⚠️ Order ${order.id} is in status ${orderStatusToString(
+					order.status,
+				)}, updating to COMPLETED for bill generation`,
+			);
+			order.status = OrderStatus.COMPLETED;
+			await this.orderRepository.save(order);
+		}
+
+		// Current timestamp for bill generation
 		const now = new Date();
 
 		// Build bill items from order items
