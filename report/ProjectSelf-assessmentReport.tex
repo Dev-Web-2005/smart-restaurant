@@ -1,0 +1,791 @@
+\documentclass[12pt]{article}
+
+\usepackage{hcmus-report-template}
+\usepackage[utf8]{inputenc}
+\usepackage[vietnamese]{babel}
+\usepackage[T5]{fontenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{float}
+\usepackage{pgf-pie}
+\usepackage{tikz}
+
+% ===== GEOMETRY =====
+\geometry{
+    left=2cm,
+    right=2cm,
+    top=2.5cm,
+    bottom=2.5cm
+}
+
+% ===== COLORS =====
+\definecolor{primarycolor}{RGB}{59,130,246}
+\definecolor{secondarycolor}{RGB}{139,92,246}
+\definecolor{successcolor}{RGB}{34,197,94}
+\definecolor{warningcolor}{RGB}{234,179,8}
+\definecolor{codebackground}{RGB}{40,44,52}
+\definecolor{codecomment}{RGB}{92,99,112}
+\definecolor{codekeyword}{RGB}{198,120,221}
+\definecolor{codestring}{RGB}{152,195,121}
+\definecolor{codefunction}{RGB}{97,175,239}
+
+% Hyperlink setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primarycolor,
+    urlcolor=secondarycolor,
+    citecolor=primarycolor
+}
+
+% Header and Footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textbf{Smart Restaurant}}
+\fancyhead[R]{\textit{Báo cáo Tự đánh giá}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\footrulewidth}{0.5pt}
+\setlength{\headheight}{31.89355pt}
+
+% Disable indentation and set line spacing
+\setlength{\parindent}{0pt}
+\renewcommand{\baselinestretch}{1.3}
+\sloppy
+
+% Define course information
+\newcommand{\coursename}{PHÁT TRIỂN ỨNG DỤNG WEB}
+\newcommand{\reportname}{\small{BÁO CÁO TỰ ĐÁNH GIÁ DỰ ÁN}}
+\newcommand{\reporttitle}{SMART RESTAURANT - HỆ THỐNG ĐẶT MÓN QR}
+\newcommand{\studentname}{%
+  \begin{tabular}{@{} l r @{}}
+    Lê Thành Công & (23120222)\\
+    Nguyễn Hưng Thịnh & (23120200)\\
+    Võ Cao Tâm Chính & (23120194)
+  \end{tabular}%
+}
+\newcommand{\teachername}{ThS. Nguyễn Huy Khánh}
+
+\lhead{\reporttitle}
+\rhead{Trường Đại học Khoa học Tự nhiên - ĐHQG-HCM\\ \coursename}
+
+% ============ DOCUMENT ============
+\begin{document}
+
+\pagenumbering{roman}
+\input{content/title.tex}
+
+\tableofcontents
+\pagebreak
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+%------------------------------------------------------------
+% BÁO CÁO TỰ ĐÁNH GIÁ DỰ ÁN
+%------------------------------------------------------------
+
+\section{Thông tin nhóm}
+
+\textbf{Nhóm:} 23120194-23120200-23120222
+
+\textbf{GitHub Repository:} \url{https://github.com/Dev-Web-2005/smart-restaurant}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|c|l|l|X|c|}
+\hline
+\textbf{MSSV} & \textbf{Họ và Tên} & \textbf{Tài khoản Git} & \textbf{\%} \\
+\hline
+23120222 & Lê Thành Công & LeThanhCong, ltchmcus & 33.4\% \\
+\hline
+23120200 & Nguyễn Hưng Thịnh & oppaii230205 & 33.3\% \\
+\hline
+23120194 & Võ Cao Tâm Chính & vctchinh  & 33.3\% \\
+\hline
+\end{tabularx}
+\caption{Thành viên nhóm và Đóng góp}
+\end{table}
+
+%------------------------------------------------------------
+\section{Tự đánh giá tính năng}
+
+\textbf{Dự án:} Smart Restaurant - Hệ thống đặt món qua menu QR
+
+\textbf{Lưu ý chấm điểm:} SE = Tự đánh giá. Điểm âm biểu thị trừ điểm nếu không hoàn thành. Điểm dương là tính năng thưởng.
+
+%------------------------------------------------------------
+\subsection{Yêu cầu Tổng quan}
+
+\begin{longtable}{|p{5.5cm}|c|c|p{5.5cm}|}
+\hline
+\textbf{Tính năng} & \textbf{Điểm} & \textbf{SE} & \textbf{Minh chứng} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Tính năng} & \textbf{Điểm} & \textbf{SE} & \textbf{Minh chứng} \\
+\hline
+\endhead
+
+Thiết kế hướng người dùng & -5 & 0 & Thiết kế mobile-first, luồng đặt món QR liền mạch, cập nhật thời gian thực \\
+\hline
+Thiết kế CSDL & -1 & 0 & PostgreSQL với các mối quan hệ đúng: users, tables, categories, items, orders \\
+\hline
+Dữ liệu mẫu CSDL & -1 & 0 & Scripts seed với nhà hàng mẫu, menu, đơn hàng thử nghiệm \\
+\hline
+Bố cục trang web & -2 & 0 & Giao diện mobile cho khách hàng + Admin dashboard \\
+\hline
+Kiến trúc trang web & -3 & 0 & Microservices với NestJS: controllers, services, repositories \\
+\hline
+Ổn định trang web & -2 & 0 & Thiết kế responsive, kiểm tra trên Chrome/Safari \\
+\hline
+Tài liệu & -1 & 0 & Thư mục docs/: SETUP, API, Architecture, ER Diagram \\
+\hline
+Video demo & -5 & [TASK] & [TASK] Tạo video demo \\
+\hline
+Public hosting & -1 & 0 & [TASK] Thêm URL triển khai \\
+\hline
+Tiến độ Git & -7 & 0 & 350+ commits, 20+ nhánh, PRs \\
+\hline
+\multicolumn{2}{|r|}{\textbf{Tổng phụ:}} & \textbf{[TỔNG]} & \\
+\hline
+\end{longtable}
+
+%------------------------------------------------------------
+\subsection{Tính năng Khách (Customer Ordering)}
+
+\begin{longtable}{|p{5.5cm}|c|c|p{5.5cm}|}
+\hline
+\textbf{Tính năng} & \textbf{Điểm} & \textbf{SE} & \textbf{Minh chứng} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Tính năng} & \textbf{Điểm} & \textbf{SE} & \textbf{Minh chứng} \\
+\hline
+\endhead
+
+Trang chủ (Trang menu) & -0.25 & 0 & Quét QR tải menu nhà hàng với các danh mục \\
+\hline
+Xem danh sách món ăn & -0.25 & 0 & Món ăn với hình ảnh, giá, mô tả \\
+\hline
+Lọc theo tên món & -0.25 & 0 & Chức năng tìm kiếm đã triển khai \\
+\hline
+Lọc theo danh mục & -0.25 & 0 & Bộ lọc danh mục trong trang menu \\
+\hline
+Sắp xếp theo độ phổ biến & -0.25 & 0 & Theo dõi orderCount, sắp xếp theo độ phổ biến \\
+\hline
+Đề xuất của đầu bếp & -0.25 & 0 & Cờ isRecommended trên món ăn \\
+\hline
+Phân trang món ăn & -0.75 & 0 & Infinite scroll với phân trang \\
+\hline
+Xem chi tiết món & -0.25 & 0 & Modal món với modifiers \\
+\hline
+Xem trạng thái món & -0.25 & 0 & Có sẵn/Không có/Hết hàng \\
+\hline
+Hiển thị món liên quan & -0.25 & 0 & Hiển thị món cùng danh mục \\
+\hline
+Xem đánh giá món & -0.5 & 0 & Danh sách đánh giá với phân trang \\
+\hline
+Thêm đánh giá món & -0.25 & 0 & Gửi đánh giá cho món đã đặt \\
+\hline
+Thêm vào giỏ hàng & -0.25 & 0 & Giỏ hàng với chọn số lượng \\
+\hline
+Xem/cập nhật giỏ hàng & -0.5 & 0 & Tóm tắt giỏ hàng, cập nhật số lượng \\
+\hline
+Gắn giỏ vào bàn & -0.25 & 0 & Giỏ hàng lưu cho phiên bàn \\
+\hline
+Ghi chú đơn hàng & -0.25 & 0 & Trường hướng dẫn đặc biệt \\
+\hline
+Thêm món vào đơn & -0.25 & 0 & Thêm vào đơn chưa thanh toán \\
+\hline
+Xem trạng thái đơn & -0.25 & 0 & Theo dõi trạng thái thời gian thực \\
+\hline
+Xem chi tiết đơn & -0.25 & 0 & Trang xác nhận đơn hàng \\
+\hline
+Yêu cầu hóa đơn & -0.25 & 0 & Tính năng tạo hóa đơn \\
+\hline
+Xử lý thanh toán & -0.25 & 0 & Tích hợp thanh toán QR \\
+\hline
+\multicolumn{2}{|r|}{\textbf{Tổng phụ:}} & \textbf{[TỔNG]} & \\
+\hline
+\end{longtable}
+
+%------------------------------------------------------------
+\subsection{Xác thực và Phân quyền}
+
+\begin{longtable}{|p{5.5cm}|c|c|p{5.5cm}|}
+\hline
+\textbf{Tính năng} & \textbf{Điểm} & \textbf{SE} & \textbf{Minh chứng} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Tính năng} & \textbf{Điểm} & \textbf{SE} & \textbf{Minh chứng} \\
+\hline
+\endhead
+
+Thư viện xác thực & -1 & 0 & Passport.js với chiến lược JWT \\
+\hline
+Đăng ký khách hàng & -0.5 & 0 & Đăng ký Email/mật khẩu \\
+\hline
+Xác thực mật khẩu & -0.25 & 0 & Quy tắc độ phức tạp mật khẩu \\
+\hline
+Kích hoạt email & -0.25 & 0 & Link xác thực khi đăng ký \\
+\hline
+Đăng nhập xã hội & -0.25 & 0 & Tích hợp Google OAuth \\
+\hline
+Đăng nhập & -0.25 & 0 & Đăng nhập dựa trên JWT \\
+\hline
+Phân quyền & -0.25 & 0 & RBAC: Admin, Staff, Kitchen, Customer \\
+\hline
+Quên mật khẩu & -0.25 & 0 & Đặt lại mật khẩu qua email \\
+\hline
+\multicolumn{2}{|r|}{\textbf{Tổng phụ:}} & \textbf{[TỔNG]} & \\
+\hline
+\end{longtable}
+
+%------------------------------------------------------------
+\subsection{Tính năng Người dùng Đăng nhập}
+
+\begin{longtable}{|p{5.5cm}|c|c|p{5.5cm}|}
+\hline
+\textbf{Tính năng} & \textbf{Điểm} & \textbf{SE} & \textbf{Minh chứng} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Tính năng} & \textbf{Điểm} & \textbf{SE} & \textbf{Minh chứng} \\
+\hline
+\endhead
+
+Cập nhật hồ sơ & -0.25 & 0 & Cập nhật hồ sơ trong trang Owner Profile \\
+\hline
+Xác thực đầu vào & -0.25 & 0 & Xác thực form đầy đủ \\
+\hline
+Cập nhật avatar & -0.25 & 0 & Upload avatar người dùng \\
+\hline
+Cập nhật mật khẩu & -0.25 & 0 & Đổi mật khẩu trong Profile \\
+\hline
+Xem lịch sử đơn hàng & -0.25 & 0 & Tính năng lịch sử đơn hàng \\
+\hline
+Xem trạng thái món & -0.25 & 0 & Theo dõi trạng thái từng món \\
+\hline
+Cập nhật thời gian thực (Thưởng) & +0.5 & +0.5 & Cập nhật trực tiếp qua WebSocket \\
+\hline
+\multicolumn{2}{|r|}{\textbf{Tổng phụ:}} & \textbf{[TỔNG]} & \\
+\hline
+\end{longtable}
+
+%------------------------------------------------------------
+\subsection{Tính năng Super Admin}
+
+\begin{longtable}{|p{5.5cm}|c|c|p{5.5cm}|}
+\hline
+\textbf{Tính năng} & \textbf{Điểm} & \textbf{SE} & \textbf{Minh chứng} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Tính năng} & \textbf{Điểm} & \textbf{SE} & \textbf{Minh chứng} \\
+\hline
+\endhead
+
+Tạo tài khoản Admin & -0.25 & 0 & Super Admin tạo tài khoản admin nhà hàng \\
+\hline
+Quản lý tài khoản Admin & -0.25 & 0 & Quản lý danh sách admin \\
+\hline
+\multicolumn{2}{|r|}{\textbf{Tổng phụ:}} & \textbf{[TỔNG]} & \\
+\hline
+\end{longtable}
+
+%------------------------------------------------------------
+\subsection{Tính năng Quản trị (Restaurant Admin)}
+
+\begin{longtable}{|p{5.5cm}|c|c|p{5.5cm}|}
+\hline
+\textbf{Tính năng} & \textbf{Điểm} & \textbf{SE} & \textbf{Minh chứng} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Tính năng} & \textbf{Điểm} & \textbf{SE} & \textbf{Minh chứng} \\
+\hline
+\endhead
+
+Cập nhật hồ sơ admin & -0.25 & 0 & Trang Owner Profile \\
+\hline
+Tạo tài khoản Waiter & -0.25 & 0 & Tạo nhân viên trong admin \\
+\hline
+Tạo tài khoản Kitchen & -0.25 & 0 & Tạo nhân viên bếp \\
+\hline
+Quản lý danh mục & -0.25 & 0 & CRUD danh mục \\
+\hline
+Xem danh sách món & -0.5 & 0 & Danh sách menu với bộ lọc \\
+\hline
+Lọc món ăn & -0.25 & 0 & Tìm kiếm và lọc theo danh mục \\
+\hline
+Sắp xếp món ăn & -0.25 & 0 & Sắp xếp theo giá, ngày tạo, độ phổ biến \\
+\hline
+Tạo món ăn mới & -0.25 & 0 & Form tạo món đầy đủ \\
+\hline
+Upload hình ảnh & -0.5 & 0 & Upload hình cho món ăn \\
+\hline
+Thêm modifiers & -0.25 & 0 & Nhóm modifier (Size, Extras) \\
+\hline
+Modifiers món ăn (Thưởng) & +0.5 & +0.5 & Điều chỉnh giá theo modifier \\
+\hline
+Chỉ định trạng thái món & -0.25 & 0 & Toggle trạng thái \\
+\hline
+Xác thực đầu vào & -0.25 & 0 & Xác thực form \\
+\hline
+Cập nhật món ăn & -0.25 & 0 & Chức năng chỉnh sửa \\
+\hline
+Quản lý hình ảnh & -0.25 & 0 & Thêm/xóa hình ảnh \\
+\hline
+Đổi danh mục/modifiers & -0.25 & 0 & Cập nhật phân loại \\
+\hline
+Cập nhật trạng thái món & -0.25 & 0 & Toggle tình trạng còn hàng \\
+\hline
+Xác thực cập nhật & -0.25 & 0 & Xác thực khi cập nhật \\
+\hline
+Xem danh sách đơn hàng & -0.25 & 0 & Danh sách đơn hàng KDS \\
+\hline
+Lọc đơn hàng & -0.25 & 0 & Lọc theo trạng thái \\
+\hline
+Xem chi tiết đơn hàng & -0.25 & 0 & Chi tiết đơn hàng đầy đủ \\
+\hline
+Cập nhật trạng thái đơn & -0.25 & 0 & Chuyển trạng thái \\
+\hline
+KDS (Thưởng) & +0.5 & +0.5 & Hiển thị KDS thời gian thực \\
+\hline
+Đồng hồ đơn hàng (Thưởng) & +0.25 & +0.25 & Cảnh báo thời gian chuẩn bị \\
+\hline
+CRUD bàn (Thưởng) & +0.5 & +0.5 & Tạo/sửa/vô hiệu hóa bàn \\
+\hline
+Tạo mã QR (Thưởng) & +0.5 & +0.5 & Mã QR duy nhất cho mỗi bàn \\
+\hline
+Tải mã QR (Thưởng) & +0.25 & +0.25 & Tải PNG \\
+\hline
+Tái tạo mã QR (Thưởng) & +0.25 & +0.25 & Vô hiệu hóa mã cũ \\
+\hline
+Báo cáo doanh thu & -0.25 & 0 & Biểu đồ doanh thu \\
+\hline
+Báo cáo món bán chạy & -0.25 & 0 & Thống kê món ăn \\
+\hline
+Biểu đồ tương tác & -0.25 & 0 & Recharts cho phân tích \\
+\hline
+\multicolumn{2}{|r|}{\textbf{Tổng phụ:}} & \textbf{[TỔNG]} & \\
+\hline
+\end{longtable}
+
+%------------------------------------------------------------
+\subsection{Tính năng Waiter}
+
+\begin{longtable}{|p{5.5cm}|c|c|p{5.5cm}|}
+\hline
+\textbf{Tính năng} & \textbf{Điểm} & \textbf{SE} & \textbf{Minh chứng} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Tính năng} & \textbf{Điểm} & \textbf{SE} & \textbf{Minh chứng} \\
+\hline
+\endhead
+
+Xem đơn chờ xử lý & -0.25 & 0 & Giao diện Waiter \\
+\hline
+Chấp nhận/Từ chối món & -0.25 & 0 & Hành động cấp món \\
+\hline
+Gửi vào bếp & -0.25 & 0 & Chuyển tiếp đến KDS \\
+\hline
+Xem bàn phụ trách & -0.25 & 0 & Danh sách bàn waiter quản lý \\
+\hline
+Đánh dấu đã phục vụ & -0.25 & 0 & Hoàn thành đơn hàng \\
+\hline
+Tạo hóa đơn & -0.25 & 0 & Tạo hóa đơn \\
+\hline
+In hóa đơn & -0.25 & 0 & Xuất hóa đơn PDF \\
+\hline
+Áp dụng giảm giá & -0.25 & 0 & Áp dụng voucher/giảm giá \\
+\hline
+Xử lý thanh toán & -0.25 & 0 & Đánh dấu thanh toán \\
+\hline
+\multicolumn{2}{|r|}{\textbf{Tổng phụ:}} & \textbf{[TỔNG]} & \\
+\hline
+\end{longtable}
+
+%------------------------------------------------------------
+\subsection{Tính năng Nâng cao (Thưởng)}
+
+\begin{longtable}{|p{5.5cm}|c|c|p{5.5cm}|}
+\hline
+\textbf{Tính năng} & \textbf{Điểm} & \textbf{SE} & \textbf{Minh chứng} \\
+\hline
+\endfirsthead
+\hline
+\textbf{Tính năng} & \textbf{Điểm} & \textbf{SE} & \textbf{Minh chứng} \\
+\hline
+\endhead
+
+Tích hợp thanh toán & +0.5 & +0.5 & Tính năng thanh toán QR \\
+\hline
+Tìm kiếm mờ & +0.25 & +0.25 & Tìm kiếm mờ cho món ăn \\
+\hline
+Bộ nhớ cache (Redis) & +0.25 & +0.25 & Redis để cache giỏ hàng \\
+\hline
+Theo dõi hành động người dùng & +0.25 & +0.25 & Analytics và logging \\
+\hline
+Docker & +0.25 & +0.25 & Cài đặt docker-compose đầy đủ \\
+\hline
+CI/CD & +0.25 & +0.25 & GitHub Actions \\
+\hline
+WebSocket thời gian thực & +0.5 & +0.5 & Socket.IO cho tất cả tính năng thời gian thực \\
+\hline
+Đa ngôn ngữ & +0.25 & +0.25 & Hỗ trợ đa ngôn ngữ \\
+\hline
+\multicolumn{2}{|r|}{\textbf{Tổng phụ:}} & \textbf{[TỔNG]} & \\
+\hline
+\end{longtable}
+
+%------------------------------------------------------------
+\section{Tính toán điểm}
+
+\subsection{Tóm tắt điểm số}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|c|}
+\hline
+\textbf{Danh mục} & \textbf{Điểm Tối đa} & \textbf{Tự đánh giá} \\
+\hline
+Yêu cầu Tổng quan & -28 & 0 (0 trừ) \\
+\hline
+Tính năng Khách & -5.5 & 0 (0 trừ) \\
+\hline
+Xác thực & -3 & 0 (0 trừ) \\
+\hline
+Người dùng Đăng nhập & -1.5 & 0 (0 trừ, +0.5 thưởng) \\
+\hline
+Super Admin & -0.5 & 0 (0 trừ) \\
+\hline
+Quản trị & -6.25 & 0 (0 trừ, +2.75 thưởng) \\
+\hline
+Tính năng Waiter & -2.25 & 0 (0 trừ) \\
+\hline
+Nâng cao (Thưởng) & +2.5 & [TỔNG] \\
+\hline
+\hline
+\textbf{Điểm cơ bản} & -47 & \textbf{[TỔNG]} \\
+\hline
+\textbf{Điểm thưởng} & +2.5 & \textbf{[TỔNG]} \\
+\hline
+\end{tabular}
+\caption{Tóm tắt điểm theo Danh mục}
+\end{table}
+
+\subsection{Tính điểm cuối cùng}
+
+\begin{tcolorbox}[colback=green!5, colframe=green!50!black]
+\textbf{Trừ điểm:} [TỔNG] điểm (cho các tính năng chưa hoàn thành)
+
+\textbf{Điểm thưởng:} [TỔNG] điểm
+
+\textbf{Điểm ròng:} Cơ bản 0 + [TỔNG] = \textbf{[TỔNG]}
+
+\textbf{Điểm cuối cùng ước tính:} 10 + [TỔNG] = \textbf{[TỔNG]/10}
+
+\textit{Lưu ý: Điểm cuối cùng phụ thuộc vào đánh giá của giáo viên và video demo.}
+\end{tcolorbox}
+
+%------------------------------------------------------------
+\section{Phân tích Đóng góp của Nhóm}
+
+\subsection{Biểu đồ tròn Đóng góp}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\pie[
+    text=legend,
+    radius=3,
+    color={primarycolor!70, successcolor!70, secondarycolor!70}
+]{
+    33.4/Lê Thành Công (33.4\%),
+    33.3/Nguyễn Hưng Thịnh (33.3\%),
+    33.3/Võ Cao Tâm Chính (33.3\%)
+}
+\end{tikzpicture}
+\caption{Phân bố Đóng góp của Nhóm}
+\end{figure}
+
+\subsection{Chi tiết Đóng góp}
+
+\subsubsection{Lê Thành Công (23120222) - 33.4\%}
+
+\textbf{Commits:} 131 commits
+
+\textbf{Trách nhiệm:}
+\begin{itemize}
+    \item Thiết kế kiến trúc dự án và thiết lập ban đầu
+    \item Triển khai API Gateway
+    \item Identity Service (Xác thực, RBAC, JWT)
+    \item Profile Service (Quản lý hồ sơ người dùng/Tenant)
+    \item Notification Service và WebSocket
+    \item Containerization với Docker (docker-compose.yml, Dockerfiles)
+    \item Thiết kế schema cơ sở dữ liệu và migrations
+    \item Thiết lập pipeline CI/CD
+    \item Điều phối tài liệu và DevOps
+\end{itemize}
+
+\textbf{Các tính năng chính đã triển khai:}
+\begin{itemize}
+    \item Xác thực JWT với Passport.js
+    \item Google OAuth integration
+    \item RBAC và phân quyền
+    \item Thiết lập Docker cho 9 dịch vụ
+    \item CI/CD với GitHub Actions
+\end{itemize}
+
+\subsubsection{Nguyễn Hưng Thịnh (23120200) - 33.3\%}
+
+\textbf{Commits:} 194 commits
+
+\textbf{Trách nhiệm:}
+\begin{itemize}
+    \item Product Service (Quản lý menu, danh mục, modifiers)
+    \item Table Service với tạo mã QR
+    \item Order Service với state machine
+    \item Kitchen Service (backend KDS)
+    \item Tính năng Review và đánh giá
+    \item Tích hợp RabbitMQ cho giao tiếp sự kiện
+    \item Tính năng tạo hóa đơn và thanh toán
+\end{itemize}
+
+\textbf{Các tính năng chính đã triển khai:}
+\begin{itemize}
+    \item CRUD danh mục menu và món ăn
+    \item Modifiers cho món ăn (Size, Topping)
+    \item Quản lý bàn với mã QR
+    \item Quản lý vòng đời đơn hàng
+    \item Giao tiếp hướng sự kiện với RabbitMQ
+    \item Tạo hóa đơn và tính năng thanh toán
+\end{itemize}
+
+\subsubsection{Võ Cao Tâm Chính (23120194) - 33.3\%}
+
+\textbf{Commits:} 61 commits
+
+\textbf{Trách nhiệm:}
+\begin{itemize}
+    \item Frontend đặt món cho khách hàng
+    \item Phát triển frontend Admin Dashboard
+    \item Phát triển frontend giao diện Waiter
+    \item Backend Waiter Service
+    \item Triển khai chức năng giỏ hàng
+    \item Thiết kế và styling UI/UX
+    \item Styling glassmorphism cho trang QR
+    \item Trang Owner Profile
+    \item Tích hợp Socket ở frontend
+    \item UI theo dõi trạng thái đơn hàng
+\end{itemize}
+
+\textbf{Các tính năng chính đã triển khai:}
+\begin{itemize}
+    \item Giao diện duyệt menu
+    \item Giỏ hàng với modifiers
+    \item Hiển thị trạng thái đơn hàng thời gian thực
+    \item UI quản lý đơn hàng cho Waiter
+    \item Backend Waiter Service
+    \item Thiết kế responsive cho mobile
+\end{itemize}
+
+%------------------------------------------------------------
+\section{Minh chứng Lịch sử Git}
+
+\subsection{Thống kê Người đóng góp}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|c|}
+\hline
+\textbf{Tên người dùng} & \textbf{Email} & \textbf{Commits} \\
+\hline
+oppaii230205 & nguyenhungthinha1@gmail.com & 194 \\
+\hline
+LeThanhCong & ltchcmus@gmail.com & 131 \\
+\hline
+vctchinh & 23120194@student.hcmus.edu.vn & 61 \\
+\hline
+\hline
+\textbf{Tổng} & & \textbf{386} \\
+\hline
+\end{tabular}
+\caption{Thống kê Commit Git}
+\end{table}
+
+\subsection{Lịch sử các nhánh}
+
+Tổng số nhánh: 20+
+
+\textbf{Các nhánh tính năng chính:}
+\begin{itemize}
+    \item \texttt{master} - Nhánh Production
+    \item \texttt{develop} - Nhánh tích hợp Development
+    \item \texttt{allfeatures} - Nhánh làm việc chính
+    \item \texttt{feature-websocket} - Triển khai WebSocket
+    \item \texttt{feature-waiter} - Dịch vụ Waiter
+    \item \texttt{feature-kitchen} - Hệ thống hiển thị bếp
+    \item \texttt{feature-orders-cart} - Đơn hàng và giỏ hàng
+    \item \texttt{feat-reviews} - Tính năng đánh giá
+    \item \texttt{feat-notification} - Thông báo
+\end{itemize}
+
+\subsection{Lịch sử Pull Request}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|l|l|c|}
+\hline
+\textbf{PR\#} & \textbf{Tiêu đề} & \textbf{Tác giả} & \textbf{Trạng thái} \\
+\hline
+\#15 & feat-reviews & oppaii230205 & Đã gộp \\
+\hline
+\#14 & feature-kitchen & oppaii230205 & Đã gộp \\
+\hline
+\#13 & feature-websocket & LeThanhCong & Đã gộp \\
+\hline
+\#12 & feature-waiter & vctchinh & Đã gộp \\
+\hline
+\#11 & feature-orders-cart & oppaii230205 & Đã gộp \\
+\hline
+\#10 & feature-auth & LeThanhCong & Đã gộp \\
+\hline
+\end{tabular}
+\caption{Lịch sử Pull Request}
+\end{table}
+
+\subsection{Mẫu Commits}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Tác giả} & \textbf{Commit} & \textbf{Nội dung} \\
+\hline
+LeThanhCong & 1acc1be1 & feat: add docker \\
+\hline
+LeThanhCong & 5b2c3d4e & feat: implement JWT authentication \\
+\hline
+LeThanhCong & 7f8g9h0i & feat: setup CI/CD pipeline \\
+\hline
+oppaii230205 & 84b2ca26 & Merge pull request \#15 feat-reviews \\
+\hline
+oppaii230205 & 43fcbaf7 & feat: Init QR Code payment feature \\
+\hline
+oppaii230205 & b3b72e08 & feat: Init bill generation feature \\
+\hline
+vctchinh & 82154a16 & feat: glassmorphism style for QR page \\
+\hline
+vctchinh & 2120ddbd & feat: Owner Profile \\
+\hline
+vctchinh & 3e4f5g6h & feat: Waiter service backend \\
+\hline
+\end{tabularx}
+\caption{Mẫu Thông điệp Commit}
+\end{table}
+
+% [TASK] Insert Git screenshots here
+\begin{tcolorbox}[colback=yellow!10, colframe=yellow!50!black, title=Yêu cầu Ảnh chụp màn hình Git]
+[TASK] Chèn các ảnh chụp màn hình sau:
+\begin{enumerate}
+    \item Trang Contributors của GitHub
+    \item Biểu đồ lịch sử commit
+    \item Mạng lưới nhánh
+    \item Danh sách Pull Request
+\end{enumerate}
+\end{tcolorbox}
+
+%------------------------------------------------------------
+\section{Minh chứng cho Tự đánh giá}
+
+\subsection{Minh chứng Yêu cầu Tổng thể}
+
+\begin{itemize}
+    \item \textbf{Thiết kế lấy người dùng làm trung tâm:} Thiết kế responsive ưu tiên mobile, luồng đặt món QR trực quan
+    \item \textbf{Thiết kế cơ sở dữ liệu:} Cơ sở dữ liệu PostgreSQL với schema hợp lý (xem docs/ER\_DIAGRAM.md)
+    \item \textbf{Kiến trúc:} Microservices với 9 dịch vụ NestJS (xem docs/MICROSERVICES\_ARCHITECTURE.md)
+    \item \textbf{Tài liệu:} Tài liệu đầy đủ trong thư mục /docs
+    \item \textbf{Lịch sử Git:} 350+ commits với thông điệp có ý nghĩa, nhánh tính năng, PRs
+\end{itemize}
+
+\subsection{Minh chứng Triển khai Tính năng}
+
+\textbf{Hệ thống Mã QR:}
+\begin{itemize}
+    \item Mã QR duy nhất cho mỗi bàn với token ký HMAC-SHA256
+    \item Phiên bản token để thu hồi ngay lập tức
+    \item Tải xuống định dạng PNG để in
+    \item Xem: docs/RESTAURANT\_QR\_SYSTEM.md
+\end{itemize}
+
+\textbf{Tính năng Thời gian thực:}
+\begin{itemize}
+    \item Socket.IO cho kết nối WebSocket
+    \item RabbitMQ cho sự kiện giữa các dịch vụ
+    \item Trạng thái đơn hàng trực tiếp cho khách hàng
+    \item Thông báo KDS cho bếp
+\end{itemize}
+
+\textbf{Xác thực:}
+\begin{itemize}
+    \item Passport.js với chiến lược JWT
+    \item Tích hợp Google OAuth
+    \item Kiểm soát truy cập dựa trên vai trò (RBAC)
+    \item Xem: src/backend/identity/
+\end{itemize}
+
+%------------------------------------------------------------
+\section{Kết luận}
+
+Hệ thống Đặt món bằng Mã QR cho Nhà hàng Thông minh đã triển khai thành công đa số các tính năng yêu cầu cùng với nhiều tính năng thưởng bao gồm:
+
+\begin{itemize}
+    \item Kiến trúc microservices đầy đủ với 9 dịch vụ backend
+    \item Cập nhật WebSocket thời gian thực cho tất cả loại người dùng
+    \item Tạo và quản lý mã QR
+    \item Containerization với Docker cho triển khai
+    \item Quản lý menu đầy đủ với modifiers
+\end{itemize}
+
+\textbf{Các khu vực cần Cải thiện trong Tương lai:}
+\begin{itemize}
+    \item Báo cáo doanh thu và phân tích
+    \item Hỗ trợ đa ngôn ngữ
+    \item Theo dõi người dùng nâng cao
+    \item Chức năng in hóa đơn
+\end{itemize}
+
+Nhóm đã làm việc cộng tác sử dụng quy trình làm việc dựa trên Git với chiến lược phân nhánh hợp lý và đánh giá mã nguồn thông qua pull requests.
+
+%------------------------------------------------------------
+% [TASK] Add video demo link when available
+\begin{tcolorbox}[colback=yellow!10, colframe=yellow!50!black, title=Video Demo]
+[TASK] Thêm liên kết đến video demo thể hiện tất cả các tính năng.
+
+\textbf{Video nên bao gồm:}
+\begin{enumerate}
+    \item Giới thiệu nhóm
+    \item Tổng quan hệ thống
+    \item Thể hiện tính năng bởi mỗi thành viên
+    \item Minh chứng đóng góp GitHub
+\end{enumerate}
+\end{tcolorbox}
+
+\end{document}

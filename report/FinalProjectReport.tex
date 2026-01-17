@@ -1,0 +1,675 @@
+\documentclass[12pt]{article}
+
+\usepackage{hcmus-report-template}
+\usepackage[utf8]{inputenc}
+\usepackage[vietnamese]{babel}
+\usepackage[T5]{fontenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{float}
+
+% ===== GEOMETRY =====
+\geometry{
+    left=2.5cm,
+    right=2.5cm,
+    top=3cm,
+    bottom=3cm
+}
+
+% ===== COLORS =====
+\definecolor{primarycolor}{RGB}{59,130,246}
+\definecolor{secondarycolor}{RGB}{139,92,246}
+\definecolor{successcolor}{RGB}{34,197,94}
+\definecolor{warningcolor}{RGB}{234,179,8}
+\definecolor{codebackground}{RGB}{40,44,52}
+\definecolor{codecomment}{RGB}{92,99,112}
+\definecolor{codekeyword}{RGB}{198,120,221}
+\definecolor{codestring}{RGB}{152,195,121}
+\definecolor{codefunction}{RGB}{97,175,239}
+
+% ===== LISTINGS CONFIGURATION =====
+\lstdefinelanguage{TypeScript}{
+  keywords={const, let, var, function, return, if, else, for, while, import, export, default, from, async, await, class, interface, implements, extends, public, private, protected, readonly, new, try, catch, throw, type, enum},
+  keywordstyle=\color{codekeyword}\bfseries,
+  ndkeywords={@Injectable, @Controller, @Get, @Post, @Patch, @Delete, @Body, @Param, @Query, @UseGuards, Column, Entity, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index},
+  ndkeywordstyle=\color{warningcolor}\bfseries,
+  identifierstyle=\color{white},
+  sensitive=true,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{codecomment}\ttfamily,
+  stringstyle=\color{codestring}\ttfamily,
+  morestring=[b]',
+  morestring=[b]",
+  morestring=[b]`
+}
+
+\lstdefinelanguage{JavaScript}{
+  keywords={const, let, var, function, return, if, else, for, while, import, export, default, from, async, await, class, extends, useState, useCallback, useMemo, memo, useRef, useQuery, useMutation},
+  keywordstyle=\color{codekeyword}\bfseries,
+  ndkeywords={Array, Object, String, Number, Boolean, Function, Math, Date, JSON, Promise, Map, Set},
+  ndkeywordstyle=\color{codefunction}\bfseries,
+  identifierstyle=\color{white},
+  sensitive=true,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{codecomment}\ttfamily,
+  stringstyle=\color{codestring}\ttfamily,
+  morestring=[b]',
+  morestring=[b]",
+  morestring=[b]`
+}
+
+\lstset{
+  backgroundcolor=\color{codebackground},
+  basicstyle=\ttfamily\small\color{white},
+  breakatwhitespace=false,
+  breaklines=true,
+  captionpos=b,
+  extendedchars=true,
+  frame=single,
+  keepspaces=true,
+  numbers=left,
+  numbersep=10pt,
+  numberstyle=\tiny\color{codecomment},
+  rulecolor=\color{primarycolor},
+  showspaces=false,
+  showstringspaces=false,
+  showtabs=false,
+  tabsize=2,
+  literate={ả}{{\h a}}1 {ế}{{\'\^e}}1 {ồ}{{\`\^o}}1 {ộ}{{\d\^o}}1
+           {ứ}{{\'\h u}}1 {ử}{{\h\h u}}1 {ữ}{{\~\h u}}1 {ự}{{\d\h u}}1
+           {ă}{{\u a}}1 {ắ}{{\'{\u a}}}1 {ằ}{{\`{\u a}}}1 {ẳ}{{\h{\u a}}}1
+           {ẵ}{{\~{\u a}}}1 {ặ}{{\d{\u a}}}1
+           {đ}{{\dj}}1 {Đ}{{\DJ}}1
+           {ơ}{{\h o}}1 {ớ}{{\'{\h o}}}1 {ờ}{{\`{\h o}}}1 {ở}{{\h{\h o}}}1
+           {ỡ}{{\~{\h o}}}1 {ợ}{{\d{\h o}}}1
+           {ê}{{\^e}}1 {ề}{{\`\^e}}1 {ể}{{\h\^e}}1 {ễ}{{\~\^e}}1 {ệ}{{\d\^e}}1
+           {ô}{{\^o}}1 {ố}{{\'{\^o}}}1 {ồ}{{\`{\^o}}}1 {ổ}{{\h{\^o}}}1
+           {ỗ}{{\~{\^o}}}1 {ộ}{{\d{\^o}}}1
+           {ư}{{\h u}}1 {ứ}{{\'{\h u}}}1 {ừ}{{\`{\h u}}}1 {ử}{{\h{\h u}}}1
+           {ữ}{{\~{\h u}}}1 {ự}{{\d{\h u}}}1
+           {ý}{{\'y}}1 {ỳ}{{\`y}}1 {ỷ}{{\h y}}1 {ỹ}{{\~y}}1 {ỵ}{{\d y}}1
+           {á}{{\'a}}1 {à}{{\`a}}1 {ả}{{\h a}}1 {ã}{{\~a}}1 {ạ}{{\d a}}1
+           {é}{{\'e}}1 {è}{{\`e}}1 {ẻ}{{\h e}}1 {ẽ}{{\~e}}1 {ẹ}{{\d e}}1
+           {í}{{\'i}}1 {ì}{{\`i}}1 {ỉ}{{\h i}}1 {ĩ}{{\~i}}1 {ị}{{\d i}}1
+           {ó}{{\'o}}1 {ò}{{\`o}}1 {ỏ}{{\h o}}1 {õ}{{\~o}}1 {ọ}{{\d o}}1
+           {ú}{{\'u}}1 {ù}{{\`u}}1 {ủ}{{\h u}}1 {ũ}{{\~u}}1 {ụ}{{\d u}}1
+}
+
+% Hyperlink setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primarycolor,
+    urlcolor=secondarycolor,
+    citecolor=primarycolor
+}
+
+% Header and Footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textbf{Smart Restaurant}}
+\fancyhead[R]{\textit{Mô-đun Quản lý Bàn}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\footrulewidth}{0.5pt}
+\setlength{\headheight}{31.89355pt}
+
+% Disable indentation and set line spacing
+\setlength{\parindent}{0pt}
+\renewcommand{\baselinestretch}{1.5}
+\sloppy
+
+% Define course information
+\newcommand{\coursename}{PHÁT TRIỂN ỨNG DỤNG WEB}
+\newcommand{\reportname}{\small{BÁO CÁO DỰ ÁN CUỐI KỲ}}
+\newcommand{\reporttitle}{SMART RESTAURANT - HỆ THỐNG ĐẶT MÓN QR}
+\newcommand{\studentname}{%
+  \begin{tabular}{@{} l r @{}}
+    Lê Thành Công & (23120222)\\
+    Nguyễn Hưng Thịnh & (23120200)\\
+    Võ Cao Tâm Chính & (23120194)
+  \end{tabular}%
+}
+\newcommand{\teachername}{ThS. Nguyễn Huy Khánh}
+
+\lhead{\reporttitle}
+\rhead{Trường Đại học Khoa học Tự nhiên - ĐHQG HCM\\ \coursename}
+
+% ============ DOCUMENT ============
+\begin{document}
+
+\pagenumbering{roman}
+\input{content/title.tex}
+
+\tableofcontents
+\pagebreak
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+%------------------------------------------------------------
+% FINAL PROJECT REPORT - Smart Restaurant QR Ordering System
+%------------------------------------------------------------
+
+\section{Mô tả Hệ thống}
+
+\subsection{Tổng quan Dự án}
+\textbf{Smart Restaurant} là một Hệ thống Quản lý Nhà hàng Đa khách hàng (Multi-Tenant) toàn diện với khả năng Đặt món qua Menu QR. Hệ thống cho phép nhà hàng quản lý menu, đơn hàng và bàn trong khi cho phép khách hàng đặt món trực tiếp bằng cách quét mã QR được đặt tại mỗi bàn.
+
+\subsection{Mục tiêu Dự án}
+\begin{itemize}
+    \item Phát triển nền tảng SaaS đa khách hàng có khả năng mở rộng cho quản lý nhà hàng
+    \item Cho phép truy cập menu và đặt món dựa trên QR không tiếp xúc
+    \item Cung cấp theo dõi đơn hàng thời gian thực cho khách hàng và nhân viên bếp
+    \item Triển khai bảng điều khiển quản trị toàn diện cho quản lý nhà hàng
+    \item Hỗ trợ kiểm soát truy cập dựa trên vai trò cho các loại người dùng khác nhau
+\end{itemize}
+
+\subsection{Phạm vi Dự án}
+\textbf{Các Tính năng Trong phạm vi:}
+\begin{itemize}
+    \item Đăng ký và tiếp nhận Khách hàng (Nhà hàng)
+    \item Tạo mã QR cho mỗi bàn với token đã ký
+    \item Quản lý menu (danh mục, món ăn, modifiers)
+    \item Khách hàng đặt món qua quét QR
+    \item Xử lý đơn hàng với state machine
+    \item Hệ thống Hiển thị Bếp (KDS)
+    \item Quy trình chấp nhận đơn hàng của Waiter
+    \item Thông báo WebSocket thời gian thực
+    \item Xác thực và phân quyền người dùng
+\end{itemize}
+
+\textbf{Ngoài phạm vi:}
+\begin{itemize}
+    \item Chương trình khách hàng thân thiết và khuyến mãi
+    \item Phân tích đa chi nhánh
+    \item Chế độ kiosk offline
+    \item Tích hợp giao hàng
+\end{itemize}
+
+%------------------------------------------------------------
+\section{Thông tin Nhóm}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|l|l|c|}
+\hline
+\textbf{MSSV} & \textbf{Họ và Tên} & \textbf{Vai trò} & \textbf{Đóng góp \%} \\
+\hline
+23120222 & Lê Thành Công & Trưởng nhóm, Full-stack Developer & 33.4\% \\
+\hline
+23120200 & Nguyễn Hưng Thịnh & Trưởng phát triển Backend & 33.3\% \\
+\hline
+23120194 & Võ Cao Tâm Chính & Trưởng phát triển Frontend & 33.3\% \\
+\hline
+\end{tabular}
+\caption{Thành viên Nhóm và Vai trò}
+\end{table}
+
+\subsection{Mô tả Vai trò}
+\begin{itemize}
+    \item \textbf{Lê Thành Công:} Thiết kế kiến trúc, API Gateway, Dịch vụ Identity, Dịch vụ Profile, WebSocket/Notification, Docker, CI/CD, DevOps
+    \item \textbf{Nguyễn Hưng Thịnh:} Dịch vụ Product/Table, Dịch vụ Order, Dịch vụ Kitchen, Review, RabbitMQ, Tạo hóa đơn
+    \item \textbf{Võ Cao Tâm Chính:} Frontend khách hàng, Bảng điều khiển Admin, Giao diện Waiter, Backend Waiter Service, Thiết kế UI/UX
+\end{itemize}
+
+%------------------------------------------------------------
+\section{Theo dõi Kế hoạch Dự án}
+
+\subsection{Tiến độ Phát triển}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|c|X|c|}
+\hline
+\textbf{Sprint} & \textbf{Kết quả} & \textbf{Trạng thái} \\
+\hline
+Sprint 1 & Thiết lập dự án, Thiết kế Kiến trúc, Dịch vụ Identity & Hoàn thành \\
+\hline
+Sprint 2 & Dịch vụ Profile, Dịch vụ Product (CRUD Menu) & Hoàn thành \\
+\hline
+Sprint 3 & Dịch vụ Table, Tạo Mã QR & Hoàn thành \\
+\hline
+Sprint 4 & Dịch vụ Order, Chức năng Giỏ hàng & Hoàn thành \\
+\hline
+Sprint 5 & Dịch vụ Waiter, Dịch vụ Kitchen & Hoàn thành \\
+\hline
+Sprint 6 & Tích hợp WebSocket, Cập nhật thời gian thực & Hoàn thành \\
+\hline
+Sprint 7 & Tích hợp Frontend, Kiểm thử, Sửa lỗi & Hoàn thành \\
+\hline
+Sprint 8 & Triển khai Docker, Tài liệu, Báo cáo & Hoàn thành \\
+\hline
+\end{tabularx}
+\caption{Kế hoạch Sprint và Tiến độ}
+\end{table}
+
+\subsection{Các cột mốc}
+\begin{enumerate}
+    \item \textbf{M1 - Nền tảng:} Thiết lập các dịch vụ cốt lõi (Identity, Profile, API Gateway)
+    \item \textbf{M2 - Hệ thống Menu:} Dịch vụ Product với danh mục, món ăn, modifiers
+    \item \textbf{M3 - Đặt món QR:} Quản lý bàn và tạo mã QR
+    \item \textbf{M4 - Luồng Đơn hàng:} Vòng đời đơn hàng hoàn chỉnh với state machine
+    \item \textbf{M5 - Thời gian thực:} Tích hợp WebSocket cho cập nhật trực tiếp
+    \item \textbf{M6 - Triển khai:} Containerization và triển khai Docker
+\end{enumerate}
+
+%------------------------------------------------------------
+\section{Phân tích Chức năng}
+
+\subsection{Kiến trúc Hệ thống}
+Hệ thống tuân theo \textbf{Kiến trúc Microservices} với các thành phần sau:
+
+\begin{itemize}
+    \item \textbf{API Gateway (Cổng 8888):} Điểm vào duy nhất, điều hướng, xác thực JWT
+    \item \textbf{Dịch vụ Identity (Cổng 3001):} Xác thực, quản lý người dùng, RBAC
+    \item \textbf{Dịch vụ Profile (Cổng 3002):} Quản lý hồ sơ người dùng và tenant
+    \item \textbf{Dịch vụ Product (Cổng 3003):} Danh mục menu, món ăn, modifiers
+    \item \textbf{Dịch vụ Table (Cổng 3004):} CRUD bàn, tạo mã QR
+    \item \textbf{Dịch vụ Order (Cổng 3005):} Vòng đời đơn hàng, state machine
+    \item \textbf{Dịch vụ Kitchen (Cổng 3008):} Chức năng KDS
+    \item \textbf{Dịch vụ Waiter (Cổng 3009):} Chấp nhận/từ chối đơn hàng
+    \item \textbf{Dịch vụ Notification (Cổng 3007):} Cập nhật WebSocket thời gian thực
+\end{itemize}
+
+\subsection{Các Chức năng Cốt lõi}
+
+\subsubsection{1. Xác thực và Phân quyền}
+\begin{itemize}
+    \item Xác thực dựa trên JWT với Passport.js
+    \item Kiểm soát truy cập dựa trên vai trò (Super Admin, Admin, Staff, Kitchen, Customer)
+    \item Tích hợp đăng nhập xã hội (Google OAuth)
+    \item Đặt lại mật khẩu qua email
+    \item Kích hoạt tài khoản qua xác minh email
+\end{itemize}
+
+\subsubsection{2. Quản lý Menu}
+\begin{itemize}
+    \item Thao tác CRUD cho danh mục menu
+    \item Món ăn với hình ảnh, giá, mô tả
+    \item Nhóm modifier (Kích cỡ, Thêm, Topping) với điều chỉnh giá
+    \item Quản lý tình trạng món ăn (Còn hàng, Không còn, Hết hàng)
+    \item Chức năng xuất bản/hủy xuất bản
+\end{itemize}
+
+\subsubsection{3. Quản lý Bàn và Mã QR}
+\begin{itemize}
+    \item Tạo, chỉnh sửa, vô hiệu hóa bàn với sức chứa
+    \item Tạo mã QR duy nhất cho mỗi bàn với token đã ký (HMAC-SHA256)
+    \item Tải mã QR xuống dạng PNG để in
+    \item Tái tạo mã QR để vô hiệu hóa mã cũ
+    \item Phiên bản token để thu hồi ngay lập tức
+\end{itemize}
+
+\subsubsection{4. Quy trình Đặt món của Khách hàng}
+\begin{itemize}
+    \item Quét mã QR để truy cập menu nhà hàng
+    \item Duyệt menu theo danh mục
+    \item Tìm kiếm và lọc món ăn
+    \item Thêm món vào giỏ hàng với modifiers
+    \item Đặt món với yêu cầu đặc biệt
+    \item Theo dõi trạng thái đơn hàng thời gian thực
+\end{itemize}
+
+\subsubsection{5. Xử lý Đơn hàng}
+\begin{itemize}
+    \item State machine đơn hàng: Bản nháp -> Đã gửi -> Đã nhận -> Đang chuẩn bị -> Sẵn sàng -> Hoàn thành
+    \item Chấp nhận/từ chối món trong đơn hàng bởi Waiter
+    \item Hệ thống Hiển thị Bếp cho chuẩn bị đơn hàng
+    \item Cập nhật trạng thái thời gian thực qua WebSocket
+    \item Theo dõi lịch sử đơn hàng
+\end{itemize}
+
+\subsubsection{6. Tính năng Thời gian thực}
+\begin{itemize}
+    \item Tích hợp WebSocket (Socket.IO)
+    \item Cập nhật trạng thái đơn hàng trực tiếp cho khách hàng
+    \item Thông báo bếp cho đơn hàng mới
+    \item Thông báo waiter cho đơn hàng chờ xử lý
+    \item RabbitMQ cho giao tiếp giữa các dịch vụ
+\end{itemize}
+
+\subsection{Các Luồng Người dùng}
+
+\textbf{Luồng Đặt món của Khách hàng:}
+\begin{enumerate}
+    \item Khách hàng quét mã QR tại bàn
+    \item Xác thực token và tải menu
+    \item Duyệt menu và thêm món vào giỏ hàng
+    \item Gửi đơn hàng với ghi chú tùy chọn
+    \item Waiter nhận thông báo
+    \item Waiter chấp nhận/từ chối món
+    \item Bếp nhận món đã chấp nhận
+    \item Bếp cập nhật trạng thái chuẩn bị
+    \item Khách hàng nhận cập nhật thời gian thực
+    \item Đơn hàng được đánh dấu hoàn thành
+\end{enumerate}
+
+%------------------------------------------------------------
+\section{Thiết kế Cơ sở dữ liệu}
+
+\subsection{Kiến trúc Cơ sở dữ liệu}
+Mỗi microservice có cơ sở dữ liệu PostgreSQL riêng để cô lập dữ liệu:
+\begin{itemize}
+    \item \texttt{identity\_db} - Người dùng, Vai trò, Quyền hạn
+    \item \texttt{profile\_db} - Hồ sơ người dùng, Thông tin Tenant
+    \item \texttt{product\_db} - Danh mục, Món ăn, Modifiers
+    \item \texttt{table\_db} - Bàn, Token QR
+    \item \texttt{order\_db} - Đơn hàng, Món trong đơn, Lịch sử trạng thái
+\end{itemize}
+
+\subsection{Biểu đồ ER}
+
+\begin{figure}[H]
+\centering
+\begin{tcolorbox}[colback=gray!5, colframe=gray!50, width=\textwidth]
+\begin{verbatim}
+TENANT ||--o{ USER : has
+TENANT ||--o{ TABLE : has
+TENANT ||--o{ MENU_CATEGORY : has
+TENANT ||--o{ MENU_ITEM : has
+TENANT ||--o{ ORDER : has
+ORDER ||--o{ ORDER_ITEM : contains
+MENU_CATEGORY ||--o{ MENU_ITEM : groups
+MENU_ITEM ||--o{ MODIFIER_OPTION : offers
+TABLE ||--o{ ORDER : places
+\end{verbatim}
+\end{tcolorbox}
+\caption{Mối quan hệ Thực thể}
+\end{figure}
+
+\subsection{Các Thực thể Chính}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Thực thể} & \textbf{Các trường Chính} \\
+\hline
+TENANT & id, name, email, timezone, created\_at \\
+\hline
+USER & id, tenant\_id, email, role, created\_at \\
+\hline
+TABLE & id, tenant\_id, name, capacity, location, qr\_token\_version \\
+\hline
+MENU\_CATEGORY & id, tenant\_id, name, description, published \\
+\hline
+MENU\_ITEM & id, category\_id, name, price, image\_url, available \\
+\hline
+MODIFIER\_OPTION & id, item\_id, group\_name, label, price\_delta, type \\
+\hline
+ORDER & id, tenant\_id, table\_id, status, total, currency \\
+\hline
+ORDER\_ITEM & id, order\_id, item\_id, quantity, modifiers, unit\_price \\
+\hline
+\end{tabularx}
+\caption{Tóm tắt Trường Thực thể}
+\end{table}
+
+\subsection{Cô lập Dữ liệu Đa khách hàng}
+Hệ thống triển khai Row-Level Security (RLS) với \texttt{tenant\_id} trên tất cả các bảng thuộc sở hữu của tenant để đảm bảo cô lập dữ liệu hoàn toàn giữa các nhà hàng.
+
+%------------------------------------------------------------
+\section{Thiết kế UI/UX}
+
+\subsection{Nguyên tắc Thiết kế}
+\begin{itemize}
+    \item \textbf{Ưu tiên Mobile:} Giao diện đặt món khách hàng tối ưu cho thiết bị di động
+    \item \textbf{Tối ưu Desktop:} Bảng điều khiển quản trị thiết kế cho sử dụng desktop
+    \item \textbf{Glassmorphism:} Phong cách UI hiện đại với hiệu ứng kính cho các trang QR
+    \item \textbf{Responsive:} Thích ứng với nhiều kích thước màn hình
+\end{itemize}
+
+\subsection{Ngăn xếp Công nghệ}
+\begin{itemize}
+    \item \textbf{Frontend:} React 19, Vite, TailwindCSS 4
+    \item \textbf{Thành phần UI:} Thành phần tùy chỉnh với biểu tượng Lucide
+    \item \textbf{Hiệu ứng chuyển động:} Framer Motion
+    \item \textbf{Biểu đồ:} Recharts cho phân tích
+    \item \textbf{Quản lý Trạng thái:} React Context API
+\end{itemize}
+
+\subsection{Các Bố cục Ứng dụng}
+
+\subsubsection{1. Giao diện Khách hàng}
+\begin{itemize}
+    \item Duyệt menu với bộ lọc danh mục
+    \item Modal chi tiết món với modifiers
+    \item Thanh bên giỏ hàng
+    \item Trang theo dõi trạng thái đơn hàng
+\end{itemize}
+
+\subsubsection{2. Bảng điều khiển Quản trị}
+\begin{itemize}
+    \item Điều hướng thanh bên
+    \item Quản lý menu (thao tác CRUD)
+    \item Quản lý bàn với tạo QR
+    \item Danh sách và quản lý đơn hàng
+    \item Quản lý tài khoản nhân viên
+\end{itemize}
+
+\subsubsection{3. Hệ thống Hiển thị Bếp (KDS)}
+\begin{itemize}
+    \item Thẻ đơn hàng với chi tiết món
+    \item Nút cập nhật trạng thái
+    \item Đơn hàng đến thời gian thực
+    \item Đồng hồ đếm cho chuẩn bị đơn hàng
+\end{itemize}
+
+\subsubsection{4. Giao diện Waiter}
+\begin{itemize}
+    \item Danh sách đơn hàng chờ xử lý
+    \item Thao tác Chấp nhận/Từ chối món
+    \item Tổng quan trạng thái đơn hàng
+\end{itemize}
+
+\subsection{Ảnh chụp màn hình}
+% [TASK] Insert UI screenshots here
+\begin{tcolorbox}[colback=yellow!10, colframe=yellow!50!black, title=Yêu cầu Ảnh chụp màn hình UI]
+[TASK] Chèn ảnh chụp màn hình của các giao diện sau:
+\begin{enumerate}
+    \item Trang duyệt menu khách hàng
+    \item Giỏ hàng và thanh toán khách hàng
+    \item Tổng quan bảng điều khiển quản trị
+    \item Trang quản lý menu
+    \item Quản lý bàn với mã QR
+    \item Hệ thống Hiển thị Bếp
+    \item Quản lý đơn hàng Waiter
+    \item Trang Đăng nhập/Đăng ký
+\end{enumerate}
+\end{tcolorbox}
+
+%------------------------------------------------------------
+\section{Hướng dẫn}
+
+\subsection{Yêu cầu Hệ thống}
+\begin{itemize}
+    \item \textbf{Node.js:} v18+ (khuyến nghị LTS)
+    \item \textbf{PostgreSQL:} v14+
+    \item \textbf{Redis:} v6+
+    \item \textbf{Docker:} v20+ (tùy chọn, cho triển khai containerized)
+    \item \textbf{Git:} Để sao chép repository
+\end{itemize}
+
+\subsection{Thiết lập Phát triển Cục bộ}
+
+\subsubsection{Bước 1: Sao chép Repository}
+\begin{lstlisting}[language=bash]
+git clone https://github.com/Dev-Web-2005/smart-restaurant.git
+cd smart-restaurant
+\end{lstlisting}
+
+\subsubsection{Bước 2: Thiết lập Biến Môi trường}
+Tạo tệp \texttt{.env} cho mỗi dịch vụ dựa trên \texttt{.env.example}:
+\begin{lstlisting}[language=bash]
+# Cấu hình cơ sở dữ liệu
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=identity_db
+DATABASE_USER=postgres
+DATABASE_PASSWORD=postgres123
+
+# Cấu hình JWT
+JWT_SECRET=your-secret-key
+JWT_EXPIRES_IN=7d
+
+# Cấu hình Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+\end{lstlisting}
+
+\subsubsection{Bước 3: Cài đặt Phụ thuộc}
+\begin{lstlisting}[language=bash]
+# Các dịch vụ Backend
+cd src/backend/api-gateway && npm install
+cd ../identity && npm install
+cd ../product && npm install
+# ... lặp lại cho các dịch vụ khác
+
+# Frontend
+cd src/frontend && npm install
+\end{lstlisting}
+
+\subsubsection{Bước 4: Khởi động Dịch vụ}
+\begin{lstlisting}[language=bash]
+# Sử dụng tệp batch được cung cấp
+./run.bat
+
+# Hoặc khởi động thủ công từng dịch vụ
+cd src/backend/api-gateway && npm run start:dev
+cd src/backend/identity && npm run start:dev
+# ... khởi động các dịch vụ khác
+
+# Khởi động frontend
+cd src/frontend && npm run dev
+\end{lstlisting}
+
+\subsection{Triển khai Docker}
+
+\subsubsection{Khởi động Nhanh với Docker Compose}
+\begin{lstlisting}[language=bash]
+# Xây dựng và khởi động tất cả dịch vụ
+docker-compose up -d --build
+
+# Xem logs
+docker-compose logs -f
+
+# Dừng tất cả dịch vụ
+docker-compose down
+\end{lstlisting}
+
+\subsubsection{Cổng Dịch vụ}
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Dịch vụ} & \textbf{Cổng} \\
+\hline
+Frontend & 3000 \\
+\hline
+API Gateway & 8888 \\
+\hline
+Dịch vụ Identity & 3001 \\
+\hline
+Dịch vụ Profile & 3002 \\
+\hline
+Dịch vụ Product & 3003 \\
+\hline
+Dịch vụ Table & 3004 \\
+\hline
+Dịch vụ Order & 3005 \\
+\hline
+Dịch vụ Notification & 3007 \\
+\hline
+Dịch vụ Kitchen & 3008 \\
+\hline
+Dịch vụ Waiter & 3009 \\
+\hline
+\end{tabular}
+\caption{Ánh xạ Cổng Dịch vụ}
+\end{table}
+
+\subsection{Triển khai Production}
+
+% [TASK] Add production URL if available
+\begin{tcolorbox}[colback=yellow!10, colframe=yellow!50!black, title=URL Production]
+[TASK] Chèn URL triển khai production tại đây (nếu được triển khai lên hosting công cộng).
+\end{tcolorbox}
+
+\subsubsection{Các bước Triển khai}
+\begin{enumerate}
+    \item Đặt biến môi trường production
+    \item Xây dựng Docker images cho production
+    \item Đẩy images lên container registry
+    \item Triển khai sử dụng Docker Compose hoặc Kubernetes
+    \item Cấu hình reverse proxy (Nginx) cho HTTPS
+    \item Thiết lập sao lưu cơ sở dữ liệu
+\end{enumerate}
+
+\subsection{Hướng dẫn Sử dụng}
+
+\subsubsection{Dành cho Chủ nhà hàng}
+\begin{enumerate}
+    \item Đăng ký tài khoản nhà hàng mới
+    \item Hoàn thành quy trình tiếp nhận
+    \item Thêm danh mục và món menu
+    \item Tạo bàn và tạo mã QR
+    \item In và đặt mã QR tại các bàn
+    \item Tạo tài khoản nhân viên (Waiter, Kitchen)
+\end{enumerate}
+
+\subsubsection{Dành cho Khách hàng}
+\begin{enumerate}
+    \item Quét mã QR tại bàn
+    \item Duyệt menu và chọn món
+    \item Tùy chỉnh với modifiers nếu có
+    \item Thêm vào giỏ hàng và xem lại đơn hàng
+    \item Gửi đơn hàng
+    \item Theo dõi trạng thái đơn hàng thời gian thực
+\end{enumerate}
+
+\subsubsection{Dành cho Nhân viên Bếp}
+\begin{enumerate}
+    \item Truy cập giao diện KDS
+    \item Xem các đơn hàng đến
+    \item Cập nhật trạng thái chuẩn bị món
+    \item Đánh dấu món sẵn sàng
+\end{enumerate}
+
+\subsubsection{Dành cho Waiter}
+\begin{enumerate}
+    \item Truy cập giao diện waiter
+    \item Xem lại các đơn hàng chờ xử lý
+    \item Chấp nhận hoặc từ chối món trong đơn hàng
+    \item Giám sát tiến trình đơn hàng
+\end{enumerate}
+
+%------------------------------------------------------------
+\section{Kết luận}
+
+Hệ thống Đặt món QR cho Nhà hàng Thông minh đã triển khai thành công một giải pháp toàn diện cho hoạt động nhà hàng hiện đại. Các thành tựu chính bao gồm:
+
+\begin{itemize}
+    \item Kiến trúc microservices hoàn chỉnh với 9 dịch vụ backend
+    \item Đặt món dựa trên QR bảo mật với token đã ký
+    \item Cập nhật thời gian thực qua WebSocket
+    \item Kiểm soát truy cập dựa trên vai trò cho tất cả loại người dùng
+    \item Containerization với Docker để triển khai dễ dàng
+    \item Thiết kế responsive ưu tiên mobile
+\end{itemize}
+
+Hệ thống giải quyết các thách thức thực tế của nhà hàng bằng cách giảm thiểu lỗi đặt món, cải thiện hiệu suất bếp và nâng cao trải nghiệm khách hàng thông qua đặt món không tiếp xúc.
+
+\end{document}

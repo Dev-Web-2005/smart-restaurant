@@ -1,0 +1,417 @@
+\documentclass[12pt]{article}
+
+\usepackage{hcmus-report-template}
+\usepackage[utf8]{inputenc}
+\usepackage[vietnamese]{babel}
+\usepackage[T5]{fontenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{float}
+
+% ===== GEOMETRY =====
+\geometry{
+    left=2.5cm,
+    right=2.5cm,
+    top=3cm,
+    bottom=3cm
+}
+
+% ===== COLORS =====
+\definecolor{primarycolor}{RGB}{59,130,246}
+\definecolor{secondarycolor}{RGB}{139,92,246}
+\definecolor{successcolor}{RGB}{34,197,94}
+\definecolor{warningcolor}{RGB}{234,179,8}
+\definecolor{codebackground}{RGB}{40,44,52}
+\definecolor{codecomment}{RGB}{92,99,112}
+\definecolor{codekeyword}{RGB}{198,120,221}
+\definecolor{codestring}{RGB}{152,195,121}
+\definecolor{codefunction}{RGB}{97,175,239}
+
+% ===== LISTINGS CONFIGURATION =====
+\lstdefinelanguage{TypeScript}{
+  keywords={const, let, var, function, return, if, else, for, while, import, export, default, from, async, await, class, interface, implements, extends, public, private, protected, readonly, new, try, catch, throw, type, enum},
+  keywordstyle=\color{codekeyword}\bfseries,
+  ndkeywords={@Injectable, @Controller, @Get, @Post, @Patch, @Delete, @Body, @Param, @Query, @UseGuards, Column, Entity, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index},
+  ndkeywordstyle=\color{warningcolor}\bfseries,
+  identifierstyle=\color{white},
+  sensitive=true,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{codecomment}\ttfamily,
+  stringstyle=\color{codestring}\ttfamily,
+  morestring=[b]',
+  morestring=[b]",
+  morestring=[b]`
+}
+
+\lstdefinelanguage{JavaScript}{
+  keywords={const, let, var, function, return, if, else, for, while, import, export, default, from, async, await, class, extends, useState, useCallback, useMemo, memo, useRef, useQuery, useMutation},
+  keywordstyle=\color{codekeyword}\bfseries,
+  ndkeywords={Array, Object, String, Number, Boolean, Function, Math, Date, JSON, Promise, Map, Set},
+  ndkeywordstyle=\color{codefunction}\bfseries,
+  identifierstyle=\color{white},
+  sensitive=true,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{codecomment}\ttfamily,
+  stringstyle=\color{codestring}\ttfamily,
+  morestring=[b]',
+  morestring=[b]",
+  morestring=[b]`
+}
+
+\lstset{
+  backgroundcolor=\color{codebackground},
+  basicstyle=\ttfamily\small\color{white},
+  breakatwhitespace=false,
+  breaklines=true,
+  captionpos=b,
+  extendedchars=true,
+  frame=single,
+  keepspaces=true,
+  numbers=left,
+  numbersep=10pt,
+  numberstyle=\tiny\color{codecomment},
+  rulecolor=\color{primarycolor},
+  showspaces=false,
+  showstringspaces=false,
+  showtabs=false,
+  tabsize=2,
+  literate={ả}{{\h a}}1 {ế}{{\'\^e}}1 {ồ}{{\`\^o}}1 {ộ}{{\d\^o}}1
+           {ứ}{{\'\h u}}1 {ử}{{\h\h u}}1 {ữ}{{\~\h u}}1 {ự}{{\d\h u}}1
+           {ă}{{\u a}}1 {ắ}{{\'{\u a}}}1 {ằ}{{\`{\u a}}}1 {ẳ}{{\h{\u a}}}1
+           {ẵ}{{\~{\u a}}}1 {ặ}{{\d{\u a}}}1
+           {đ}{{\dj}}1 {Đ}{{\DJ}}1
+           {ơ}{{\h o}}1 {ớ}{{\'{\h o}}}1 {ờ}{{\`{\h o}}}1 {ở}{{\h{\h o}}}1
+           {ỡ}{{\~{\h o}}}1 {ợ}{{\d{\h o}}}1
+           {ê}{{\^e}}1 {ề}{{\`\^e}}1 {ể}{{\h\^e}}1 {ễ}{{\~\^e}}1 {ệ}{{\d\^e}}1
+           {ô}{{\^o}}1 {ố}{{\'{\^o}}}1 {ồ}{{\`{\^o}}}1 {ổ}{{\h{\^o}}}1
+           {ỗ}{{\~{\^o}}}1 {ộ}{{\d{\^o}}}1
+           {ư}{{\h u}}1 {ứ}{{\'{\h u}}}1 {ừ}{{\`{\h u}}}1 {ử}{{\h{\h u}}}1
+           {ữ}{{\~{\h u}}}1 {ự}{{\d{\h u}}}1
+           {ý}{{\'y}}1 {ỳ}{{\`y}}1 {ỷ}{{\h y}}1 {ỹ}{{\~y}}1 {ỵ}{{\d y}}1
+           {á}{{\'a}}1 {à}{{\`a}}1 {ả}{{\h a}}1 {ã}{{\~a}}1 {ạ}{{\d a}}1
+           {é}{{\'e}}1 {è}{{\`e}}1 {ẻ}{{\h e}}1 {ẽ}{{\~e}}1 {ẹ}{{\d e}}1
+           {í}{{\'i}}1 {ì}{{\`i}}1 {ỉ}{{\h i}}1 {ĩ}{{\~i}}1 {ị}{{\d i}}1
+           {ó}{{\'o}}1 {ò}{{\`o}}1 {ỏ}{{\h o}}1 {õ}{{\~o}}1 {ọ}{{\d o}}1
+           {ú}{{\'u}}1 {ù}{{\`u}}1 {ủ}{{\h u}}1 {ũ}{{\~u}}1 {ụ}{{\d u}}1
+}
+
+% Hyperlink setup
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primarycolor,
+    urlcolor=secondarycolor,
+    citecolor=primarycolor
+}
+
+% Header and Footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textbf{Smart Restaurant}}
+\fancyhead[R]{\textit{Table Management Module}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\footrulewidth}{0.5pt}
+\setlength{\headheight}{31.89355pt}
+
+% Disable indentation and set line spacing
+\setlength{\parindent}{0pt}
+\renewcommand{\baselinestretch}{1.5}
+\sloppy
+
+% Define course information
+\newcommand{\coursename}{PHÁT TRIỂN ỨNG DỤNG WEB}
+\newcommand{\reportname}{\small{TEAMWORK REPORT}}
+\newcommand{\reporttitle}{SMART RESTAURANT - QR ORDERING SYSTEM}
+\newcommand{\studentname}{%
+  \begin{tabular}{@{} l r @{}}
+    Lê Thành Công & (23120222)\\
+    Nguyễn Hưng Thịnh & (23120200)\\
+    Võ Cao Tâm Chính & (23120194)
+  \end{tabular}%
+}
+\newcommand{\teachername}{ThS. Nguyễn Huy Khánh}
+
+\lhead{\reporttitle}
+\rhead{Trường Đại học Khoa học Tự nhiên - ĐHQG HCM\\ \coursename}
+
+% ============ DOCUMENT ============
+\begin{document}
+
+\pagenumbering{roman}
+\input{content/title.tex}
+
+\tableofcontents
+\pagebreak
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+%------------------------------------------------------------
+% TEAMWORK REPORT - Smart Restaurant QR Ordering System
+%------------------------------------------------------------
+
+\section{Giới thiệu nhóm}
+
+Nhóm chúng em gồm ba thành viên đến từ Khoa Công nghệ Thông tin, Trường Đại học Khoa học Tự nhiên - Đại học Quốc gia Thành phố Hồ Chí Minh:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{MSSV} & \textbf{Họ và Tên} & \textbf{Tài khoản Git} & \textbf{Vai trò} \\
+\hline
+23120222 & Lê Thành Công & LeThanhCong, ltchcmus & Leader, Trưởng Backend\\
+\hline
+23120200 & Nguyễn Hưng Thịnh & oppaii230205 & Backend \\
+\hline
+23120194 & Võ Cao Tâm Chính & vctchinh & Trưởng Frontend \\
+\hline
+\end{tabular}
+\caption{Thông tin thành viên nhóm}
+\end{table}
+
+\section{Quy trình cộng tác}
+
+\subsection{Kênh giao tiếp}
+Nhóm chúng em sử dụng nhiều kênh giao tiếp để đảm bảo cộng tác hiệu quả:
+\begin{itemize}
+    \item \textbf{Google Meet/ Zalo:} Họp daily stand-up và thảo luận trực tuyến
+    \item \textbf{GitHub Issues:} Theo dõi lỗi và yêu cầu tính năng
+    \item \textbf{Pull Requests:} Xem xét code và thảo luận
+\end{itemize}
+
+\subsection{Quy trình phát triển}
+Chúng em tuân theo quy trình Git Flow với chiến lược nhánh như sau:
+\begin{itemize}
+    \item \textbf{master:} Code sẵn sàng cho production
+    \item \textbf{develop:} Nhánh tích hợp phát triển
+    \item \textbf{release:} Nhánh ở môi trường test
+    \item \textbf{hotfix:} Nhánh sẽ fix lỗi nhanh ở nhánh master (prod)
+    \item \textbf{allfeatures:} Nhánh làm việc chính với tất cả tính năng đã tích hợp
+    \item \textbf{feature/*:} Các nhánh tính năng riêng lẻ (ví dụ: feature-websocket, feature-waiter, feature-kitchen)
+\end{itemize}
+
+Quy trình làm việc:
+\begin{enumerate}
+    \item Tạo nhánh tính năng từ \texttt{develop/allfeatures}
+    \item Triển khai tính năng với các commit có ý nghĩa
+    \item Tạo Pull Request để xem xét code
+    \item Merge sau khi được phê duyệt và kiểm thử
+\end{enumerate}
+
+\subsection{Lịch họp}
+\begin{itemize}
+    \item \textbf{Lập kế hoạch tuần:} Mỗi thứ Hai - Lập kế hoạch Sprint và phân công công việc
+    \item \textbf{Đồng bộ hàng ngày:} Stand-up 15 phút qua Zalo
+    \item \textbf{Xem xét code:} Khi cần thiết khi có Pull Request được tạo
+    \item \textbf{Đánh giá Sprint:} Cuối mỗi sprint để demo các tính năng đã hoàn thành
+\end{itemize}
+
+\section{Phân công công việc}
+
+\subsection{Tổng quan theo module}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|l|X|l|}
+\hline
+\textbf{Module} & \textbf{Mô tả} & \textbf{Người phụ trách} \\
+\hline
+API Gateway & Điểm vào, định tuyến, xác thực JWT & Lê Thành Công \\
+\hline
+Identity Service & Xác thực, Quản lý người dùng, RBAC & Lê Thành Công \\
+\hline
+Profile Service & Quản lý hồ sơ người dùng/Tenant & Lê Thành Công \\
+\hline
+Product Service & Menu, Danh mục, Món ăn, Modifiers & Nguyễn Hưng Thịnh \\
+\hline
+Table Service & Quản lý bàn, Tạo mã QR & Nguyễn Hưng Thịnh \\
+\hline
+Order Service & Vòng đời đơn hàng, State machine & Nguyễn Hưng Thịnh \\
+\hline
+Kitchen Service & KDS, Theo dõi chuẩn bị món & Nguyễn Hưng Thịnh \\
+\hline
+Waiter Service & Chấp nhận/Từ chối đơn hàng & Võ Cao Tâm Chính \\
+\hline
+Notification Service & WebSocket, Cập nhật thời gian thực & Lê Thành Công\\
+\hline
+Frontend - Admin & Dashboard, Quản lý Menu, Quản lý bàn & Võ Cao Tâm Chính \\
+\hline
+Frontend - Customer & Quét QR, Xem menu, Giỏ hàng, Đặt món & Võ Cao Tâm Chính \\
+\hline
+Frontend - Kitchen & Giao diện KDS & Võ Cao Tâm Chính \\
+\hline
+Frontend - Waiter & Giao diện quản lý đơn hàng & Võ Cao Tâm Chính \\
+\hline
+Docker \& DevOps & Containerization, Docker Compose & Lê Thành Công \\
+\hline
+Tài liệu & Tài liệu API, Tài liệu hệ thống & Tất cả thành viên \\
+\hline
+\end{tabularx}
+\caption{Phân công công việc theo Module}
+\end{table}
+
+\subsection{Đóng góp cá nhân}
+
+\textbf{Nguyễn Hưng Thịnh (oppaii230205):}
+\begin{itemize}
+    \item Triển khai Product Service
+    \item Table Service với tạo mã QR
+    \item Tạo Order Service với state machine
+    \item Phát triển Kitchen Service và backend KDS
+    \item Triển khai tính năng đánh giá
+    \item Tích hợp RabbitMQ cho giao tiếp hướng sự kiện
+    \item ...
+    \item \textbf{179 commits}
+\end{itemize}
+
+\textbf{Lê Thành Công (LeThanhCong):}
+\begin{itemize}
+    \item Triển khai API Gateway với xác thực JWT
+    \item Thiết lập dự án và thiết kế kiến trúc
+    \item Phát triển Identity Service (đăng nhập, đăng ký, RBAC)
+    \item Triển khai cập nhật thời gian thực bằng WebSocket
+    \item Triển khai các tích hợp template để team follow sử dụng
+    \item Containerization với Docker
+    \item Thiết kế cơ sở dữ liệu và migrations
+    \item ...
+    \item \textbf{131 commits}
+\end{itemize}
+
+\textbf{Võ Cao Tâm Chính (vctchinh):}
+\begin{itemize}
+    \item Frontend Admin Dashboard
+    \item Frontend đặt món cho khách hàng
+    \item Phát triển giao diện Waiter
+    \item Triển khai chức năng giỏ hàng
+    \item Cải thiện UI/UX và styling glassmorphism
+    \item Tích hợp Socket để cập nhật đơn hàng thời gian thực
+    \item Tính năng Owner Profile
+    \item ...
+    \item \textbf{61 commits}
+\end{itemize}
+
+\section{Minh chứng Git Commit}
+
+\subsection{Thống kê Commit}
+Tổng số commits trong repository: \textbf{350+ commits}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|r|r|}
+\hline
+\textbf{Người đóng góp} & \textbf{Commits}  \\
+\hline
+Nguyễn Hưng Thịnh (oppaii230205) & 194  \\
+\hline
+Lê Thành Công (LeThanhCong) & 131  \\
+\hline
+Võ Cao Tâm Chính (vctchinh) & 61  \\
+\hline
+\end{tabular}
+\caption{Phân bổ Commit theo thành viên}
+\end{table}
+
+\subsection{Lịch sử các nhánh}
+Dự án có nhiều nhánh tính năng:
+\begin{itemize}
+    \item \texttt{feature-websocket} - Triển khai WebSocket
+    \item \texttt{feature-waiter} - Dịch vụ Waiter
+    \item \texttt{feature-kitchen} - Hệ thống hiển thị bếp
+    \item \texttt{feature-orders-cart} - Chức năng đơn hàng và giỏ hàng
+    \item \texttt{feat-reviews} - Tính năng đánh giá
+    \item \texttt{feat-notification} - Dịch vụ thông báo
+\end{itemize}
+
+\subsection{Mẫu lịch sử Commit}
+% [TASK] Insert screenshots of Git commits here
+\begin{tcolorbox}[colback=yellow!10, colframe=yellow!50!black, title=Ảnh chụp màn hình Git Commit]
+[TASK] Chèn ảnh chụp màn hình biểu đồ đóng góp GitHub và lịch sử commit tại đây.
+
+Các ảnh chụp màn hình được đề xuất:
+\begin{enumerate}
+    \item Trang Contributors của GitHub hiển thị tất cả thành viên nhóm
+    \item Lịch sử commit Git (git log --oneline -20)
+    \item Biểu đồ mạng hiển thị các nhánh và merges
+    \item Lịch sử Pull Request
+\end{enumerate}
+\end{tcolorbox}
+
+\section{Minh chứng Pull Request}
+
+Nhóm chúng em sử dụng Pull Requests cho tất cả các tính năng merge:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|c|l|l|}
+\hline
+\textbf{PR \#} & \textbf{Tiêu đề} & \textbf{Mô tả} \\
+\hline
+\#15 & feat-reviews & Triển khai tính năng đánh giá \\
+\hline
+\#14 & feature-kitchen & Hệ thống hiển thị bếp \\
+\hline
+\#13 & feature-websocket & Cập nhật thời gian thực WebSocket \\
+\hline
+\#12 & feature-waiter & Triển khai dịch vụ Waiter \\
+\hline
+\#11 & feature-orders-cart & Chức năng đơn hàng và giỏ hàng \\
+\hline
+\end{tabular}
+\caption{Lịch sử Pull Request}
+\end{table}
+
+% [TASK] Insert PR screenshots here
+\begin{tcolorbox}[colback=yellow!10, colframe=yellow!50!black, title=Ảnh chụp màn hình Pull Request]
+[TASK] Chèn ảnh chụp màn hình Pull Requests từ GitHub tại đây.
+\end{tcolorbox}
+
+\section{Công cụ cộng tác}
+
+\subsection{GitHub Repository}
+\begin{itemize}
+    \item \textbf{URL Repository:} \url{https://github.com/Dev-Web-2005/smart-restaurant}
+    \item \textbf{Chế độ:} Private (trong quá trình phát triển)
+    \item \textbf{Tổng số nhánh:} 20+ nhánh
+    \item \textbf{Tổng số Commits:} 350+
+\end{itemize}
+
+\subsection{Công cụ phát triển được sử dụng}
+\begin{itemize}
+    \item \textbf{IDE:} Visual Studio Code
+    \item \textbf{Quản lý phiên bản:} Git, GitHub
+    \item \textbf{Kiểm thử API:} Postman
+    \item \textbf{Cơ sở dữ liệu:} PostgreSQL, Redis, 
+    \item \textbf{Containerization:} Docker, Docker Compose
+    \item \textbf{Message Broker: } RabbitMQ
+    \item \textbf{Giao tiếp:} Zalo / Google Meet
+\end{itemize}
+
+\section{Kết luận}
+
+Nhóm chúng em đã cộng tác thành công trong suốt quá trình phát triển dự án bằng cách sử dụng quy trình làm việc dựa trên Git và giao tiếp thường xuyên. Các thành tựu chính:
+
+\begin{itemize}
+    \item Duy trì lịch sử commit nhất quán với các thông điệp có ý nghĩa
+    \item Sử dụng các nhánh tính năng để tách biệt công việc phát triển
+    \item Tiến hành xem xét code thông qua Pull Requests
+    \item Cân bằng khối lượng công việc giữa các thành viên
+    \item Hoàn thành tất cả các tính năng theo kế hoạch đúng hạn
+\end{itemize}
+
+Quy trình cộng tác đảm bảo chất lượng code và cho phép phát triển song song các module khác nhau mà không xung đột.
+
+\end{document}
