@@ -395,10 +395,10 @@ export class OrderController {
 
 	// ==================== EVENT HANDLERS ====================
 	@EventPattern('payment.get-state')
-	async handlePaymentState(data: { orderId: string; state: number }) {
+	async handlePaymentState(data: { userId: string; state: number }) {
 		// Handle payment state update events from Payment Service
 		await this.orderService.processPaymentStateUpdate({
-			orderId: data.orderId,
+			orderId: data.userId,
 			state: data.state,
 		});
 	}
