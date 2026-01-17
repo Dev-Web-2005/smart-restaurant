@@ -125,7 +125,7 @@ export class OrderController {
 	 * - sortOrder: string (ASC, DESC) (default: DESC)
 	 */
 	@Get('tenants/:tenantId/orders/customer/:customerId/history')
-	@UseGuards(AuthGuard, Role('USER'))
+	@UseGuards(AuthGuard, Role('CUSTOMER'))
 	getOrderHistory(
 		@Param('tenantId') tenantId: string,
 		@Param('customerId') customerId: string,
