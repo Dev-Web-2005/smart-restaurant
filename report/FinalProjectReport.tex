@@ -176,14 +176,6 @@
     \item Tích hợp thanh toán, email, và file storage
 \end{itemize}
 
-\textbf{Điểm nổi bật:}
-\begin{itemize}
-    \item Kiến trúc Multi-Tenant hỗ trợ nhiều nhà hàng trên cùng một hệ thống
-    \item Hơn 10 microservices (9 dịch vụ chính + dịch vụ bên ngoài)
-    \item Cập nhật thời gian thực qua WebSocket và RabbitMQ
-    \item Tích hợp thanh toán, email, và file storage
-\end{itemize}
-
 \subsection{Mục tiêu Dự án}
 \begin{itemize}
     \item Phát triển nền tảng SaaS đa khách hàng có khả năng mở rộng cho quản lý nhà hàng
@@ -287,9 +279,7 @@ Sprint 8 & Triển khai Docker, Tài liệu, Báo cáo & Hoàn thành \\
 
 \subsection{Kiến trúc Hệ thống}
 Hệ thống tuân theo \textbf{Kiến trúc Microservices Multi-Tenant} với các thành phần sau:
-Hệ thống tuân theo \textbf{Kiến trúc Microservices Multi-Tenant} với các thành phần sau:
 
-\textbf{Dịch vụ Chính (9 dịch vụ):}
 \textbf{Dịch vụ Chính (9 dịch vụ):}
 \begin{itemize}
     \item \textbf{API Gateway (Cổng 8888):} Điểm vào duy nhất, điều hướng, xác thực JWT
@@ -533,37 +523,106 @@ Hệ thống triển khai Row-Level Security (RLS) với \texttt{tenant\_id} tr�
 
 \subsection{Thiết lập Phát triển Cục bộ}
 
-\subsubsection{Bước 1: Sao chép Repository}
+\textbf{Lưu ý quan trọng:} Nhóm đã cung cấp file submission zip bao gồm đầy đủ các file cấu hình môi trường (\texttt{.env}) đã được thiết lập sẵn cho tất cả microservices. Giáo viên chỉ cần giải nén file zip và thực hiện các bước cài đặt dependencies cùng khởi động hệ thống mà không cần cấu hình thủ công.
+
+\subsubsection{Bước 1: Giải nén File Submission}
+
+Giải nén file \texttt{smart-restaurant.zip} đã nộp vào thư mục mong muốn:
+
 \begin{verbatim}
-git clone https://github.com/Dev-Web-2005/smart-restaurant.git
+# Windows: Click phải vào file zip -> Extract All...
+# Hoặc sử dụng PowerShell
+Expand-Archive -Path smart-restaurant.zip -DestinationPath ./smart-restaurant
+
+# Linux/macOS
+unzip smart-restaurant.zip -d ./smart-restaurant
+
 cd smart-restaurant
 \end{verbatim}
 
-\subsubsection{Bước 2: Thiết lập Biến Môi trường}
-Tạo tệp \texttt{.env} cho mỗi dịch vụ dựa trên \texttt{.env.example}.
-
-\textbf{Cấu hình cơ sở dữ liệu:}
+\textbf{Cấu trúc thư mục sau khi giải nén:}
 \begin{verbatim}
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
-DATABASE_NAME=identity_db
-DATABASE_USER=postgres
-DATABASE_PASSWORD=postgres123
+smart-restaurant/
+├── src/
+│   ├── backend/
+│   │   ├── api-gateway/      (.env đã có sẵn)
+│   │   ├── identity/          (.env đã có sẵn)
+│   │   ├── profile/           (.env đã có sẵn)
+│   │   ├── product/           (.env đã có sẵn)
+│   │   ├── table/             (.env đã có sẵn)
+│   │   ├── order/             (.env đã có sẵn)
+│   │   ├── kitchen/           (.env đã có sẵn)
+│   │   ├── waiter/            (.env đã có sẵn)
+│   │   └── notification/      (.env đã có sẵn)
+│   └── frontend/              (.env đã có sẵn)
+├── docker-compose.yml
+├── run.bat
+└── README.md
 \end{verbatim}
 
-\textbf{Cấu hình JWT:}
+\subsubsection{Bước 2: Xác minh Cấu hình Môi trường}
+
+Các file \texttt{.env} đã được cấu hình sẵn với các thông số sau:
+
+\textbf{Cấu hình Database (PostgreSQL):}
 \begin{verbatim}
-JWT_SECRET=your-secret-key
+# Sử dụng Supabase PostgreSQL (cloud database)
+DATABASE_HOST=aws-1-ap-south-1.pooler.supabase.com
+DATABASE_PORT=6543
+DATABASE_NAME=postgres
+DATABASE_USER=postgres.vzfhpiietyrgfobaxwhj
+DATABASE_PASSWORD=Cong2642005@@
+\end{verbatim}
+
+\textbf{Lưu ý:} Hệ thống sử dụng Supabase PostgreSQL cloud database, do đó \textbf{không cần cài đặt PostgreSQL cục bộ}. Tất cả dữ liệu được lưu trữ tập trung trên cloud, đảm bảo tính nhất quán và sẵn sàng sử dụng ngay lập tức.
+
+\textbf{Cấu hình JWT Authentication:}
+\begin{verbatim}
+JWT_SECRET=lethanhcong
 JWT_EXPIRES_IN=7d
+JWT_REFRESH_SECRET=lethanhcong_refresh
+JWT_REFRESH_EXPIRES_IN=30d
+\end{verbatim}
+
+\textbf{Cấu hình API Keys (Inter-service Communication):}
+\begin{verbatim}
+X_API_KEY=lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y
+IDENTITY_API_KEY=lethanhcong
+PROFILE_API_KEY=lethanhcong
 \end{verbatim}
 
 \textbf{Cấu hình Redis:}
 \begin{verbatim}
+# Redis không bắt buộc trong môi trường demo
+# Hệ thống sẽ fallback về in-memory cache nếu Redis không available
 REDIS_HOST=localhost
 REDIS_PORT=6379
 \end{verbatim}
 
-\subsubsection{Bước 3: Cài đặt Phụ thuộc}
+\textbf{Cấu hình RabbitMQ:}
+\begin{verbatim}
+RABBITMQ_URL=amqp://localhost:5672
+RABBITMQ_USER=admin
+RABBITMQ_PASSWORD=admin123
+\end{verbatim}
+
+\textbf{Cấu hình File Upload:}
+\begin{verbatim}
+# Sử dụng Cloudinary cho image storage
+CLOUDINARY_CLOUD_NAME=dk3ozn5nu
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+\end{verbatim}
+
+\textbf{Tóm tắt Dependencies đã được cấu hình sẵn:}
+\begin{itemize}
+    \item \textbf{PostgreSQL:} Sử dụng Supabase cloud database → \textit{Không cần cài đặt}
+    \item \textbf{Redis:} Optional, hệ thống hoạt động bình thường nếu không có
+    \item \textbf{RabbitMQ:} Optional cho demo, WebSocket vẫn hoạt động
+    \item \textbf{Cloudinary:} Đã cấu hình sẵn cho image upload
+\end{itemize}
+
+\subsubsection{Bước 3: Cài đặt Dependencies}
 \textbf{Các dịch vụ Backend:}
 \begin{verbatim}
 cd src/backend/api-gateway && npm install
@@ -581,42 +640,145 @@ cd ../notification && npm install
 cd src/frontend && npm install
 \end{verbatim}
 
-\subsubsection{Bước 4: Khởi động Dịch vụ}
-\textbf{Sử dụng tệp batch được cung cấp:}
+\subsubsection{Bước 4: Khởi động Hệ thống}
+
+\textbf{Phương pháp 1: Sử dụng Script Batch Tự động (Khuyến nghị - Windows)}
+
+Script \texttt{run.bat} đã được tối ưu hóa để tự động hóa toàn bộ quy trình:
+
 \begin{verbatim}
-./run.bat
+# Cài đặt dependencies và khởi động tất cả dịch vụ
+run.bat i
+
+# Hoặc chỉ khởi động (nếu đã cài đặt dependencies trước đó)
+run.bat
 \end{verbatim}
 
-\textbf{Hoặc khởi động thủ công từng dịch vụ:}
+\textbf{Quá trình thực thi của run.bat:}
+\begin{enumerate}
+    \item Kiểm tra flag \texttt{i} để xác định chế độ cài đặt
+    \item Với flag \texttt{i}: Tự động chạy \texttt{npm install} cho từng service
+    \item Khởi động 9 backend services theo thứ tự:
+    \begin{itemize}
+        \item identity → notification → product → profile → table
+        \item kitchen → order → waiter → api-gateway
+    \end{itemize}
+    \item Mỗi service được khởi động trong terminal riêng biệt
+    \item Delay 3 giây giữa các services để đảm bảo khởi tạo ổn định
+    \item Cuối cùng khởi động frontend React trên port 5173
+\end{enumerate}
+
+\textbf{Thời gian khởi động dự kiến:}
+\begin{itemize}
+    \item Cài đặt dependencies lần đầu: 10-15 phút (tùy tốc độ mạng)
+    \item Khởi động các services: 2-3 phút
+    \item Tổng thời gian: ~15-20 phút cho lần đầu tiên
+    \item Các lần sau: ~2-3 phút (đã có node\_modules)
+\end{itemize}
+
+\textbf{Phương pháp 2: Khởi động thủ công từng service (Không khuyến nghị)}
+
+Chỉ sử dụng khi cần debug service cụ thể:
+
 \begin{verbatim}
-cd src/backend/api-gateway && npm run start:dev
+# Terminal 1: Identity Service
 cd src/backend/identity && npm run start:dev
+
+# Terminal 2: Profile Service  
 cd src/backend/profile && npm run start:dev
-cd src/backend/product && npm run start:dev
-cd src/backend/table && npm run start:dev
-cd src/backend/order && npm run start:dev
-cd src/backend/kitchen && npm run start:dev
-cd src/backend/waiter && npm run start:dev
-cd src/backend/notification && npm run start:dev
+
+# ... Tương tự cho 7 services còn lại
+
+# Terminal 10: Frontend
 cd src/frontend && npm run dev
 \end{verbatim}
 
-\subsection{Triển khai Docker}
+\subsubsection{Bước 5: Xác minh Hệ thống Hoạt động}
 
-\subsubsection{Khởi động Nhanh với Docker Compose}
-\textbf{Xây dựng và khởi động tất cả dịch vụ:}
+Sau khi khởi động thành công, kiểm tra các endpoints:
+
+\textbf{Kiểm tra Frontend:}
 \begin{verbatim}
+# Truy cập ứng dụng web
+http://localhost:5173
+\end{verbatim}
+
+\textbf{Kiểm tra Backend Services:}
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{|l|c|l|}
+\hline
+\textbf{Service} & \textbf{Port} & \textbf{Health Check} \\
+\hline
+API Gateway & 8888 & \texttt{http://localhost:8888/health} \\
+\hline
+Identity & 8084 & \texttt{http://localhost:8084/health} \\
+\hline
+Profile & 8081 & \texttt{http://localhost:8081/health} \\
+\hline
+Product & 8082 & \texttt{http://localhost:8082/health} \\
+\hline
+Table & 8083 & \texttt{http://localhost:8083/health} \\
+\hline
+Order & 8087 & \texttt{http://localhost:8087/health} \\
+\hline
+Kitchen & 8086 & \texttt{http://localhost:8086/health} \\
+\hline
+Waiter & 8088 & \texttt{http://localhost:8088/health} \\
+\hline
+Notification & 8085 & \texttt{http://localhost:8085/health} \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Dấu hiệu khởi động thành công:}
+\begin{itemize}
+    \item Tất cả services log \texttt{"Application is running on port <port>"}
+    \item Frontend hiển thị trang chủ tại \texttt{localhost:5173}
+    \item Health check endpoints trả về status 200 OK
+    \item Console không có error màu đỏ (warnings màu vàng là bình thường)
+\end{itemize}
+
+\subsubsection{Bước 6: Dừng Hệ thống}
+
+\textbf{Dừng toàn bộ services:}
+\begin{verbatim}
+# Nếu sử dụng run.bat: Đóng tất cả terminal windows
+\end{verbatim}
+
+\subsection{Triển khai Docker (Tùy chọn)}
+
+\textbf{Lưu ý:} Phương pháp Docker chỉ dành cho việc triển khai production hoặc khi muốn chạy toàn bộ hệ thống trong isolated containers. Để demo và development, khuyến nghị sử dụng phương pháp cài đặt cục bộ ở trên vì đơn giản và nhanh hơn.
+
+\subsubsection{Khởi động với Docker Compose}
+
+\textbf{Yêu cầu tiên quyết:}
+\begin{itemize}
+    \item Docker Desktop đã được cài đặt và đang chạy
+    \item Tối thiểu 8GB RAM available
+    \item 20GB dung lượng ổ cứng trống
+\end{itemize}
+
+\textbf{Xây dựng và khởi động:}
+\begin{verbatim}
+# Build images và start tất cả containers
 docker-compose up -d --build
-\end{verbatim}
 
-\textbf{Xem logs:}
-\begin{verbatim}
+# Xem logs real-time
 docker-compose logs -f
+
+# Kiểm tra container status
+docker-compose ps
 \end{verbatim}
 
-\textbf{Dừng tất cả dịch vụ:}
+\textbf{Dừng và cleanup:}
 \begin{verbatim}
+# Dừng containers (giữ data)
 docker-compose down
+
+# Xóa hoàn toàn (bao gồm volumes)
+docker-compose down -v
 \end{verbatim}
 
 \subsubsection{Cổng Dịch vụ}
@@ -976,18 +1138,13 @@ Hệ thống Đặt món QR cho Nhà hàng Thông minh đã triển khai thành 
 
 \begin{itemize}
     \item Kiến trúc microservices Multi-Tenant với hơn 10 dịch vụ (9 dịch vụ chính + dịch vụ bên ngoài)
-    \item Hỗ trợ nhiều nhà hàng trên cùng một hệ thống với cô lập dữ liệu
+    \item Hỗ trợ nhiều nhà hàng trên cùng một hệ thống với cô lập dữ liệu hoàn toàn
     \item Đặt món dựa trên QR bảo mật với token đã ký HMAC-SHA256
-    \item Cập nhật thời gian thực qua WebSocket và RabbitMQ
-    \item Kiến trúc microservices Multi-Tenant với hơn 10 dịch vụ (9 dịch vụ chính + dịch vụ bên ngoài)
-    \item Hỗ trợ nhiều nhà hàng trên cùng một hệ thống với cô lập dữ liệu
-    \item Đặt món dựa trên QR bảo mật với token đã ký HMAC-SHA256
-    \item Cập nhật thời gian thực qua WebSocket và RabbitMQ
-    \item Kiểm soát truy cập dựa trên vai trò cho tất cả loại người dùng
+    \item Cập nhật thời gian thực qua WebSocket và RabbitMQ cho trải nghiệm người dùng mượt mà
+    \item Kiểm soát truy cập dựa trên vai trò (RBAC) cho tất cả loại người dùng
     \item Tích hợp dịch vụ bên ngoài: File Service, Mail Service, Payment Service
-    \item Tích hợp dịch vụ bên ngoài: File Service, Mail Service, Payment Service
-    \item Containerization với Docker để triển khai dễ dàng
-    \item Thiết kế responsive ưu tiên mobile
+    \item Containerization với Docker để triển khai dễ dàng và có thể mở rộng
+    \item Thiết kế responsive ưu tiên mobile với UI/UX hiện đại
 \end{itemize}
 
 Hệ thống giải quyết các thách thức thực tế của nhà hàng bằng cách giảm thiểu lỗi đặt món, cải thiện hiệu suất bếp và nâng cao trải nghiệm khách hàng thông qua đặt món không tiếp xúc.
