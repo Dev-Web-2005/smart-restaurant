@@ -135,9 +135,15 @@ const WaiterPanel = () => {
 	// === HELP State (Keep existing logic) ===
 	const [helpRequests, setHelpRequests] = useState(mockHelpRequests)
 
+	// === Auto-refresh and Fullscreen State ===
+	const [autoRefresh, setAutoRefresh] = useState(true)
+	const [isFullscreen, setIsFullscreen] = useState(false)
+	const [lastUpdateTime, setLastUpdateTime] = useState(new Date())
+
 	// Debounce timer ref for WebSocket events - prevents "too many requests"
 	const fetchDebounceRef = useRef(null)
 	const isFetchingRef = useRef(false)
+	const refreshIntervalRef = useRef(null)
 
 	/**
 	 * Fetch orders from API - useCallback to stabilize function reference
@@ -496,6 +502,27 @@ const WaiterPanel = () => {
 	}
 
 	/**
+	 * Toggle fullscreen mode
+	 */
+	const toggleFullscreen = () => {
+		if (!document.fullscreenElement) {
+			document.documentElement.requestFullscreen()
+			setIsFullscreen(true)
+		} else {
+			document.exitFullscreen()
+			setIsFullscreen(false)
+		}
+	}
+
+	/**
+	 * Manual refresh handler
+	 */
+	const handleManualRefresh = async () => {
+		await fetchOrders(true)
+		setLastUpdateTime(new Date())
+	}
+
+	/**
 	 * Initial load
 	 */
 	useEffect(() => {
@@ -510,6 +537,7 @@ const WaiterPanel = () => {
 
 				// Fetch initial orders
 				await fetchOrders()
+				setLastUpdateTime(new Date())
 			} catch (error) {
 				console.error('❌ Error initializing orders:', error)
 			} finally {
@@ -519,6 +547,25 @@ const WaiterPanel = () => {
 
 		initialize()
 	}, [fetchOrders]) // Run once on mount with fetchOrders dependency
+
+	/**
+	 * Auto-refresh every 30 seconds (like KitchenDisplay)
+	 */
+	useEffect(() => {
+		if (autoRefresh) {
+			refreshIntervalRef.current = setInterval(async () => {
+				await fetchOrders(true) // silent refresh
+				setLastUpdateTime(new Date())
+			}, 30000) // 30 seconds
+		}
+
+		return () => {
+			if (refreshIntervalRef.current) {
+				clearInterval(refreshIntervalRef.current)
+				refreshIntervalRef.current = null
+			}
+		}
+	}, [autoRefresh, fetchOrders])
 
 	/**
 	 * WebSocket setup - Separate useEffect to prevent reconnections
@@ -811,81 +858,116 @@ const WaiterPanel = () => {
 	}
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-6">
-			<div className="max-w-7xl mx-auto space-y-6">
+		<div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white p-3 sm:p-4 md:p-6">
+			<div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
 				{/* Top Navigation Bar */}
-				<div className="flex items-center justify-between">
+				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
 					<div>
-						<h1 className="text-3xl font-bold text-white mb-1">Waiter Panel</h1>
-						<p className="text-gray-400">Serve customers and manage requests</p>
+						<h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1">
+							Waiter Panel
+						</h1>
+						<p className="text-gray-400 text-sm sm:text-base">
+							Serve customers and manage requests
+						</p>
 					</div>
-					<button
-						onClick={handleLogout}
-						className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors flex items-center gap-2"
-					>
-						<span className="material-symbols-outlined text-lg">logout</span>
-						Logout
-					</button>
+					<div className="flex items-center gap-2 flex-wrap">
+						{/* Refresh Button */}
+						<button
+							onClick={handleManualRefresh}
+							className="px-3 py-2 sm:px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center gap-1.5 sm:gap-2 text-sm"
+							title="Refresh data"
+						>
+							<span className="material-symbols-outlined text-base sm:text-lg">
+								refresh
+							</span>
+							<span className="hidden xs:inline">Refresh</span>
+						</button>
+						{/* Fullscreen Button */}
+						<button
+							onClick={toggleFullscreen}
+							className="px-3 py-2 sm:px-4 bg-white/10 hover:bg-white/20 text-gray-300 rounded-lg transition-colors flex items-center gap-1.5 sm:gap-2 border border-white/20 text-sm"
+							title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+						>
+							<span className="material-symbols-outlined text-base sm:text-lg">
+								{isFullscreen ? 'fullscreen_exit' : 'fullscreen'}
+							</span>
+							<span className="hidden sm:inline">
+								{isFullscreen ? 'Exit' : 'Fullscreen'}
+							</span>
+						</button>
+						{/* Logout Button */}
+						<button
+							onClick={handleLogout}
+							className="px-3 py-2 sm:px-4 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors flex items-center gap-1.5 sm:gap-2 text-sm"
+						>
+							<span className="material-symbols-outlined text-base sm:text-lg">
+								logout
+							</span>
+							<span className="hidden xs:inline">Logout</span>
+						</button>
+					</div>
 				</div>
 
 				{/* Stats Cards */}
-				<div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-					<div className="bg-yellow-500/20 backdrop-blur-md rounded-lg p-4 border border-yellow-500/30">
-						<div className="flex items-center gap-3">
-							<span className="material-symbols-outlined text-yellow-400 text-3xl">
+				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
+					<div className="bg-yellow-500/20 backdrop-blur-md rounded-lg p-3 sm:p-4 border border-yellow-500/30">
+						<div className="flex items-center gap-2 sm:gap-3">
+							<span className="material-symbols-outlined text-yellow-400 text-2xl sm:text-3xl">
 								pending_actions
 							</span>
 							<div>
-								<p className="text-yellow-400 text-sm font-medium">Pending</p>
-								<p className="text-white text-2xl font-bold">{pendingCount}</p>
+								<p className="text-yellow-400 text-xs sm:text-sm font-medium">Pending</p>
+								<p className="text-white text-xl sm:text-2xl font-bold">{pendingCount}</p>
 							</div>
 						</div>
 					</div>
 
-					<div className="bg-green-500/20 backdrop-blur-md rounded-lg p-4 border border-green-500/30">
-						<div className="flex items-center gap-3">
-							<span className="material-symbols-outlined text-green-400 text-3xl">
+					<div className="bg-green-500/20 backdrop-blur-md rounded-lg p-3 sm:p-4 border border-green-500/30">
+						<div className="flex items-center gap-2 sm:gap-3">
+							<span className="material-symbols-outlined text-green-400 text-2xl sm:text-3xl">
 								restaurant
 							</span>
 							<div>
-								<p className="text-green-400 text-sm font-medium">Ready</p>
-								<p className="text-white text-2xl font-bold">{readyCount}</p>
+								<p className="text-green-400 text-xs sm:text-sm font-medium">Ready</p>
+								<p className="text-white text-xl sm:text-2xl font-bold">{readyCount}</p>
 							</div>
 						</div>
 					</div>
 
-					<div className="bg-purple-500/20 backdrop-blur-md rounded-lg p-4 border border-purple-500/30">
-						<div className="flex items-center gap-3">
-							<span className="material-symbols-outlined text-purple-400 text-3xl">
+					<div className="bg-purple-500/20 backdrop-blur-md rounded-lg p-3 sm:p-4 border border-purple-500/30">
+						<div className="flex items-center gap-2 sm:gap-3">
+							<span className="material-symbols-outlined text-purple-400 text-2xl sm:text-3xl">
 								check_circle
 							</span>
 							<div>
-								<p className="text-purple-400 text-sm font-medium">Served</p>
-								<p className="text-white text-2xl font-bold">{servedCount}</p>
+								<p className="text-purple-400 text-xs sm:text-sm font-medium">Served</p>
+								<p className="text-white text-xl sm:text-2xl font-bold">{servedCount}</p>
 							</div>
 						</div>
 					</div>
 
-					<div className="bg-blue-500/20 backdrop-blur-md rounded-lg p-4 border border-blue-500/30">
-						<div className="flex items-center gap-3">
-							<span className="material-symbols-outlined text-blue-400 text-3xl">
+					<div className="bg-blue-500/20 backdrop-blur-md rounded-lg p-3 sm:p-4 border border-blue-500/30">
+						<div className="flex items-center gap-2 sm:gap-3">
+							<span className="material-symbols-outlined text-blue-400 text-2xl sm:text-3xl">
 								payments
 							</span>
 							<div>
-								<p className="text-blue-400 text-sm font-medium">Payment</p>
-								<p className="text-white text-2xl font-bold">{paymentCount}</p>
+								<p className="text-blue-400 text-xs sm:text-sm font-medium">Payment</p>
+								<p className="text-white text-xl sm:text-2xl font-bold">{paymentCount}</p>
 							</div>
 						</div>
 					</div>
 
-					<div className="bg-orange-500/20 backdrop-blur-md rounded-lg p-4 border border-orange-500/30">
-						<div className="flex items-center gap-3">
-							<span className="material-symbols-outlined text-orange-400 text-3xl">
+					<div className="bg-orange-500/20 backdrop-blur-md rounded-lg p-3 sm:p-4 border border-orange-500/30 col-span-2 sm:col-span-1">
+						<div className="flex items-center gap-2 sm:gap-3">
+							<span className="material-symbols-outlined text-orange-400 text-2xl sm:text-3xl">
 								help
 							</span>
 							<div>
-								<p className="text-orange-400 text-sm font-medium">Help</p>
-								<p className="text-white text-2xl font-bold">{helpRequestsCount}</p>
+								<p className="text-orange-400 text-xs sm:text-sm font-medium">Help</p>
+								<p className="text-white text-xl sm:text-2xl font-bold">
+									{helpRequestsCount}
+								</p>
 							</div>
 						</div>
 					</div>
@@ -895,25 +977,28 @@ const WaiterPanel = () => {
 				<div className="flex gap-2">
 					<button
 						onClick={() => setSelectedView('orders')}
-						className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+						className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium transition-colors flex items-center justify-center sm:justify-start gap-2 text-sm sm:text-base ${
 							selectedView === 'orders'
 								? 'bg-blue-500 text-white'
 								: 'bg-white/10 text-gray-300 hover:bg-white/20'
 						}`}
 					>
-						<span className="material-symbols-outlined">receipt_long</span>
-						Orders
+						<span className="material-symbols-outlined text-lg sm:text-xl">
+							receipt_long
+						</span>
+						<span>Orders</span>
 					</button>
 					<button
 						onClick={() => setSelectedView('help')}
-						className={`px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2 relative ${
+						className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium transition-colors flex items-center justify-center sm:justify-start gap-2 relative text-sm sm:text-base ${
 							selectedView === 'help'
 								? 'bg-orange-500 text-white'
 								: 'bg-white/10 text-gray-300 hover:bg-white/20'
 						}`}
 					>
-						<span className="material-symbols-outlined">help</span>
-						Help Requests
+						<span className="material-symbols-outlined text-lg sm:text-xl">help</span>
+						<span className="hidden xs:inline">Help Requests</span>
+						<span className="xs:hidden">Help</span>
 						{helpRequestsCount > 0 && (
 							<span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
 								{helpRequestsCount}
@@ -926,8 +1011,8 @@ const WaiterPanel = () => {
 				{selectedView === 'orders' && (
 					<>
 						{/* Filters */}
-						<div className="flex flex-col md:flex-row gap-4">
-							<div className="flex-1">
+						<div className="flex flex-col gap-3 sm:gap-4">
+							<div className="w-full">
 								<div className="relative">
 									<span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
 										search
@@ -937,17 +1022,17 @@ const WaiterPanel = () => {
 										placeholder="Search by table or item name..."
 										value={searchQuery}
 										onChange={(e) => setSearchQuery(e.target.value)}
-										className="w-full pl-10 pr-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+										className="w-full pl-10 pr-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
 									/>
 								</div>
 							</div>
 
-							<div className="flex gap-2">
+							<div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
 								{['PENDING', 'READY', 'SERVED', 'PAYMENT'].map((view) => (
 									<button
 										key={view}
 										onClick={() => setOrdersView(view)}
-										className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+										className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm whitespace-nowrap flex-shrink-0 ${
 											ordersView === view
 												? 'bg-blue-500 text-white'
 												: 'bg-white/10 text-gray-300 hover:bg-white/20'
@@ -956,10 +1041,10 @@ const WaiterPanel = () => {
 										{view === 'PENDING'
 											? 'Pending'
 											: view === 'READY'
-											? 'Ready'
-											: view === 'SERVED'
-											? 'Served'
-											: 'Payment'}
+												? 'Ready'
+												: view === 'SERVED'
+													? 'Served'
+													: 'Payment'}
 									</button>
 								))}
 							</div>
@@ -967,14 +1052,14 @@ const WaiterPanel = () => {
 
 						{/* Orders List */}
 						{filteredOrders.length === 0 ? (
-							<div className="bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-12 text-center">
-								<span className="material-symbols-outlined text-gray-400 text-6xl mb-4">
+							<div className="bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-8 sm:p-12 text-center">
+								<span className="material-symbols-outlined text-gray-400 text-5xl sm:text-6xl mb-4">
 									receipt_long
 								</span>
-								<p className="text-gray-400 text-lg">No orders to display</p>
+								<p className="text-gray-400 text-base sm:text-lg">No orders to display</p>
 							</div>
 						) : (
-							<div className="space-y-4">
+							<div className="space-y-3 sm:space-y-4">
 								{filteredOrders.map((order) => {
 									const allServed = order.items.every(
 										(item) => item.status === ITEM_STATUS.SERVED,
@@ -991,19 +1076,19 @@ const WaiterPanel = () => {
 										>
 											{/* Order Header */}
 											<div
-												className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/5 transition-colors"
+												className="flex items-center justify-between p-3 sm:p-4 cursor-pointer hover:bg-white/5 transition-colors"
 												onClick={() => toggleOrderExpansion(order.id)}
 											>
-												<div className="flex items-center gap-4">
-													<span className="material-symbols-outlined text-blue-400 text-3xl">
+												<div className="flex items-center gap-3 sm:gap-4">
+													<span className="material-symbols-outlined text-blue-400 text-2xl sm:text-3xl">
 														table_restaurant
 													</span>
 													<div>
-														<h3 className="text-white text-lg font-semibold">
+														<h3 className="text-white text-base sm:text-lg font-semibold">
 															{order.table?.name || `Table ${order.tableId}`}
 														</h3>
-														<p className="text-gray-400 text-sm">
-															{order.items.length} item(s) • Order #{order.id.slice(0, 8)}
+														<p className="text-gray-400 text-xs sm:text-sm">
+															{order.items.length} item(s) • #{order.id.slice(0, 8)}
 														</p>
 														{needsPayment && (
 															<span className="inline-block mt-1 px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded">
@@ -1013,9 +1098,9 @@ const WaiterPanel = () => {
 													</div>
 												</div>
 
-												<div className="flex items-center gap-4">
+												<div className="flex items-center gap-2 sm:gap-4">
 													{ordersView === 'PAYMENT' && (
-														<span className="text-white text-lg font-bold">
+														<span className="text-white text-sm sm:text-lg font-bold">
 															${formatPrice(order.total)}
 														</span>
 													)}
@@ -1218,28 +1303,30 @@ const WaiterPanel = () => {
 
 				{/* Help Requests View - PRESERVED */}
 				{selectedView === 'help' && (
-					<div className="space-y-4">
-						<h2 className="text-2xl font-bold text-white mb-4">Help Requests</h2>
+					<div className="space-y-3 sm:space-y-4">
+						<h2 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">
+							Help Requests
+						</h2>
 						{filteredHelpRequests.length === 0 ? (
-							<div className="bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-12 text-center">
-								<span className="material-symbols-outlined text-gray-400 text-6xl mb-4">
+							<div className="bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-8 sm:p-12 text-center">
+								<span className="material-symbols-outlined text-gray-400 text-5xl sm:text-6xl mb-4">
 									check_circle
 								</span>
-								<p className="text-gray-400 text-lg">No new help requests</p>
+								<p className="text-gray-400 text-base sm:text-lg">No new help requests</p>
 							</div>
 						) : (
 							filteredHelpRequests.map((request) => (
 								<div
 									key={request.id}
-									className="bg-orange-500/10 backdrop-blur-md rounded-lg p-4 border border-orange-500/30"
+									className="bg-orange-500/10 backdrop-blur-md rounded-lg p-3 sm:p-4 border border-orange-500/30"
 								>
-									<div className="flex items-center justify-between">
-										<div className="flex items-center gap-4">
-											<span className="material-symbols-outlined text-orange-400 text-3xl">
+									<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+										<div className="flex items-center gap-3 sm:gap-4">
+											<span className="material-symbols-outlined text-orange-400 text-2xl sm:text-3xl">
 												help
 											</span>
 											<div>
-												<h3 className="text-white text-lg font-semibold">
+												<h3 className="text-white text-base sm:text-lg font-semibold">
 													{request.tableName}
 												</h3>
 												<p className="text-gray-300 text-sm">{request.message}</p>
@@ -1250,9 +1337,9 @@ const WaiterPanel = () => {
 										</div>
 										<button
 											onClick={() => handleResolveHelp(request.id)}
-											className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors flex items-center gap-2"
+											className="w-full sm:w-auto px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
 										>
-											<span className="material-symbols-outlined">check</span>
+											<span className="material-symbols-outlined text-lg">check</span>
 											Acknowledge
 										</button>
 									</div>
@@ -1261,6 +1348,28 @@ const WaiterPanel = () => {
 						)}
 					</div>
 				)}
+			</div>
+
+			{/* Footer Info - Auto-refresh status and last update time */}
+			<div className="fixed bottom-3 right-3 sm:bottom-4 sm:right-4 bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-2 sm:p-3 text-xs text-gray-400">
+				<div className="flex items-center gap-2">
+					<span
+						className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-green-500' : 'bg-gray-500'}`}
+					/>
+					<span className="hidden sm:inline">
+						Auto-refresh {autoRefresh ? 'ON' : 'OFF'}
+					</span>
+					<span className="sm:hidden">{autoRefresh ? 'Auto' : 'Manual'}</span>
+					<button
+						onClick={() => setAutoRefresh(!autoRefresh)}
+						className="ml-1 sm:ml-2 px-2 py-0.5 bg-white/10 hover:bg-white/20 rounded text-xs transition-colors"
+					>
+						{autoRefresh ? 'Off' : 'On'}
+					</button>
+				</div>
+				<div className="mt-1 text-gray-500 text-[10px] sm:text-xs">
+					{lastUpdateTime.toLocaleTimeString()}
+				</div>
 			</div>
 		</div>
 	)
