@@ -155,6 +155,7 @@ jobs:
           node-version: 25
 
       - name: Build changed services
+        id: build
         run: |
           BUILD_ALL="${{ needs.detect-changes.outputs.build-all }}"
 
@@ -171,10 +172,12 @@ jobs:
              [ "${{ needs.detect-changes.outputs.order }}" != "true" ] && \
              [ "${{ needs.detect-changes.outputs.waiter }}" != "true" ]; then
             echo "⚠️ No services to build - skipping"
+            echo "services_built=false" >> $GITHUB_OUTPUT
             exit 0
           fi
 
           mkdir -p result
+          echo "services_built=true" >> $GITHUB_OUTPUT
 
           if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.shared }}" == "true" ]; then
             echo "Building shared..."
@@ -237,14 +240,14 @@ jobs:
           fi
 
       - uses: actions/upload-artifact@v4
-        if: hashFiles('result/**') != ''
+        if: steps.build.outputs.services_built == 'true'
         with:
           name: backend-build
           path: result
           if-no-files-found: warn
 
       - name: Deploy to server
-        if: hashFiles('result/**') != ''
+        if: steps.build.outputs.services_built == 'true'
         uses: appleboy/scp-action@v0.1.6
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -257,7 +260,7 @@ jobs:
           overwrite: true
 
       - name: Restart changed services
-        if: hashFiles('result/**') != ''
+        if: steps.build.outputs.services_built == 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
