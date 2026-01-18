@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useAlert } from '../../../contexts/AlertContext'
 import apiClient from '../../../services/apiClient'
@@ -109,6 +109,12 @@ const OrderManagementInterface = () => {
 	// Calculate total items in cart
 	const totalItemsInCart = cartItems.reduce((acc, item) => acc + item.qty, 0)
 
+	// Refs for debouncing fetch operations
+	const fetchOrdersTimeoutRef = useRef(null)
+	const lastFetchOrdersTimeRef = useRef(0)
+	const FETCH_ORDERS_DEBOUNCE = 500 // ms
+	const FETCH_ORDERS_MIN_INTERVAL = 2000 // Minimum 2 seconds between fetches
+
 	// Fetch cart from backend
 	const fetchCart = useCallback(async () => {
 		try {
@@ -159,70 +165,93 @@ const OrderManagementInterface = () => {
 		}
 	}, [tenantId, tableId])
 
-	// Fetch customer's order by orderId from localStorage
-	const fetchOrders = useCallback(async () => {
-		try {
-			if (!tenantId || !tableId) {
-				console.warn('⚠️ fetchOrders: Missing tenantId or tableId')
+	// Fetch customer's order by orderId from localStorage (with debouncing)
+	const fetchOrders = useCallback(
+		async (force = false) => {
+			// ✅ Rate limiting - prevent too frequent fetches
+			const now = Date.now()
+			const timeSinceLastFetch = now - lastFetchOrdersTimeRef.current
+
+			if (!force && timeSinceLastFetch < FETCH_ORDERS_MIN_INTERVAL) {
+				console.log(`⏳ Skipping fetch, only ${timeSinceLastFetch}ms since last fetch`)
 				return
 			}
 
-			// Check if we have a saved orderId from checkout
-			const orderSessionStr = localStorage.getItem('currentOrderSession')
-			const orderSession = orderSessionStr ? JSON.parse(orderSessionStr) : null
+			try {
+				if (!tenantId || !tableId) {
+					console.warn('⚠️ fetchOrders: Missing tenantId or tableId')
+					return
+				}
 
-			if (!orderSession || !orderSession.orderId) {
-				console.log('⚠️ No orderId in localStorage, cannot fetch order')
-				setOrders([])
-				return
-			}
+				// Check if we have a saved orderId from checkout
+				const orderSessionStr = localStorage.getItem('currentOrderSession')
+				const orderSession = orderSessionStr ? JSON.parse(orderSessionStr) : null
 
-			// Verify orderId belongs to current table
-			if (orderSession.tableId !== tableId) {
-				console.log('⚠️ OrderId belongs to different table, clearing session')
-				localStorage.removeItem('currentOrderSession')
-				setOrders([])
-				return
-			}
+				if (!orderSession || !orderSession.orderId) {
+					console.log('⚠️ No orderId in localStorage, cannot fetch order')
+					setOrders([])
+					return
+				}
 
-			setLoadingOrders(true)
-
-			// Fetch specific order by ID
-			console.log('📥 Fetching order by ID:', orderSession.orderId)
-			const response = await getOrderByIdAPI({
-				tenantId,
-				orderId: orderSession.orderId,
-			})
-
-			console.log('📥 Order details response:', response)
-			const orderData = response?.data
-
-			if (orderData) {
-				// Check if order is still active (not completed/cancelled)
-				if (['COMPLETED', 'CANCELLED'].includes(orderData.status)) {
-					console.log('⚠️ Order is completed/cancelled, clearing session')
+				// Verify orderId belongs to current table
+				if (orderSession.tableId !== tableId) {
+					console.log('⚠️ OrderId belongs to different table, clearing session')
 					localStorage.removeItem('currentOrderSession')
 					setOrders([])
-				} else {
-					setOrders([orderData])
-					console.log(`✅ Fetched order by ID: ${orderData.id}`)
+					return
 				}
-			} else {
-				console.warn('⚠️ No order data in response')
-				setOrders([])
+
+				setLoadingOrders(true)
+
+				// Fetch specific order by ID
+				console.log('📥 Fetching order by ID:', orderSession.orderId)
+				const response = await getOrderByIdAPI({
+					tenantId,
+					orderId: orderSession.orderId,
+				})
+
+				console.log('📥 Order details response:', response)
+				const orderData = response?.data
+
+				if (orderData) {
+					// Check if order is still active (not completed/cancelled)
+					if (['COMPLETED', 'CANCELLED'].includes(orderData.status)) {
+						console.log('⚠️ Order is completed/cancelled, clearing session')
+						localStorage.removeItem('currentOrderSession')
+						setOrders([])
+					} else {
+						setOrders([orderData])
+						console.log(`✅ Fetched order by ID: ${orderData.id}`)
+					}
+				} else {
+					console.warn('⚠️ No order data in response')
+					setOrders([])
+				}
+			} catch (error) {
+				console.error('❌ Error fetching orders:', error)
+				console.error('❌ Fetch orders error details:', {
+					message: error.message,
+					response: error.response?.data,
+					status: error.response?.status,
+				})
+				setOrders([]) // Clear orders on error
+			} finally {
+				setLoadingOrders(false)
+				lastFetchOrdersTimeRef.current = Date.now() // ✅ Update last fetch time
 			}
-		} catch (error) {
-			console.error('❌ Error fetching orders:', error)
-			console.error('❌ Fetch orders error details:', {
-				message: error.message,
-				response: error.response?.data,
-				status: error.response?.status,
-			})
-			setOrders([]) // Clear orders on error
-		} finally {
-			setLoadingOrders(false)
+		},
+		[tenantId, tableId],
+	)
+
+	// ✅ Debounced fetch orders - for websocket events
+	const debouncedFetchOrders = useCallback(() => {
+		if (fetchOrdersTimeoutRef.current) {
+			clearTimeout(fetchOrdersTimeoutRef.current)
 		}
-	}, [tenantId, tableId])
+		fetchOrdersTimeoutRef.current = setTimeout(() => {
+			fetchOrders()
+		}, FETCH_ORDERS_DEBOUNCE)
+	}, [fetchOrders])
 
 	// Load cart on component mount
 	useEffect(() => {
@@ -232,7 +261,7 @@ const OrderManagementInterface = () => {
 	// Fetch orders when view changes to 'ORDERS' or on mount
 	useEffect(() => {
 		if (view === 'ORDERS') {
-			fetchOrders()
+			fetchOrders(true) // Force fetch when switching to orders view
 		}
 	}, [view, fetchOrders])
 
@@ -257,30 +286,30 @@ const OrderManagementInterface = () => {
 		const orderSessionStr = localStorage.getItem('currentOrderSession')
 		const orderSession = orderSessionStr ? JSON.parse(orderSessionStr) : null
 
-		// Event handler functions
+		// Event handler functions - ✅ Use debounced fetch
 		const handleItemsAccepted = (payload) => {
 			console.log('✅ [Socket Event] Items accepted:', payload)
-			fetchOrders() // Refresh orders to show updated status
+			debouncedFetchOrders() // Debounced refresh
 		}
 
 		const handleItemsPreparing = (payload) => {
 			console.log('👨‍🍳 [Socket Event] Items preparing:', payload)
-			fetchOrders() // Refresh orders to show updated status
+			debouncedFetchOrders() // Debounced refresh
 		}
 
 		const handleItemsReady = (payload) => {
 			console.log('🍽️ [Socket Event] Items ready:', payload)
-			fetchOrders() // Refresh orders to show updated status
+			debouncedFetchOrders() // Debounced refresh
 		}
 
 		const handleItemsServed = (payload) => {
 			console.log('✨ [Socket Event] Items served:', payload)
-			fetchOrders() // Refresh orders to show updated status
+			debouncedFetchOrders() // Debounced refresh
 		}
 
 		const handleItemsRejected = (payload) => {
 			console.log('❌ [Socket Event] Items rejected:', payload)
-			fetchOrders() // Refresh orders to show rejection
+			debouncedFetchOrders() // Debounced refresh
 		}
 
 		// Wait for socket connection, then join order room and register listeners
@@ -294,7 +323,7 @@ const OrderManagementInterface = () => {
 					if (response.success) {
 						console.log('✅ Successfully joined order room:', orderSession.orderId)
 						// Fetch order immediately after joining to sync current state
-						fetchOrders()
+						fetchOrders(true) // Force fetch on initial join
 					} else {
 						console.error('❌ Failed to join order room:', response.error)
 					}
@@ -314,6 +343,11 @@ const OrderManagementInterface = () => {
 
 		// Cleanup: Remove event listeners and leave room on unmount
 		return () => {
+			// ✅ Clear debounce timeout on cleanup
+			if (fetchOrdersTimeoutRef.current) {
+				clearTimeout(fetchOrdersTimeoutRef.current)
+			}
+
 			socketClient.off('connection.success', handleConnectionSuccess)
 			socketClient.off('order.items.accepted', handleItemsAccepted)
 			socketClient.off('order.items.preparing', handleItemsPreparing)
@@ -327,7 +361,7 @@ const OrderManagementInterface = () => {
 				socketClient.leaveOrderRoom(orderSession.orderId)
 			}
 		}
-	}, [tenantId, tableId, fetchOrders])
+	}, [tenantId, tableId, fetchOrders, debouncedFetchOrders])
 
 	// Handle adding item to cart from MenuPage
 	const handleAddToCart = async (cartItem) => {
