@@ -2508,7 +2508,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    // \"username\": \"waiter1\",\r\n    \"username\": \"test1\",\r\n    \"password\": \"StrongPassword!123\"\r\n}",
+              "raw": "{\r\n    // \"username\": \"waiter1\",\r\n    \"username\": \"kitchen1\",\r\n    \"password\": \"StrongPassword!123\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3326,7 +3326,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"itemIds\": [\n    \"ed448540-2655-486b-b929-c689124314e9\"\n  ],\n  \"status\": \"ACCEPTED\",  // PENDING | ACCEPTED | PREPARING | READY | SERVED | REJECTED | CANCELLED\n  //\"rejectionReason\": \"Out of stock\",  // Required if status = REJECTED\n  \"waiterId\": \"2c93c61a-8c20-4824-af30-f4c7733b8405\"  // Optional\n}",
+              "raw": "{\n  \"itemIds\": [\n    \"74795d44-3590-4d33-a6d4-3f39d1b06177\",\n    \"ea8d9fe4-7780-4c2f-b8f6-09e1c730cdde\"\n  ],\n  \"status\": \"ACCEPTED\",  // PENDING | ACCEPTED | PREPARING | READY | SERVED | REJECTED | CANCELLED\n  //\"rejectionReason\": \"Out of stock\",  // Required if status = REJECTED\n  \"waiterId\": \"2c93c61a-8c20-4824-af30-f4c7733b8405\"  // Optional\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3334,7 +3334,7 @@
               }
             },
             "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/3ee2b82f-9663-4a95-9775-d17c1a05b3c8/items-status",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/4448cd51-bf57-4eb6-8867-9c17db553f3e/items-status",
               "host": [
                 "{{baseURL}}"
               ],
@@ -3344,7 +3344,7 @@
                 "tenants",
                 "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "orders",
-                "3ee2b82f-9663-4a95-9775-d17c1a05b3c8",
+                "4448cd51-bf57-4eb6-8867-9c17db553f3e",
                 "items-status"
               ]
             }
