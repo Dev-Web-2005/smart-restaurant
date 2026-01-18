@@ -48,7 +48,13 @@ export class KitchenTicketResponseDto {
 	tenantId: string;
 	orderId: string;
 	tableId: string;
-	tableNumber?: string;
+
+	// Table snapshot (denormalized data for display)
+	snapshotTableName?: string; // e.g., "Bàn 1", "VIP 2"
+	snapshotFloorName?: string; // e.g., "Tầng 1", "Sân vườn"
+	snapshotFloorNumber?: number; // Floor ordering number
+
+	tableNumber?: string; // DEPRECATED: Use snapshotTableName instead
 	ticketNumber?: string;
 	status: string;
 	priority: string;
