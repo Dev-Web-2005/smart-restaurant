@@ -11,6 +11,7 @@
 		"dev:gateway": "cd src/backend/api-gateway && npm run start:dev"
 	},
 	"devDependencies": {
+		"amqplib": "^0.10.9",
 		"concurrently": "^8.2.2"
 	}
 }

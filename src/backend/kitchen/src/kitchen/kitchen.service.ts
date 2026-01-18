@@ -329,11 +329,15 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 				);
 
 				for (const [tenantId, tickets] of Object.entries(ticketsByTenant)) {
-					await this.publishToExchange('order_events_exchange', 'kitchen.timers.update', {
-						tenantId,
-						tickets,
-						timestamp: new Date(),
-					});
+					await this.publishToExchange(
+						this.configService.get<string>('ORDER_EVENTS_EXCHANGE') || 'order_events_exchange',
+						'kitchen.timers.update',
+						{
+							tenantId,
+							tickets,
+							timestamp: new Date(),
+						},
+					);
 				}
 			}
 		} catch (error) {
@@ -484,13 +488,17 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 		// Broadcast kitchen.ticket.new for KDS real-time display
 		// This is a DISPLAY event (not status) - tells KDS frontend about new ticket
 		// Order Service already broadcast order.items.accepted for status updates
-		await this.publishToExchange('order_events_exchange', 'kitchen.ticket.new', {
-			tenantId: dto.tenantId,
-			orderId: dto.orderId,
-			tableId: dto.tableId,
-			ticket: this.mapToTicketResponse(savedTicket),
-			timestamp: new Date(),
-		});
+		await this.publishToExchange(
+			this.configService.get<string>('ORDER_EVENTS_EXCHANGE') || 'order_events_exchange',
+			'kitchen.ticket.new',
+			{
+				tenantId: dto.tenantId,
+				orderId: dto.orderId,
+				tableId: dto.tableId,
+				ticket: this.mapToTicketResponse(savedTicket),
+				timestamp: new Date(),
+			},
+		);
 
 		return this.mapToTicketResponse(savedTicket);
 	}
@@ -811,13 +819,17 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 
 			// Publish ticket-level ready event for expo/waiter notification (display-only)
 			// This is a Kitchen display event, not an item status event
-			await this.publishToExchange('order_events_exchange', 'kitchen.ticket.ready', {
-				tenantId: dto.tenantId,
-				orderId: ticket.orderId,
-				tableId: ticket.tableId,
-				ticket: this.mapToTicketResponse(ticket),
-				timestamp: new Date(),
-			});
+			await this.publishToExchange(
+				this.configService.get<string>('ORDER_EVENTS_EXCHANGE') || 'order_events_exchange',
+				'kitchen.ticket.ready',
+				{
+					tenantId: dto.tenantId,
+					orderId: ticket.orderId,
+					tableId: ticket.tableId,
+					ticket: this.mapToTicketResponse(ticket),
+					timestamp: new Date(),
+				},
+			);
 		}
 
 		// Update item status in Order Service (source of truth)
@@ -868,14 +880,18 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 		this.logger.log(`✅ Bumped ticket ${ticket.ticketNumber}`);
 
 		// Publish event to RabbitMQ for WebSocket broadcast
-		await this.publishToExchange('order_events_exchange', 'kitchen.ticket.completed', {
-			tenantId: dto.tenantId,
-			orderId: ticket.orderId,
-			tableId: ticket.tableId,
-			ticketId: ticket.id,
-			ticketNumber: ticket.ticketNumber,
-			timestamp: new Date(),
-		});
+		await this.publishToExchange(
+			this.configService.get<string>('ORDER_EVENTS_EXCHANGE') || 'order_events_exchange',
+			'kitchen.ticket.completed',
+			{
+				tenantId: dto.tenantId,
+				orderId: ticket.orderId,
+				tableId: ticket.tableId,
+				ticketId: ticket.id,
+				ticketNumber: ticket.ticketNumber,
+				timestamp: new Date(),
+			},
+		);
 
 		return this.mapToTicketResponse(ticket);
 	}
@@ -924,20 +940,24 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 		);
 
 		// Publish recall event to RabbitMQ for WebSocket broadcast
-		await this.publishToExchange('order_events_exchange', 'kitchen.items.recalled', {
-			tenantId: dto.tenantId,
-			orderId: ticket.orderId,
-			tableId: ticket.tableId,
-			ticketId: ticket.id,
-			ticketNumber: ticket.ticketNumber,
-			items: itemsToRecall.map((i) => ({
-				id: i.id,
-				name: i.name,
-				orderItemId: i.orderItemId,
-			})),
-			reason: dto.reason,
-			timestamp: new Date(),
-		});
+		await this.publishToExchange(
+			this.configService.get<string>('ORDER_EVENTS_EXCHANGE') || 'order_events_exchange',
+			'kitchen.items.recalled',
+			{
+				tenantId: dto.tenantId,
+				orderId: ticket.orderId,
+				tableId: ticket.tableId,
+				ticketId: ticket.id,
+				ticketNumber: ticket.ticketNumber,
+				items: itemsToRecall.map((i) => ({
+					id: i.id,
+					name: i.name,
+					orderItemId: i.orderItemId,
+				})),
+				reason: dto.reason,
+				timestamp: new Date(),
+			},
+		);
 
 		return this.mapToTicketResponse(ticket);
 	}
@@ -1058,15 +1078,19 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 		);
 
 		// Publish priority change event to RabbitMQ for WebSocket broadcast
-		await this.publishToExchange('order_events_exchange', 'kitchen.ticket.priority', {
-			tenantId: dto.tenantId,
-			orderId: ticket.orderId,
-			tableId: ticket.tableId,
-			ticket: this.mapToTicketResponse(ticket),
-			oldPriority: KitchenTicketPriorityLabels[oldPriority],
-			newPriority: KitchenTicketPriorityLabels[dto.priority],
-			timestamp: new Date(),
-		});
+		await this.publishToExchange(
+			this.configService.get<string>('ORDER_EVENTS_EXCHANGE') || 'order_events_exchange',
+			'kitchen.ticket.priority',
+			{
+				tenantId: dto.tenantId,
+				orderId: ticket.orderId,
+				tableId: ticket.tableId,
+				ticket: this.mapToTicketResponse(ticket),
+				oldPriority: KitchenTicketPriorityLabels[oldPriority],
+				newPriority: KitchenTicketPriorityLabels[dto.priority],
+				timestamp: new Date(),
+			},
+		);
 
 		return this.mapToTicketResponse(ticket);
 	}

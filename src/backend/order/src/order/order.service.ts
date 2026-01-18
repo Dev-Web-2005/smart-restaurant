@@ -540,7 +540,7 @@ export class OrderService implements OnModuleDestroy {
 
 			// ✅ Use amqplib directly for proper fanout exchange publishing
 			await this.publishToExchange(
-				'order_events_exchange',
+				this.configService.get<string>('ORDER_EVENTS_EXCHANGE') || 'order_events_exchange',
 				'order.new_items',
 				eventPayload,
 			);
@@ -993,7 +993,11 @@ export class OrderService implements OnModuleDestroy {
 		}
 
 		// ✅ Use amqplib directly for proper fanout exchange publishing
-		await this.publishToExchange('order_events_exchange', rabbitEventName, eventPayload);
+		await this.publishToExchange(
+			this.configService.get<string>('ORDER_EVENTS_EXCHANGE') || 'order_events_exchange',
+			rabbitEventName,
+			eventPayload,
+		);
 
 		return this.mapToOrderResponse(order);
 	}

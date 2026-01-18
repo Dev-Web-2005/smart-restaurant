@@ -63,7 +63,7 @@ import { CartModule } from 'src/cart/cart.module';
 						// ✅ PUBLISH-SUBSCRIBE PATTERN: Emit to Exchange (not queue)
 						// NestJS ClientProxy: 'queue' field is used as exchange name when routingKey is present
 						// routingKey: '' means fanout pattern (broadcast to all bound queues)
-						queue: 'order_events_exchange', // Exchange name (not a queue)
+						queue: configService.get<string>('ORDER_EVENTS_EXCHANGE') || 'order_events_exchange', // Exchange name (not a queue)
 						routingKey: '', // Empty routing key = fanout broadcast
 						noAck: true, // ✅ Fire-and-forget: No reply consumer needed for fanout
 						persistent: true, // Message durability

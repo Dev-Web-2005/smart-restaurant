@@ -16,7 +16,7 @@ async function bootstrap() {
 	const connection = await amqp.connect(process.env.CONNECTION_AMQP);
 	const channel = await connection.createChannel();
 	const queueName: string = process.env.QUEUE_NAME_OF_ORDER || 'local_order';
-	const exchangeName = 'order_events_exchange';
+	const exchangeName = process.env.ORDER_EVENTS_EXCHANGE || 'order_events_exchange';
 
 	try {
 		// ✅ CRITICAL: Create fanout exchange FIRST (for Pub/Sub pattern)

@@ -20,7 +20,7 @@ async function bootstrap() {
 	const connection = await amqp.connect(process.env.CONNECTION_AMQP);
 	const channel = await connection.createChannel();
 	const queueName: string = process.env.NAME_QUEUE || 'local_api_gateway';
-	const exchangeName = 'order_events_exchange';
+	const exchangeName = process.env.ORDER_EVENTS_EXCHANGE || 'order_events_exchange';
 
 	try {
 		// 1. Create fanout exchange for order events

@@ -332,6 +332,7 @@ jobs:
             KITCHEN_API_KEY=${{ secrets.KITCHEN_API_KEY }}
             CONNECTION_AMQP=${{ secrets.CONNECTION_AMQP }}
             NAME_QUEUE=api_gateway
+            ORDER_EVENTS_EXCHANGE=order_events_exchange
             REFRESH_TOKEN_EXPIRES_IN=${{ secrets.REFRESH_TOKEN_EXPIRES_IN }}
             ACCESS_TOKEN_EXPIRY=5m
             REFRESH_TOKEN_EXPIRY=7d
@@ -486,6 +487,7 @@ jobs:
             CONNECTION_AMQP=${{ secrets.CONNECTION_AMQP }}
             LIMIT_REQUEUE=10
             NAME_QUEUE=kitchen
+            ORDER_EVENTS_EXCHANGE=order_events_exchange
             ORDER_API_KEY=${{ secrets.ORDER_API_KEY }}
             HOST_ORDER_SERVICE=${{ vars.HOST_ORDER_SERVICE }}
             PORT_ORDER_SERVICE=${{ vars.PORT_ORDER_SERVICE }}
@@ -565,6 +567,7 @@ jobs:
             QUEUE_NAME_OF_ORDER=order
             QUEUE_NAME_OF_WAITER=waiter
             LIMIT_REQUEUE=10
+            ORDER_EVENTS_EXCHANGE=order_events_exchange
             WAITER_API_KEY=${{ secrets.WAITER_API_KEY }}
             KITCHEN_API_KEY=${{ secrets.KITCHEN_API_KEY }}
             PAYMENT_URL=${{ secrets.PAYMENT_URL }}
@@ -599,6 +602,7 @@ jobs:
             WAITER_API_KEY=${{ secrets.WAITER_API_KEY }}
             LIMIT_REQUEUE=10
             NAME_QUEUE=waiter
+            ORDER_EVENTS_EXCHANGE=order_events_exchange
             QUEUE_NAME_OF_ORDER=order
             QUEUE_NAME_OF_KITCHEN=kitchen
             ORDER_API_KEY=${{ secrets.ORDER_API_KEY }}
