@@ -3879,7 +3879,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/waiter/notifications?page=1&limit=10",
+              "raw": "{{baseURL}}/api/v1/tenants/f757d8d1-da96-474d-b304-8a1a58ac760a/waiter/notifications?page=1&limit=10",
               "host": [
                 "{{baseURL}}"
               ],
@@ -3887,7 +3887,7 @@
                 "api",
                 "v1",
                 "tenants",
-                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "f757d8d1-da96-474d-b304-8a1a58ac760a",
                 "waiter",
                 "notifications"
               ],
@@ -3906,11 +3906,13 @@
                 },
                 {
                   "key": "page",
-                  "value": "1"
+                  "value": "1",
+                  "uuid": "35d8e037-f44a-495d-bf5d-b85a95d91c67"
                 },
                 {
                   "key": "limit",
-                  "value": "10"
+                  "value": "10",
+                  "uuid": "d89f7b0c-dbd6-4ae3-9fe9-ddfaa4dac207"
                 }
               ]
             },

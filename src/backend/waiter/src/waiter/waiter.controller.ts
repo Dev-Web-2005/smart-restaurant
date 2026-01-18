@@ -55,25 +55,27 @@ export class WaiterController {
 		@Payload() data: NewOrderItemsEventDto,
 		@Ctx() context: RmqContext,
 	) {
+		console.log(`🔔 [RABBITMQ] start function`);
+
 		const channel = context.getChannelRef();
 		const message = context.getMessage();
 
-		this.logger.log(
+		console.log(
 			`🔔 [RABBITMQ] Received message from queue. Pattern: ${message.fields.routingKey || 'order.new_items'}`,
 		);
-		this.logger.log(
+		console.log(
 			`🔔 [RABBITMQ] Message properties: ${JSON.stringify(message.properties.headers || {})}`,
 		);
-		this.logger.log(`🔔 [RABBITMQ] Payload: ${JSON.stringify(data)}`);
+		console.log(`🔔 [RABBITMQ] Payload: ${JSON.stringify(data)}`);
 
 		try {
-			this.logger.log(
+			console.log(
 				`[EVENT] Processing order.new_items for order ${data.orderId}, table ${data.tableId}`,
 			);
 
 			const result = await this.waiterService.handleNewOrderItems(data);
 
-			this.logger.log(
+			console.log(
 				`✅ [EVENT] Created notification ${result.id} with ${data.items.length} items`,
 			);
 
