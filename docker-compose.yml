@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # ==================== BACKEND SERVICES ====================
@@ -341,4 +341,3 @@ networks:
   smart-restaurant-network:
     driver: bridge
     name: smart-restaurant-network
-

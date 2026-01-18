@@ -126,7 +126,7 @@
 \textbf{Mô tả:} Hệ thống được xây dựng theo kiến trúc Microservices với hơn 10 dịch vụ bao gồm:
 \begin{itemize}
     \item \textbf{Dịch vụ chính (9 dịch vụ):} API Gateway, Identity, Profile, Product, Table, Order, Kitchen, Waiter, Notification
-    \item \textbf{Dịch vụ bên ngoài:} File Service, Mail Service, Payment Service, Redis Cache
+    \item \textbf{Dịch vụ bên ngoài:} File Service, Mail Service (Brevo), Payment Service, Redis Cache
     \item \textbf{Message Broker:} RabbitMQ cho giao tiếp giữa các dịch vụ
 \end{itemize}
 
@@ -750,7 +750,7 @@ oppaii230205 & bbfb7718 & feat: Implement review feature \\
     \item \textbf{Thiết kế lấy người dùng làm trung tâm:} Thiết kế responsive ưu tiên mobile, luồng đặt món QR trực quan
     \item \textbf{Thiết kế cơ sở dữ liệu:} Cơ sở dữ liệu PostgreSQL với schema hợp lý (xem docs/evidence/ER\_DIAGRAM.md)
     \item \textbf{Kiến trúc:} Microservices với hơn 10 dịch vụ (xem docs/evidence/MICROSERVICES\_ARCHITECTURE.md)
-    \item \textbf{Dịch vụ bên ngoài:} File Service, Mail Service (), Payment Service, Redis
+    \item \textbf{Dịch vụ bên ngoài:} File Service, Mail Service (Brevo), Payment Service, Redis
     \item \textbf{Tài liệu:} Tài liệu đầy đủ trong thư mục /docs
     \item \textbf{Lịch sử Git:} 389 commits với thông điệp có ý nghĩa, 27 nhánh, 15+ PRs
 \end{itemize}

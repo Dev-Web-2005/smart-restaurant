@@ -1678,25 +1678,15 @@ export class OrderService implements OnModuleDestroy {
 		const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
 		const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-		// Default values for empty data
-		const defaultPeakHour = { hour: 0, hourLabel: '12:00 AM', orderCount: 0 };
-		const defaultBusiestDay = {
-			date: startDate.toISOString().split('T')[0],
-			dayOfWeek: new Date(startDate).toLocaleDateString('en-US', { weekday: 'long' }),
-			orderCount: 0,
-		};
+		// Find peak hour
+		const peakHourData = peakHours.reduce((max, hour) =>
+			hour.orderCount > max.orderCount ? hour : max,
+		);
 
-		// Find peak hour (handle empty array)
-		const peakHourData =
-			peakHours.length > 0
-				? peakHours.reduce((max, hour) => (hour.orderCount > max.orderCount ? hour : max))
-				: defaultPeakHour;
-
-		// Find busiest day (handle empty array)
-		const busiestDayData =
-			dailyOrders.length > 0
-				? dailyOrders.reduce((max, day) => (day.orderCount > max.orderCount ? day : max))
-				: defaultBusiestDay;
+		// Find busiest day
+		const busiestDayData = dailyOrders.reduce((max, day) =>
+			day.orderCount > max.orderCount ? day : max,
+		);
 
 		return {
 			dailyOrders,
