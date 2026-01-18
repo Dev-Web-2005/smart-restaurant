@@ -168,6 +168,14 @@
 \subsection{Tổng quan Dự án}
 \textbf{Smart Restaurant} là một Hệ thống Quản lý Nhà hàng Đa khách hàng (Multi-Tenant) toàn diện với khả năng Đặt món qua Menu QR. Hệ thống cho phép nhà hàng quản lý menu, đơn hàng và bàn trong khi cho phép khách hàng đặt món trực tiếp bằng cách quét mã QR được đặt tại mỗi bàn.
 
+\textbf{Điểm nổi bật:}
+\begin{itemize}
+    \item Kiến trúc Multi-Tenant hỗ trợ nhiều nhà hàng trên cùng một hệ thống
+    \item Hơn 10 microservices (9 dịch vụ chính + dịch vụ bên ngoài)
+    \item Cập nhật thời gian thực qua WebSocket và RabbitMQ
+    \item Tích hợp thanh toán, email, và file storage
+\end{itemize}
+
 \subsection{Mục tiêu Dự án}
 \begin{itemize}
     \item Phát triển nền tảng SaaS đa khách hàng có khả năng mở rộng cho quản lý nhà hàng
@@ -270,18 +278,28 @@ Sprint 8 & Triển khai Docker, Tài liệu, Báo cáo & Hoàn thành \\
 \section{Phân tích Chức năng}
 
 \subsection{Kiến trúc Hệ thống}
-Hệ thống tuân theo \textbf{Kiến trúc Microservices} với các thành phần sau:
+Hệ thống tuân theo \textbf{Kiến trúc Microservices Multi-Tenant} với các thành phần sau:
 
+\textbf{Dịch vụ Chính (9 dịch vụ):}
 \begin{itemize}
     \item \textbf{API Gateway (Cổng 8888):} Điểm vào duy nhất, điều hướng, xác thực JWT
-    \item \textbf{Dịch vụ Identity (Cổng 3001):} Xác thực, quản lý người dùng, RBAC
-    \item \textbf{Dịch vụ Profile (Cổng 3002):} Quản lý hồ sơ người dùng và tenant
-    \item \textbf{Dịch vụ Product (Cổng 3003):} Danh mục menu, món ăn, modifiers
-    \item \textbf{Dịch vụ Table (Cổng 3004):} CRUD bàn, tạo mã QR
-    \item \textbf{Dịch vụ Order (Cổng 3005):} Vòng đời đơn hàng, state machine
-    \item \textbf{Dịch vụ Kitchen (Cổng 3008):} Chức năng KDS
-    \item \textbf{Dịch vụ Waiter (Cổng 3009):} Chấp nhận/từ chối đơn hàng
-    \item \textbf{Dịch vụ Notification (Cổng 3007):} Cập nhật WebSocket thời gian thực
+    \item \textbf{Dịch vụ Identity (Cổng 8084):} Xác thực, quản lý người dùng, RBAC
+    \item \textbf{Dịch vụ Profile (Cổng 8081):} Quản lý hồ sơ người dùng và tenant
+    \item \textbf{Dịch vụ Product (Cổng 8082):} Danh mục menu, món ăn, modifiers
+    \item \textbf{Dịch vụ Table (Cổng 8083):} CRUD bàn, tạo mã QR
+    \item \textbf{Dịch vụ Order (Cổng 8087):} Vòng đời đơn hàng, state machine
+    \item \textbf{Dịch vụ Kitchen (Cổng 8086):} Chức năng KDS
+    \item \textbf{Dịch vụ Waiter (Cổng 8088):} Chấp nhận/từ chối đơn hàng
+    \item \textbf{Dịch vụ Notification (Cổng 8085):} Cập nhật WebSocket thời gian thực
+\end{itemize}
+
+\textbf{Dịch vụ Bên ngoài:}
+\begin{itemize}
+    \item \textbf{File Service:} Lưu trữ hình ảnh món ăn (Render)
+    \item \textbf{Mail Service (Brevo):} Gửi email xác thực, đặt lại mật khẩu
+    \item \textbf{Payment Service:} Xử lý thanh toán QR
+    \item \textbf{Redis:} Cache giỏ hàng và session
+    \item \textbf{RabbitMQ:} Message broker cho giao tiếp giữa các dịch vụ
 \end{itemize}
 
 \subsection{Các Chức năng Cốt lõi}
@@ -506,69 +524,90 @@ Hệ thống triển khai Row-Level Security (RLS) với \texttt{tenant\_id} tr�
 \subsection{Thiết lập Phát triển Cục bộ}
 
 \subsubsection{Bước 1: Sao chép Repository}
-\begin{lstlisting}[language=bash]
+\begin{verbatim}
 git clone https://github.com/Dev-Web-2005/smart-restaurant.git
 cd smart-restaurant
-\end{lstlisting}
+\end{verbatim}
 
 \subsubsection{Bước 2: Thiết lập Biến Môi trường}
-Tạo tệp \texttt{.env} cho mỗi dịch vụ dựa trên \texttt{.env.example}:
-\begin{lstlisting}[language=bash]
-# Cấu hình cơ sở dữ liệu
+Tạo tệp \texttt{.env} cho mỗi dịch vụ dựa trên \texttt{.env.example}.
+
+\textbf{Cấu hình cơ sở dữ liệu:}
+\begin{verbatim}
 DATABASE_HOST=localhost
 DATABASE_PORT=5432
 DATABASE_NAME=identity_db
 DATABASE_USER=postgres
 DATABASE_PASSWORD=postgres123
+\end{verbatim}
 
-# Cấu hình JWT
+\textbf{Cấu hình JWT:}
+\begin{verbatim}
 JWT_SECRET=your-secret-key
 JWT_EXPIRES_IN=7d
+\end{verbatim}
 
-# Cấu hình Redis
+\textbf{Cấu hình Redis:}
+\begin{verbatim}
 REDIS_HOST=localhost
 REDIS_PORT=6379
-\end{lstlisting}
+\end{verbatim}
 
 \subsubsection{Bước 3: Cài đặt Phụ thuộc}
-\begin{lstlisting}[language=bash]
-# Các dịch vụ Backend
+\textbf{Các dịch vụ Backend:}
+\begin{verbatim}
 cd src/backend/api-gateway && npm install
 cd ../identity && npm install
 cd ../product && npm install
-# ... lặp lại cho các dịch vụ khác
+cd ../table && npm install
+cd ../order && npm install
+cd ../kitchen && npm install
+cd ../waiter && npm install
+cd ../notification && npm install
+\end{verbatim}
 
-# Frontend
+\textbf{Frontend:}
+\begin{verbatim}
 cd src/frontend && npm install
-\end{lstlisting}
+\end{verbatim}
 
 \subsubsection{Bước 4: Khởi động Dịch vụ}
-\begin{lstlisting}[language=bash]
-# Sử dụng tệp batch được cung cấp
+\textbf{Sử dụng tệp batch được cung cấp:}
+\begin{verbatim}
 ./run.bat
+\end{verbatim}
 
-# Hoặc khởi động thủ công từng dịch vụ
+\textbf{Hoặc khởi động thủ công từng dịch vụ:}
+\begin{verbatim}
 cd src/backend/api-gateway && npm run start:dev
 cd src/backend/identity && npm run start:dev
-# ... khởi động các dịch vụ khác
-
-# Khởi động frontend
+cd src/backend/profile && npm run start:dev
+cd src/backend/product && npm run start:dev
+cd src/backend/table && npm run start:dev
+cd src/backend/order && npm run start:dev
+cd src/backend/kitchen && npm run start:dev
+cd src/backend/waiter && npm run start:dev
+cd src/backend/notification && npm run start:dev
 cd src/frontend && npm run dev
-\end{lstlisting}
+\end{verbatim}
 
 \subsection{Triển khai Docker}
 
 \subsubsection{Khởi động Nhanh với Docker Compose}
-\begin{lstlisting}[language=bash]
-# Xây dựng và khởi động tất cả dịch vụ
+\textbf{Xây dựng và khởi động tất cả dịch vụ:}
+\begin{verbatim}
 docker-compose up -d --build
+\end{verbatim}
 
-# Xem logs
+\textbf{Xem logs:}
+\begin{verbatim}
 docker-compose logs -f
+\end{verbatim}
 
-# Dừng tất cả dịch vụ
+\textbf{Dừng tất cả dịch vụ:}
+\begin{verbatim}
 docker-compose down
-\end{lstlisting}
+\end{verbatim}
 
 \subsubsection{Cổng Dịch vụ}
 \begin{table}[H]
@@ -577,25 +616,25 @@ docker-compose down
 \hline
 \textbf{Dịch vụ} & \textbf{Cổng} \\
 \hline
-Frontend & 3000 \\
+Frontend & 5173 \\
 \hline
 API Gateway & 8888 \\
 \hline
-Dịch vụ Identity & 3001 \\
+Dịch vụ Profile & 8081 \\
 \hline
-Dịch vụ Profile & 3002 \\
+Dịch vụ Product & 8082 \\
 \hline
-Dịch vụ Product & 3003 \\
+Dịch vụ Table & 8083 \\
 \hline
-Dịch vụ Table & 3004 \\
+Dịch vụ Identity & 8084 \\
 \hline
-Dịch vụ Order & 3005 \\
+Dịch vụ Notification & 8085 \\
 \hline
-Dịch vụ Notification & 3007 \\
+Dịch vụ Kitchen & 8086 \\
 \hline
-Dịch vụ Kitchen & 3008 \\
+Dịch vụ Order & 8087 \\
 \hline
-Dịch vụ Waiter & 3009 \\
+Dịch vụ Waiter & 8088 \\
 \hline
 \end{tabular}
 \caption{Ánh xạ Cổng Dịch vụ}
@@ -662,10 +701,12 @@ Dịch vụ Waiter & 3009 \\
 Hệ thống Đặt món QR cho Nhà hàng Thông minh đã triển khai thành công một giải pháp toàn diện cho hoạt động nhà hàng hiện đại. Các thành tựu chính bao gồm:
 
 \begin{itemize}
-    \item Kiến trúc microservices hoàn chỉnh với 9 dịch vụ backend
-    \item Đặt món dựa trên QR bảo mật với token đã ký
-    \item Cập nhật thời gian thực qua WebSocket
+    \item Kiến trúc microservices Multi-Tenant với hơn 10 dịch vụ (9 dịch vụ chính + dịch vụ bên ngoài)
+    \item Hỗ trợ nhiều nhà hàng trên cùng một hệ thống với cô lập dữ liệu
+    \item Đặt món dựa trên QR bảo mật với token đã ký HMAC-SHA256
+    \item Cập nhật thời gian thực qua WebSocket và RabbitMQ
     \item Kiểm soát truy cập dựa trên vai trò cho tất cả loại người dùng
+    \item Tích hợp dịch vụ bên ngoài: File Service, Mail Service, Payment Service
     \item Containerization với Docker để triển khai dễ dàng
     \item Thiết kế responsive ưu tiên mobile
 \end{itemize}
