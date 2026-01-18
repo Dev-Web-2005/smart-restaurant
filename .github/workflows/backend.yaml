@@ -28,6 +28,8 @@ env:
   TABLE_API_KEY: ${{ secrets.TABLE_API_KEY }}
   KITCHEN_API_KEY: ${{ secrets.KITCHEN_API_KEY }}
   NOTIFICATION_API_KEY: ${{ secrets.NOTIFICATION_API_KEY }}
+  ORDER_API_KEY: ${{ secrets.ORDER_API_KEY }}
+  WAITER_API_KEY: ${{ secrets.WAITER_API_KEY }}
 
 jobs:
   detect-changes:
@@ -41,6 +43,8 @@ jobs:
       table: ${{ steps.filter.outputs.table }}
       kitchen: ${{ steps.filter.outputs.kitchen }}
       notification: ${{ steps.filter.outputs.notification }}
+      order: ${{ steps.filter.outputs.order }}
+      waiter: ${{ steps.filter.outputs.waiter }}
       build-all: ${{ steps.filter.outputs.build-all }}
     steps:
       - uses: actions/checkout@v4
@@ -100,6 +104,16 @@ jobs:
           else
             echo "notification=false" >> $GITHUB_OUTPUT
           fi
+          if git diff --name-only HEAD~1 HEAD | grep -q "src/backend/order/"; then
+            echo "order=true" >> $GITHUB_OUTPUT
+          else
+            echo "order=false" >> $GITHUB_OUTPUT
+          fi
+          if git diff --name-only HEAD~1 HEAD | grep -q "src/backend/waiter/"; then
+            echo "waiter=true" >> $GITHUB_OUTPUT
+          else
+            echo "waiter=false" >> $GITHUB_OUTPUT
+          fi
 
           echo "build-all=$BUILD_ALL" >> $GITHUB_OUTPUT
 
@@ -153,7 +167,9 @@ jobs:
              [ "${{ needs.detect-changes.outputs.profile }}" != "true" ] && \
              [ "${{ needs.detect-changes.outputs.table }}" != "true" ] && \
              [ "${{ needs.detect-changes.outputs.kitchen }}" != "true" ] && \
-             [ "${{ needs.detect-changes.outputs.notification }}" != "true" ]; then
+             [ "${{ needs.detect-changes.outputs.notification }}" != "true" ] && \
+             [ "${{ needs.detect-changes.outputs.order }}" != "true" ] && \
+             [ "${{ needs.detect-changes.outputs.waiter }}" != "true" ]; then
             echo "⚠️ No services to build - skipping"
             exit 0
           fi
@@ -206,6 +222,18 @@ jobs:
             echo "Building notification..."
             cd src/backend/notification && npm ci && npm run build && rm -rf src test
             mkdir -p ../../../result/notification && cp -r . ../../../result/notification/ && cd ../../..
+          fi
+
+          if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.order }}" == "true" ]; then
+            echo "Building order..."
+            cd src/backend/order && npm ci && npm run build && rm -rf src test
+            mkdir -p ../../../result/order && cp -r . ../../../result/order/ && cd ../../..
+          fi
+
+          if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.waiter }}" == "true" ]; then
+            echo "Building waiter..."
+            cd src/backend/waiter && npm ci && npm run build && rm -rf src test
+            mkdir -p ../../../result/waiter && cp -r . ../../../result/waiter/ && cd ../../..
           fi
 
       - uses: actions/upload-artifact@v4
@@ -273,7 +301,24 @@ jobs:
             HOST_NOTIFICATION_SERVICE=${{ vars.HOST_NOTIFICATION_SERVICE }}
             PORT_NOTIFICATION_SERVICE=${{ vars.PORT_NOTIFICATION_SERVICE }}
             NOTIFICATION_API_KEY=${{ secrets.NOTIFICATION_API_KEY }}
+            ORDER_SERVICE_URL=${{ vars.ORDER_SERVICE_URL }}
+            HOST_ORDER_SERVICE=${{ vars.HOST_ORDER_SERVICE }}
+            PORT_ORDER_SERVICE=${{ vars.PORT_ORDER_SERVICE }}
+            ORDER_API_KEY=${{ secrets.ORDER_API_KEY }}
+            HOST_WAITER_SERVICE=${{ vars.HOST_WAITER_SERVICE }}
+            PORT_WAITER_SERVICE=${{ vars.PORT_WAITER_SERVICE }}
+            WAITER_API_KEY=${{ secrets.WAITER_API_KEY }}
+            HOST_KITCHEN_SERVICE=${{ vars.HOST_KITCHEN_SERVICE }}
+            PORT_KITCHEN_SERVICE=${{ vars.PORT_KITCHEN_SERVICE }}
+            KITCHEN_API_KEY=${{ secrets.KITCHEN_API_KEY }}
+            CONNECTION_AMQP=${{ secrets.CONNECTION_AMQP }}
+            NAME_QUEUE=api_gateway
             REFRESH_TOKEN_EXPIRES_IN=${{ secrets.REFRESH_TOKEN_EXPIRES_IN }}
+            ACCESS_TOKEN_EXPIRY=5m
+            REFRESH_TOKEN_EXPIRY=7d
+            JWT_SECRET_KEY_ACCESS=${{ secrets.JWT_SECRET_KEY_ACCESS }}
+            JWT_SECRET_KEY_REFRESH=${{ secrets.JWT_SECRET_KEY_REFRESH }}
+            JWT_SECRET_KEY_RESET_PASSWORD=${{ secrets.JWT_SECRET_KEY_RESET_PASSWORD }}
             FRONTEND_URL=${{ vars.FRONTEND_URL }}
             COOKIE_DOMAIN=${{ vars.COOKIE_DOMAIN }}
             EOF
@@ -370,6 +415,8 @@ jobs:
             DATABASE_DB=${{ secrets.DATABASE_DB }}
             X_API_KEY=${{ secrets.X_API_KEY }}
             TABLE_API_KEY=${{ secrets.TABLE_API_KEY }}
+            HOST_PRODUCT_SERVICE=${{ vars.HOST_PRODUCT_SERVICE }}
+            PORT_PRODUCT_SERVICE=${{ vars.PORT_PRODUCT_SERVICE }}
             QR_SECRET_KEY=${{ secrets.QR_SECRET_KEY }}
             QR_BASE_URL=${{ vars.QR_BASE_URL }}
             EOF
@@ -394,6 +441,14 @@ jobs:
             CONNECTION_AMQP=${{ secrets.CONNECTION_AMQP }}
             LIMIT_REQUEUE=10
             NAME_QUEUE=kitchen
+            ORDER_API_KEY=${{ secrets.ORDER_API_KEY }}
+            HOST_ORDER_SERVICE=${{ vars.HOST_ORDER_SERVICE }}
+            PORT_ORDER_SERVICE=${{ vars.PORT_ORDER_SERVICE }}
+            HOST_TABLE_SERVICE=${{ vars.HOST_TABLE_SERVICE }}
+            PORT_TABLE_SERVICE=${{ vars.PORT_TABLE_SERVICE }}
+            TABLE_API_KEY=${{ secrets.TABLE_API_KEY }}
+            WARNING_THRESHOLD=600
+            CRITICAL_THRESHOLD=900
             EOF
               pm2 delete kitchen || true
               pm2 start dist/kitchen/src/main.js --name kitchen
@@ -428,6 +483,70 @@ jobs:
               pm2 delete notification || true
               pm2 start dist/notification/src/main.js --name notification
               SERVICES_TO_RESTART="$SERVICES_TO_RESTART notification"
+              cd ..
+            fi
+
+            if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.order }}" == "true" ]; then
+              echo "Restarting order..."
+              cd order
+              cat > .env << 'EOF'
+            PORT=8087
+            X_API_KEY=${{ secrets.X_API_KEY }}
+            HOST_DB=${{ secrets.HOST_DB }}
+            PORT_DB=${{ secrets.PORT_DB }}
+            USERNAME_DB=${{ secrets.USERNAME_DB }}
+            PASSWORD_DB=${{ secrets.PASSWORD_DB }}
+            DATABASE_DB=${{ secrets.DATABASE_DB }}
+            HOST_PRODUCT_SERVICE=${{ vars.HOST_PRODUCT_SERVICE }}
+            PORT_PRODUCT_SERVICE=${{ vars.PORT_PRODUCT_SERVICE }}
+            PRODUCT_API_KEY=${{ secrets.PRODUCT_API_KEY }}
+            REDIS_HOST=${{ secrets.REDIS_HOST }}
+            REDIS_PORT=${{ secrets.REDIS_PORT }}
+            REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+            REDIS_TTL=86400
+            TAX_RATE=0.1
+            ORDER_API_KEY=${{ secrets.ORDER_API_KEY }}
+            CONNECTION_AMQP=${{ secrets.CONNECTION_AMQP }}
+            QUEUE_NAME_OF_ORDER=order
+            QUEUE_NAME_OF_WAITER=waiter
+            LIMIT_REQUEUE=10
+            WAITER_API_KEY=${{ secrets.WAITER_API_KEY }}
+            KITCHEN_API_KEY=${{ secrets.KITCHEN_API_KEY }}
+            PAYMENT_URL=${{ secrets.PAYMENT_URL }}
+            PAYMENT_API_KEY=${{ secrets.PAYMENT_API_KEY }}
+            URL_HOME=${{ vars.FRONTEND_URL }}
+            HOST_TABLE_SERVICE=${{ vars.HOST_TABLE_SERVICE }}
+            PORT_TABLE_SERVICE=${{ vars.PORT_TABLE_SERVICE }}
+            TABLE_API_KEY=${{ secrets.TABLE_API_KEY }}
+            EOF
+              pm2 delete order || true
+              pm2 start dist/order/src/main.js --name order
+              SERVICES_TO_RESTART="$SERVICES_TO_RESTART order"
+              cd ..
+            fi
+
+            if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.waiter }}" == "true" ]; then
+              echo "Restarting waiter..."
+              cd waiter
+              cat > .env << 'EOF'
+            PORT=8088
+            HOST_DB=${{ secrets.HOST_DB }}
+            PORT_DB=${{ secrets.PORT_DB }}
+            USERNAME_DB=${{ secrets.USERNAME_DB }}
+            PASSWORD_DB=${{ secrets.PASSWORD_DB }}
+            DATABASE_DB=${{ secrets.DATABASE_DB }}
+            CONNECTION_AMQP=${{ secrets.CONNECTION_AMQP }}
+            WAITER_API_KEY=${{ secrets.WAITER_API_KEY }}
+            LIMIT_REQUEUE=10
+            NAME_QUEUE=waiter
+            QUEUE_NAME_OF_ORDER=order
+            QUEUE_NAME_OF_KITCHEN=kitchen
+            ORDER_API_KEY=${{ secrets.ORDER_API_KEY }}
+            KITCHEN_API_KEY=${{ secrets.KITCHEN_API_KEY }}
+            EOF
+              pm2 delete waiter || true
+              pm2 start dist/waiter/src/main.js --name waiter
+              SERVICES_TO_RESTART="$SERVICES_TO_RESTART waiter"
               cd ..
             fi
 
