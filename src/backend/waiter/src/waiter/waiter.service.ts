@@ -76,21 +76,52 @@ export class WaiterService {
 	 * - Extract item IDs for UI reference only
 	 * - Set priority for sorting
 	 * - NO business logic - just store the alert
+	 * - IDEMPOTENCY: Check for duplicate messageId to prevent duplicate notifications from RabbitMQ redelivery
 	 *
 	 * @param dto - Event data from Order Service
+	 * @param messageId - Unique message ID for idempotency check
 	 * @returns Created notification
 	 */
 	async handleNewOrderItems(
 		dto: NewOrderItemsEventDto,
+		messageId?: string,
 	): Promise<OrderNotificationResponseDto> {
 		this.validateApiKey(dto.waiterApiKey);
 
+		const receivedAt = new Date().toISOString();
+
 		this.logger.log(
-			`Creating notification for order ${dto.orderId}, table ${dto.tableId} with ${dto.items.length} items`,
+			`🔍 [DEBUG-WAITER-SERVICE] handleNewOrderItems called\n` +
+			`   MessageId: ${messageId || 'N/A'}\n` +
+			`   OrderId: ${dto.orderId}\n` +
+			`   TableId: ${dto.tableId}\n` +
+			`   TenantId: ${dto.tenantId}\n` +
+			`   ItemCount: ${dto.items?.length}\n` +
+			`   ReceivedAt: ${receivedAt}`,
 		);
 
 		// Extract item IDs for display reference
 		const itemIds = dto.items.map((item) => item.id);
+
+		// 🔍 DEBUG: Check for duplicate messageId (idempotency for RabbitMQ redelivery)
+		// This prevents creating duplicate notifications when RabbitMQ redelivers the SAME message
+		// NOTE: Different checkouts with different messageIds should create separate notifications
+		if (messageId) {
+			const existingByMessageId = await this.notificationRepository
+				.createQueryBuilder('notification')
+				.where(`notification.metadata->>'_messageId' = :messageId`, { messageId })
+				.getOne();
+
+			if (existingByMessageId) {
+				this.logger.warn(
+					`🚫 [DEBUG-WAITER-SERVICE] DUPLICATE MESSAGE DETECTED - RabbitMQ redelivery\n` +
+					`   MessageId: ${messageId}\n` +
+					`   ExistingNotificationId: ${existingByMessageId.id}\n` +
+					`   Skipping notification creation`,
+				);
+				return this.mapToResponseDto(existingByMessageId);
+			}
+		}
 
 		// Build display message
 		const itemNames = dto.items.map((item) => item.name).join(', ');
@@ -111,12 +142,20 @@ export class WaiterService {
 				orderType: dto.orderType,
 				itemCount: dto.items.length,
 				items: dto.items, // For display only
+				_messageId: messageId, // 🔍 DEBUG: Store for idempotency tracking
+				_receivedAt: receivedAt,
 			},
 		});
 
 		const saved = await this.notificationRepository.save(notification);
 
-		this.logger.log(`Created notification ${saved.id} with ${itemIds.length} items`);
+		this.logger.log(
+			`✅ [DEBUG-WAITER-SERVICE] Created notification\n` +
+			`   NotificationId: ${saved.id}\n` +
+			`   MessageId: ${messageId}\n` +
+			`   OrderId: ${dto.orderId}\n` +
+			`   ItemCount: ${itemIds.length}`,
+		);
 
 		// ❌ REMOVED: Order Service already emits 'order.items.new' to waiters room
 		// Waiter Service chỉ lưu notification vào DB, không cần emit duplicate event

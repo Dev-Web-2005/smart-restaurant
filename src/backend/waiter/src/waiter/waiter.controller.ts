@@ -52,43 +52,66 @@ export class WaiterController {
 	 */
 	@EventPattern('order.new_items')
 	async handleNewOrderItems(
-		@Payload() data: NewOrderItemsEventDto,
+		@Payload() data: NewOrderItemsEventDto & { _messageId?: string; _publishedAt?: string },
 		@Ctx() context: RmqContext,
 	) {
-		console.log(`🔔 [RABBITMQ] start function`);
-
+		const receivedAt = new Date().toISOString();
 		const channel = context.getChannelRef();
 		const message = context.getMessage();
 
+		// 🔍 DEBUG: Extract message tracking info
+		const messageId = data._messageId || message.properties?.messageId || 'UNKNOWN';
+		const publishedAt = data._publishedAt || 'UNKNOWN';
+		const deliveryTag = message.fields?.deliveryTag;
+		const redelivered = message.fields?.redelivered;
+
 		console.log(
-			`🔔 [RABBITMQ] Received message from queue. Pattern: ${message.fields.routingKey || 'order.new_items'}`,
+			`\n🔔 [DEBUG-WAITER-RECEIVE] ========== START ==========\n` +
+			`   ReceivedAt: ${receivedAt}\n` +
+			`   MessageId: ${messageId}\n` +
+			`   PublishedAt: ${publishedAt}\n` +
+			`   DeliveryTag: ${deliveryTag}\n` +
+			`   Redelivered: ${redelivered}\n` +
+			`   OrderId: ${data.orderId}\n` +
+			`   TableId: ${data.tableId}\n` +
+			`   ItemCount: ${data.items?.length}\n` +
+			`   Queue: ${message.fields?.routingKey || 'order.new_items'}\n` +
+			`   Headers: ${JSON.stringify(message.properties?.headers || {})}`,
 		);
-		console.log(
-			`🔔 [RABBITMQ] Message properties: ${JSON.stringify(message.properties.headers || {})}`,
-		);
-		console.log(`🔔 [RABBITMQ] Payload: ${JSON.stringify(data)}`);
 
 		try {
 			console.log(
-				`[EVENT] Processing order.new_items for order ${data.orderId}, table ${data.tableId}`,
+				`🔍 [DEBUG-WAITER-RECEIVE] Processing notification for order ${data.orderId}...`,
 			);
 
-			const result = await this.waiterService.handleNewOrderItems(data);
+			const result = await this.waiterService.handleNewOrderItems(data, messageId);
 
 			console.log(
-				`✅ [EVENT] Created notification ${result.id} with ${data.items.length} items`,
+				`✅ [DEBUG-WAITER-RECEIVE] SUCCESS\n` +
+				`   MessageId: ${messageId}\n` +
+				`   NotificationId: ${result.id}\n` +
+				`   ItemCount: ${data.items?.length}\n` +
+				`   ========== END ==========\n`,
 			);
 
 			// ✅ NestJS auto-acks after successful handler completion (noAck: false)
 		} catch (error) {
+			console.log(
+				`❌ [DEBUG-WAITER-RECEIVE] ERROR\n` +
+				`   MessageId: ${messageId}\n` +
+				`   OrderId: ${data.orderId}\n` +
+				`   Error: ${error.message}\n` +
+				`   ========== END ==========\n`,
+			);
+
 			this.logger.error(
 				`❌ [EVENT] Failed to handle new order items: ${error.message}`,
 				error.stack,
 			);
 
 			// Get retry count
-			const xDeath = message.properties.headers['x-death'];
-			const retryCount = xDeath ? xDeath[0].count : 0;
+			const xDeath = message.properties?.headers?.['x-death'];
+			const retryCount = xDeath ? xDeath[0]?.count : 0;
 			const maxRetries = parseInt(process.env.LIMIT_REQUEUE || '10', 10);
 
 			if (retryCount >= maxRetries) {

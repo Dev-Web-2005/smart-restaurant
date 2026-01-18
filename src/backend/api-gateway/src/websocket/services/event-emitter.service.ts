@@ -166,12 +166,40 @@ export class EventEmitterService {
 		customerName?: string;
 		notes?: string;
 	}): void {
+		const broadcastAt = new Date().toISOString();
+
 		if (!this.server) {
-			this.logger.warn('Socket.IO server not initialized, cannot broadcast');
+			this.logger.warn(
+				`⚠️ [DEBUG-WEBSOCKET-BROADCAST] Socket.IO server not initialized\n` +
+				`   OrderId: ${data.orderId}\n` +
+				`   Cannot broadcast to waiters room`,
+			);
 			return;
 		}
 
 		const room = `tenant:${data.tenantId}:waiters`;
+
+		// 🔍 DEBUG: Check how many sockets are in the room (with null safety)
+		let socketCount = 0;
+		try {
+			const adapter = this.server.sockets?.adapter;
+			if (adapter && adapter.rooms) {
+				const roomSockets = adapter.rooms.get(room);
+				socketCount = roomSockets ? roomSockets.size : 0;
+			}
+		} catch (err) {
+			this.logger.warn(`⚠️ [DEBUG-WEBSOCKET-BROADCAST] Could not get room socket count: ${err.message}`);
+		}
+
+		this.logger.log(
+			`🔍 [DEBUG-WEBSOCKET-BROADCAST] Preparing broadcast\n` +
+			`   BroadcastAt: ${broadcastAt}\n` +
+			`   Room: ${room}\n` +
+			`   SocketsInRoom: ${socketCount}\n` +
+			`   OrderId: ${data.orderId}\n` +
+			`   ItemCount: ${data.items?.length}`,
+		);
+
 		const eventPayload: WebSocketEventPayload = {
 			event: 'order.items.new',
 			room,
@@ -184,6 +212,7 @@ export class EventEmitterService {
 				orderType: data.orderType,
 				notes: data.notes,
 				createdAt: new Date(),
+				_broadcastAt: broadcastAt, // 🔍 DEBUG: Add timestamp for tracking
 			},
 			timestamp: new Date(),
 			metadata: {
@@ -193,8 +222,13 @@ export class EventEmitterService {
 		};
 
 		this.server.to(room).emit('order.items.new', eventPayload);
+
 		this.logger.log(
-			`[WebSocket] Emitted 'order.items.new' to room '${room}' with ${data.items.length} items`,
+			`✅ [DEBUG-WEBSOCKET-BROADCAST] Emitted 'order.items.new'\n` +
+			`   Room: ${room}\n` +
+			`   SocketsInRoom: ${socketCount}\n` +
+			`   OrderId: ${data.orderId}\n` +
+			`   ItemCount: ${data.items?.length}`,
 		);
 	}
 

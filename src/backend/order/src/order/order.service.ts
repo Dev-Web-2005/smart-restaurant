@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In, Not } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Order, OrderItem } from '../common/entities';
 import {
@@ -124,8 +125,22 @@ export class OrderService implements OnModuleDestroy {
 		eventPattern: string,
 		payload: any,
 	): Promise<void> {
+		// 🔍 DEBUG: Generate unique message ID for tracking
+		const messageId = uuidv4();
+		const timestamp = new Date().toISOString();
+
+		this.logger.log(
+			`🚀 [DEBUG-ORDER-PUBLISH] START publishing event\n` +
+			`   MessageId: ${messageId}\n` +
+			`   Pattern: ${eventPattern}\n` +
+			`   Exchange: ${exchangeName}\n` +
+			`   OrderId: ${payload.orderId}\n` +
+			`   Timestamp: ${timestamp}`,
+		);
+
 		try {
 			if (!this.amqpChannel) {
+				this.logger.log(`🔍 [DEBUG-ORDER-PUBLISH] RabbitMQ channel not initialized, initializing...`);
 				await this.initializeRabbitMQ();
 			}
 
@@ -133,7 +148,11 @@ export class OrderService implements OnModuleDestroy {
 			// NestJS expects: { pattern: 'event.name', data: {...} }
 			const nestJsMessage = {
 				pattern: eventPattern,
-				data: payload,
+				data: {
+					...payload,
+					_messageId: messageId, // 🔍 DEBUG: Add unique ID for tracking
+					_publishedAt: timestamp,
+				},
 			};
 
 			const message = Buffer.from(JSON.stringify(nestJsMessage));
@@ -144,20 +163,37 @@ export class OrderService implements OnModuleDestroy {
 				{
 					persistent: true,
 					contentType: 'application/json',
+					messageId: messageId, // 🔍 DEBUG: RabbitMQ message ID
+					timestamp: Date.now(),
 					// Also set pattern in headers for compatibility
 					headers: {
 						pattern: eventPattern,
+						'x-message-id': messageId,
+						'x-published-at': timestamp,
 					},
 				},
 			);
 
 			if (published) {
-				this.logger.log(`✅ Published '${eventPattern}' to exchange '${exchangeName}'`);
+				this.logger.log(
+					`✅ [DEBUG-ORDER-PUBLISH] SUCCESS published '${eventPattern}'\n` +
+					`   MessageId: ${messageId}\n` +
+					`   OrderId: ${payload.orderId}`,
+				);
 			} else {
-				this.logger.warn(`⚠️ Failed to publish '${eventPattern}' - channel buffer full`);
+				this.logger.warn(
+					`⚠️ [DEBUG-ORDER-PUBLISH] FAILED - channel buffer full\n` +
+					`   MessageId: ${messageId}\n` +
+					`   Pattern: ${eventPattern}`,
+				);
 			}
 		} catch (error) {
-			this.logger.error(`❌ Error publishing to exchange: ${error.message}`, error.stack);
+			this.logger.error(
+				`❌ [DEBUG-ORDER-PUBLISH] ERROR publishing to exchange\n` +
+				`   MessageId: ${messageId}\n` +
+				`   Error: ${error.message}`,
+				error.stack,
+			);
 		}
 	}
 

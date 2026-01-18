@@ -55,14 +55,34 @@ export class WebsocketEventController {
 	 */
 	@EventPattern('order.new_items')
 	async handleNewOrderItems(@Payload() data: any, @Ctx() context: RmqContext) {
+		const receivedAt = new Date().toISOString();
 		const channel = context.getChannelRef();
 		const message = context.getMessage();
 
+		// 🔍 DEBUG: Extract message tracking info
+		const messageId = data._messageId || message.properties?.messageId || 'UNKNOWN';
+		const publishedAt = data._publishedAt || 'UNKNOWN';
+		const deliveryTag = message.fields?.deliveryTag;
+		const redelivered = message.fields?.redelivered;
+
+		this.logger.log(
+			`\n🔔 [DEBUG-GATEWAY-RECEIVE] ========== START ==========\n` +
+			`   ReceivedAt: ${receivedAt}\n` +
+			`   MessageId: ${messageId}\n` +
+			`   PublishedAt: ${publishedAt}\n` +
+			`   DeliveryTag: ${deliveryTag}\n` +
+			`   Redelivered: ${redelivered}\n` +
+			`   OrderId: ${data.orderId}\n` +
+			`   TableId: ${data.tableId}\n` +
+			`   TenantId: ${data.tenantId}\n` +
+			`   ItemCount: ${data.items?.length}\n` +
+			`   Headers: ${JSON.stringify(message.properties?.headers || {})}`,
+		);
+
 		try {
 			this.logger.log(
-				`[RabbitMQ] Received order.new_items for order ${data.orderId}, table ${data.tableId}`,
+				`🔍 [DEBUG-GATEWAY-RECEIVE] Broadcasting to WebSocket...`,
 			);
-			this.logger.log(`[RabbitMQ] Event data:`, JSON.stringify(data, null, 2));
 
 			// Broadcast to WebSocket clients in waiter room
 			// Use EventEmitterService to emit to Socket.IO server
@@ -77,13 +97,18 @@ export class WebsocketEventController {
 			});
 
 			this.logger.log(
-				`[WebSocket] Broadcasted order.items.new to tenant:${data.tenantId}:waiters room`,
+				`✅ [DEBUG-GATEWAY-RECEIVE] SUCCESS\n` +
+				`   MessageId: ${messageId}\n` +
+				`   Room: tenant:${data.tenantId}:waiters\n` +
+				`   ========== END ==========\n`,
 			);
 
 			// ✅ NestJS auto-acks on success, auto-nacks on error (noAck: false)
 		} catch (error) {
 			this.logger.error(
-				`[RabbitMQ] Failed to handle order.new_items: ${error.message}`,
+				`❌ [DEBUG-GATEWAY-RECEIVE] ERROR\n` +
+				`   MessageId: ${messageId}\n` +
+				`   Error: ${error.message}`,
 				error.stack,
 			);
 			// Auto-nack with requeue on error
