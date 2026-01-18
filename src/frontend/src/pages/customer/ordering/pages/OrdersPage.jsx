@@ -7,7 +7,7 @@ import {
 } from '../../../../services/api/orderAPI'
 
 // Auto refresh interval (15 seconds)
-const AUTO_REFRESH_INTERVAL = 15000
+const AUTO_REFRESH_INTERVAL = 300000
 
 /**
  * Map backend order to customer-friendly display format
