@@ -65,6 +65,7 @@ async function bootstrap() {
 	app.connectMicroservice<MicroserviceOptions>({
 		transport: Transport.TCP,
 		options: {
+			host: '0.0.0.0',
 			port: port,
 		},
 	});
@@ -141,9 +142,7 @@ async function bootstrap() {
 	await app.startAllMicroservices();
 	console.log(`Order Service is running on TCP port ${port}`);
 	console.log(`Order Service RabbitMQ listener active on queue: ${queueName}_queue`);
-
-	await app.listen(port, '127.0.0.1');
-	console.log(`HTTP Health endpoint listening on 127.0.0.1:${port}`);
+	console.log(`Microservice is running on port ${port}`);
 
 	process.on('SIGINT', () => {
 		console.log('SIGINT received. Shutting down gracefully...');
