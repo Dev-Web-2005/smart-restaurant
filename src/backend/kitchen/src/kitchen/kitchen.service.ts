@@ -102,6 +102,7 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 		private readonly ticketItemRepository: Repository<KitchenTicketItem>,
 		private readonly configService: ConfigService,
 		@Inject('ORDER_SERVICE') private readonly orderClient: ClientProxy,
+		@Inject('TABLE_SERVICE') private readonly tableClient: ClientProxy,
 	) {}
 
 	/**
@@ -177,6 +178,55 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 			}
 		} catch (error) {
 			this.logger.error(`❌ Error publishing: ${error.message}`);
+		}
+	}
+
+	/**
+	 * Fetch table snapshot data from Table Service
+	 * Returns denormalized table info for kitchen ticket display
+	 */
+	private async fetchTableSnapshot(
+		tenantId: string,
+		tableId: string,
+	): Promise<{
+		snapshotTableName?: string;
+		snapshotFloorName?: string;
+		snapshotFloorNumber?: number;
+	}> {
+		try {
+			// Call Table Service to get table details with floor info
+			const tableResponse = await firstValueFrom(
+				this.tableClient.send('tables:get-by-id', {
+					tenantId,
+					tableId,
+					includeFloor: true, // Request floor relationship
+					tableApiKey: this.configService.get<string>('TABLE_API_KEY'),
+				}),
+			);
+
+			// Table Service returns TableDto directly (not wrapped)
+			if (tableResponse) {
+				this.logger.log(
+					`✅ Fetched table snapshot: ${tableResponse.name} (Floor: ${tableResponse.floor?.name || 'N/A'})`,
+				);
+				return {
+					snapshotTableName: tableResponse.name || null,
+					snapshotFloorName: tableResponse.floor?.name || null,
+					snapshotFloorNumber: tableResponse.floor?.floorNumber || null,
+				};
+			}
+
+			// If table not found or no data, return empty snapshot
+			this.logger.warn(
+				`⚠️ Table ${tableId} not found in Table Service - creating ticket without table snapshot`,
+			);
+			return {};
+		} catch (error) {
+			// Non-critical: Don't block ticket creation if Table Service is down
+			this.logger.error(
+				`❌ Failed to fetch table snapshot for ${tableId}: ${error.message}`,
+			);
+			return {};
 		}
 	}
 
@@ -372,6 +422,9 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 
 		this.logger.log(`🪑 Table ID: ${dto.tableId}, Table Number: ${dto.tableNumber}`);
 
+		// 🆕 DATA ENRICHMENT: Fetch table snapshot for denormalization
+		const tableSnapshot = await this.fetchTableSnapshot(dto.tenantId, dto.tableId);
+
 		// Create ticket (display grouping record)
 		const ticket = this.ticketRepository.create({
 			tenantId: dto.tenantId,
@@ -389,6 +442,8 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 			criticalThreshold: this.DEFAULT_CRITICAL_THRESHOLD,
 			isTimerPaused: false,
 			totalPausedSeconds: 0,
+			// 🆕 Save table snapshot (hard save for display)
+			...tableSnapshot,
 		});
 
 		// Save ticket first to get ID
@@ -1184,6 +1239,10 @@ export class KitchenService implements OnModuleInit, OnModuleDestroy {
 			createdAt: ticket.createdAt,
 			updatedAt: ticket.updatedAt,
 			items: items.map((i) => this.mapToItemResponse(i)),
+			// Data Enrichment - Table snapshot
+			snapshotTableName: ticket.snapshotTableName,
+			snapshotFloorName: ticket.snapshotFloorName,
+			snapshotFloorNumber: ticket.snapshotFloorNumber,
 		};
 	}
 

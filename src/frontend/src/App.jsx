@@ -73,38 +73,76 @@ const RoleBasedRedirect = () => {
 		return <Navigate to="/admin/dashboard" replace />
 	}
 
-	// Chef redirect to kitchen (with tenant context)
+	// Chef redirect to kitchen (with tenant context) - STRICT: must have ownerId
 	if (roles.includes('CHEF')) {
 		if (userOwnerId) {
 			return <Navigate to={`/r/${userOwnerId}/kitchen`} replace />
 		}
+		// SECURITY: Chef without ownerId = invalid session, clear and redirect to login
+		console.warn('🚫 Chef without ownerId - clearing session')
+		localStorage.removeItem('user')
+		localStorage.removeItem('currentTenantId')
 		return (
-			<Navigate to="/login" replace state={{ error: 'Missing restaurant context' }} />
+			<Navigate
+				to="/login"
+				replace
+				state={{ error: 'Session expired. Please login via your restaurant login page.' }}
+			/>
 		)
 	}
 
-	// Staff redirect to waiter panel (with tenant context)
+	// Staff redirect to waiter panel (with tenant context) - STRICT: must have ownerId
 	if (roles.includes('STAFF')) {
 		if (userOwnerId) {
 			return <Navigate to={`/r/${userOwnerId}/waiter`} replace />
 		}
+		// SECURITY: Staff without ownerId = invalid session, clear and redirect to login
+		console.warn('🚫 Staff without ownerId - clearing session')
+		localStorage.removeItem('user')
+		localStorage.removeItem('currentTenantId')
 		return (
-			<Navigate to="/login" replace state={{ error: 'Missing restaurant context' }} />
+			<Navigate
+				to="/login"
+				replace
+				state={{ error: 'Session expired. Please login via your restaurant login page.' }}
+			/>
 		)
 	}
 
-	// Customer redirect to ordering interface (with tenant context)
+	// Customer redirect to ordering interface (with tenant context) - STRICT: must have ownerId
 	if (roles.includes('CUSTOMER')) {
 		if (userOwnerId) {
 			return <Navigate to={`/r/${userOwnerId}/order/table/0`} replace />
 		}
+		// SECURITY: Customer without ownerId = invalid session, clear and redirect to login
+		console.warn('🚫 Customer without ownerId - clearing session')
+		localStorage.removeItem('user')
+		localStorage.removeItem('currentTenantId')
 		return (
-			<Navigate to="/login" replace state={{ error: 'Missing restaurant context' }} />
+			<Navigate
+				to="/login"
+				replace
+				state={{ error: 'Session expired. Please login via your restaurant login page.' }}
+			/>
 		)
 	}
 
-	// Default: User (Owner) redirect to menu
-	return <Navigate to="/user/menu" replace />
+	// User (Owner) redirect to menu - ONLY for USER role explicitly
+	if (roles.includes('USER')) {
+		return <Navigate to="/user/menu" replace />
+	}
+
+	// SECURITY: Unknown role - don't default to user/menu, redirect to login
+	console.warn('🚫 Unknown role detected - redirecting to login:', roles)
+	localStorage.removeItem('user')
+	localStorage.removeItem('currentTenantId')
+	return (
+		<Navigate
+			to="/login"
+			replace
+			state={{ error: 'Invalid session. Please login again.' }}
+		/>
+	)
 }
 
 function App() {

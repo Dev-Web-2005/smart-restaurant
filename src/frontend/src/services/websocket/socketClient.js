@@ -14,6 +14,7 @@ class SocketClient {
 		this.listeners = new Map() // event -> Set of callbacks
 		this.reconnectAttempts = 0
 		this.maxReconnectAttempts = 5
+		this.isConnecting = false // ✅ Track connecting state to prevent duplicates
 	}
 
 	/**
@@ -33,9 +34,6 @@ class SocketClient {
 		const SOCKET_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8888'
 
 		console.log('🔵 [Socket] Connecting to:', SOCKET_URL + '/realtime')
-		if (options.tenantId) {
-			console.log('📍 [Socket] Connecting with tenantId:', options.tenantId)
-		}
 
 		this.socket = io(`${SOCKET_URL}/realtime`, {
 			auth: {
@@ -63,15 +61,29 @@ class SocketClient {
 	 * @param {string} guestName - Optional guest name
 	 */
 	connectAsGuest(tenantId, tableId, guestName = 'Guest') {
+		// ✅ Check if already connected OR connecting
 		if (this.socket?.connected) {
 			console.log('🔵 [Socket] Already connected')
 			return this.socket
 		}
 
+		// ✅ Prevent duplicate connection attempts
+		if (this.isConnecting) {
+			console.log('🔵 [Socket] Connection already in progress, skipping...')
+			return this.socket
+		}
+
+		// ✅ If socket exists but not connected, reuse it
+		if (this.socket && !this.socket.connected) {
+			console.log('🔵 [Socket] Reusing existing socket, attempting reconnect...')
+			this.socket.connect()
+			return this.socket
+		}
+
+		this.isConnecting = true
 		const SOCKET_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8888'
 
 		console.log('🔵 [Socket] Connecting as guest to:', SOCKET_URL + '/realtime')
-		console.log('📍 Guest info:', { tenantId, tableId, guestName })
 
 		this.socket = io(`${SOCKET_URL}/realtime`, {
 			auth: {
@@ -97,6 +109,7 @@ class SocketClient {
 	setupEventHandlers() {
 		this.socket.on('connect', () => {
 			this.isConnected = true
+			this.isConnecting = false // ✅ Reset connecting flag
 			this.reconnectAttempts = 0
 			console.log('✅ [Socket] Connected:', this.socket.id)
 
@@ -109,6 +122,7 @@ class SocketClient {
 
 		this.socket.on('disconnect', (reason) => {
 			this.isConnected = false
+			this.isConnecting = false // ✅ Reset connecting flag
 			console.warn('⚠️ [Socket] Disconnected:', reason)
 
 			// ✅ If token was refreshed, try to reconnect with new token

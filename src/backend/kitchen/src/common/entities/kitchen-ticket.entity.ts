@@ -49,8 +49,18 @@ export class KitchenTicket {
 	@Column({ type: 'varchar', length: 50, nullable: false })
 	tableId: string; // Table identifier for display
 
+	// Data Enrichment: Table snapshot (denormalized for performance & display)
+	@Column({ name: 'snapshot_table_name', type: 'varchar', length: 100, nullable: true })
+	snapshotTableName: string; // Table name at ticket creation time (e.g., "Bàn 1", "VIP 2")
+
+	@Column({ name: 'snapshot_floor_name', type: 'varchar', length: 100, nullable: true })
+	snapshotFloorName: string; // Floor name at ticket creation time (e.g., "Tầng 1", "Sân vườn")
+
+	@Column({ name: 'snapshot_floor_number', type: 'int', nullable: true })
+	snapshotFloorNumber: number; // Floor number at ticket creation time
+
 	@Column({ type: 'varchar', length: 60, nullable: true })
-	tableNumber: string; // Human-readable table number (e.g., "A1", "12")
+	tableNumber: string; // Human-readable table number (e.g., "A1", "12") - DEPRECATED: Use snapshotTableName instead
 
 	@Column({ type: 'varchar', length: 20, nullable: true })
 	ticketNumber: string; // Sequential ticket number for the day (e.g., "#042")

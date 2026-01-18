@@ -239,7 +239,7 @@ export const cancelOrderAPI = async ({ tenantId, orderId, reason }) => {
 			throw new Error('Cancellation reason is required and must be a string')
 		}
 
-		const response = await apiClient.post(
+		const response = await apiClient.patch(
 			`/tenants/${tenantId}/orders/${orderId}/cancel`,
 			{
 				reason,
@@ -389,4 +389,69 @@ export const markItemsReadyAPI = async ({ tenantId, orderId, itemIds, userId }) 
 		status: 'READY',
 		userId,
 	})
+}
+
+/**
+ * Get customer order history
+ * Only available for logged-in customers (not guest customers)
+ *
+ * @param {Object} params - Request parameters
+ * @param {string} params.tenantId - Tenant ID (UUID)
+ * @param {string} params.customerId - Customer ID (UUID)
+ * @param {number} [params.page=1] - Page number
+ * @param {number} [params.limit=20] - Items per page
+ * @param {string} [params.status] - Order status filter (PENDING, IN_PROGRESS, COMPLETED, CANCELLED)
+ * @param {string} [params.paymentStatus] - Payment status filter (PENDING, PROCESSING, PAID, FAILED, REFUNDED)
+ * @param {string} [params.sortBy='createdAt'] - Sort field (createdAt, updatedAt, total)
+ * @param {string} [params.sortOrder='DESC'] - Sort order (ASC, DESC)
+ * @returns {Promise<Object>} Response with orders data and pagination
+ */
+export const getOrderHistoryAPI = async ({
+	tenantId,
+	customerId,
+	page = 1,
+	limit = 20,
+	status,
+	paymentStatus,
+	sortBy = 'createdAt',
+	sortOrder = 'DESC',
+}) => {
+	try {
+		// Validate required fields
+		if (!tenantId || typeof tenantId !== 'string') {
+			throw new Error('Tenant ID is required and must be a string')
+		}
+		if (!customerId || typeof customerId !== 'string') {
+			throw new Error('Customer ID is required and must be a string')
+		}
+
+		// Build query params
+		const params = new URLSearchParams({
+			page: page.toString(),
+			limit: limit.toString(),
+			sortBy,
+			sortOrder,
+		})
+
+		if (status) params.append('status', status)
+		if (paymentStatus) params.append('paymentStatus', paymentStatus)
+
+		const response = await apiClient.get(
+			`/tenants/${tenantId}/orders/customer/${customerId}/history?${params.toString()}`,
+		)
+
+		return {
+			success: true,
+			data: response.data?.data || response.data,
+			message: response.data?.message || 'Order history retrieved successfully',
+		}
+	} catch (error) {
+		console.error('❌ Error getting order history:', error)
+		return {
+			success: false,
+			message:
+				error.response?.data?.message || error.message || 'Failed to get order history',
+			data: null,
+		}
+	}
 }

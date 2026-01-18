@@ -82,9 +82,18 @@ const RestaurantQRHandler = () => {
 		} else {
 			// Normal login - store customer data
 			localStorage.setItem('isGuestMode', 'false')
-			if (customer?.token) {
+
+			// ✅ Store access token for persistence (used to restore window.accessToken on refresh)
+			if (customer?.accessToken) {
+				localStorage.setItem('authToken', customer.accessToken)
+				window.accessToken = customer.accessToken // Ensure it's also in memory
+				console.log('✅ Stored access token for persistence')
+			} else if (customer?.token) {
 				localStorage.setItem('authToken', customer.token)
+				window.accessToken = customer.token
+				console.log('✅ Stored token for persistence')
 			}
+
 			if (customer) {
 				// Store in customerAuth (used by ProfilePage)
 				localStorage.setItem('customerAuth', JSON.stringify(customer))

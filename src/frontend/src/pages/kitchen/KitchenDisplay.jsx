@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useUser } from '../../contexts/UserContext'
 import { useKitchenSocket } from '../../contexts/KitchenSocketContext'
@@ -165,6 +166,8 @@ const CustomDropdown = ({ value, onChange, options, className = '' }) => {
 const KitchenDisplay = () => {
 	const { user, logout } = useUser()
 	const { showAlert } = useAlert()
+	const navigate = useNavigate()
+	const { ownerId } = useParams() // Get ownerId from URL for redirect after logout
 	const {
 		isConnected,
 		on,
@@ -205,6 +208,7 @@ const KitchenDisplay = () => {
 	const isFetchingRef = useRef(false)
 	const refreshIntervalRef = useRef(null)
 	const lastFetchRef = useRef(0)
+	const pendingActionsRef = useRef(new Set()) // ✅ Track pending actions to prevent double-click
 
 	/**
 	 * Get effective tenantId for current user
@@ -217,9 +221,11 @@ const KitchenDisplay = () => {
 	/**
 	 * Fetch kitchen display data with deduplication
 	 * API returns: { fireTickets, urgentTickets, activeTickets, pendingTickets, readyTickets, summary }
+	 * @param {boolean} silent - If true, don't show loading spinner
+	 * @param {boolean} force - If true, bypass throttle (for user actions)
 	 */
 	const fetchKitchenData = useCallback(
-		async (silent = false) => {
+		async (silent = false, force = false) => {
 			const tenantId = getEffectiveTenantId()
 			if (!tenantId) {
 				console.warn('⚠️ [KitchenDisplay] No tenantId found, skipping fetch')
@@ -233,9 +239,9 @@ const KitchenDisplay = () => {
 				return
 			}
 
-			// Throttle requests (max 1 per 2 seconds)
+			// Throttle requests (max 1 per 2 seconds) - BYPASS for user actions (force=true)
 			const now = Date.now()
-			if (now - lastFetchRef.current < 2000) {
+			if (!force && now - lastFetchRef.current < 2000) {
 				console.log('⏳ [KitchenDisplay] Throttled, too soon since last fetch')
 				return
 			}
@@ -322,10 +328,45 @@ const KitchenDisplay = () => {
 
 	/**
 	 * Start ticket (PENDING → IN_PROGRESS)
+	 * Uses optimistic UI update for instant feedback
 	 */
 	const handleStartTicket = async (ticketId) => {
 		const tenantId = getEffectiveTenantId()
 		if (!tenantId) return
+
+		// Prevent double-click
+		if (pendingActionsRef.current.has(`start-${ticketId}`)) {
+			console.log(
+				'⏳ [KitchenDisplay] Start action already pending for ticket:',
+				ticketId,
+			)
+			return
+		}
+		pendingActionsRef.current.add(`start-${ticketId}`)
+
+		// ✅ Optimistic UI Update - move ticket from pending to active immediately
+		setDisplayData((prev) => {
+			const ticket = [
+				...prev.pendingTickets,
+				...prev.fireTickets,
+				...prev.urgentTickets,
+			].find((t) => t.id === ticketId)
+			if (!ticket) return prev
+
+			const updatedTicket = { ...ticket, status: 'IN_PROGRESS' }
+			return {
+				...prev,
+				pendingTickets: prev.pendingTickets.filter((t) => t.id !== ticketId),
+				fireTickets: prev.fireTickets.map((t) => (t.id === ticketId ? updatedTicket : t)),
+				urgentTickets: prev.urgentTickets.map((t) =>
+					t.id === ticketId ? updatedTicket : t,
+				),
+				activeTickets:
+					ticket.priority === 'NORMAL'
+						? [...prev.activeTickets, updatedTicket]
+						: prev.activeTickets,
+			}
+		})
 
 		try {
 			const result = await startTicket(tenantId, ticketId, {
@@ -335,80 +376,202 @@ const KitchenDisplay = () => {
 
 			if (result.success) {
 				showAlert('success', 'Ticket started!')
-				fetchKitchenData(true) // Silent refresh
+				// Force fetch to sync with server (bypass throttle)
+				fetchKitchenData(true, true)
 			} else {
 				showAlert('error', result.message || 'Failed to start ticket')
+				// Revert optimistic update on failure
+				fetchKitchenData(true, true)
 			}
 		} catch (error) {
 			console.error('Error starting ticket:', error)
 			showAlert('error', 'Error starting ticket')
+			// Revert optimistic update on error
+			fetchKitchenData(true, true)
+		} finally {
+			pendingActionsRef.current.delete(`start-${ticketId}`)
 		}
 	}
 
 	/**
 	 * Mark items ready
+	 * Uses optimistic UI update for instant feedback
 	 */
 	const handleMarkReady = async (ticketId, itemIds) => {
 		const tenantId = getEffectiveTenantId()
 		if (!tenantId) return
+
+		// Prevent double-click
+		const actionKey = `ready-${ticketId}-${itemIds.join(',')}`
+		if (pendingActionsRef.current.has(actionKey)) {
+			console.log('⏳ [KitchenDisplay] Mark ready action already pending')
+			return
+		}
+		pendingActionsRef.current.add(actionKey)
+
+		// ✅ Optimistic UI Update - mark items as ready in local state
+		setDisplayData((prev) => {
+			const updateTicketItems = (tickets) =>
+				tickets.map((ticket) => {
+					if (ticket.id !== ticketId) return ticket
+
+					const updatedItems = ticket.items.map((item) =>
+						itemIds.includes(item.id) ? { ...item, status: 'READY' } : item,
+					)
+					const allReady = updatedItems.every((item) => item.status === 'READY')
+
+					return {
+						...ticket,
+						items: updatedItems,
+						status: allReady ? 'READY' : ticket.status,
+					}
+				})
+
+			// Check if ticket should move to readyTickets
+			const findTicket = (tickets) => tickets.find((t) => t.id === ticketId)
+			const ticket =
+				findTicket(prev.activeTickets) ||
+				findTicket(prev.fireTickets) ||
+				findTicket(prev.urgentTickets)
+
+			if (ticket) {
+				const updatedItems = ticket.items.map((item) =>
+					itemIds.includes(item.id) ? { ...item, status: 'READY' } : item,
+				)
+				const allReady = updatedItems.every((item) => item.status === 'READY')
+
+				if (allReady) {
+					// Move ticket to readyTickets
+					const updatedTicket = { ...ticket, items: updatedItems, status: 'READY' }
+					return {
+						...prev,
+						activeTickets: prev.activeTickets.filter((t) => t.id !== ticketId),
+						fireTickets: prev.fireTickets.filter((t) => t.id !== ticketId),
+						urgentTickets: prev.urgentTickets.filter((t) => t.id !== ticketId),
+						readyTickets: [...prev.readyTickets, updatedTicket],
+					}
+				}
+			}
+
+			return {
+				...prev,
+				activeTickets: updateTicketItems(prev.activeTickets),
+				fireTickets: updateTicketItems(prev.fireTickets),
+				urgentTickets: updateTicketItems(prev.urgentTickets),
+			}
+		})
 
 		try {
 			const result = await markItemsReady(tenantId, ticketId, itemIds)
 
 			if (result.success) {
 				showAlert('success', 'Items marked ready!')
-				fetchKitchenData(true)
+				// Force fetch to sync with server
+				fetchKitchenData(true, true)
 			} else {
 				showAlert('error', result.message || 'Failed to mark items ready')
+				fetchKitchenData(true, true)
 			}
 		} catch (error) {
 			console.error('Error marking items ready:', error)
 			showAlert('error', 'Error marking items ready')
+			fetchKitchenData(true, true)
+		} finally {
+			pendingActionsRef.current.delete(actionKey)
 		}
 	}
 
 	/**
 	 * Bump ticket (complete)
+	 * Uses optimistic UI update for instant feedback
 	 */
 	const handleBumpTicket = async (ticketId) => {
 		const tenantId = getEffectiveTenantId()
 		if (!tenantId) return
+
+		// Prevent double-click
+		if (pendingActionsRef.current.has(`bump-${ticketId}`)) {
+			console.log('⏳ [KitchenDisplay] Bump action already pending for ticket:', ticketId)
+			return
+		}
+		pendingActionsRef.current.add(`bump-${ticketId}`)
+
+		// ✅ Optimistic UI Update - remove ticket from display immediately
+		setDisplayData((prev) => ({
+			...prev,
+			readyTickets: prev.readyTickets.filter((t) => t.id !== ticketId),
+			activeTickets: prev.activeTickets.filter((t) => t.id !== ticketId),
+			fireTickets: prev.fireTickets.filter((t) => t.id !== ticketId),
+			urgentTickets: prev.urgentTickets.filter((t) => t.id !== ticketId),
+		}))
 
 		try {
 			const result = await bumpTicket(tenantId, ticketId)
 
 			if (result.success) {
 				showAlert('success', 'Ticket bumped!')
-				fetchKitchenData(true)
+				// Force fetch to sync with server
+				fetchKitchenData(true, true)
 				fetchStats() // Update stats
 			} else {
 				showAlert('error', result.message || 'Failed to bump ticket')
+				fetchKitchenData(true, true)
 			}
 		} catch (error) {
 			console.error('Error bumping ticket:', error)
 			showAlert('error', 'Error bumping ticket')
+			fetchKitchenData(true, true)
+		} finally {
+			pendingActionsRef.current.delete(`bump-${ticketId}`)
 		}
 	}
 
 	/**
 	 * Update ticket priority
+	 * Uses optimistic UI update for instant feedback
 	 */
 	const handlePriorityChange = async (ticketId, priority) => {
 		const tenantId = getEffectiveTenantId()
 		if (!tenantId) return
+
+		// Prevent double-click
+		if (pendingActionsRef.current.has(`priority-${ticketId}`)) {
+			console.log('⏳ [KitchenDisplay] Priority change already pending')
+			return
+		}
+		pendingActionsRef.current.add(`priority-${ticketId}`)
+
+		// ✅ Optimistic UI Update - update priority in local state
+		setDisplayData((prev) => {
+			const updatePriority = (tickets) =>
+				tickets.map((t) => (t.id === ticketId ? { ...t, priority } : t))
+
+			return {
+				...prev,
+				activeTickets: updatePriority(prev.activeTickets),
+				pendingTickets: updatePriority(prev.pendingTickets),
+				readyTickets: updatePriority(prev.readyTickets),
+				fireTickets: updatePriority(prev.fireTickets),
+				urgentTickets: updatePriority(prev.urgentTickets),
+			}
+		})
 
 		try {
 			const result = await updateTicketPriority(tenantId, ticketId, priority)
 
 			if (result.success) {
 				showAlert('success', `Priority updated to ${priority}!`)
-				fetchKitchenData(true)
+				fetchKitchenData(true, true)
 			} else {
 				showAlert('error', result.message || 'Failed to update priority')
+				fetchKitchenData(true, true)
 			}
 		} catch (error) {
 			console.error('Error updating priority:', error)
 			showAlert('error', 'Error updating priority')
+			fetchKitchenData(true, true)
+		} finally {
+			pendingActionsRef.current.delete(`priority-${ticketId}`)
 		}
 	}
 
@@ -511,15 +674,14 @@ const KitchenDisplay = () => {
 	/**
 	 * Handle logout
 	 */
-	const handleLogout = async () => {
-		try {
-			await logout()
-			showAlert('success', 'Logged out successfully!')
-			// Redirect to login page
-			window.location.href = '/login'
-		} catch (error) {
-			console.error('Logout error:', error)
-			showAlert('error', 'Logout failed')
+	const handleLogout = () => {
+		logout()
+		// Redirect to tenant-specific login page (same as WaiterPanel)
+		const tenantId = ownerId || user?.ownerId || localStorage.getItem('currentTenantId')
+		if (tenantId) {
+			navigate(`/login/${tenantId}`)
+		} else {
+			navigate('/login')
 		}
 	}
 
