@@ -77,7 +77,10 @@ export class WaiterController {
 				`✅ [EVENT] Created notification ${result.id} with ${data.items.length} items`,
 			);
 
-			// ✅ NestJS auto-acks after successful handler completion (noAck: false)
+			// ✅ CRITICAL FIX: Manually ACK message to prevent redelivery/duplicates
+			// NestJS auto-ack may not work reliably with EventPattern + RmqContext
+			channel.ack(message);
+			this.logger.log(`✅ [EVENT] Message acknowledged successfully`);
 		} catch (error) {
 			this.logger.error(
 				`❌ [EVENT] Failed to handle new order items: ${error.message}`,
@@ -154,18 +157,4 @@ export class WaiterController {
 		}
 	}
 
-	/**
-	 * DEBUGGING: Catch-all event handler to see what messages arrive
-	 */
-	@EventPattern('*')
-	async handleAllEvents(@Payload() data: any, @Ctx() context: RmqContext) {
-		const message = context.getMessage();
-		const pattern =
-			message.properties.headers?.pattern || message.fields.routingKey || 'unknown';
-
-		this.logger.log(`🔍 [DEBUG] Received event with pattern: ${pattern}`);
-		this.logger.log(`🔍 [DEBUG] Payload: ${JSON.stringify(data).substring(0, 200)}`);
-
-		// Don't acknowledge - let specific handlers do that
-	}
 }

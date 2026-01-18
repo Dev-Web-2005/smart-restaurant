@@ -77,20 +77,54 @@ export class WaiterService {
 	 * - Set priority for sorting
 	 * - NO business logic - just store the alert
 	 *
+	 * IDEMPOTENCY:
+	 * - Uses orderId + itemIds as idempotency key
+	 * - Prevents duplicate notifications from message redelivery
+	 *
 	 * @param dto - Event data from Order Service
-	 * @returns Created notification
+	 * @returns Created notification (or existing if duplicate)
 	 */
 	async handleNewOrderItems(
 		dto: NewOrderItemsEventDto,
 	): Promise<OrderNotificationResponseDto> {
 		this.validateApiKey(dto.waiterApiKey);
 
+		// Extract item IDs for display reference
+		const itemIds = dto.items.map((item) => item.id);
+
+		// ✅ IDEMPOTENCY CHECK: Prevent duplicate notifications
+		// Check if notification already exists for this orderId with same itemIds
+		const existingNotification = await this.notificationRepository.findOne({
+			where: {
+				orderId: dto.orderId,
+				tenantId: dto.tenantId,
+				notificationType: 'NEW_ITEMS',
+			},
+		});
+
+		if (existingNotification) {
+			// Check if same items (to handle multiple "add more items" scenarios)
+			const existingItemIds = existingNotification.itemIds || [];
+			const sameItems =
+				existingItemIds.length === itemIds.length &&
+				existingItemIds.every((id) => itemIds.includes(id));
+
+			if (sameItems) {
+				this.logger.warn(
+					`⚠️ [IDEMPOTENCY] Duplicate notification detected for order ${dto.orderId}. Returning existing notification ${existingNotification.id}`,
+				);
+				return this.mapToResponseDto(existingNotification);
+			}
+
+			// Different items = customer adding more items → create new notification
+			this.logger.log(
+				`📝 Customer adding more items to order ${dto.orderId}. Creating new notification.`,
+			);
+		}
+
 		this.logger.log(
 			`Creating notification for order ${dto.orderId}, table ${dto.tableId} with ${dto.items.length} items`,
 		);
-
-		// Extract item IDs for display reference
-		const itemIds = dto.items.map((item) => item.id);
 
 		// Build display message
 		const itemNames = dto.items.map((item) => item.name).join(', ');

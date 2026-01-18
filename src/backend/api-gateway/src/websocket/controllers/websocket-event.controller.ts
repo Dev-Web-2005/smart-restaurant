@@ -80,14 +80,16 @@ export class WebsocketEventController {
 				`[WebSocket] Broadcasted order.items.new to tenant:${data.tenantId}:waiters room`,
 			);
 
-			// ✅ NestJS auto-acks on success, auto-nacks on error (noAck: false)
+			// ✅ CRITICAL FIX: Manually ACK message to prevent redelivery
+			channel.ack(message);
+			this.logger.log(`[RabbitMQ] Message acknowledged successfully`);
 		} catch (error) {
 			this.logger.error(
 				`[RabbitMQ] Failed to handle order.new_items: ${error.message}`,
 				error.stack,
 			);
-			// Auto-nack with requeue on error
-			throw error;
+			// Nack with no requeue to send to DLQ
+			channel.nack(message, false, false);
 		}
 	}
 
@@ -122,12 +124,13 @@ export class WebsocketEventController {
 				updatedBy: data.updatedBy,
 			});
 
-			// ✅ NestJS auto-acks on success
+			// ✅ Manual ACK for reliability
+			channel.ack(message);
 		} catch (error) {
 			this.logger.error(
 				`[RabbitMQ] Failed to handle order.items.accepted: ${error.message}`,
 			);
-			throw error;
+			channel.nack(message, false, false);
 		}
 	}
 
@@ -153,12 +156,13 @@ export class WebsocketEventController {
 				updatedBy: data.updatedBy,
 			});
 
-			// ✅ NestJS auto-acks on success
+			// ✅ Manual ACK for reliability
+			channel.ack(message);
 		} catch (error) {
 			this.logger.error(
 				`[RabbitMQ] Failed to handle order.items.preparing: ${error.message}`,
 			);
-			throw error;
+			channel.nack(message, false, false);
 		}
 	}
 
@@ -182,12 +186,13 @@ export class WebsocketEventController {
 				updatedBy: data.updatedBy,
 			});
 
-			// ✅ NestJS auto-acks on success
+			// ✅ Manual ACK for reliability
+			channel.ack(message);
 		} catch (error) {
 			this.logger.error(
 				`[RabbitMQ] Failed to handle order.items.ready: ${error.message}`,
 			);
-			throw error;
+			channel.nack(message, false, false);
 		}
 	}
 
@@ -211,12 +216,13 @@ export class WebsocketEventController {
 				updatedBy: data.updatedBy,
 			});
 
-			// ✅ NestJS auto-acks on success
+			// ✅ Manual ACK for reliability
+			channel.ack(message);
 		} catch (error) {
 			this.logger.error(
 				`[RabbitMQ] Failed to handle order.items.served: ${error.message}`,
 			);
-			throw error;
+			channel.nack(message, false, false);
 		}
 	}
 
@@ -243,12 +249,13 @@ export class WebsocketEventController {
 				updatedBy: data.updatedBy,
 			});
 
-			// ✅ NestJS auto-acks on success
+			// ✅ Manual ACK for reliability
+			channel.ack(message);
 		} catch (error) {
 			this.logger.error(
 				`[RabbitMQ] Failed to handle order.items.rejected: ${error.message}`,
 			);
-			throw error;
+			channel.nack(message, false, false);
 		}
 	}
 
@@ -264,6 +271,9 @@ export class WebsocketEventController {
 	 */
 	@EventPattern('kitchen.ticket.new')
 	async handleKitchenTicketNew(@Payload() data: any, @Ctx() context: RmqContext) {
+		const channel = context.getChannelRef();
+		const message = context.getMessage();
+
 		try {
 			this.logger.log(
 				`[RabbitMQ] Received kitchen.ticket.new for order ${data.orderId}, ticket ${data.ticket?.ticketNumber}`,
@@ -275,11 +285,14 @@ export class WebsocketEventController {
 				tableId: data.tableId,
 				ticket: data.ticket,
 			});
+
+			// ✅ Manual ACK for reliability
+			channel.ack(message);
 		} catch (error) {
 			this.logger.error(
 				`[RabbitMQ] Failed to handle kitchen.ticket.new: ${error.message}`,
 			);
-			throw error;
+			channel.nack(message, false, false);
 		}
 	}
 
@@ -289,6 +302,9 @@ export class WebsocketEventController {
 	 */
 	@EventPattern('kitchen.ticket.ready')
 	async handleKitchenTicketReady(@Payload() data: any, @Ctx() context: RmqContext) {
+		const channel = context.getChannelRef();
+		const message = context.getMessage();
+
 		try {
 			this.logger.log(
 				`[RabbitMQ] Received kitchen.ticket.ready for ticket ${data.ticket?.ticketNumber}`,
@@ -300,11 +316,14 @@ export class WebsocketEventController {
 				tableId: data.tableId,
 				ticket: data.ticket,
 			});
+
+			// ✅ Manual ACK for reliability
+			channel.ack(message);
 		} catch (error) {
 			this.logger.error(
 				`[RabbitMQ] Failed to handle kitchen.ticket.ready: ${error.message}`,
 			);
-			throw error;
+			channel.nack(message, false, false);
 		}
 	}
 
@@ -313,6 +332,9 @@ export class WebsocketEventController {
 	 */
 	@EventPattern('kitchen.ticket.completed')
 	async handleKitchenTicketCompleted(@Payload() data: any, @Ctx() context: RmqContext) {
+		const channel = context.getChannelRef();
+		const message = context.getMessage();
+
 		try {
 			this.logger.log(
 				`[RabbitMQ] Received kitchen.ticket.completed for ticket ${data.ticketNumber}`,
@@ -325,11 +347,14 @@ export class WebsocketEventController {
 				ticketId: data.ticketId,
 				ticketNumber: data.ticketNumber,
 			});
+
+			// ✅ Manual ACK for reliability
+			channel.ack(message);
 		} catch (error) {
 			this.logger.error(
 				`[RabbitMQ] Failed to handle kitchen.ticket.completed: ${error.message}`,
 			);
-			throw error;
+			channel.nack(message, false, false);
 		}
 	}
 
@@ -338,6 +363,9 @@ export class WebsocketEventController {
 	 */
 	@EventPattern('kitchen.ticket.priority')
 	async handleKitchenTicketPriority(@Payload() data: any, @Ctx() context: RmqContext) {
+		const channel = context.getChannelRef();
+		const message = context.getMessage();
+
 		try {
 			this.logger.log(
 				`[RabbitMQ] Received kitchen.ticket.priority for ticket ${data.ticket?.ticketNumber}: ${data.oldPriority} → ${data.newPriority}`,
@@ -351,11 +379,14 @@ export class WebsocketEventController {
 				oldPriority: data.oldPriority,
 				newPriority: data.newPriority,
 			});
+
+			// ✅ Manual ACK for reliability
+			channel.ack(message);
 		} catch (error) {
 			this.logger.error(
 				`[RabbitMQ] Failed to handle kitchen.ticket.priority: ${error.message}`,
 			);
-			throw error;
+			channel.nack(message, false, false);
 		}
 	}
 
@@ -364,6 +395,9 @@ export class WebsocketEventController {
 	 */
 	@EventPattern('kitchen.items.recalled')
 	async handleKitchenItemsRecalled(@Payload() data: any, @Ctx() context: RmqContext) {
+		const channel = context.getChannelRef();
+		const message = context.getMessage();
+
 		try {
 			this.logger.log(
 				`[RabbitMQ] Received kitchen.items.recalled for ticket ${data.ticketNumber}: ${data.reason}`,
@@ -378,11 +412,14 @@ export class WebsocketEventController {
 				items: data.items,
 				reason: data.reason,
 			});
+
+			// ✅ Manual ACK for reliability
+			channel.ack(message);
 		} catch (error) {
 			this.logger.error(
 				`[RabbitMQ] Failed to handle kitchen.items.recalled: ${error.message}`,
 			);
-			throw error;
+			channel.nack(message, false, false);
 		}
 	}
 
@@ -392,17 +429,23 @@ export class WebsocketEventController {
 	 */
 	@EventPattern('kitchen.timers.update')
 	async handleKitchenTimersUpdate(@Payload() data: any, @Ctx() context: RmqContext) {
+		const channel = context.getChannelRef();
+		const message = context.getMessage();
+
 		try {
 			// Don't log every 5 seconds to avoid log spam
 			this.eventEmitterService.broadcastKitchenTimersUpdate({
 				tenantId: data.tenantId,
 				tickets: data.tickets,
 			});
+
+			// ✅ Manual ACK for reliability
+			channel.ack(message);
 		} catch (error) {
 			this.logger.error(
 				`[RabbitMQ] Failed to handle kitchen.timers.update: ${error.message}`,
 			);
-			throw error;
+			channel.nack(message, false, false);
 		}
 	}
 
