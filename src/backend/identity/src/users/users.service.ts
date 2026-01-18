@@ -26,6 +26,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { CheckEmailResponseDto } from 'src/users/dtos/response/check-email-response.dto';
 import { UpdateEmailRequestDto } from 'src/users/dtos/request/update-email-request.dto';
+import { UserStatusFilter } from 'src/users/dtos/request/get-users-by-role-request.dto';
 
 @Injectable()
 export class UsersService {
@@ -945,5 +946,141 @@ export class UsersService {
 			}
 			throw new AppException(ErrorCode.EMAIL_ALREADY_IN_USE);
 		}
+	}
+
+	/**
+	 * Get all users by role with pagination and status filter (ADMIN only)
+	 * @param role - The role to filter (e.g., 'USER', 'ADMIN')
+	 * @param status - Filter by status: 'all', 'active', 'inactive'
+	 * @param page - Page number (1-indexed)
+	 * @param limit - Items per page
+	 */
+	async getUsersByRole(
+		role: string,
+		status: UserStatusFilter = 'all',
+		page: number = 1,
+		limit: number = 10,
+	): Promise<PaginatedUsersResponseDto> {
+		const roleEnum = RoleEnum[role.toUpperCase() as keyof typeof RoleEnum];
+		if (roleEnum === undefined) {
+			throw new AppException(ErrorCode.ROLE_NOT_FOUND);
+		}
+
+		const queryBuilder = this.userRepository
+			.createQueryBuilder('user')
+			.leftJoinAndSelect('user.roles', 'role')
+			.leftJoinAndSelect('role.authorities', 'authority')
+			.where('role.name = :roleName', { roleName: roleEnum });
+
+		// Filter by status
+		if (status === 'active') {
+			queryBuilder.andWhere('user.isActive = :isActive', { isActive: true });
+		} else if (status === 'inactive') {
+			queryBuilder.andWhere('user.isActive = :isActive', { isActive: false });
+		}
+		// 'all' means no filter on isActive
+
+		// Get total count
+		const total = await queryBuilder.getCount();
+
+		// Apply pagination
+		const skip = (page - 1) * limit;
+		queryBuilder.skip(skip).take(limit);
+
+		// Order by creation (latest first)
+		queryBuilder.orderBy('user.userId', 'DESC');
+
+		const users = await queryBuilder.getMany();
+
+		// Map to response DTOs
+		const data = users.map((user) => {
+			const dto = new GetUserResponseDto();
+			dto.userId = user.userId;
+			dto.username = user.username;
+			dto.email = user.email;
+			dto.isActive = user.isActive;
+			dto.isEmailVerified = user.isEmailVerified;
+			dto.roles = user.roles.map((r) => {
+				const roleDto = new GetRoleResponseDto();
+				roleDto.name = RoleEnum[r.name];
+				roleDto.description = r.description;
+				roleDto.authorities = r.authorities.map((authority) => {
+					return new GetAuthorityResponseDto({
+						name: AuthorityEnum[authority.name],
+						description: authority.description,
+					});
+				});
+				return roleDto;
+			});
+			return dto;
+		});
+
+		const response = new PaginatedUsersResponseDto();
+		response.data = data;
+		response.total = total;
+		response.page = page;
+		response.limit = limit;
+		response.totalPages = Math.ceil(total / limit);
+
+		return response;
+	}
+
+	/**
+	 * Soft delete user by setting isActive to false (ADMIN only)
+	 * @param targetUserId - The userId of user to deactivate
+	 */
+	async softDeleteUser(
+		targetUserId: string,
+	): Promise<{ userId: string; isActive: boolean }> {
+		const targetUser = await this.userRepository.findOne({
+			where: { userId: targetUserId },
+			relations: ['roles'],
+		});
+
+		if (!targetUser) {
+			throw new AppException(ErrorCode.USER_NOT_FOUND);
+		}
+
+		// Check if target user has ADMIN role - cannot soft delete ADMIN
+		const isAdmin = targetUser.roles.some(
+			(role) => role.name.toString() === RoleEnum.ADMIN.toString(),
+		);
+		if (isAdmin) {
+			throw new AppException(ErrorCode.FORBIDDEN);
+		}
+
+		// Set isActive to false (soft delete)
+		targetUser.isActive = false;
+		await this.userRepository.save(targetUser);
+
+		return {
+			userId: targetUser.userId,
+			isActive: targetUser.isActive,
+		};
+	}
+
+	/**
+	 * Restore user by setting isActive to true (ADMIN only)
+	 * @param targetUserId - The userId of user to restore
+	 */
+	async restoreUser(
+		targetUserId: string,
+	): Promise<{ userId: string; isActive: boolean }> {
+		const targetUser = await this.userRepository.findOne({
+			where: { userId: targetUserId },
+		});
+
+		if (!targetUser) {
+			throw new AppException(ErrorCode.USER_NOT_FOUND);
+		}
+
+		// Set isActive to true
+		targetUser.isActive = true;
+		await this.userRepository.save(targetUser);
+
+		return {
+			userId: targetUser.userId,
+			isActive: targetUser.isActive,
+		};
 	}
 }

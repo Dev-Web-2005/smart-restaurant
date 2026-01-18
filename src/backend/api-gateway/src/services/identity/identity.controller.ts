@@ -244,6 +244,56 @@ export class IdentityController {
 		});
 	}
 
+	/**
+	 * Get users by role with pagination and status filter (ADMIN only)
+	 * @param role - The role to filter (e.g., 'USER')
+	 * @param status - Filter by status: 'all', 'active', 'inactive'
+	 * @param page - Page number (1-indexed, default: 1)
+	 * @param limit - Items per page (default: 10)
+	 */
+	@UseGuards(AuthGuard, Role('ADMIN'))
+	@Get('users/by-role/:role')
+	getUsersByRole(
+		@Param('role') role: string,
+		@Query('status') status?: 'all' | 'active' | 'inactive',
+		@Query('page') page?: string,
+		@Query('limit') limit?: string,
+	) {
+		return this.identityClient.send('users:get-users-by-role', {
+			role,
+			status: status || 'all',
+			page: page ? parseInt(page, 10) : 1,
+			limit: limit ? parseInt(limit, 10) : 10,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+	}
+
+	/**
+	 * Soft delete (deactivate) a user (ADMIN only)
+	 * @param targetUserId - The userId to deactivate
+	 */
+	@UseGuards(AuthGuard, Role('ADMIN'))
+	@Patch('users/:targetUserId/deactivate')
+	softDeleteUser(@Param('targetUserId') targetUserId: string) {
+		return this.identityClient.send('users:soft-delete', {
+			targetUserId,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+	}
+
+	/**
+	 * Restore (reactivate) a user (ADMIN only)
+	 * @param targetUserId - The userId to restore
+	 */
+	@UseGuards(AuthGuard, Role('ADMIN'))
+	@Patch('users/:targetUserId/restore')
+	restoreUser(@Param('targetUserId') targetUserId: string) {
+		return this.identityClient.send('users:restore', {
+			targetUserId,
+			identityApiKey: this.configService.get('IDENTITY_API_KEY'),
+		});
+	}
+
 	@Get('users/get-user-by-id/:userId')
 	@UseGuards(AuthGuard, Role('ADMIN'))
 	getUserById(@Param('userId') userId: string) {
