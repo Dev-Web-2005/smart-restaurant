@@ -34,9 +34,6 @@ class SocketClient {
 		const SOCKET_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8888'
 
 		console.log('🔵 [Socket] Connecting to:', SOCKET_URL + '/realtime')
-		if (options.tenantId) {
-			console.log('📍 [Socket] Connecting with tenantId:', options.tenantId)
-		}
 
 		this.socket = io(`${SOCKET_URL}/realtime`, {
 			auth: {
@@ -87,7 +84,6 @@ class SocketClient {
 		const SOCKET_URL = import.meta.env.VITE_API_GATEWAY_URL || 'http://localhost:8888'
 
 		console.log('🔵 [Socket] Connecting as guest to:', SOCKET_URL + '/realtime')
-		console.log('📍 Guest info:', { tenantId, tableId, guestName })
 
 		this.socket = io(`${SOCKET_URL}/realtime`, {
 			auth: {

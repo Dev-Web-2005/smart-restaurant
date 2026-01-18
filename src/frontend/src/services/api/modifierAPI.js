@@ -13,8 +13,6 @@ import apiClient from '../apiClient'
  * @returns {Promise<Object>} Created modifier group
  */
 export const createModifierGroupAPI = async (tenantId, data) => {
-	console.log('📥 Creating modifier group:', { tenantId, data })
-
 	// Validation
 	if (!data.name || data.name.trim().length < 2 || data.name.trim().length > 100) {
 		throw new Error('Group name must be between 2 and 100 characters')
@@ -32,7 +30,6 @@ export const createModifierGroupAPI = async (tenantId, data) => {
 			isActive: data.isActive !== undefined ? Boolean(data.isActive) : true,
 		})
 
-		console.log('✅ Modifier group created successfully:', response.data)
 		return response.data
 	} catch (error) {
 		console.error(
@@ -52,8 +49,6 @@ export const createModifierGroupAPI = async (tenantId, data) => {
  * @returns {Promise<Array>} List of modifier groups
  */
 export const getModifierGroupsAPI = async (tenantId, params = {}) => {
-	console.log('📥 Fetching modifier groups:', { tenantId, params })
-
 	try {
 		const queryParams = new URLSearchParams()
 		if (params.isActive !== undefined) {
@@ -69,11 +64,6 @@ export const getModifierGroupsAPI = async (tenantId, params = {}) => {
 
 		const response = await apiClient.get(url)
 
-		console.log(
-			'✅ Modifier groups fetched successfully:',
-			response.data?.data?.length || 0,
-			'groups',
-		)
 		return response.data
 	} catch (error) {
 		console.error(
@@ -96,8 +86,6 @@ export const getModifierGroupsAPI = async (tenantId, params = {}) => {
  * @returns {Promise<Object>} Updated modifier group
  */
 export const updateModifierGroupAPI = async (tenantId, groupId, data) => {
-	console.log('📥 Updating modifier group:', { tenantId, groupId, data })
-
 	// Validation
 	if (
 		data.name !== undefined &&
@@ -123,7 +111,6 @@ export const updateModifierGroupAPI = async (tenantId, groupId, data) => {
 			updateData,
 		)
 
-		console.log('✅ Modifier group updated successfully:', response.data)
 		return response.data
 	} catch (error) {
 		console.error(
@@ -141,14 +128,11 @@ export const updateModifierGroupAPI = async (tenantId, groupId, data) => {
  * @returns {Promise<Object>} Deletion result
  */
 export const deleteModifierGroupAPI = async (tenantId, groupId) => {
-	console.log('📥 Deleting modifier group:', { tenantId, groupId })
-
 	try {
 		const response = await apiClient.delete(
 			`/tenants/${tenantId}/modifier-groups/${groupId}`,
 		)
 
-		console.log('✅ Modifier group deleted successfully')
 		return response.data
 	} catch (error) {
 		console.error(
@@ -173,8 +157,6 @@ export const deleteModifierGroupAPI = async (tenantId, groupId) => {
  * @returns {Promise<Object>} Created modifier option
  */
 export const createModifierOptionAPI = async (tenantId, groupId, data) => {
-	console.log('📥 Creating modifier option:', { tenantId, groupId, data })
-
 	// Validation
 	if (!data.label || data.label.trim().length < 2 || data.label.trim().length > 100) {
 		throw new Error('Option label must be between 2 and 100 characters')
@@ -201,7 +183,6 @@ export const createModifierOptionAPI = async (tenantId, groupId, data) => {
 			},
 		)
 
-		console.log('✅ Modifier option created successfully:', response.data)
 		return response.data
 	} catch (error) {
 		console.error(
@@ -221,8 +202,6 @@ export const createModifierOptionAPI = async (tenantId, groupId, data) => {
  * @returns {Promise<Array>} List of modifier options
  */
 export const getModifierOptionsAPI = async (tenantId, groupId, params = {}) => {
-	console.log('📥 Fetching modifier options:', { tenantId, groupId, params })
-
 	try {
 		const queryParams = new URLSearchParams()
 		if (params.isActive !== undefined) {
@@ -235,11 +214,6 @@ export const getModifierOptionsAPI = async (tenantId, groupId, params = {}) => {
 
 		const response = await apiClient.get(url)
 
-		console.log(
-			'✅ Modifier options fetched successfully:',
-			response.data?.data?.length || 0,
-			'options',
-		)
 		return response.data
 	} catch (error) {
 		console.error(
@@ -263,8 +237,6 @@ export const getModifierOptionsAPI = async (tenantId, groupId, params = {}) => {
  * @returns {Promise<Object>} Updated modifier option
  */
 export const updateModifierOptionAPI = async (tenantId, groupId, optionId, data) => {
-	console.log('📥 Updating modifier option:', { tenantId, groupId, optionId, data })
-
 	// Validation
 	if (
 		data.label !== undefined &&
@@ -295,7 +267,6 @@ export const updateModifierOptionAPI = async (tenantId, groupId, optionId, data)
 			updateData,
 		)
 
-		console.log('✅ Modifier option updated successfully:', response.data)
 		return response.data
 	} catch (error) {
 		console.error(
@@ -314,14 +285,11 @@ export const updateModifierOptionAPI = async (tenantId, groupId, optionId, data)
  * @returns {Promise<Object>} Deletion result
  */
 export const deleteModifierOptionAPI = async (tenantId, groupId, optionId) => {
-	console.log('📥 Deleting modifier option:', { tenantId, groupId, optionId })
-
 	try {
 		const response = await apiClient.delete(
 			`/tenants/${tenantId}/modifier-groups/${groupId}/options/${optionId}`,
 		)
 
-		console.log('✅ Modifier option deleted successfully')
 		return response.data
 	} catch (error) {
 		console.error(
@@ -348,8 +316,6 @@ export const deleteModifierOptionAPI = async (tenantId, groupId, optionId) => {
  * @returns {Promise<Object>} Attachment result
  */
 export const attachModifierGroupsAPI = async (tenantId, itemId, data) => {
-	console.log('📥 Attaching modifier groups to menu item:', { tenantId, itemId, data })
-
 	// Validation
 	if (!Array.isArray(data.modifierGroups) || data.modifierGroups.length === 0) {
 		throw new Error('modifierGroups must be a non-empty array')
@@ -387,7 +353,6 @@ export const attachModifierGroupsAPI = async (tenantId, itemId, data) => {
 			},
 		)
 
-		console.log('✅ Modifier groups attached successfully:', response.data)
 		return response.data
 	} catch (error) {
 		console.error(
@@ -405,18 +370,9 @@ export const attachModifierGroupsAPI = async (tenantId, itemId, data) => {
  * @returns {Promise<Array>} List of attached modifier groups with configurations
  */
 export const getMenuItemModifierGroupsAPI = async (tenantId, itemId) => {
-	console.log('📥 Fetching menu item modifier groups:', { tenantId, itemId })
-
 	try {
-		const response = await apiClient.get(
-			`/tenants/${tenantId}/items/${itemId}/modifiers`,
-		)
+		const response = await apiClient.get(`/tenants/${tenantId}/items/${itemId}/modifiers`)
 
-		console.log(
-			'✅ Menu item modifier groups fetched successfully:',
-			response.data?.data?.length || 0,
-			'groups',
-		)
 		return response.data
 	} catch (error) {
 		console.error(
@@ -435,18 +391,11 @@ export const getMenuItemModifierGroupsAPI = async (tenantId, itemId) => {
  * @returns {Promise<Object>} Detachment result
  */
 export const detachModifierGroupAPI = async (tenantId, itemId, groupId) => {
-	console.log('📥 Detaching modifier group from menu item:', {
-		tenantId,
-		itemId,
-		groupId,
-	})
-
 	try {
 		const response = await apiClient.delete(
 			`/tenants/${tenantId}/items/${itemId}/modifiers/${groupId}`,
 		)
 
-		console.log('✅ Modifier group detached successfully')
 		return response.data
 	} catch (error) {
 		console.error(
@@ -456,4 +405,3 @@ export const detachModifierGroupAPI = async (tenantId, itemId, groupId) => {
 		throw error
 	}
 }
-
