@@ -197,8 +197,13 @@ const TicketCard = ({
 						<div className="text-2xl font-bold text-blue-400">#{ticket.ticketNumber}</div>
 						<div className="text-sm">
 							<div className="font-semibold text-white">
-								{ticket.tableNumber || `Table ${ticket.tableId?.slice(0, 8)}`}
+								{ticket.snapshotTableName ||
+									ticket.tableNumber ||
+									`Table ${ticket.tableId?.slice(0, 8)}`}
 							</div>
+							{ticket.snapshotFloorName && (
+								<div className="text-xs text-blue-400">{ticket.snapshotFloorName}</div>
+							)}
 							<div className="text-xs text-gray-400">
 								{ticket.items?.length || 0} items
 							</div>
@@ -223,8 +228,15 @@ const TicketCard = ({
 					</div>
 					<div className="min-w-0">
 						<div className="text-base md:text-lg font-bold text-white truncate">
-							{ticket.tableNumber || `Table ${ticket.tableId?.slice(0, 8)}`}
+							{ticket.snapshotTableName ||
+								ticket.tableNumber ||
+								`Table ${ticket.tableId?.slice(0, 8)}`}
 						</div>
+						{ticket.snapshotFloorName && (
+							<div className="text-xs text-blue-400 truncate">
+								{ticket.snapshotFloorName}
+							</div>
+						)}
 						{ticket.customerName && (
 							<div className="text-sm text-gray-400 truncate">{ticket.customerName}</div>
 						)}
