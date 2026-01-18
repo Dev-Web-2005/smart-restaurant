@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useUser } from '../../contexts/UserContext'
 import { useKitchenSocket } from '../../contexts/KitchenSocketContext'
 import { useAlert } from '../../contexts/AlertContext'
@@ -14,6 +15,104 @@ import {
 	bumpTicket,
 	updateTicketPriority,
 } from '../../services/api/kitchenAPI'
+
+/**
+ * Custom Dropdown Component with Glass Morphism style
+ * Sử dụng position: fixed để tránh bị clip bởi overflow container
+ */
+const CustomDropdown = ({ value, onChange, options, className = '' }) => {
+	const [isOpen, setIsOpen] = useState(false)
+	const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
+	const dropdownRef = useRef(null)
+	const buttonRef = useRef(null)
+
+	useEffect(() => {
+		const handleClickOutside = (event) => {
+			if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+				setIsOpen(false)
+			}
+		}
+
+		if (isOpen) {
+			document.addEventListener('mousedown', handleClickOutside)
+		}
+
+		return () => {
+			document.removeEventListener('mousedown', handleClickOutside)
+		}
+	}, [isOpen])
+
+	// Tính toán vị trí dropdown khi mở
+	useEffect(() => {
+		if (isOpen && buttonRef.current) {
+			const rect = buttonRef.current.getBoundingClientRect()
+			setDropdownPosition({
+				top: rect.bottom + 4, // 4px gap
+				left: rect.left,
+				width: rect.width,
+			})
+		}
+	}, [isOpen])
+
+	const selectedOption = options.find((opt) => opt.value === value)
+
+	return (
+		<div ref={dropdownRef} className={`relative ${className}`}>
+			<button
+				ref={buttonRef}
+				type="button"
+				onClick={() => setIsOpen(!isOpen)}
+				className="w-full h-10 px-3 pr-8 text-sm rounded-lg bg-white/5 backdrop-blur-md text-white border border-white/10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer transition-all hover:bg-white/10 text-left flex items-center"
+			>
+				{selectedOption?.label || 'Select...'}
+			</button>
+			<span
+				className={`absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none transition-transform duration-200 ${
+					isOpen ? 'rotate-180' : ''
+				}`}
+			>
+				▼
+			</span>
+
+			<AnimatePresence>
+				{isOpen && (
+					<motion.div
+						initial={{ opacity: 0, y: -10 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: -10 }}
+						transition={{ duration: 0.15 }}
+						style={{
+							position: 'fixed',
+							top: dropdownPosition.top,
+							left: dropdownPosition.left,
+							width: dropdownPosition.width,
+							zIndex: 9999,
+						}}
+						className="rounded-lg bg-slate-800/95 backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden"
+					>
+						{options.map((option) => (
+							<button
+								key={option.value}
+								type="button"
+								onClick={() => {
+									onChange(option.value)
+									setIsOpen(false)
+								}}
+								className={`w-full px-3 py-2.5 text-left text-sm transition-all duration-150 ${
+									option.value === value
+										? 'bg-blue-500/30 text-white font-medium'
+										: 'text-gray-300 hover:bg-white/10 hover:text-white'
+								}`}
+							>
+								{option.label}
+							</button>
+						))}
+					</motion.div>
+				)}
+			</AnimatePresence>
+		</div>
+	)
+}
 
 /**
  * LUỒNG HOẠT ĐỘNG KITCHEN DISPLAY SYSTEM:
@@ -387,15 +486,9 @@ const KitchenDisplay = () => {
 			case 'NEWEST':
 				filtered.sort((a, b) => (a.elapsedSeconds || 0) - (b.elapsedSeconds || 0))
 				break
-			case 'PRIORITY':
-				const priorityOrder = { FIRE: 4, URGENT: 3, HIGH: 2, NORMAL: 1 }
-				filtered.sort((a, b) => {
-					const aPriority = priorityOrder[a.priority] || 1
-					const bPriority = priorityOrder[b.priority] || 1
-					return bPriority - aPriority
-				})
-				break
 			default:
+				// Default to oldest first
+				filtered.sort((a, b) => (b.elapsedSeconds || 0) - (a.elapsedSeconds || 0))
 				break
 		}
 
@@ -710,22 +803,16 @@ const KitchenDisplay = () => {
 								</button>
 							</div>
 
-							{/* Sort Dropdown */}
-							<select
+							{/* Sort Dropdown - Custom */}
+							<CustomDropdown
 								value={sortBy}
-								onChange={(e) => setSortBy(e.target.value)}
-								className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm flex-shrink-0"
-							>
-								<option value="OLDEST" className="bg-slate-800">
-									Oldest First
-								</option>
-								<option value="NEWEST" className="bg-slate-800">
-									Newest First
-								</option>
-								<option value="PRIORITY" className="bg-slate-800">
-									Priority
-								</option>
-							</select>
+								onChange={setSortBy}
+								options={[
+									{ value: 'OLDEST', label: 'Oldest First' },
+									{ value: 'NEWEST', label: 'Newest First' },
+								]}
+								className="min-w-[130px] flex-shrink-0"
+							/>
 
 							{/* Stats Toggle */}
 							<button
