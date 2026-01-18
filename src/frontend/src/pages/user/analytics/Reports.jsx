@@ -1,7 +1,7 @@
 // pages/user/analytics/Reports.jsx
 // Report Dashboard - Comprehensive analytics and reporting for tenant admins
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
 	LineChart,
 	Line,
@@ -547,6 +547,34 @@ const Reports = () => {
 	// Global State
 	const [lastRefresh, setLastRefresh] = useState(new Date())
 	const [isRefreshing, setIsRefreshing] = useState(false)
+	const [initialLoadDone, setInitialLoadDone] = useState(false)
+
+	// Refs for debouncing and preventing duplicate calls
+	const fetchTimeoutRefs = useRef({
+		revenue: null,
+		topItems: null,
+		analytics: null,
+	})
+	const abortControllersRef = useRef({
+		revenue: null,
+		topItems: null,
+		analytics: null,
+	})
+
+	// =============== DEBOUNCE HELPER ===============
+	const DEBOUNCE_DELAY = 500 // ms
+
+	const debouncedFetch = useCallback((key, fetchFn) => {
+		// Clear existing timeout
+		if (fetchTimeoutRefs.current[key]) {
+			clearTimeout(fetchTimeoutRefs.current[key])
+		}
+
+		// Set new timeout
+		fetchTimeoutRefs.current[key] = setTimeout(() => {
+			fetchFn()
+		}, DEBOUNCE_DELAY)
+	}, [])
 
 	// =============== FETCH FUNCTIONS ===============
 
@@ -671,23 +699,49 @@ const Reports = () => {
 	)
 
 	const handleRefreshAll = useCallback(async () => {
+		if (isRefreshing) return // Prevent duplicate calls
+
 		setIsRefreshing(true)
 		clearReportCache()
 
-		await Promise.all([
-			fetchRevenueReport(false),
-			fetchTopItemsReport(false),
-			fetchAnalyticsReport(false),
-		])
+		// Clear any pending debounced fetches
+		Object.values(fetchTimeoutRefs.current).forEach((timeout) => {
+			if (timeout) clearTimeout(timeout)
+		})
 
-		setLastRefresh(new Date())
-		setIsRefreshing(false)
-	}, [fetchRevenueReport, fetchTopItemsReport, fetchAnalyticsReport])
+		try {
+			// Fetch sequentially with small delays to avoid rate limiting
+			await fetchRevenueReport(false)
+			await new Promise((resolve) => setTimeout(resolve, 150))
+
+			await fetchTopItemsReport(false)
+			await new Promise((resolve) => setTimeout(resolve, 150))
+
+			await fetchAnalyticsReport(false)
+
+			setLastRefresh(new Date())
+		} catch (error) {
+			console.error('Refresh all error:', error)
+		} finally {
+			setIsRefreshing(false)
+		}
+	}, [fetchRevenueReport, fetchTopItemsReport, fetchAnalyticsReport, isRefreshing])
 
 	// =============== EFFECTS ===============
 
-	// Initialize date ranges
+	// Cleanup timeouts on unmount
 	useEffect(() => {
+		return () => {
+			Object.values(fetchTimeoutRefs.current).forEach((timeout) => {
+				if (timeout) clearTimeout(timeout)
+			})
+		}
+	}, [])
+
+	// Initialize date ranges and fetch all data ONCE on mount
+	useEffect(() => {
+		if (!tenantId || initialLoadDone) return
+
 		const { startDate, endDate } = getDateRangePreset('month')
 		setRevenueCustomStart(startDate)
 		setRevenueCustomEnd(endDate)
@@ -695,22 +749,92 @@ const Reports = () => {
 		setTopItemsEndDate(endDate)
 		setAnalyticsStartDate(startDate)
 		setAnalyticsEndDate(endDate)
-	}, [])
 
-	// Fetch revenue report when params change
-	useEffect(() => {
-		fetchRevenueReport()
-	}, [fetchRevenueReport])
+		// Fetch all reports with staggered timing to avoid rate limiting
+		const fetchAllReports = async () => {
+			setInitialLoadDone(true)
 
-	// Fetch top items report when params change
-	useEffect(() => {
-		fetchTopItemsReport()
-	}, [fetchTopItemsReport])
+			// Fetch sequentially with small delays to avoid "too many requests"
+			try {
+				// 1. Fetch revenue report first
+				setRevenueLoading(true)
+				const revenueResponse = await getRevenueReportAPI({
+					tenantId,
+					timeRange: revenueTimeRange,
+					useCache: true,
+				})
+				if (revenueResponse.code === 1000 && revenueResponse.data) {
+					setRevenueData(revenueResponse.data)
+				}
+				setRevenueLoading(false)
 
-	// Fetch analytics report when params change
+				// Small delay before next request
+				await new Promise((resolve) => setTimeout(resolve, 100))
+
+				// 2. Fetch top items report
+				setTopItemsLoading(true)
+				const topItemsResponse = await getTopItemsReportAPI({
+					tenantId,
+					limit: topItemsLimit,
+					startDate,
+					endDate,
+					useCache: true,
+				})
+				if (topItemsResponse.code === 1000 && topItemsResponse.data) {
+					setTopItemsData(topItemsResponse.data)
+				}
+				setTopItemsLoading(false)
+
+				// Small delay before next request
+				await new Promise((resolve) => setTimeout(resolve, 100))
+
+				// 3. Fetch analytics report
+				setAnalyticsLoading(true)
+				const analyticsResponse = await getAnalyticsReportAPI({
+					tenantId,
+					startDate,
+					endDate,
+					useCache: true,
+				})
+				if (analyticsResponse.code === 1000 && analyticsResponse.data) {
+					setAnalyticsData(analyticsResponse.data)
+				}
+				setAnalyticsLoading(false)
+
+				setLastRefresh(new Date())
+			} catch (error) {
+				console.error('Initial load error:', error)
+				// Set errors but don't break the whole page
+				if (!revenueData) setRevenueError('Failed to load revenue report')
+				if (!topItemsData) setTopItemsError('Failed to load top items report')
+				if (!analyticsData) setAnalyticsError('Failed to load analytics report')
+			}
+		}
+
+		fetchAllReports()
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [tenantId])
+
+	// Debounced fetch for revenue report when params change (after initial load)
 	useEffect(() => {
-		fetchAnalyticsReport()
-	}, [fetchAnalyticsReport])
+		if (!initialLoadDone || !tenantId) return
+		debouncedFetch('revenue', () => fetchRevenueReport())
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [revenueTimeRange, revenueCustomStart, revenueCustomEnd])
+
+	// Debounced fetch for top items report when params change (after initial load)
+	useEffect(() => {
+		if (!initialLoadDone || !tenantId) return
+		debouncedFetch('topItems', () => fetchTopItemsReport())
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [topItemsLimit, topItemsStartDate, topItemsEndDate])
+
+	// Debounced fetch for analytics report when params change (after initial load)
+	useEffect(() => {
+		if (!initialLoadDone || !tenantId) return
+		debouncedFetch('analytics', () => fetchAnalyticsReport())
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [analyticsStartDate, analyticsEndDate])
 
 	// =============== HANDLERS ===============
 
