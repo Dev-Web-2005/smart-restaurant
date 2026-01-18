@@ -273,8 +273,19 @@ jobs:
             BUILD_ALL="${{ needs.detect-changes.outputs.build-all }}"
             SERVICES_TO_RESTART=""
 
+            if [ "$BUILD_ALL" == "true" ]; then
+              echo "🔄 Full rebuild - stopping all PM2 processes..."
+              pm2 stop all || true
+              pm2 delete all || true
+              sleep 2
+            fi
+
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.api-gateway }}" == "true" ]; then
               echo "Restarting api-gateway..."
+              pm2 stop api-gateway || true
+              pm2 delete api-gateway || true
+              pkill -f "api-gateway/src/main.js" || true
+              sleep 1
               cd api-gateway
               cat > .env << 'EOF'
             PORT=8888
@@ -325,7 +336,6 @@ jobs:
             FRONTEND_URL=${{ vars.FRONTEND_URL }}
             COOKIE_DOMAIN=${{ vars.COOKIE_DOMAIN }}
             EOF
-              pm2 delete api-gateway || true
               pm2 start dist/api-gateway/src/main.js --name api-gateway
               SERVICES_TO_RESTART="$SERVICES_TO_RESTART api-gateway"
               cd ..
@@ -333,6 +343,10 @@ jobs:
 
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.identity }}" == "true" ]; then
               echo "Restarting identity..."
+              pm2 stop identity || true
+              pm2 delete identity || true
+              pkill -f "identity/src/main.js" || true
+              sleep 1
               cd identity
               cat > .env << 'EOF'
             PORT=8080
@@ -362,7 +376,6 @@ jobs:
             REDIRECT_URI=${{ secrets.REDIRECT_URI }}
             QUEUE_NAME_OF_NOTIFICATION=notification
             EOF
-              pm2 delete identity || true
               pm2 start dist/identity/src/main.js --name identity
               SERVICES_TO_RESTART="$SERVICES_TO_RESTART identity"
               cd ..
@@ -370,6 +383,10 @@ jobs:
 
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.product }}" == "true" ]; then
               echo "Restarting product..."
+              pm2 stop product || true
+              pm2 delete product || true
+              pkill -f "product/src/main.js" || true
+              sleep 1
               cd product
               cat > .env << 'EOF'
             PORT=8082
@@ -381,7 +398,6 @@ jobs:
             X_API_KEY=${{ secrets.X_API_KEY }}
             PRODUCT_API_KEY=${{ secrets.PRODUCT_API_KEY }}
             EOF
-              pm2 delete product || true
               pm2 start dist/product/src/main.js --name product
               SERVICES_TO_RESTART="$SERVICES_TO_RESTART product"
               cd ..
@@ -389,6 +405,10 @@ jobs:
 
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.profile }}" == "true" ]; then
               echo "Restarting profile..."
+              pm2 stop profile || true
+              pm2 delete profile || true
+              pkill -f "profile/src/main.js" || true
+              sleep 1
               cd profile
               cat > .env << 'EOF'
             PORT=8081
@@ -400,7 +420,6 @@ jobs:
             X_API_KEY=${{ secrets.X_API_KEY }}
             PROFILE_API_KEY=${{ secrets.PROFILE_API_KEY }}
             EOF
-              pm2 delete profile || true
               pm2 start dist/profile/src/main.js --name profile
               SERVICES_TO_RESTART="$SERVICES_TO_RESTART profile"
               cd ..
@@ -408,6 +427,10 @@ jobs:
 
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.table }}" == "true" ]; then
               echo "Restarting table..."
+              pm2 stop table || true
+              pm2 delete table || true
+              pkill -f "table/src/main.js" || true
+              sleep 1
               cd table
               cat > .env << 'EOF'
             PORT=8083
@@ -424,7 +447,6 @@ jobs:
             QR_SECRET_KEY=${{ secrets.QR_SECRET_KEY }}
             QR_BASE_URL=${{ vars.QR_BASE_URL }}
             EOF
-              pm2 delete table || true
               pm2 start dist/table/src/main.js --name table
               SERVICES_TO_RESTART="$SERVICES_TO_RESTART table"
               cd ..
@@ -432,6 +454,10 @@ jobs:
 
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.kitchen }}" == "true" ]; then
               echo "Restarting kitchen..."
+              pm2 stop kitchen || true
+              pm2 delete kitchen || true
+              pkill -f "kitchen/src/main.js" || true
+              sleep 1
               cd kitchen
               cat > .env << 'EOF'
             PORT=8086
@@ -454,7 +480,6 @@ jobs:
             WARNING_THRESHOLD=600
             CRITICAL_THRESHOLD=900
             EOF
-              pm2 delete kitchen || true
               pm2 start dist/kitchen/src/main.js --name kitchen
               SERVICES_TO_RESTART="$SERVICES_TO_RESTART kitchen"
               cd ..
@@ -462,6 +487,10 @@ jobs:
 
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.notification }}" == "true" ]; then
               echo "Restarting notification..."
+              pm2 stop notification || true
+              pm2 delete notification || true
+              pkill -f "notification/src/main.js" || true
+              sleep 1
               cd notification
               cat > .env << 'EOF'
             PORT=8085
@@ -484,7 +513,6 @@ jobs:
             TTS_API_KEY=${{ secrets.TTS_API_KEY }}
             NAME_QUEUE=notification
             EOF
-              pm2 delete notification || true
               pm2 start dist/notification/src/main.js --name notification
               SERVICES_TO_RESTART="$SERVICES_TO_RESTART notification"
               cd ..
@@ -492,6 +520,10 @@ jobs:
 
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.order }}" == "true" ]; then
               echo "Restarting order..."
+              pm2 stop order || true
+              pm2 delete order || true
+              pkill -f "order/src/main.js" || true
+              sleep 1
               cd order
               cat > .env << 'EOF'
             PORT=8087
@@ -523,7 +555,6 @@ jobs:
             PORT_TABLE_SERVICE=${{ vars.PORT_TABLE_SERVICE }}
             TABLE_API_KEY=${{ secrets.TABLE_API_KEY }}
             EOF
-              pm2 delete order || true
               pm2 start dist/order/src/main.js --name order
               SERVICES_TO_RESTART="$SERVICES_TO_RESTART order"
               cd ..
@@ -531,6 +562,10 @@ jobs:
 
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.waiter }}" == "true" ]; then
               echo "Restarting waiter..."
+              pm2 stop waiter || true
+              pm2 delete waiter || true
+              pkill -f "waiter/src/main.js" || true
+              sleep 1
               cd waiter
               cat > .env << 'EOF'
             PORT=8088
@@ -548,7 +583,6 @@ jobs:
             ORDER_API_KEY=${{ secrets.ORDER_API_KEY }}
             KITCHEN_API_KEY=${{ secrets.KITCHEN_API_KEY }}
             EOF
-              pm2 delete waiter || true
               pm2 start dist/waiter/src/main.js --name waiter
               SERVICES_TO_RESTART="$SERVICES_TO_RESTART waiter"
               cd ..
