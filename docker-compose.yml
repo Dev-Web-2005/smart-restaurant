@@ -1,0 +1,343 @@
+version: "3.8"
+
+services:
+  # ==================== BACKEND SERVICES ====================
+  # Using external PostgreSQL, Redis, and RabbitMQ at 103.249.117.202
+
+  # Profile Service
+  profile-service:
+    build:
+      context: ./src/backend
+      dockerfile: profile/Dockerfile
+    container_name: profile-service
+    environment:
+      PORT: 8081
+      X_API_KEY: "lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$$]4m&;5,8m5JN-,S<h#}"
+      HOST_DB: 103.249.117.202
+      PORT_DB: 46269
+      USERNAME_DB: myuser
+      PASSWORD_DB: 123456
+      DATABASE_DB: mydb
+      PROFILE_API_KEY: lethanhcong
+    ports:
+      - "8081:8081"
+    networks:
+      - smart-restaurant-network
+    restart: unless-stopped
+
+  # Product Service
+  product-service:
+    build:
+      context: ./src/backend
+      dockerfile: product/Dockerfile
+    container_name: product-service
+    environment:
+      PORT: 8082
+      X_API_KEY: "lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$$]4m&;5,8m5JN-,S<h#}"
+      HOST_DB: 103.249.117.202
+      PORT_DB: 46269
+      USERNAME_DB: myuser
+      PASSWORD_DB: 123456
+      DATABASE_DB: mydb
+      PRODUCT_API_KEY: lethanhcong
+    ports:
+      - "8082:8082"
+    networks:
+      - smart-restaurant-network
+    restart: unless-stopped
+
+  # Table Service
+  table-service:
+    build:
+      context: ./src/backend
+      dockerfile: table/Dockerfile
+    container_name: table-service
+    environment:
+      PORT: 8083
+      X_API_KEY: "lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$$]4m&;5,8m5JN-,S<h#}"
+      TABLE_API_KEY: lethanhcong
+      HOST_PRODUCT_SERVICE: product-service
+      PORT_PRODUCT_SERVICE: 8082
+      HOST_DB: 103.249.117.202
+      PORT_DB: 46269
+      USERNAME_DB: myuser
+      PASSWORD_DB: 123456
+      DATABASE_DB: mydb
+      QR_SECRET_KEY: your-secret-key-change-in-production-min-32-chars
+      QR_BASE_URL: http://localhost:5173
+    ports:
+      - "8083:8083"
+    depends_on:
+      - product-service
+    networks:
+      - smart-restaurant-network
+    restart: unless-stopped
+
+  # Identity Service
+  identity-service:
+    build:
+      context: ./src/backend
+      dockerfile: identity/Dockerfile
+    container_name: identity-service
+    environment:
+      PORT: 8084
+      X_API_KEY: "lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$$]4m&;5,8m5JN-,S<h#}"
+      IDENTITY_API_KEY: lethanhcong
+      HOST_DB: 103.249.117.202
+      PORT_DB: 46269
+      USERNAME_DB: myuser
+      PASSWORD_DB: 123456
+      DATABASE_DB: mydb
+      HOST_PROFILE_SERVICE: profile-service
+      PORT_PROFILE_SERVICE: 8081
+      PROFILE_API_KEY: lethanhcong
+      ACCESS_TOKEN_EXPIRY: 5m
+      REFRESH_TOKEN_EXPIRY: 7d
+      JWT_SECRET_KEY_ACCESS: 1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
+      JWT_SECRET_KEY_REFRESH: 0987654321ZYXWVUTSRQPONMLKJIHGFEDCBAabcdefghijklmnopqrstuvwxyz
+      JWT_SECRET_KEY_RESET_PASSWORD: lethanhcongdeptraivclluonhahahahha
+      NOTIFICATION_API_KEY: lethanhcong
+      CONNECTION_AMQP: amqp://supper:supper@103.249.117.202:46270
+      QUEUE_NAME_OF_NOTIFICATION: local_notification
+      FRONTEND_URL: http://localhost:5173
+      CLIENT_ID: ${CLIENT_ID}
+      CLIENT_SECRET: ${CLIENT_SECRET}
+      REDIRECT_URI: ${VITE_REDIRECT_URI}
+      REDIS_HOST: 103.249.117.202
+      REDIS_PORT: 46271
+      REDIS_PASSWORD: ""
+    ports:
+      - "8084:8084"
+    depends_on:
+      - profile-service
+    networks:
+      - smart-restaurant-network
+    restart: unless-stopped
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./src/backend
+      dockerfile: notification/Dockerfile
+    container_name: notification-service
+    environment:
+      PORT: 8085
+      HOST: notification-service
+      CONNECTION_AMQP: amqp://supper:supper@103.249.117.202:46270
+      NOTIFICATION_API_KEY: lethanhcong
+      LIMIT_REQUEUE: 5
+      HOST_DB: 103.249.117.202
+      PORT_DB: 46269
+      USERNAME_DB: myuser
+      PASSWORD_DB: 123456
+      DATABASE_DB: mydb
+      MAIL_URL: ${MAIL_URL}
+      MAIL_API_KEY: ${MAIL_API_KEY}
+      MAIL_SENDER: ${MAIL_SENDER}
+      MAIL_SENDER_NAME: ${MAIL_SENDER_NAME}
+      TTS_API_KEY: ${TTS_API_KEY}
+      NAME_QUEUE: local_notification
+    ports:
+      - "8085:8085"
+    networks:
+      - smart-restaurant-network
+    restart: unless-stopped
+
+  # Kitchen Service
+  kitchen-service:
+    build:
+      context: ./src/backend
+      dockerfile: kitchen/Dockerfile
+    container_name: kitchen-service
+    environment:
+      PORT: 8086
+      CONNECTION_AMQP: amqp://supper:supper@103.249.117.202:46270
+      KITCHEN_API_KEY: lethanhcong
+      LIMIT_REQUEUE: 10
+      ORDER_API_KEY: lethanhcong
+      HOST_ORDER_SERVICE: order-service
+      PORT_ORDER_SERVICE: 8087
+      HOST_DB: 103.249.117.202
+      PORT_DB: 46269
+      USERNAME_DB: myuser
+      PASSWORD_DB: 123456
+      DATABASE_DB: mydb
+      WARNING_THRESHOLD: 600
+      CRITICAL_THRESHOLD: 900
+      NAME_QUEUE: local_kitchen
+      HOST_TABLE_SERVICE: table-service
+      PORT_TABLE_SERVICE: 8083
+      TABLE_API_KEY: lethanhcong
+    ports:
+      - "8086:8086"
+    networks:
+      - smart-restaurant-network
+    restart: unless-stopped
+
+  # Order Service
+  order-service:
+    build:
+      context: ./src/backend
+      dockerfile: order/Dockerfile
+    container_name: order-service
+    environment:
+      PORT: 8087
+      X_API_KEY: "lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$$]4m&;5,8m5JN-,S<h#}"
+      HOST_PRODUCT_SERVICE: product-service
+      PORT_PRODUCT_SERVICE: 8082
+      PRODUCT_API_KEY: lethanhcong
+      HOST_DB: 103.249.117.202
+      PORT_DB: 46269
+      USERNAME_DB: myuser
+      PASSWORD_DB: 123456
+      DATABASE_DB: mydb
+      REDIS_HOST: 103.249.117.202
+      REDIS_PORT: 46271
+      REDIS_PASSWORD: ""
+      REDIS_TTL: 86400
+      TAX_RATE: 0.1
+      ORDER_API_KEY: lethanhcong
+      CONNECTION_AMQP: amqp://supper:supper@103.249.117.202:46270
+      QUEUE_NAME_OF_ORDER: local_order
+      QUEUE_NAME_OF_WAITER: local_waiter
+      LIMIT_REQUEUE: 10
+      WAITER_API_KEY: lethanhcong
+      KITCHEN_API_KEY: lethanhcong
+      PAYMENT_URL: https://web-dev.lethanhcong.site:46268/api/payment
+      PAYMENT_API_KEY: lethanhcong
+      URL_HOME: http://localhost:5173
+      HOST_TABLE_SERVICE: table-service
+      PORT_TABLE_SERVICE: 8083
+      TABLE_API_KEY: lethanhcong
+    ports:
+      - "8087:8087"
+    depends_on:
+      - product-service
+      - table-service
+    networks:
+      - smart-restaurant-network
+    restart: unless-stopped
+
+  # Waiter Service
+  waiter-service:
+    build:
+      context: ./src/backend
+      dockerfile: waiter/Dockerfile
+    container_name: waiter-service
+    environment:
+      PORT: 8088
+      CONNECTION_AMQP: amqp://supper:supper@103.249.117.202:46270
+      WAITER_API_KEY: lethanhcong
+      LIMIT_REQUEUE: 10
+      HOST_DB: 103.249.117.202
+      PORT_DB: 46269
+      USERNAME_DB: myuser
+      PASSWORD_DB: 123456
+      DATABASE_DB: mydb
+      NAME_QUEUE: local_waiter
+      QUEUE_NAME_OF_ORDER: local_order
+      QUEUE_NAME_OF_KITCHEN: local_kitchen
+      ORDER_API_KEY: lethanhcong
+      KITCHEN_API_KEY: lethanhcong
+    ports:
+      - "8088:8088"
+    networks:
+      - smart-restaurant-network
+    restart: unless-stopped
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./src/backend
+      dockerfile: api-gateway/Dockerfile
+    container_name: api-gateway
+    environment:
+      PORT: 8888
+      MOD: production
+      X_API_KEY: "lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$$]4m&;5,8m5JN-,S<h#}"
+      IDENTITY_SERVICE_URL: http://identity-service:8084
+      HOST_IDENTITY_SERVICE: identity-service
+      PORT_IDENTITY_SERVICE: 8084
+      IDENTITY_API_KEY: lethanhcong
+      PROFILE_SERVICE_URL: http://profile-service:8081
+      HOST_PROFILE_SERVICE: profile-service
+      PORT_PROFILE_SERVICE: 8081
+      PROFILE_API_KEY: lethanhcong
+      PRODUCT_SERVICE_URL: http://product-service:8082
+      HOST_PRODUCT_SERVICE: product-service
+      PORT_PRODUCT_SERVICE: 8082
+      PRODUCT_API_KEY: lethanhcong
+      TABLE_SERVICE_URL: http://table-service:8083
+      HOST_TABLE_SERVICE: table-service
+      PORT_TABLE_SERVICE: 8083
+      TABLE_API_KEY: lethanhcong
+      ORDER_SERVICE_URL: http://order-service:8087
+      HOST_ORDER_SERVICE: order-service
+      PORT_ORDER_SERVICE: 8087
+      ORDER_API_KEY: lethanhcong
+      HOST_NOTIFICATION_SERVICE: notification-service
+      PORT_NOTIFICATION_SERVICE: 8085
+      NOTIFICATION_API_KEY: lethanhcong
+      HOST_WAITER_SERVICE: waiter-service
+      PORT_WAITER_SERVICE: 8088
+      WAITER_API_KEY: lethanhcong
+      HOST_KITCHEN_SERVICE: kitchen-service
+      PORT_KITCHEN_SERVICE: 8086
+      KITCHEN_API_KEY: lethanhcong
+      CONNECTION_AMQP: amqp://supper:supper@103.249.117.202:46270
+      NAME_QUEUE: local_api_gateway
+      REFRESH_TOKEN_EXPIRES_IN: 604800000
+      FRONTEND_URL: http://localhost:5173
+      COOKIE_DOMAIN: .lethanhcong.site
+      ACCESS_TOKEN_EXPIRY: 5m
+      REFRESH_TOKEN_EXPIRY: 7d
+      JWT_SECRET_KEY_ACCESS: 1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
+      JWT_SECRET_KEY_REFRESH: 0987654321ZYXWVUTSRQPONMLKJIHGFEDCBAabcdefghijklmnopqrstuvwxyz
+      JWT_SECRET_KEY_RESET_PASSWORD: lethanhcongdeptraivclluonhahahahha
+    ports:
+      - "8888:8888"
+    depends_on:
+      - identity-service
+      - profile-service
+      - product-service
+      - table-service
+      - order-service
+      - notification-service
+      - kitchen-service
+      - waiter-service
+    networks:
+      - smart-restaurant-network
+    restart: unless-stopped
+
+  # ==================== FRONTEND ====================
+
+  # Frontend (React + Vite)
+  frontend:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    environment:
+      VITE_API_URL: http://localhost:8888/api/v1
+      VITE_API_GATEWAY_URL: http://localhost:8888
+      VITE_FILE_SERVICE_URL: https://file-service-cdal.onrender.com
+      VITE_API_KEY: "lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$$]4m&;5,8m5JN-,S<h#}"
+      VITE_DIDIT_API_KEY: 7hwmBAe7gzf8RECVEc5oZWQc8Sp9_SDpX9lkLiHUyMs
+      VITE_DIDIT_WORKFLOW_ID: 5f32d046-a7e2-4429-b318-523f3f1b5487
+      VITE_DIDIT_CALLBACK_URL: http://localhost:5173/kyc/callback
+      FRONTEND_URL: http://localhost:5173
+      VITE_CLIENT_ID: ${VITE_CLIENT_ID}
+      VITE_REDIRECT_URI: ${VITE_REDIRECT_URI}
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api-gateway
+    networks:
+      - smart-restaurant-network
+    restart: unless-stopped
+
+# ==================== NETWORKS ====================
+networks:
+  smart-restaurant-network:
+    driver: bridge
+    name: smart-restaurant-network
