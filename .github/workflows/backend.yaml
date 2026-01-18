@@ -420,6 +420,7 @@ jobs:
             TABLE_API_KEY=${{ secrets.TABLE_API_KEY }}
             HOST_PRODUCT_SERVICE=${{ vars.HOST_PRODUCT_SERVICE }}
             PORT_PRODUCT_SERVICE=${{ vars.PORT_PRODUCT_SERVICE }}
+            PRODUCT_API_KEY=${{ secrets.PRODUCT_API_KEY }}
             QR_SECRET_KEY=${{ secrets.QR_SECRET_KEY }}
             QR_BASE_URL=${{ vars.QR_BASE_URL }}
             EOF
