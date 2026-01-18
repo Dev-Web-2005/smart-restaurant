@@ -124,6 +124,14 @@ const OrderManagementInterface = () => {
 					const customerAuth = JSON.parse(customerAuthStr)
 					console.log('🔄 Restoring customer session...', customerAuth)
 
+					// ✅ First try to use stored accessToken
+					if (customerAuth.accessToken) {
+						window.accessToken = customerAuth.accessToken
+						console.log('🔑 Customer accessToken restored from localStorage')
+						setIsAuthRestored(true)
+						return
+					}
+
 					// Customer sessions don't have refresh token mechanism like admin
 					// So we need to use the stored ownerId to try refresh if available
 					const ownerId = customerAuth.ownerId || tenantId
