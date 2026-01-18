@@ -46,7 +46,7 @@ Smart Restaurant sử dụng kiến trúc Microservices Multi-Tenant với hơn 
             │                                                                      │  │
             │   ┌───────────────┐   ┌───────────────┐   ┌───────────────┐          │  │
             │   │  File Service │   │  Mail Service │   │    Payment    │          │  │
-            │   │   (Render)    │   │   (Brevo)     │   │    Service    │◄─────────┘  │
+            │   │               │   │               │   │    Service    │◄─────────┘  │
             │   └───────────────┘   └───────────────┘   └───────────────┘             │
             │                                                                         │
             │   ┌───────────────┐   ┌───────────────┐                                 │
@@ -148,7 +148,7 @@ Smart Restaurant sử dụng kiến trúc Microservices Multi-Tenant với hơn 
 - **Trách nhiệm:**
   - WebSocket connections management
   - Real-time status updates
-  - Email notifications via Brevo
+  - Email notifications
   - Push notifications
 
 ## Dịch vụ Bên ngoài
@@ -162,7 +162,7 @@ Smart Restaurant sử dụng kiến trúc Microservices Multi-Tenant với hơn 
   - Image optimization
   - CDN delivery
 
-### Mail Service (Brevo)
+### Mail Service
 
 - **Chức năng:** Gửi email
 - **Features:**

@@ -295,8 +295,8 @@ Hệ thống tuân theo \textbf{Kiến trúc Microservices Multi-Tenant} với c
 
 \textbf{Dịch vụ Bên ngoài:}
 \begin{itemize}
-    \item \textbf{File Service:} Lưu trữ hình ảnh món ăn (Render)
-    \item \textbf{Mail Service (Brevo):} Gửi email xác thực, đặt lại mật khẩu
+    \item \textbf{File Service:} Lưu trữ hình ảnh món ăn
+    \item \textbf{Mail Service :} Gửi email xác thực, đặt lại mật khẩu
     \item \textbf{Payment Service:} Xử lý thanh toán QR
     \item \textbf{Redis:} Cache giỏ hàng và session
     \item \textbf{RabbitMQ:} Message broker cho giao tiếp giữa các dịch vụ
@@ -307,7 +307,7 @@ Hệ thống tuân theo \textbf{Kiến trúc Microservices Multi-Tenant} với c
 \subsubsection{1. Xác thực và Phân quyền}
 \begin{itemize}
     \item Xác thực dựa trên JWT với Passport.js
-    \item Kiểm soát truy cập dựa trên vai trò (Super Admin, Admin, Staff, Kitchen, Customer)
+    \item Kiểm soát truy cập dựa trên vai trò (Admin, User, Staff, Chef, Customer)
     \item Tích hợp đăng nhập xã hội (Google OAuth)
     \item Đặt lại mật khẩu qua email
     \item Kích hoạt tài khoản qua xác minh email
@@ -455,7 +455,7 @@ Hệ thống triển khai Row-Level Security (RLS) với \texttt{tenant\_id} tr�
     \item \textbf{Frontend:} React 19, Vite, TailwindCSS 4
     \item \textbf{Thành phần UI:} Thành phần tùy chỉnh với biểu tượng Lucide
     \item \textbf{Hiệu ứng chuyển động:} Framer Motion
-    \item \textbf{Biểu đồ:} Recharts cho phân tích
+    \item \textbf{Biểu đồ:} Recharts cho phân tích, ReactFlow
     \item \textbf{Quản lý Trạng thái:} React Context API
 \end{itemize}
 
@@ -493,7 +493,7 @@ Hệ thống triển khai Row-Level Security (RLS) với \texttt{tenant\_id} tr�
     \item Tổng quan trạng thái đơn hàng
 \end{itemize}
 
-\subsection{Ảnh chụp màn hình}
+\subsection{Ảnh chụp màn hình} [CHÍNH]
 % [TASK] Insert UI screenshots here
 \begin{tcolorbox}[colback=yellow!10, colframe=yellow!50!black, title=Yêu cầu Ảnh chụp màn hình UI]
 [TASK] Chèn ảnh chụp màn hình của các giao diện sau:
@@ -523,37 +523,106 @@ Hệ thống triển khai Row-Level Security (RLS) với \texttt{tenant\_id} tr�
 
 \subsection{Thiết lập Phát triển Cục bộ}
 
-\subsubsection{Bước 1: Sao chép Repository}
+\textbf{Lưu ý quan trọng:} Nhóm đã cung cấp file submission zip bao gồm đầy đủ các file cấu hình môi trường (\texttt{.env}) đã được thiết lập sẵn cho tất cả microservices. Giáo viên chỉ cần giải nén file zip và thực hiện các bước cài đặt dependencies cùng khởi động hệ thống mà không cần cấu hình thủ công.
+
+\subsubsection{Bước 1: Giải nén File Submission}
+
+Giải nén file \texttt{smart-restaurant.zip} đã nộp vào thư mục mong muốn:
+
 \begin{verbatim}
-git clone https://github.com/Dev-Web-2005/smart-restaurant.git
+# Windows: Click phải vào file zip -> Extract All...
+# Hoặc sử dụng PowerShell
+Expand-Archive -Path smart-restaurant.zip -DestinationPath ./smart-restaurant
+
+# Linux/macOS
+unzip smart-restaurant.zip -d ./smart-restaurant
+
 cd smart-restaurant
 \end{verbatim}
 
-\subsubsection{Bước 2: Thiết lập Biến Môi trường}
-Tạo tệp \texttt{.env} cho mỗi dịch vụ dựa trên \texttt{.env.example}.
-
-\textbf{Cấu hình cơ sở dữ liệu:}
+\textbf{Cấu trúc thư mục sau khi giải nén:}
 \begin{verbatim}
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
-DATABASE_NAME=identity_db
-DATABASE_USER=postgres
-DATABASE_PASSWORD=postgres123
+smart-restaurant/
+├── src/
+│   ├── backend/
+│   │   ├── api-gateway/      (.env đã có sẵn)
+│   │   ├── identity/          (.env đã có sẵn)
+│   │   ├── profile/           (.env đã có sẵn)
+│   │   ├── product/           (.env đã có sẵn)
+│   │   ├── table/             (.env đã có sẵn)
+│   │   ├── order/             (.env đã có sẵn)
+│   │   ├── kitchen/           (.env đã có sẵn)
+│   │   ├── waiter/            (.env đã có sẵn)
+│   │   └── notification/      (.env đã có sẵn)
+│   └── frontend/              (.env đã có sẵn)
+├── docker-compose.yml
+├── run.bat
+└── README.md
 \end{verbatim}
 
-\textbf{Cấu hình JWT:}
+\subsubsection{Bước 2: Xác minh Cấu hình Môi trường}
+
+Các file \texttt{.env} đã được cấu hình sẵn với các thông số sau:
+
+\textbf{Cấu hình Database (PostgreSQL):}
 \begin{verbatim}
-JWT_SECRET=your-secret-key
+# Sử dụng Supabase PostgreSQL (cloud database)
+DATABASE_HOST=aws-1-ap-south-1.pooler.supabase.com
+DATABASE_PORT=6543
+DATABASE_NAME=postgres
+DATABASE_USER=postgres.vzfhpiietyrgfobaxwhj
+DATABASE_PASSWORD=Cong2642005@@
+\end{verbatim}
+
+\textbf{Lưu ý:} Hệ thống sử dụng Supabase PostgreSQL cloud database, do đó \textbf{không cần cài đặt PostgreSQL cục bộ}. Tất cả dữ liệu được lưu trữ tập trung trên cloud, đảm bảo tính nhất quán và sẵn sàng sử dụng ngay lập tức.
+
+\textbf{Cấu hình JWT Authentication:}
+\begin{verbatim}
+JWT_SECRET=lethanhcong
 JWT_EXPIRES_IN=7d
+JWT_REFRESH_SECRET=lethanhcong_refresh
+JWT_REFRESH_EXPIRES_IN=30d
+\end{verbatim}
+
+\textbf{Cấu hình API Keys (Inter-service Communication):}
+\begin{verbatim}
+X_API_KEY=lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y
+IDENTITY_API_KEY=lethanhcong
+PROFILE_API_KEY=lethanhcong
 \end{verbatim}
 
 \textbf{Cấu hình Redis:}
 \begin{verbatim}
+# Redis không bắt buộc trong môi trường demo
+# Hệ thống sẽ fallback về in-memory cache nếu Redis không available
 REDIS_HOST=localhost
 REDIS_PORT=6379
 \end{verbatim}
 
-\subsubsection{Bước 3: Cài đặt Phụ thuộc}
+\textbf{Cấu hình RabbitMQ:}
+\begin{verbatim}
+RABBITMQ_URL=amqp://localhost:5672
+RABBITMQ_USER=admin
+RABBITMQ_PASSWORD=admin123
+\end{verbatim}
+
+\textbf{Cấu hình File Upload:}
+\begin{verbatim}
+# Sử dụng Cloudinary cho image storage
+CLOUDINARY_CLOUD_NAME=dk3ozn5nu
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+\end{verbatim}
+
+\textbf{Tóm tắt Dependencies đã được cấu hình sẵn:}
+\begin{itemize}
+    \item \textbf{PostgreSQL:} Sử dụng Supabase cloud database → \textit{Không cần cài đặt}
+    \item \textbf{Redis:} Optional, hệ thống hoạt động bình thường nếu không có
+    \item \textbf{RabbitMQ:} Optional cho demo, WebSocket vẫn hoạt động
+    \item \textbf{Cloudinary:} Đã cấu hình sẵn cho image upload
+\end{itemize}
+
+\subsubsection{Bước 3: Cài đặt Dependencies}
 \textbf{Các dịch vụ Backend:}
 \begin{verbatim}
 cd src/backend/api-gateway && npm install
@@ -571,42 +640,145 @@ cd ../notification && npm install
 cd src/frontend && npm install
 \end{verbatim}
 
-\subsubsection{Bước 4: Khởi động Dịch vụ}
-\textbf{Sử dụng tệp batch được cung cấp:}
+\subsubsection{Bước 4: Khởi động Hệ thống}
+
+\textbf{Phương pháp 1: Sử dụng Script Batch Tự động (Khuyến nghị - Windows)}
+
+Script \texttt{run.bat} đã được tối ưu hóa để tự động hóa toàn bộ quy trình:
+
 \begin{verbatim}
-./run.bat
+# Cài đặt dependencies và khởi động tất cả dịch vụ
+run.bat i
+
+# Hoặc chỉ khởi động (nếu đã cài đặt dependencies trước đó)
+run.bat
 \end{verbatim}
 
-\textbf{Hoặc khởi động thủ công từng dịch vụ:}
+\textbf{Quá trình thực thi của run.bat:}
+\begin{enumerate}
+    \item Kiểm tra flag \texttt{i} để xác định chế độ cài đặt
+    \item Với flag \texttt{i}: Tự động chạy \texttt{npm install} cho từng service
+    \item Khởi động 9 backend services theo thứ tự:
+    \begin{itemize}
+        \item identity → notification → product → profile → table
+        \item kitchen → order → waiter → api-gateway
+    \end{itemize}
+    \item Mỗi service được khởi động trong terminal riêng biệt
+    \item Delay 3 giây giữa các services để đảm bảo khởi tạo ổn định
+    \item Cuối cùng khởi động frontend React trên port 5173
+\end{enumerate}
+
+\textbf{Thời gian khởi động dự kiến:}
+\begin{itemize}
+    \item Cài đặt dependencies lần đầu: 10-15 phút (tùy tốc độ mạng)
+    \item Khởi động các services: 2-3 phút
+    \item Tổng thời gian: ~15-20 phút cho lần đầu tiên
+    \item Các lần sau: ~2-3 phút (đã có node\_modules)
+\end{itemize}
+
+\textbf{Phương pháp 2: Khởi động thủ công từng service (Không khuyến nghị)}
+
+Chỉ sử dụng khi cần debug service cụ thể:
+
 \begin{verbatim}
-cd src/backend/api-gateway && npm run start:dev
+# Terminal 1: Identity Service
 cd src/backend/identity && npm run start:dev
+
+# Terminal 2: Profile Service  
 cd src/backend/profile && npm run start:dev
-cd src/backend/product && npm run start:dev
-cd src/backend/table && npm run start:dev
-cd src/backend/order && npm run start:dev
-cd src/backend/kitchen && npm run start:dev
-cd src/backend/waiter && npm run start:dev
-cd src/backend/notification && npm run start:dev
+
+# ... Tương tự cho 7 services còn lại
+
+# Terminal 10: Frontend
 cd src/frontend && npm run dev
 \end{verbatim}
 
-\subsection{Triển khai Docker}
+\subsubsection{Bước 5: Xác minh Hệ thống Hoạt động}
 
-\subsubsection{Khởi động Nhanh với Docker Compose}
-\textbf{Xây dựng và khởi động tất cả dịch vụ:}
+Sau khi khởi động thành công, kiểm tra các endpoints:
+
+\textbf{Kiểm tra Frontend:}
 \begin{verbatim}
+# Truy cập ứng dụng web
+http://localhost:5173
+\end{verbatim}
+
+\textbf{Kiểm tra Backend Services:}
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{|l|c|l|}
+\hline
+\textbf{Service} & \textbf{Port} & \textbf{Health Check} \\
+\hline
+API Gateway & 8888 & \texttt{http://localhost:8888/health} \\
+\hline
+Identity & 8084 & \texttt{http://localhost:8084/health} \\
+\hline
+Profile & 8081 & \texttt{http://localhost:8081/health} \\
+\hline
+Product & 8082 & \texttt{http://localhost:8082/health} \\
+\hline
+Table & 8083 & \texttt{http://localhost:8083/health} \\
+\hline
+Order & 8087 & \texttt{http://localhost:8087/health} \\
+\hline
+Kitchen & 8086 & \texttt{http://localhost:8086/health} \\
+\hline
+Waiter & 8088 & \texttt{http://localhost:8088/health} \\
+\hline
+Notification & 8085 & \texttt{http://localhost:8085/health} \\
+\hline
+\end{tabular}
+\end{table}
+
+\textbf{Dấu hiệu khởi động thành công:}
+\begin{itemize}
+    \item Tất cả services log \texttt{"Application is running on port <port>"}
+    \item Frontend hiển thị trang chủ tại \texttt{localhost:5173}
+    \item Health check endpoints trả về status 200 OK
+    \item Console không có error màu đỏ (warnings màu vàng là bình thường)
+\end{itemize}
+
+\subsubsection{Bước 6: Dừng Hệ thống}
+
+\textbf{Dừng toàn bộ services:}
+\begin{verbatim}
+# Nếu sử dụng run.bat: Đóng tất cả terminal windows
+\end{verbatim}
+
+\subsection{Triển khai Docker (Tùy chọn)}
+
+\textbf{Lưu ý:} Phương pháp Docker chỉ dành cho việc triển khai production hoặc khi muốn chạy toàn bộ hệ thống trong isolated containers. Để demo và development, khuyến nghị sử dụng phương pháp cài đặt cục bộ ở trên vì đơn giản và nhanh hơn.
+
+\subsubsection{Khởi động với Docker Compose}
+
+\textbf{Yêu cầu tiên quyết:}
+\begin{itemize}
+    \item Docker Desktop đã được cài đặt và đang chạy
+    \item Tối thiểu 8GB RAM available
+    \item 20GB dung lượng ổ cứng trống
+\end{itemize}
+
+\textbf{Xây dựng và khởi động:}
+\begin{verbatim}
+# Build images và start tất cả containers
 docker-compose up -d --build
-\end{verbatim}
 
-\textbf{Xem logs:}
-\begin{verbatim}
+# Xem logs real-time
 docker-compose logs -f
+
+# Kiểm tra container status
+docker-compose ps
 \end{verbatim}
 
-\textbf{Dừng tất cả dịch vụ:}
+\textbf{Dừng và cleanup:}
 \begin{verbatim}
+# Dừng containers (giữ data)
 docker-compose down
+
+# Xóa hoàn toàn (bao gồm volumes)
+docker-compose down -v
 \end{verbatim}
 
 \subsubsection{Cổng Dịch vụ}
@@ -657,44 +829,308 @@ Dịch vụ Waiter & 8088 \\
     \item Thiết lập sao lưu cơ sở dữ liệu
 \end{enumerate}
 
-\subsection{Hướng dẫn Sử dụng}
+\subsection{Hướng dẫn Sử dụng Hệ thống}
 
-\subsubsection{Dành cho Chủ nhà hàng}
+[CHÍNH] Thầy vào đọc chỉnh lại giúp em
+
+\subsubsection{Quy trình Onboarding - Chủ Nhà hàng}
+
+\textbf{Bước 1: Đăng ký Tài khoản}
 \begin{enumerate}
-    \item Đăng ký tài khoản nhà hàng mới
-    \item Hoàn thành quy trình tiếp nhận
-    \item Thêm danh mục và món menu
-    \item Tạo bàn và tạo mã QR
-    \item In và đặt mã QR tại các bàn
-    \item Tạo tài khoản nhân viên (Waiter, Kitchen)
+    \item Truy cập \url{http://localhost:3000/register} (hoặc production URL)
+    \item Điền thông tin: Tên nhà hàng, Email, Mật khẩu (tối thiểu 8 ký tự, bao gồm chữ hoa, số, ký tự đặc biệt)
+    \item Chọn múi giờ và loại tiền tệ (VND, USD, EUR)
+    \item Xác nhận email qua link được gửi đến hộp thư
+    \item Hệ thống tự động tạo tenant và gán role \texttt{ADMIN}
 \end{enumerate}
 
-\subsubsection{Dành cho Khách hàng}
+\textbf{Bước 2: Cấu hình Menu}
 \begin{enumerate}
-    \item Quét mã QR tại bàn
-    \item Duyệt menu và chọn món
-    \item Tùy chỉnh với modifiers nếu có
-    \item Thêm vào giỏ hàng và xem lại đơn hàng
-    \item Gửi đơn hàng
-    \item Theo dõi trạng thái đơn hàng thời gian thực
+    \item Đăng nhập vào Admin Dashboard: \url{http://localhost:3000/admin}
+    \item Tạo Categories: Navigate đến Menu Management → Categories → Add Category
+    \begin{itemize}
+        \item Nhập tên danh mục (Appetizers, Main Courses, Desserts, Beverages)
+        \item Upload icon cho danh mục
+        \item Set thứ tự hiển thị (display order)
+    \end{itemize}
+    \item Thêm Menu Items: Menu Management → Items → Add Item
+    \begin{itemize}
+        \item Nhập tên món, giá, mô tả
+        \item Upload hình ảnh (tối đa 5 ảnh, mỗi ảnh < 5MB)
+        \item Chọn danh mục
+        \item Thời gian chuẩn bị (preparation time) tính bằng phút
+        \item Trạng thái: Available / Unavailable / Sold Out
+    \end{itemize}
+    \item Tạo Modifiers: Trong Item Details → Modifier Groups
+    \begin{itemize}
+        \item Tạo groups như "Size" (Small, Medium, Large)
+        \item "Extras" (Extra Cheese +\$2, Bacon +\$3)
+        \item "Toppings" với price delta (có thể âm cho discounts)
+        \item Set selection rules: required, multiple allowed, min/max selections
+    \end{itemize}
 \end{enumerate}
 
-\subsubsection{Dành cho Nhân viên Bếp}
+\textbf{Bước 3: Quản lý Bàn và QR Codes}
 \begin{enumerate}
-    \item Truy cập giao diện KDS
-    \item Xem các đơn hàng đến
-    \item Cập nhật trạng thái chuẩn bị món
-    \item Đánh dấu món sẵn sàng
+    \item Navigate: Table Management → Add Table
+    \item Nhập thông tin:
+    \begin{itemize}
+        \item Table Name/Number (T01, T02, VIP-01)
+        \item Capacity (số ghế)
+        \item Location/Area (Main Hall, Terrace, Private Room)
+        \item Status: Active / Inactive
+    \end{itemize}
+    \item Generate QR Code: Click "Generate QR" button
+    \begin{itemize}
+        \item Hệ thống tạo signed JWT token với payload: \texttt{\{tenant\_id, table\_id, version\}}
+        \item Token được ký bằng HMAC-SHA256 với secret key
+        \item QR code encode URL: \texttt{https://your-domain.com/order?token=<JWT>}
+    \end{itemize}
+    \item Download QR: Chọn định dạng PNG hoặc PDF
+    \item In và đặt QR code tại bàn tương ứng
+    \item Để vô hiệu hóa QR cũ: Click "Regenerate QR" → Version increment → Old tokens invalid
 \end{enumerate}
 
-\subsubsection{Dành cho Waiter}
+\textbf{Bước 4: Quản lý Nhân viên}
 \begin{enumerate}
-    \item Truy cập giao diện waiter
-    \item Xem lại các đơn hàng chờ xử lý
-    \item Chấp nhận hoặc từ chối món trong đơn hàng
-    \item Giám sát tiến trình đơn hàng
+    \item Navigate: Staff Management → Add Staff
+    \item Chọn Role:
+    \begin{itemize}
+        \item \texttt{WAITER}: Quyền quản lý orders, accept/reject items
+        \item \texttt{KITCHEN}: Truy cập KDS, update item preparation status
+        \item \texttt{ADMIN}: Full access to management dashboard
+    \end{itemize}
+    \item Nhập thông tin: Full Name, Email, Temporary Password
+    \item Gửi email activation cho nhân viên
+    \item Nhân viên login lần đầu và đổi mật khẩu
 \end{enumerate}
 
+\subsubsection{Quy trình Đặt món - Khách hàng}
+
+\textbf{Luồng Ordering (Dine-in):}
+\begin{enumerate}
+    \item \textbf{Scan QR Code:} Sử dụng camera smartphone quét mã QR tại bàn
+    \item \textbf{Token Validation:} 
+    \begin{itemize}
+        \item Frontend gửi token đến API Gateway
+        \item Table Service verify signature và expiration
+        \item Kiểm tra table active status và token version
+        \item Return: tenant\_id, table\_id, restaurant info
+    \end{itemize}
+    \item \textbf{Browse Menu:}
+    \begin{itemize}
+        \item Hiển thị menu của tenant tương ứng
+        \item Filter theo categories
+        \item Search by item name
+        \item Sort by popularity, price, hoặc chef recommendation
+    \end{itemize}
+    \item \textbf{Item Selection:}
+    \begin{itemize}
+        \item Click vào item để xem chi tiết
+        \item Chọn modifiers (Size, Extras, Special requests)
+        \item Nhập số lượng
+        \item Add to Cart
+    \end{itemize}
+    \item \textbf{Cart Review:}
+    \begin{itemize}
+        \item View tất cả items trong cart
+        \item Update quantity hoặc remove items
+        \item Auto-calculate: subtotal, modifiers cost, total
+        \item Cart được persist trong localStorage và backend session
+    \end{itemize}
+    \item \textbf{Place Order:}
+    \begin{itemize}
+        \item Optional: Nhập guest name
+        \item Thêm special instructions (No onions, Extra spicy, Allergy notes)
+        \item Submit order
+        \item Order status: DRAFT → SUBMITTED
+    \end{itemize}
+    \item \textbf{Real-time Tracking:}
+    \begin{itemize}
+        \item WebSocket connection established
+        \item Subscribe to order updates
+        \item Nhận notifications:
+        \begin{itemize}
+            \item Waiter accepted order → RECEIVED
+            \item Kitchen started preparing → PREPARING
+            \item Item ready → READY
+            \item Order completed → COMPLETED
+        \end{itemize}
+        \item Hiển thị progress bar và estimated time
+    \end{itemize}
+    \item \textbf{Add More Items:}
+    \begin{itemize}
+        \item Khách hàng có thể tiếp tục order trong cùng session
+        \item New items được thêm vào existing order (không tạo order mới)
+        \item Luồng approval tương tự
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Quy trình Xử lý Đơn - Waiter}
+
+\begin{enumerate}
+    \item \textbf{Login:} Truy cập \url{http://localhost:3000/waiter}
+    \item \textbf{Dashboard Overview:}
+    \begin{itemize}
+        \item Pending Orders: Đơn hàng mới chờ review
+        \item Active Tables: Bàn đang có khách
+        \item Notifications: Real-time alerts qua WebSocket
+    \end{itemize}
+    \item \textbf{Review Order:}
+    \begin{itemize}
+        \item Click vào pending order
+        \item Xem chi tiết: table number, items, modifiers, special requests
+        \item Verify item availability với kitchen
+    \end{itemize}
+    \item \textbf{Accept/Reject Items:}
+    \begin{itemize}
+        \item Accept: Item forward đến Kitchen
+        \item Reject: Chọn lý do (Out of stock, Kitchen busy, Invalid request)
+        \item Partial accept: Accept một số items, reject một số khác
+        \item Customer nhận notification về rejected items qua WebSocket
+    \end{itemize}
+    \item \textbf{Monitor Progress:}
+    \begin{itemize}
+        \item Theo dõi kitchen preparation status
+        \item Nhận alert khi items READY
+        \item Serve items đến table
+        \item Update status: SERVED
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Quy trình Chuẩn bị - Kitchen Staff}
+
+\begin{enumerate}
+    \item \textbf{Access KDS:} \url{http://localhost:3000/kitchen}
+    \item \textbf{Kitchen Display System Interface:}
+    \begin{itemize}
+        \item Order cards hiển thị theo thứ tự thời gian
+        \item Mỗi card chứa:
+        \begin{itemize}
+            \item Order number và table number
+            \item Item list với modifiers
+            \item Special instructions (highlighted)
+            \item Preparation timer (đếm ngược từ item prep time)
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Start Preparation:}
+    \begin{itemize}
+        \item Click "Start" button trên item card
+        \item Status: QUEUED → PREPARING
+        \item Timer bắt đầu đếm ngược
+        \item Notification gửi đến customer qua WebSocket
+    \end{itemize}
+    \item \textbf{Mark as Ready:}
+    \begin{itemize}
+        \item Click "Ready" button khi hoàn thành
+        \item Status: PREPARING → READY
+        \item Sound alert cho waiter
+        \item Card di chuyển sang "Ready for Pickup" column
+    \end{itemize}
+    \item \textbf{Alerts và Priority:}
+    \begin{itemize}
+        \item Items vượt quá prep time: Highlighted đỏ
+        \item VIP orders: Gold border
+        \item Urgent orders: Flashing animation
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Xử lý Sự cố Thường gặp}
+
+\subsubsection{Lỗi Kết nối Database}
+
+\textbf{Triệu chứng:} Service không khởi động, log hiển thị "ECONNREFUSED" hoặc "Connection timeout"
+
+\textbf{Nguyên nhân:}
+\begin{itemize}
+    \item PostgreSQL service chưa được khởi động
+    \item Sai thông tin credentials trong .env
+    \item Firewall block port 5432
+\end{itemize}
+
+\textbf{Giải pháp:}
+\begin{lstlisting}[language=bash]
+# Kiểm tra PostgreSQL running
+sudo systemctl status postgresql  # Linux
+# Hoặc Task Manager → Services → postgresql-x64-14
+
+# Test connection
+psql -h localhost -U postgres -d identity_db
+
+# Verify credentials trong .env
+cat src/backend/identity/.env | grep DATABASE
+
+# Cho phép port qua firewall (Windows)
+netsh advfirewall firewall add rule name="PostgreSQL" dir=in action=allow protocol=TCP localport=5432
+\end{lstlisting}
+
+\subsubsection{Port Already in Use}
+
+\textbf{Triệu chứng:} "Error: listen EADDRINUSE: address already in use :::3001"
+
+\textbf{Giải pháp:}
+\begin{lstlisting}[language=bash]
+# Windows: Tìm process đang sử dụng port
+netstat -ano | findstr :3001
+taskkill /PID <process_id> /F
+
+# Linux/Mac
+lsof -i :3001
+kill -9 <PID>
+
+# Hoặc thay đổi port trong .env
+PORT=3011
+\end{lstlisting}
+
+\subsubsection{JWT Token Invalid}
+
+\textbf{Triệu chứng:} API trả về "Unauthorized" hoặc "Invalid token"
+
+\textbf{Giải pháp:}
+\begin{itemize}
+    \item Verify JWT\_SECRET giống nhau giữa Identity Service và API Gateway
+    \item Kiểm tra token expiration: JWT\_EXPIRES\_IN
+    \item Clear browser cookies và localStorage
+    \item Re-login để lấy token mới
+\end{itemize}
+
+\subsubsection{WebSocket Connection Failed}
+
+\textbf{Triệu chứng:} Real-time updates không hoạt động
+
+\textbf{Giải pháp:}
+\begin{lstlisting}[language=bash]
+# Verify Notification Service running
+curl http://localhost:3007/health
+
+# Check WebSocket endpoint
+# Frontend console: "WebSocket connection to 'ws://localhost:3007' failed"
+
+# Verify CORS configuration trong Notification Service
+# main.ts:
+app.enableCors({
+  origin: ['http://localhost:3000', 'https://your-production-domain.com'],
+  credentials: true
+});
+\end{lstlisting}
+
+\subsubsection{Docker Containers Exit Immediately}
+
+\textbf{Giải pháp:}
+\begin{lstlisting}[language=bash]
+# Xem logs để identify error
+docker-compose logs service-name
+
+# Common issues:
+# 1. Missing environment variables
+docker-compose config  # Verify env interpolation
+
+# 2. Database not ready
+# Ensure healthcheck và depends_on configured correctly
+
+# 3. Application crash
+docker exec -it service-name npm run start:dev  # Run interactive để debug
+\end{lstlisting}
 %------------------------------------------------------------
 \section{Kết luận}
 
@@ -702,13 +1138,13 @@ Hệ thống Đặt món QR cho Nhà hàng Thông minh đã triển khai thành 
 
 \begin{itemize}
     \item Kiến trúc microservices Multi-Tenant với hơn 10 dịch vụ (9 dịch vụ chính + dịch vụ bên ngoài)
-    \item Hỗ trợ nhiều nhà hàng trên cùng một hệ thống với cô lập dữ liệu
+    \item Hỗ trợ nhiều nhà hàng trên cùng một hệ thống với cô lập dữ liệu hoàn toàn
     \item Đặt món dựa trên QR bảo mật với token đã ký HMAC-SHA256
-    \item Cập nhật thời gian thực qua WebSocket và RabbitMQ
-    \item Kiểm soát truy cập dựa trên vai trò cho tất cả loại người dùng
+    \item Cập nhật thời gian thực qua WebSocket và RabbitMQ cho trải nghiệm người dùng mượt mà
+    \item Kiểm soát truy cập dựa trên vai trò (RBAC) cho tất cả loại người dùng
     \item Tích hợp dịch vụ bên ngoài: File Service, Mail Service, Payment Service
-    \item Containerization với Docker để triển khai dễ dàng
-    \item Thiết kế responsive ưu tiên mobile
+    \item Containerization với Docker để triển khai dễ dàng và có thể mở rộng
+    \item Thiết kế responsive ưu tiên mobile với UI/UX hiện đại
 \end{itemize}
 
 Hệ thống giải quyết các thách thức thực tế của nhà hàng bằng cách giảm thiểu lỗi đặt món, cải thiện hiệu suất bếp và nâng cao trải nghiệm khách hàng thông qua đặt món không tiếp xúc.

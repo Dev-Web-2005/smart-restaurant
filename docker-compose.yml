@@ -1,181 +1,26 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  # ==================== DATABASES ====================
-  
-  # PostgreSQL for Identity Service
-  postgres-identity:
-    image: postgres:15-alpine
-    container_name: postgres-identity
-    environment:
-      POSTGRES_DB: identity_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres123
-    volumes:
-      - postgres-identity-data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    networks:
-      - smart-restaurant-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # PostgreSQL for Profile Service
-  postgres-profile:
-    image: postgres:15-alpine
-    container_name: postgres-profile
-    environment:
-      POSTGRES_DB: profile_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres123
-    volumes:
-      - postgres-profile-data:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"
-    networks:
-      - smart-restaurant-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # PostgreSQL for Product Service
-  postgres-product:
-    image: postgres:15-alpine
-    container_name: postgres-product
-    environment:
-      POSTGRES_DB: product_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres123
-    volumes:
-      - postgres-product-data:/var/lib/postgresql/data
-    ports:
-      - "5434:5432"
-    networks:
-      - smart-restaurant-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # PostgreSQL for Table Service
-  postgres-table:
-    image: postgres:15-alpine
-    container_name: postgres-table
-    environment:
-      POSTGRES_DB: table_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres123
-    volumes:
-      - postgres-table-data:/var/lib/postgresql/data
-    ports:
-      - "5435:5432"
-    networks:
-      - smart-restaurant-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # PostgreSQL for Order Service
-  postgres-order:
-    image: postgres:15-alpine
-    container_name: postgres-order
-    environment:
-      POSTGRES_DB: order_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres123
-    volumes:
-      - postgres-order-data:/var/lib/postgresql/data
-    ports:
-      - "5436:5432"
-    networks:
-      - smart-restaurant-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Redis for caching and sessions
-  redis:
-    image: redis:7-alpine
-    container_name: redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    networks:
-      - smart-restaurant-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # ==================== BACKEND SERVICES ====================
-
-  # Identity Service
-  identity-service:
-    build:
-      context: ./src/backend/identity
-      dockerfile: Dockerfile
-    container_name: identity-service
-    environment:
-      NODE_ENV: production
-      PORT: 3001
-      DATABASE_HOST: postgres-identity
-      DATABASE_PORT: 5432
-      DATABASE_NAME: identity_db
-      DATABASE_USER: postgres
-      DATABASE_PASSWORD: postgres123
-      JWT_SECRET: your-secret-key-change-in-production
-      JWT_EXPIRES_IN: 7d
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-    ports:
-      - "3001:3001"
-    depends_on:
-      postgres-identity:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - smart-restaurant-network
-    restart: unless-stopped
+  # Using external PostgreSQL, Redis, and RabbitMQ at 103.249.117.202
 
   # Profile Service
   profile-service:
     build:
-      context: ./src/backend/profile
-      dockerfile: Dockerfile
+      context: ./src/backend
+      dockerfile: profile/Dockerfile
     container_name: profile-service
     environment:
-      NODE_ENV: production
-      PORT: 3002
-      DATABASE_HOST: postgres-profile
-      DATABASE_PORT: 5432
-      DATABASE_NAME: profile_db
-      DATABASE_USER: postgres
-      DATABASE_PASSWORD: postgres123
-      IDENTITY_SERVICE_URL: http://identity-service:3001
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      PORT: 8081
+      X_API_KEY: "lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$$]4m&;5,8m5JN-,S<h#}"
+      HOST_DB: 103.249.117.202
+      PORT_DB: 46269
+      USERNAME_DB: myuser
+      PASSWORD_DB: 123456
+      DATABASE_DB: mydb
+      PROFILE_API_KEY: lethanhcong
     ports:
-      - "3002:3002"
-    depends_on:
-      postgres-profile:
-        condition: service_healthy
-      identity-service:
-        condition: service_started
-      redis:
-        condition: service_healthy
+      - "8081:8081"
     networks:
       - smart-restaurant-network
     restart: unless-stopped
@@ -183,29 +28,20 @@ services:
   # Product Service
   product-service:
     build:
-      context: ./src/backend/product
-      dockerfile: Dockerfile
+      context: ./src/backend
+      dockerfile: product/Dockerfile
     container_name: product-service
     environment:
-      NODE_ENV: production
-      PORT: 3003
-      DATABASE_HOST: postgres-product
-      DATABASE_PORT: 5432
-      DATABASE_NAME: product_db
-      DATABASE_USER: postgres
-      DATABASE_PASSWORD: postgres123
-      IDENTITY_SERVICE_URL: http://identity-service:3001
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      PORT: 8082
+      X_API_KEY: "lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$$]4m&;5,8m5JN-,S<h#}"
+      HOST_DB: 103.249.117.202
+      PORT_DB: 46269
+      USERNAME_DB: myuser
+      PASSWORD_DB: 123456
+      DATABASE_DB: mydb
+      PRODUCT_API_KEY: lethanhcong
     ports:
-      - "3003:3003"
-    depends_on:
-      postgres-product:
-        condition: service_healthy
-      identity-service:
-        condition: service_started
-      redis:
-        condition: service_healthy
+      - "8082:8082"
     networks:
       - smart-restaurant-network
     restart: unless-stopped
@@ -213,67 +49,67 @@ services:
   # Table Service
   table-service:
     build:
-      context: ./src/backend/table
-      dockerfile: Dockerfile
+      context: ./src/backend
+      dockerfile: table/Dockerfile
     container_name: table-service
     environment:
-      NODE_ENV: production
-      PORT: 3004
-      DATABASE_HOST: postgres-table
-      DATABASE_PORT: 5432
-      DATABASE_NAME: table_db
-      DATABASE_USER: postgres
-      DATABASE_PASSWORD: postgres123
-      IDENTITY_SERVICE_URL: http://identity-service:3001
-      QR_SECRET: your-qr-secret-change-in-production
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      PORT: 8083
+      X_API_KEY: "lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$$]4m&;5,8m5JN-,S<h#}"
+      TABLE_API_KEY: lethanhcong
+      HOST_PRODUCT_SERVICE: product-service
+      PORT_PRODUCT_SERVICE: 8082
+      HOST_DB: 103.249.117.202
+      PORT_DB: 46269
+      USERNAME_DB: myuser
+      PASSWORD_DB: 123456
+      DATABASE_DB: mydb
+      QR_SECRET_KEY: your-secret-key-change-in-production-min-32-chars
+      QR_BASE_URL: http://localhost:5173
     ports:
-      - "3004:3004"
+      - "8083:8083"
     depends_on:
-      postgres-table:
-        condition: service_healthy
-      identity-service:
-        condition: service_started
-      redis:
-        condition: service_healthy
+      - product-service
     networks:
       - smart-restaurant-network
     restart: unless-stopped
 
-  # Order Service
-  order-service:
+  # Identity Service
+  identity-service:
     build:
-      context: ./src/backend/order
-      dockerfile: Dockerfile
-    container_name: order-service
+      context: ./src/backend
+      dockerfile: identity/Dockerfile
+    container_name: identity-service
     environment:
-      NODE_ENV: production
-      PORT: 3005
-      DATABASE_HOST: postgres-order
-      DATABASE_PORT: 5432
-      DATABASE_NAME: order_db
-      DATABASE_USER: postgres
-      DATABASE_PASSWORD: postgres123
-      IDENTITY_SERVICE_URL: http://identity-service:3001
-      PRODUCT_SERVICE_URL: http://product-service:3003
-      TABLE_SERVICE_URL: http://table-service:3004
-      NOTIFICATION_SERVICE_URL: http://notification-service:3007
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      PORT: 8084
+      X_API_KEY: "lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$$]4m&;5,8m5JN-,S<h#}"
+      IDENTITY_API_KEY: lethanhcong
+      HOST_DB: 103.249.117.202
+      PORT_DB: 46269
+      USERNAME_DB: myuser
+      PASSWORD_DB: 123456
+      DATABASE_DB: mydb
+      HOST_PROFILE_SERVICE: profile-service
+      PORT_PROFILE_SERVICE: 8081
+      PROFILE_API_KEY: lethanhcong
+      ACCESS_TOKEN_EXPIRY: 5m
+      REFRESH_TOKEN_EXPIRY: 7d
+      JWT_SECRET_KEY_ACCESS: 1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
+      JWT_SECRET_KEY_REFRESH: 0987654321ZYXWVUTSRQPONMLKJIHGFEDCBAabcdefghijklmnopqrstuvwxyz
+      JWT_SECRET_KEY_RESET_PASSWORD: lethanhcongdeptraivclluonhahahahha
+      NOTIFICATION_API_KEY: lethanhcong
+      CONNECTION_AMQP: amqp://supper:supper@103.249.117.202:46270
+      QUEUE_NAME_OF_NOTIFICATION: local_notification
+      FRONTEND_URL: http://localhost:5173
+      CLIENT_ID: ${CLIENT_ID}
+      CLIENT_SECRET: ${CLIENT_SECRET}
+      REDIRECT_URI: ${VITE_REDIRECT_URI}
+      REDIS_HOST: 103.249.117.202
+      REDIS_PORT: 46271
+      REDIS_PASSWORD: ""
     ports:
-      - "3005:3005"
+      - "8084:8084"
     depends_on:
-      postgres-order:
-        condition: service_healthy
-      identity-service:
-        condition: service_started
-      product-service:
-        condition: service_started
-      table-service:
-        condition: service_started
-      redis:
-        condition: service_healthy
+      - profile-service
     networks:
       - smart-restaurant-network
     restart: unless-stopped
@@ -281,27 +117,28 @@ services:
   # Notification Service
   notification-service:
     build:
-      context: ./src/backend/notification
-      dockerfile: Dockerfile
+      context: ./src/backend
+      dockerfile: notification/Dockerfile
     container_name: notification-service
     environment:
-      NODE_ENV: production
-      PORT: 3007
-      IDENTITY_SERVICE_URL: http://identity-service:3001
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      # Email configuration (optional)
-      SMTP_HOST: smtp.gmail.com
-      SMTP_PORT: 587
-      SMTP_USER: your-email@gmail.com
-      SMTP_PASSWORD: your-password
+      PORT: 8085
+      HOST: notification-service
+      CONNECTION_AMQP: amqp://supper:supper@103.249.117.202:46270
+      NOTIFICATION_API_KEY: lethanhcong
+      LIMIT_REQUEUE: 5
+      HOST_DB: 103.249.117.202
+      PORT_DB: 46269
+      USERNAME_DB: myuser
+      PASSWORD_DB: 123456
+      DATABASE_DB: mydb
+      MAIL_URL: ${MAIL_URL}
+      MAIL_API_KEY: ${MAIL_API_KEY}
+      MAIL_SENDER: ${MAIL_SENDER}
+      MAIL_SENDER_NAME: ${MAIL_SENDER_NAME}
+      TTS_API_KEY: ${TTS_API_KEY}
+      NAME_QUEUE: local_notification
     ports:
-      - "3007:3007"
-    depends_on:
-      identity-service:
-        condition: service_started
-      redis:
-        condition: service_healthy
+      - "8085:8085"
     networks:
       - smart-restaurant-network
     restart: unless-stopped
@@ -309,28 +146,74 @@ services:
   # Kitchen Service
   kitchen-service:
     build:
-      context: ./src/backend/kitchen
-      dockerfile: Dockerfile
+      context: ./src/backend
+      dockerfile: kitchen/Dockerfile
     container_name: kitchen-service
     environment:
-      NODE_ENV: production
-      PORT: 3008
-      IDENTITY_SERVICE_URL: http://identity-service:3001
-      ORDER_SERVICE_URL: http://order-service:3005
-      NOTIFICATION_SERVICE_URL: http://notification-service:3007
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      PORT: 8086
+      CONNECTION_AMQP: amqp://supper:supper@103.249.117.202:46270
+      KITCHEN_API_KEY: lethanhcong
+      LIMIT_REQUEUE: 10
+      ORDER_API_KEY: lethanhcong
+      HOST_ORDER_SERVICE: order-service
+      PORT_ORDER_SERVICE: 8087
+      HOST_DB: 103.249.117.202
+      PORT_DB: 46269
+      USERNAME_DB: myuser
+      PASSWORD_DB: 123456
+      DATABASE_DB: mydb
+      WARNING_THRESHOLD: 600
+      CRITICAL_THRESHOLD: 900
+      NAME_QUEUE: local_kitchen
+      HOST_TABLE_SERVICE: table-service
+      PORT_TABLE_SERVICE: 8083
+      TABLE_API_KEY: lethanhcong
     ports:
-      - "3008:3008"
+      - "8086:8086"
+    networks:
+      - smart-restaurant-network
+    restart: unless-stopped
+
+  # Order Service
+  order-service:
+    build:
+      context: ./src/backend
+      dockerfile: order/Dockerfile
+    container_name: order-service
+    environment:
+      PORT: 8087
+      X_API_KEY: "lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$$]4m&;5,8m5JN-,S<h#}"
+      HOST_PRODUCT_SERVICE: product-service
+      PORT_PRODUCT_SERVICE: 8082
+      PRODUCT_API_KEY: lethanhcong
+      HOST_DB: 103.249.117.202
+      PORT_DB: 46269
+      USERNAME_DB: myuser
+      PASSWORD_DB: 123456
+      DATABASE_DB: mydb
+      REDIS_HOST: 103.249.117.202
+      REDIS_PORT: 46271
+      REDIS_PASSWORD: ""
+      REDIS_TTL: 86400
+      TAX_RATE: 0.1
+      ORDER_API_KEY: lethanhcong
+      CONNECTION_AMQP: amqp://supper:supper@103.249.117.202:46270
+      QUEUE_NAME_OF_ORDER: local_order
+      QUEUE_NAME_OF_WAITER: local_waiter
+      LIMIT_REQUEUE: 10
+      WAITER_API_KEY: lethanhcong
+      KITCHEN_API_KEY: lethanhcong
+      PAYMENT_URL: https://web-dev.lethanhcong.site:46268/api/payment
+      PAYMENT_API_KEY: lethanhcong
+      URL_HOME: http://localhost:5173
+      HOST_TABLE_SERVICE: table-service
+      PORT_TABLE_SERVICE: 8083
+      TABLE_API_KEY: lethanhcong
+    ports:
+      - "8087:8087"
     depends_on:
-      identity-service:
-        condition: service_started
-      order-service:
-        condition: service_started
-      notification-service:
-        condition: service_started
-      redis:
-        condition: service_healthy
+      - product-service
+      - table-service
     networks:
       - smart-restaurant-network
     restart: unless-stopped
@@ -338,31 +221,26 @@ services:
   # Waiter Service
   waiter-service:
     build:
-      context: ./src/backend/waiter
-      dockerfile: Dockerfile
+      context: ./src/backend
+      dockerfile: waiter/Dockerfile
     container_name: waiter-service
     environment:
-      NODE_ENV: production
-      PORT: 3009
-      IDENTITY_SERVICE_URL: http://identity-service:3001
-      ORDER_SERVICE_URL: http://order-service:3005
-      TABLE_SERVICE_URL: http://table-service:3004
-      NOTIFICATION_SERVICE_URL: http://notification-service:3007
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      PORT: 8088
+      CONNECTION_AMQP: amqp://supper:supper@103.249.117.202:46270
+      WAITER_API_KEY: lethanhcong
+      LIMIT_REQUEUE: 10
+      HOST_DB: 103.249.117.202
+      PORT_DB: 46269
+      USERNAME_DB: myuser
+      PASSWORD_DB: 123456
+      DATABASE_DB: mydb
+      NAME_QUEUE: local_waiter
+      QUEUE_NAME_OF_ORDER: local_order
+      QUEUE_NAME_OF_KITCHEN: local_kitchen
+      ORDER_API_KEY: lethanhcong
+      KITCHEN_API_KEY: lethanhcong
     ports:
-      - "3009:3009"
-    depends_on:
-      identity-service:
-        condition: service_started
-      order-service:
-        condition: service_started
-      table-service:
-        condition: service_started
-      notification-service:
-        condition: service_started
-      redis:
-        condition: service_healthy
+      - "8088:8088"
     networks:
       - smart-restaurant-network
     restart: unless-stopped
@@ -370,24 +248,52 @@ services:
   # API Gateway
   api-gateway:
     build:
-      context: ./src/backend/api-gateway
-      dockerfile: Dockerfile
+      context: ./src/backend
+      dockerfile: api-gateway/Dockerfile
     container_name: api-gateway
     environment:
-      NODE_ENV: production
       PORT: 8888
-      IDENTITY_SERVICE_URL: http://identity-service:3001
-      PROFILE_SERVICE_URL: http://profile-service:3002
-      PRODUCT_SERVICE_URL: http://product-service:3003
-      TABLE_SERVICE_URL: http://table-service:3004
-      ORDER_SERVICE_URL: http://order-service:3005
-      NOTIFICATION_SERVICE_URL: http://notification-service:3007
-      KITCHEN_SERVICE_URL: http://kitchen-service:3008
-      WAITER_SERVICE_URL: http://waiter-service:3009
-      JWT_SECRET: your-secret-key-change-in-production
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      CORS_ORIGIN: http://localhost:3000
+      MOD: production
+      X_API_KEY: "lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$$]4m&;5,8m5JN-,S<h#}"
+      IDENTITY_SERVICE_URL: http://identity-service:8084
+      HOST_IDENTITY_SERVICE: identity-service
+      PORT_IDENTITY_SERVICE: 8084
+      IDENTITY_API_KEY: lethanhcong
+      PROFILE_SERVICE_URL: http://profile-service:8081
+      HOST_PROFILE_SERVICE: profile-service
+      PORT_PROFILE_SERVICE: 8081
+      PROFILE_API_KEY: lethanhcong
+      PRODUCT_SERVICE_URL: http://product-service:8082
+      HOST_PRODUCT_SERVICE: product-service
+      PORT_PRODUCT_SERVICE: 8082
+      PRODUCT_API_KEY: lethanhcong
+      TABLE_SERVICE_URL: http://table-service:8083
+      HOST_TABLE_SERVICE: table-service
+      PORT_TABLE_SERVICE: 8083
+      TABLE_API_KEY: lethanhcong
+      ORDER_SERVICE_URL: http://order-service:8087
+      HOST_ORDER_SERVICE: order-service
+      PORT_ORDER_SERVICE: 8087
+      ORDER_API_KEY: lethanhcong
+      HOST_NOTIFICATION_SERVICE: notification-service
+      PORT_NOTIFICATION_SERVICE: 8085
+      NOTIFICATION_API_KEY: lethanhcong
+      HOST_WAITER_SERVICE: waiter-service
+      PORT_WAITER_SERVICE: 8088
+      WAITER_API_KEY: lethanhcong
+      HOST_KITCHEN_SERVICE: kitchen-service
+      PORT_KITCHEN_SERVICE: 8086
+      KITCHEN_API_KEY: lethanhcong
+      CONNECTION_AMQP: amqp://supper:supper@103.249.117.202:46270
+      NAME_QUEUE: local_api_gateway
+      REFRESH_TOKEN_EXPIRES_IN: 604800000
+      FRONTEND_URL: http://localhost:5173
+      COOKIE_DOMAIN: .lethanhcong.site
+      ACCESS_TOKEN_EXPIRY: 5m
+      REFRESH_TOKEN_EXPIRY: 7d
+      JWT_SECRET_KEY_ACCESS: 1234567890abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ
+      JWT_SECRET_KEY_REFRESH: 0987654321ZYXWVUTSRQPONMLKJIHGFEDCBAabcdefghijklmnopqrstuvwxyz
+      JWT_SECRET_KEY_RESET_PASSWORD: lethanhcongdeptraivclluonhahahahha
     ports:
       - "8888:8888"
     depends_on:
@@ -399,7 +305,6 @@ services:
       - notification-service
       - kitchen-service
       - waiter-service
-      - redis
     networks:
       - smart-restaurant-network
     restart: unless-stopped
@@ -413,10 +318,18 @@ services:
       dockerfile: Dockerfile
     container_name: frontend
     environment:
-      VITE_API_URL: http://localhost:8888/api
-      VITE_WS_URL: ws://localhost:8888/ws
+      VITE_API_URL: http://localhost:8888/api/v1
+      VITE_API_GATEWAY_URL: http://localhost:8888
+      VITE_FILE_SERVICE_URL: https://file-service-cdal.onrender.com
+      VITE_API_KEY: "lT0O|c_/4<{;K|.Ann[Cuib+7l+LL#W_-Y,T>w}8Mmeu}Z[el<1*|v.p&Wg}Mp%y:0$$]4m&;5,8m5JN-,S<h#}"
+      VITE_DIDIT_API_KEY: 7hwmBAe7gzf8RECVEc5oZWQc8Sp9_SDpX9lkLiHUyMs
+      VITE_DIDIT_WORKFLOW_ID: 5f32d046-a7e2-4429-b318-523f3f1b5487
+      VITE_DIDIT_CALLBACK_URL: http://localhost:5173/kyc/callback
+      FRONTEND_URL: http://localhost:5173
+      VITE_CLIENT_ID: ${VITE_CLIENT_ID}
+      VITE_REDIRECT_URI: ${VITE_REDIRECT_URI}
     ports:
-      - "3000:80"
+      - "5173:5173"
     depends_on:
       - api-gateway
     networks:
@@ -428,18 +341,3 @@ networks:
   smart-restaurant-network:
     driver: bridge
     name: smart-restaurant-network
-
-# ==================== VOLUMES ====================
-volumes:
-  postgres-identity-data:
-    name: postgres-identity-data
-  postgres-profile-data:
-    name: postgres-profile-data
-  postgres-product-data:
-    name: postgres-product-data
-  postgres-table-data:
-    name: postgres-table-data
-  postgres-order-data:
-    name: postgres-order-data
-  redis-data:
-    name: redis-data

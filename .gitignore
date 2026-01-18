@@ -103,3 +103,4 @@ src/backend/api-gateway/logs/
 
 */logs*/
 */logs*/*.json
+ENV.docx
