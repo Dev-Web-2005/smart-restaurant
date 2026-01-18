@@ -1,7 +1,14 @@
 import React from 'react'
 import OrderStatusTimeline from './OrderStatusTimeline'
 
-const OrderCard = ({ order, canCancel = false, onCancelClick, isCancelling = false }) => {
+const OrderCard = ({
+	order,
+	canCancel = false,
+	canPay = false,
+	onCancelClick,
+	onPayClick,
+	isCancelling = false,
+}) => {
 	// Check if order is cancelled
 	const isOrderCancelled = order.status === 'CANCELLED'
 
@@ -152,6 +159,17 @@ const OrderCard = ({ order, canCancel = false, onCancelClick, isCancelling = fal
 									Cancel Order
 								</>
 							)}
+						</button>
+					)}
+
+					{/* Pay Button - Only show if all items served */}
+					{canPay && !isOrderCancelled && (
+						<button
+							onClick={onPayClick}
+							className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 border border-green-500/30 transition-colors text-sm font-medium flex items-center gap-2"
+						>
+							<span className="material-symbols-outlined text-lg">payments</span>
+							Request Payment
 						</button>
 					)}
 				</div>

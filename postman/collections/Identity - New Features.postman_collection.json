@@ -512,6 +512,230 @@
             ]
         },
         {
+            "name": "Admin - User Management",
+            "item": [
+                {
+                    "name": "Get Users by Role (USER) - All",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/users/by-role/USER?status=all&page=1&limit=10",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "users",
+                                "by-role",
+                                "USER"
+                            ],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "all",
+                                    "description": "Filter: all, active, or inactive"
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number (default: 1)"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10",
+                                    "description": "Items per page (default: 10)"
+                                }
+                            ]
+                        },
+                        "description": "Get all USER role accounts with pagination. Requires ADMIN role."
+                    }
+                },
+                {
+                    "name": "Get Users by Role (USER) - Active Only",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/users/by-role/USER?status=active&page=1&limit=10",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "users",
+                                "by-role",
+                                "USER"
+                            ],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "active"
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        },
+                        "description": "Get only active USER role accounts. Requires ADMIN role."
+                    }
+                },
+                {
+                    "name": "Get Users by Role (USER) - Inactive Only",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/users/by-role/USER?status=inactive&page=1&limit=10",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "users",
+                                "by-role",
+                                "USER"
+                            ],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "inactive"
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "10"
+                                }
+                            ]
+                        },
+                        "description": "Get only inactive (deactivated) USER role accounts. Requires ADMIN role."
+                    }
+                },
+                {
+                    "name": "Soft Delete User (Deactivate)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PATCH",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/users/:targetUserId/deactivate",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "users",
+                                ":targetUserId",
+                                "deactivate"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "targetUserId",
+                                    "value": "{{targetUserId}}",
+                                    "description": "The userId of USER to deactivate"
+                                }
+                            ]
+                        },
+                        "description": "Soft delete (deactivate) a USER account by setting isActive to false. The user will not be able to login. Requires ADMIN role. Cannot deactivate ADMIN accounts."
+                    }
+                },
+                {
+                    "name": "Restore User (Reactivate)",
+                    "request": {
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{accessToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "PATCH",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseURL}}/api/v1/identity/users/:targetUserId/restore",
+                            "host": [
+                                "{{baseURL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "identity",
+                                "users",
+                                ":targetUserId",
+                                "restore"
+                            ],
+                            "variable": [
+                                {
+                                    "key": "targetUserId",
+                                    "value": "{{targetUserId}}",
+                                    "description": "The userId of USER to restore"
+                                }
+                            ]
+                        },
+                        "description": "Restore (reactivate) a deactivated USER account by setting isActive to true. The user will be able to login again. Requires ADMIN role."
+                    }
+                }
+            ]
+        },
+        {
             "name": "Email Verification",
             "item": [
                 {

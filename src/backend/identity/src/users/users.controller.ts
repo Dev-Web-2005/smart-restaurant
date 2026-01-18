@@ -15,6 +15,8 @@ import { SendVerificationEmailRequestDto } from './dtos/request/send-verificatio
 import { VerifyEmailCodeRequestDto } from './dtos/request/verify-email-code-request.dto';
 import { CheckEmailRequestDto } from 'src/users/dtos/request/check-email-request.dto';
 import { UpdateEmailRequestDto } from 'src/users/dtos/request/update-email-request.dto';
+import { GetUsersByRoleRequestDto } from 'src/users/dtos/request/get-users-by-role-request.dto';
+import { SoftDeleteUserRequestDto } from 'src/users/dtos/request/soft-delete-user-request.dto';
 
 @Controller()
 export class UsersController {
@@ -297,6 +299,68 @@ export class UsersController {
 				200,
 				'Email updated successfully',
 				await this.usersService.updateEmailWhenRegisterFailed(data),
+			);
+		});
+	}
+
+	/**
+	 * Get users by role with pagination and status filter (ADMIN only)
+	 * Pattern: users:get-users-by-role
+	 */
+	@MessagePattern('users:get-users-by-role')
+	async getUsersByRole(data: GetUsersByRoleRequestDto): Promise<HttpResponse> {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			return new HttpResponse(
+				200,
+				'Users retrieved successfully',
+				await this.usersService.getUsersByRole(
+					data.role,
+					data.status || 'all',
+					data.page || 1,
+					data.limit || 10,
+				),
+			);
+		});
+	}
+
+	/**
+	 * Soft delete user by setting isActive to false (ADMIN only)
+	 * Pattern: users:soft-delete
+	 */
+	@MessagePattern('users:soft-delete')
+	async softDeleteUser(data: SoftDeleteUserRequestDto): Promise<HttpResponse> {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			return new HttpResponse(
+				200,
+				'User deactivated successfully',
+				await this.usersService.softDeleteUser(data.targetUserId),
+			);
+		});
+	}
+
+	/**
+	 * Restore user by setting isActive to true (ADMIN only)
+	 * Pattern: users:restore
+	 */
+	@MessagePattern('users:restore')
+	async restoreUser(data: SoftDeleteUserRequestDto): Promise<HttpResponse> {
+		return handleRpcCall(async () => {
+			const expectedApiKey = this.config.get<string>('IDENTITY_API_KEY');
+			if (data.identityApiKey !== expectedApiKey) {
+				throw new AppException(ErrorCode.UNAUTHORIZED);
+			}
+			return new HttpResponse(
+				200,
+				'User restored successfully',
+				await this.usersService.restoreUser(data.targetUserId),
 			);
 		});
 	}

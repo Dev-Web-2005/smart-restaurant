@@ -6,6 +6,7 @@ import DishCard from '../components/DishCard'
 import DishListItem from '../components/DishListItem'
 import DishCustomizationModal from '../components/DishCustomizationModal'
 import { getPublicMenuAPI } from '../../../../services/api/publicMenuAPI'
+import { getPopularItemsAPI } from '../../../../services/api/popularItemsAPI'
 
 // Custom Dropdown Component with Glass Morphism
 const CustomDropdown = ({ value, onChange, options, disabled, label }) => {
@@ -89,6 +90,10 @@ const MenuPage = ({ tenantId, onAddToCart, onBack }) => {
 	const [view, setView] = useState('CATEGORIES') // CATEGORIES | DISHES
 	const [layoutView, setLayoutView] = useState('grid') // grid | list
 
+	// 🔥 Popular Items State
+	const [popularItems, setPopularItems] = useState([])
+	const [loadingPopular, setLoadingPopular] = useState(false)
+
 	// Loading states
 	const [loading, setLoading] = useState(true)
 	const [loadingDishes, setLoadingDishes] = useState(false)
@@ -140,12 +145,38 @@ const MenuPage = ({ tenantId, onAddToCart, onBack }) => {
 			console.log('📦 Using cached categories')
 			setCategories(categoriesCacheRef.current.data)
 			setLoading(false)
+			// Still fetch popular items
+			fetchPopularItems()
 			return
 		}
 
 		fetchCategories()
+		fetchPopularItems() // 🔥 Fetch popular items alongside categories
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [tenantId])
+
+	// 🔥 Fetch Popular Items
+	const fetchPopularItems = async () => {
+		try {
+			setLoadingPopular(true)
+			console.log('🔥 Fetching popular items for tenant:', tenantId)
+
+			const response = await getPopularItemsAPI(tenantId, { limit: 6 })
+
+			if (response.success && response.items) {
+				console.log('✅ Popular items loaded:', response.items.length)
+				setPopularItems(response.items)
+			} else {
+				console.warn('⚠️ No popular items found')
+				setPopularItems([])
+			}
+		} catch (err) {
+			console.error('❌ Error fetching popular items:', err)
+			setPopularItems([])
+		} finally {
+			setLoadingPopular(false)
+		}
+	}
 
 	// Fetch categories from API
 	const fetchCategories = async () => {
@@ -429,6 +460,132 @@ const MenuPage = ({ tenantId, onAddToCart, onBack }) => {
 			{view === 'CATEGORIES' ? (
 				// CATEGORY VIEW
 				<div className="p-4 flex flex-col items-center justify-center">
+					{/* 🔥 POPULAR DISHES SECTION */}
+					{popularItems.length > 0 && !categorySearch && (
+						<div className="w-full max-w-4xl mb-8">
+							<div className="flex flex-col items-center gap-1 mb-4">
+								<div className="flex items-center gap-2">
+									<span className="material-symbols-outlined text-orange-400 text-2xl">
+										local_fire_department
+									</span>
+									<h2 className="text-xl font-bold text-white">Popular Dishes</h2>
+								</div>
+								<span className="text-[#9dabb9] text-sm">
+									Based on customer orders
+								</span>
+							</div>
+							<div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+								{popularItems.map((item) => (
+									<motion.div
+										key={item.id}
+										initial={{ opacity: 0, y: 20 }}
+										animate={{ opacity: 1, y: 0 }}
+										transition={{ duration: 0.3 }}
+										className="group relative overflow-hidden rounded-xl backdrop-blur-xl bg-[#1A202C]/80 shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl border border-white/20 cursor-pointer flex h-24"
+										onClick={() => handleViewDetails(item)}
+									>
+										{/* Image - Left side */}
+										<div className="w-24 h-24 flex-shrink-0 relative overflow-hidden">
+											<img
+												src={
+													item.photos?.[0]?.url ||
+													'https://via.placeholder.com/200?text=No+Image'
+												}
+												alt={item.name}
+												className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+												onError={(e) => {
+													e.target.src = 'https://via.placeholder.com/200?text=No+Image'
+												}}
+											/>
+											{/* Order count badge */}
+											<div className="absolute top-1 left-1 px-1.5 py-0.5 bg-orange-500/90 rounded-full flex items-center gap-0.5">
+												<span className="material-symbols-outlined text-white text-[10px]">
+													local_fire_department
+												</span>
+												<span className="text-white text-[10px] font-medium">
+													{item.orderCount}
+												</span>
+											</div>
+										</div>
+										{/* Content - Right side */}
+										<div className="flex-1 p-3 flex flex-col justify-center min-w-0">
+											<div className="flex items-start gap-1">
+												<h3 className="text-sm font-bold text-white truncate flex-1">
+													{item.name}
+												</h3>
+												{/* Chef recommended badge */}
+												{item.isChefRecommended && (
+													<span className="material-symbols-outlined text-yellow-400 text-sm flex-shrink-0">
+														star
+													</span>
+												)}
+											</div>
+											{item.description && (
+												<p className="text-[#9dabb9] text-xs mt-1 line-clamp-1">
+													{item.description}
+												</p>
+											)}
+											<div className="flex items-center justify-between mt-2">
+												<span className="text-[#4ade80] font-bold text-sm">
+													$
+													{typeof item.price === 'number'
+														? item.price.toFixed(2)
+														: item.price}
+												</span>
+												{item.prepTimeMinutes && (
+													<span className="text-[#9dabb9] text-xs flex items-center gap-0.5">
+														<span className="material-symbols-outlined text-xs">
+															schedule
+														</span>
+														{item.prepTimeMinutes}m
+													</span>
+												)}
+											</div>
+										</div>
+									</motion.div>
+								))}
+							</div>
+						</div>
+					)}
+
+					{/* Loading Popular Items */}
+					{loadingPopular && popularItems.length === 0 && (
+						<div className="w-full max-w-4xl mb-8">
+							<div className="flex flex-col items-center gap-1 mb-4">
+								<div className="flex items-center gap-2">
+									<span className="material-symbols-outlined text-orange-400 text-2xl animate-pulse">
+										local_fire_department
+									</span>
+									<h2 className="text-xl font-bold text-white">
+										Loading Popular Dishes...
+									</h2>
+								</div>
+							</div>
+							<div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+								{[1, 2, 3, 4, 5, 6].map((i) => (
+									<div
+										key={i}
+										className="h-24 rounded-xl bg-[#1A202C]/50 animate-pulse border border-white/10"
+									/>
+								))}
+							</div>
+						</div>
+					)}
+
+					{/* Categories Section Title */}
+					{popularItems.length > 0 && !categorySearch && (
+						<div className="w-full max-w-4xl mb-4">
+							<div className="flex flex-col items-center gap-1">
+								<div className="flex items-center gap-2">
+									<span className="material-symbols-outlined text-[#137fec] text-2xl">
+										category
+									</span>
+									<h2 className="text-xl font-bold text-white">Browse by Category</h2>
+								</div>
+							</div>
+						</div>
+					)}
+
 					<div className="w-full max-w-md mb-6">
 						<div className="relative">
 							<input

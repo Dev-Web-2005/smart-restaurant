@@ -34,6 +34,20 @@ export default defineConfig(({ mode }) => {
 						})
 					},
 				},
+				// Proxy KYC API requests to Didit verification service
+				'/api/kyc': {
+					target: 'https://verification.didit.me/v2',
+					changeOrigin: true,
+					secure: true,
+					rewrite: (path) => path.replace(/^\/api\/kyc/, ''),
+					configure: (proxy, options) => {
+						proxy.on('proxyReq', (proxyReq, req, res) => {
+							// Add X-Api-Key header to proxied request for Didit API
+							proxyReq.setHeader('X-Api-Key', env.VITE_DIDIT_API_KEY)
+							proxyReq.setHeader('Content-Type', 'application/json')
+						})
+					},
+				},
 			},
 		},
 	}

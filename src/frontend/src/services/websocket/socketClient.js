@@ -14,7 +14,7 @@ class SocketClient {
 		this.listeners = new Map() // event -> Set of callbacks
 		this.reconnectAttempts = 0
 		this.maxReconnectAttempts = 5
-		this.isConnecting = false // ✅ Track connecting state to prevent duplicates
+		this.isConnecting = false
 	}
 
 	/**
@@ -61,19 +61,19 @@ class SocketClient {
 	 * @param {string} guestName - Optional guest name
 	 */
 	connectAsGuest(tenantId, tableId, guestName = 'Guest') {
-		// ✅ Check if already connected OR connecting
+		// Check if already connected OR connecting
 		if (this.socket?.connected) {
 			console.log('🔵 [Socket] Already connected')
 			return this.socket
 		}
 
-		// ✅ Prevent duplicate connection attempts
+		// Prevent duplicate connection attempts
 		if (this.isConnecting) {
 			console.log('🔵 [Socket] Connection already in progress, skipping...')
 			return this.socket
 		}
 
-		// ✅ If socket exists but not connected, reuse it
+		// If socket exists but not connected, reuse it
 		if (this.socket && !this.socket.connected) {
 			console.log('🔵 [Socket] Reusing existing socket, attempting reconnect...')
 			this.socket.connect()
@@ -109,7 +109,7 @@ class SocketClient {
 	setupEventHandlers() {
 		this.socket.on('connect', () => {
 			this.isConnected = true
-			this.isConnecting = false // ✅ Reset connecting flag
+			this.isConnecting = false // Reset connecting flag
 			this.reconnectAttempts = 0
 			console.log('✅ [Socket] Connected:', this.socket.id)
 
@@ -122,10 +122,10 @@ class SocketClient {
 
 		this.socket.on('disconnect', (reason) => {
 			this.isConnected = false
-			this.isConnecting = false // ✅ Reset connecting flag
+			this.isConnecting = false // Reset connecting flag
 			console.warn('⚠️ [Socket] Disconnected:', reason)
 
-			// ✅ If token was refreshed, try to reconnect with new token
+			// If token was refreshed, try to reconnect with new token
 			if (reason === 'io server disconnect' || reason === 'transport close') {
 				const newToken = window.accessToken
 				if (newToken && this.socket?.auth) {
@@ -140,7 +140,7 @@ class SocketClient {
 			this.reconnectAttempts++
 			console.error('❌ [Socket] Connection error:', error.message)
 
-			// ✅ Check if token is stale and update before retry
+			// Check if token is stale and update before retry
 			if (error.message.includes('unauthorized') || error.message.includes('jwt')) {
 				const newToken = window.accessToken
 				if (newToken && this.socket?.auth) {
@@ -160,7 +160,7 @@ class SocketClient {
 		})
 
 		this.socket.on('connection.success', (data) => {
-			console.log('✅ [Socket] Connection success:', data)
+			console.log(' [Socket] Connection success:', data)
 		})
 
 		this.socket.on('pong', (data) => {
@@ -174,7 +174,7 @@ class SocketClient {
 	 */
 	async joinWaitersRoom() {
 		if (!this.socket?.connected) {
-			console.error('❌ [Socket] Cannot join waiters room - not connected')
+			console.error(' [Socket] Cannot join waiters room - not connected')
 			return { success: false, error: 'Not connected' }
 		}
 

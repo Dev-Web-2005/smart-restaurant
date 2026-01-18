@@ -406,6 +406,124 @@ export const markItemsReadyAPI = async ({ tenantId, orderId, itemIds, userId }) 
  * @param {string} [params.sortOrder='DESC'] - Sort order (ASC, DESC)
  * @returns {Promise<Object>} Response with orders data and pagination
  */
+/**
+ * Generate bill for an order
+ * GET /tenants/:tenantId/orders/:orderId/bill
+ *
+ * Creates a comprehensive bill/invoice document for an order.
+ * Contains all order details, itemized breakdown, and payment information.
+ *
+ * @param {Object} params - Request parameters
+ * @param {string} params.tenantId - Tenant ID (UUID)
+ * @param {string} params.orderId - Order ID (UUID)
+ * @returns {Promise<Object>} Response with bill data
+ *
+ * Response Structure:
+ * - tenant: Restaurant/tenant information
+ * - order: Order metadata (table, customer, timestamps)
+ * - items: Itemized list with prices and modifiers
+ * - summary: Total breakdown (subtotal, tax, discount, total)
+ * - payment: Payment details (status, method, transaction ID)
+ * - billNumber: Unique bill identifier
+ * - generatedAt: Bill generation timestamp
+ */
+export const generateBillAPI = async ({ tenantId, orderId }) => {
+	try {
+		if (!tenantId || typeof tenantId !== 'string') {
+			throw new Error('Tenant ID is required and must be a string')
+		}
+		if (!orderId || typeof orderId !== 'string') {
+			throw new Error('Order ID is required and must be a string')
+		}
+
+		const response = await apiClient.get(`/tenants/${tenantId}/orders/${orderId}/bill`)
+
+		// Handle both code 200 and 1000 as success
+		const code = response.data?.code
+		if (code === 1000 || code === 200) {
+			return {
+				success: true,
+				data: response.data?.data,
+				message: response.data?.message || 'Bill generated successfully',
+			}
+		}
+
+		return {
+			success: false,
+			message: response.data?.message || 'Failed to generate bill',
+			data: null,
+		}
+	} catch (error) {
+		console.error('❌ Error generating bill:', error)
+		return {
+			success: false,
+			message:
+				error.response?.data?.message || error.message || 'Failed to generate bill',
+			data: null,
+		}
+	}
+}
+
+/**
+ * Generate payment QR code for an order
+ * GET /tenants/:tenantId/orders/:orderId/payment-qr
+ *
+ * Creates a QR code that leads to Stripe payment checkout.
+ * Customers scan the QR code to pay for their order via Stripe.
+ *
+ * @param {Object} params - Request parameters
+ * @param {string} params.tenantId - Tenant ID (UUID)
+ * @param {string} params.orderId - Order ID (UUID)
+ * @returns {Promise<Object>} Response with QR code and payment info
+ *
+ * Response Structure:
+ * - qrCode: Base64-encoded PNG image of QR code
+ * - paymentUrl: Stripe checkout URL
+ * - orderId: Order ID for reference
+ * - amount: Total amount in cents
+ * - currency: Currency code (e.g., "usd")
+ * - sessionId: Stripe session ID
+ * - expiresAt: When payment session expires
+ */
+export const generatePaymentQrAPI = async ({ tenantId, orderId }) => {
+	try {
+		if (!tenantId || typeof tenantId !== 'string') {
+			throw new Error('Tenant ID is required and must be a string')
+		}
+		if (!orderId || typeof orderId !== 'string') {
+			throw new Error('Order ID is required and must be a string')
+		}
+
+		const response = await apiClient.get(
+			`/tenants/${tenantId}/orders/${orderId}/payment-qr`,
+		)
+
+		// Handle both code 200 and 1000 as success
+		const code = response.data?.code
+		if (code === 1000 || code === 200) {
+			return {
+				success: true,
+				data: response.data?.data,
+				message: response.data?.message || 'Payment QR generated successfully',
+			}
+		}
+
+		return {
+			success: false,
+			message: response.data?.message || 'Failed to generate payment QR',
+			data: null,
+		}
+	} catch (error) {
+		console.error('❌ Error generating payment QR:', error)
+		return {
+			success: false,
+			message:
+				error.response?.data?.message || error.message || 'Failed to generate payment QR',
+			data: null,
+		}
+	}
+}
+
 export const getOrderHistoryAPI = async ({
 	tenantId,
 	customerId,

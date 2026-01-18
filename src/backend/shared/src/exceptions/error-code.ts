@@ -99,6 +99,20 @@ export default class ErrorCode {
 		409,
 	);
 
+	/** User account has been deactivated */
+	static readonly USER_ACCOUNT_DEACTIVATED: ErrorCode = new ErrorCode(
+		2008,
+		"Your account has been deactivated. Please contact administrator.",
+		403,
+	);
+
+	/** Cannot deactivate own account */
+	static readonly CANNOT_DEACTIVATE_SELF: ErrorCode = new ErrorCode(
+		2009,
+		"Cannot deactivate your own account",
+		400,
+	);
+
 	// ==================== ROLE & AUTHORITY (2100-2199) ====================
 
 	/** Role not found in system */

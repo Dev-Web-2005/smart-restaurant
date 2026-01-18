@@ -52,6 +52,11 @@ export class AuthService {
 			throw new AppException(ErrorCode.LOGIN_FAILED);
 		}
 
+		// Check if user account is deactivated
+		if (!user.isActive) {
+			throw new AppException(ErrorCode.USER_ACCOUNT_DEACTIVATED);
+		}
+
 		const isPasswordValid = await bcrypt.compare(data.password, user.password);
 		if (!isPasswordValid) {
 			throw new AppException(ErrorCode.LOGIN_FAILED);
@@ -104,6 +109,11 @@ export class AuthService {
 
 		if (!user) {
 			throw new AppException(ErrorCode.LOGIN_FAILED);
+		}
+
+		// Check if user account is deactivated
+		if (!user.isActive) {
+			throw new AppException(ErrorCode.USER_ACCOUNT_DEACTIVATED);
 		}
 
 		const isPasswordValid = await bcrypt.compare(data.password, user.password);
@@ -605,6 +615,11 @@ export class AuthService {
 					this.notificationClient.emit('mail.send', notificationRequest);
 				} catch (emitError) {
 					console.error('Error sending welcome email:', emitError);
+				}
+			} else {
+				// Check if existing user account is deactivated
+				if (!user.isActive) {
+					throw new AppException(ErrorCode.USER_ACCOUNT_DEACTIVATED);
 				}
 			}
 
