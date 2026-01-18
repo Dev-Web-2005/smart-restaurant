@@ -145,29 +145,18 @@ export const getTableStatsAPI = async () => {
  */
 export const getTablesAPI = async (floor, options = {}) => {
 	try {
-		console.log('?? [getTablesAPI] Called with:', {
-			floor,
-			options,
-			floorIdValue: options.floorId,
-			floorIdType: typeof options.floorId,
-		})
-
 		// ? Backend ListTablesDto supports: isActive, status, floorId, includeFloor
 		// ?? NOTE: location, sortBy, sortOrder are NOT supported by backend
 		const params = new URLSearchParams()
 
 		// Filter by status (backend supports this)
 		if (options.status && options.status !== 'All') {
-			console.log('? Adding status to params:', options.status)
 			params.append('status', options.status)
 		}
 
 		// ? Filter by floorId (backend ListTablesDto supports floorId)
 		if (options.floorId) {
-			console.log('? Adding floorId to params:', options.floorId)
 			params.append('floorId', options.floorId)
-		} else {
-			console.warn('?? floorId is missing from options!', { options })
 		}
 
 		// NOTE: Backend does NOT support:
@@ -178,8 +167,6 @@ export const getTablesAPI = async (floor, options = {}) => {
 
 		const tenantId = getTenantId()
 		const url = `/tenants/${tenantId}/tables?${params.toString()}`
-		console.log('?? [REQUEST URL]:', url)
-		console.log('?? [PARAMS STRING]:', params.toString())
 
 		const response = await apiClient.get(url)
 		const { code, message, data } = response.data
@@ -293,25 +280,10 @@ export const createTableAPI = async (tableData) => {
 		if (tableData.gridY !== undefined) payload.gridY = tableData.gridY
 		if (tableData.status) payload.status = toBackendStatus(tableData.status) // Convert to backend format
 
-		// ?? Debug: Log request details
-		console.log('?? Creating table:', {
-			url: `/tenants/${tenantId}/tables`,
-			payload,
-			hasToken: !!accessToken,
-			ignoredFields: {
-				location: tableData.location,
-				description: tableData.description,
-				floor: tableData.floor,
-			},
-		})
-
 		const response = await apiClient.post(`/tenants/${tenantId}/tables`, payload)
-
-		console.log('?? Create table response:', response.data)
 		const { code, message, data } = response.data
 
 		if (code === 1000 || code === 200 || code === 201) {
-			console.log('? Table created successfully:', data)
 			// Normalize status in response
 			const normalizedTable = {
 				...data,
@@ -1225,8 +1197,8 @@ export const printAllTableQRCodes = (tables) => {
 						: ''
 				}
 				<img src="${table.qrCodeUrl}" alt="QR Code ${
-				table.name
-			}" class="qr-image" onerror="this.src='https://via.placeholder.com/400x400?text=QR+Error'" />
+					table.name
+				}" class="qr-image" onerror="this.src='https://via.placeholder.com/400x400?text=QR+Error'" />
 				<div class="qr-info">
 					Qu�t m� QR d? xem th�ng tin b�n v� d?t m�n
 				</div>

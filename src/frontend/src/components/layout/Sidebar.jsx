@@ -13,17 +13,20 @@ const adminNavItems = [
 		route: '/admin/tenant-management',
 	},
 	{ icon: 'group', label: 'User Management', route: '/admin/user-management' },
+	{ icon: 'person', label: 'Profile', route: '/profile' },
 	{ icon: 'settings', label: 'System Settings', route: '/admin/settings' },
 ]
 
-// Menu cho Tenant Admin (Ví dụ, dựa trên code gốc bạn cung cấp)
+// Menu cho Tenant Admin (Menu, Table, Order, Kitchen ở trên - Profile, Setting ở cuối)
 const tenantNavItems = [
 	{ icon: 'menu_book', label: 'Menu', route: '/user/menu' },
 	{ icon: 'table_restaurant', label: 'Table', route: '/user/table' },
-	{ icon: 'qr_code_2', label: 'Restaurant QR', route: '/user/restaurant-qr' },
 	{ icon: 'receipt_long', label: 'Order', route: '/user/order' },
+	{ icon: 'restaurant', label: 'Kitchen', route: '/user/kitchen' },
+	{ icon: 'qr_code_2', label: 'Restaurant QR', route: '/user/restaurant-qr' },
 	{ icon: 'notifications_active', label: 'Help Requests', route: '/user/help-requests' },
-	{ icon: 'analytics', label: 'Analytics', route: '/user/analytics' },
+	{ icon: 'analytics', label: 'Report Dashboard', route: '/user/analytics' },
+	{ icon: 'person', label: 'Profile', route: '/profile' },
 	{ icon: 'settings', label: 'Setting', route: '/user/settings' },
 ]
 

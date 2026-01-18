@@ -1,9 +1,11 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react'
 import ReactDOM from 'react-dom'
+import ReviewsSection from './ReviewsSection'
 
-const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
+const DishCustomizationModal = ({ dish, onClose, onAddToCart, tenantId }) => {
 	const modalRef = useRef(null)
 	const [isVisible, setIsVisible] = useState(false)
+	const [showReviews, setShowReviews] = useState(false)
 
 	// Handle API data structure for modifiers
 	const modifierGroups = useMemo(() => {
@@ -148,8 +150,10 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 						if (option) {
 							return {
 								id: option.id,
+								groupId: group.id, // Add groupId for backend
+								optionId: option.id, // Add optionId for backend
 								groupName: group.name,
-								label: option.name,
+								label: option.label, // Use 'label' from API (not 'name')
 								priceDelta: option.priceDelta || option.priceAdjustment || 0,
 							}
 						}
@@ -162,6 +166,8 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 					if (mod) {
 						return {
 							id: mod.id,
+							groupId: mod.groupId || mod.id, // Fallback
+							optionId: mod.id,
 							groupName: mod.groupName,
 							label: mod.label,
 							priceDelta: mod.priceDelta,
@@ -227,18 +233,30 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 				</div>
 
 				{/* Content */}
-				<div className="p-6 overflow-y-auto max-h-[calc(90vh-250px)] space-y-6">
+				<div
+					className="p-6 overflow-y-auto max-h-[calc(90vh-250px)] space-y-6 scrollbar-hide"
+					style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+				>
 					{/* Dish Image & Info */}
 					<div className="flex gap-4">
 						<div className="w-32 h-32 rounded-lg overflow-hidden flex-shrink-0">
 							<img
-								src={dish.imageUrl}
+								src={dish.imageUrl || dish.photos?.[0]?.url}
 								alt={dish.name}
 								className="w-full h-full object-cover"
 							/>
 						</div>
 						<div className="flex-1">
 							<p className="text-white leading-relaxed text-sm">{dish.description}</p>
+							{/* View Reviews Button */}
+							<button
+								type="button"
+								onClick={() => setShowReviews(true)}
+								className="mt-3 flex items-center gap-1.5 text-[#137fec] hover:text-blue-400 transition-colors text-sm font-medium"
+							>
+								<span className="material-symbols-outlined text-base">star</span>
+								View Reviews
+							</button>
 						</div>
 					</div>
 
@@ -341,6 +359,17 @@ const DishCustomizationModal = ({ dish, onClose, onAddToCart }) => {
 					</button>
 				</div>
 			</div>
+
+			{/* Reviews Modal */}
+			{showReviews && (
+				<ReviewsSection
+					tenantId={tenantId}
+					itemId={dish.id}
+					itemName={dish.name}
+					isOpen={showReviews}
+					onClose={() => setShowReviews(false)}
+				/>
+			)}
 		</div>,
 		document.body,
 	)

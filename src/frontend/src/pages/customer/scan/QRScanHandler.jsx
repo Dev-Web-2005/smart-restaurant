@@ -30,12 +30,12 @@ const QRScanHandler = () => {
 					// Token valid - store info and show login
 					const { tableId, tableNumber } = data
 					setTableInfo({ tableId, tableNumber: tableNumber || tableId })
-					
+
 					// Store in localStorage for later use
 					localStorage.setItem('currentOwnerId', tenantId)
 					localStorage.setItem('currentTenantId', tenantId)
 					localStorage.setItem('currentTableNumber', tableNumber || tableId)
-					
+
 					setValidating(false)
 					setShowAuthModal(true)
 				} else {
@@ -59,10 +59,20 @@ const QRScanHandler = () => {
 	const handleAuthSuccess = (customer) => {
 		console.log('✅ Customer authenticated:', customer)
 		setShowAuthModal(false)
-		
-		// Navigate to ordering interface with table info
-		const tableNum = tableInfo?.tableNumber || localStorage.getItem('currentTableNumber') || '0'
-		navigate(`/order/${tenantId}/table/${tableNum}`, { replace: true })
+
+		// Navigate to ordering interface with table UUID (not table number!)
+		// tableInfo.tableId is the UUID needed for API calls
+		const tableUuid = tableInfo?.tableId
+		if (!tableUuid) {
+			console.error('❌ No table UUID found after authentication')
+			setError('Table information missing. Please scan QR code again.')
+			return
+		}
+
+		// Store tableId for later use
+		localStorage.setItem('currentTableId', tableUuid)
+
+		navigate(`/order/${tenantId}/table/${tableUuid}`, { replace: true })
 	}
 
 	const handleAuthClose = () => {
@@ -102,9 +112,12 @@ const QRScanHandler = () => {
 		<div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900">
 			{/* Background Pattern */}
 			<div className="absolute inset-0 opacity-10">
-				<div className="absolute inset-0" style={{
-					backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-				}}></div>
+				<div
+					className="absolute inset-0"
+					style={{
+						backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+					}}
+				></div>
 			</div>
 
 			{/* Welcome Message when modal closed */}
@@ -116,9 +129,7 @@ const QRScanHandler = () => {
 						<p className="text-white/90 mb-2">
 							You're at Table {tableInfo?.tableNumber || 'N/A'}
 						</p>
-						<p className="text-white/70 mb-6">
-							Please login to start ordering
-						</p>
+						<p className="text-white/70 mb-6">Please login to start ordering</p>
 						<button
 							onClick={() => setShowAuthModal(true)}
 							className="px-8 py-3 bg-white text-purple-900 rounded-lg hover:bg-gray-100 transition-colors font-semibold"

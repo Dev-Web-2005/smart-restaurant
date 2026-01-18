@@ -32,13 +32,14 @@ export const customerLoginAPI = async (username, password, ownerId) => {
 			// Store access token in window for apiClient interceptor
 			window.accessToken = accessToken
 
-			// Prepare customer data
+			// Prepare customer data (include accessToken for persistence)
 			const customerData = {
 				userId,
 				username: userName,
 				email,
 				roles,
 				ownerId: ownerIdResponse,
+				accessToken, // ✅ Store token for persistence across page refresh
 			}
 
 			// Store in localStorage for persistence

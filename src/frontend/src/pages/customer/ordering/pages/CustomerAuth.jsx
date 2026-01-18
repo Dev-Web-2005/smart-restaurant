@@ -131,9 +131,12 @@ const CustomerAuth = ({ onClose, onSuccess, tenantId: propTenantId }) => {
 			if (result.success) {
 				setLoading(false)
 
-				// Callback to parent component
+				// Callback to parent component with customer data AND accessToken
 				if (onSuccess) {
-					onSuccess(result.customer)
+					onSuccess({
+						...result.customer,
+						accessToken: result.accessToken, // ✅ Include accessToken for persistence
+					})
 				}
 
 				// Close modal
@@ -233,9 +236,12 @@ const CustomerAuth = ({ onClose, onSuccess, tenantId: propTenantId }) => {
 			if (result.success) {
 				setLoading(false)
 
-				// Callback to parent component
+				// Callback to parent component with customer data AND accessToken
 				if (onSuccess) {
-					onSuccess(result.customer)
+					onSuccess({
+						...result.customer,
+						accessToken: result.accessToken, // ✅ Include accessToken for persistence
+					})
 				}
 
 				// Close modal

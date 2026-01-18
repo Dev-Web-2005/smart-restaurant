@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import React, { useState, useEffect, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { customerLogoutAPI } from '../../../../services/api/customerAPI'
 import {
 	sendVerificationEmailAPI,
@@ -7,9 +7,25 @@ import {
 	checkEmailVerificationStatusAPI,
 	resendVerificationEmailAPI,
 } from '../../../../services/api/authAPI'
+import { getOrderHistoryAPI } from '../../../../services/api/orderAPI'
+import CustomerAuth from './CustomerAuth'
 
 const ProfilePage = ({ onBack }) => {
 	const [customerAuth, setCustomerAuth] = useState(null)
+
+	// Order History State
+	const [showOrderHistory, setShowOrderHistory] = useState(false)
+	const [orderHistory, setOrderHistory] = useState([])
+	const [orderHistoryLoading, setOrderHistoryLoading] = useState(false)
+	const [orderHistoryError, setOrderHistoryError] = useState('')
+	const [orderHistoryPagination, setOrderHistoryPagination] = useState({
+		page: 1,
+		limit: 10,
+		total: 0,
+		totalPages: 0,
+	})
+	const [historyFilter, setHistoryFilter] = useState('all') // all, COMPLETED, IN_PROGRESS, CANCELLED
+	const [historySortOrder, setHistorySortOrder] = useState('DESC')
 
 	// Email Verification State
 	const [emailVerified, setEmailVerified] = useState(false)
@@ -22,11 +38,28 @@ const ProfilePage = ({ onBack }) => {
 	const [otpSuccess, setOtpSuccess] = useState('')
 
 	useEffect(() => {
+		// Check if in guest mode first
+		const isGuest = localStorage.getItem('isGuestMode') === 'true'
+
+		if (isGuest) {
+			// Guest mode - no authentication required
+			setCustomerAuth({ isGuest: true })
+			setCheckingEmailStatus(false)
+			return
+		}
+
 		const auth = localStorage.getItem('customerAuth')
 		if (auth) {
 			try {
 				const parsedAuth = JSON.parse(auth)
 				setCustomerAuth(parsedAuth)
+
+				// ✅ Restore accessToken to window for API calls
+				if (parsedAuth?.accessToken) {
+					window.accessToken = parsedAuth.accessToken
+					console.log('🔑 Customer accessToken restored from localStorage')
+				}
+
 				// ✅ Check email verification status after loading auth
 				if (parsedAuth?.email) {
 					checkEmailVerificationStatus(parsedAuth.email)
@@ -155,24 +188,163 @@ const ProfilePage = ({ onBack }) => {
 		setOtpError('') // Clear error when typing
 	}
 
+	// ✨ Order History Functions
+	const fetchOrderHistory = useCallback(
+		async (page = 1, status = historyFilter, sortOrder = historySortOrder) => {
+			// Check for customerId (can be 'id' or 'userId' depending on auth source)
+			const customerId = customerAuth?.id || customerAuth?.userId
+			const tenantId = customerAuth?.ownerId || customerAuth?.tenantId
+
+			if (!customerId || !tenantId) {
+				console.warn('⚠️ Order History: Missing auth data', {
+					customerId,
+					tenantId,
+					customerAuth,
+				})
+				setOrderHistoryError('Customer authentication required')
+				return
+			}
+
+			setOrderHistoryLoading(true)
+			setOrderHistoryError('')
+
+			try {
+				const result = await getOrderHistoryAPI({
+					tenantId: tenantId,
+					customerId: customerId,
+					page,
+					limit: orderHistoryPagination.limit,
+					status: status === 'all' ? undefined : status,
+					sortBy: 'createdAt',
+					sortOrder: sortOrder,
+				})
+
+				if (result.success) {
+					setOrderHistory(result.data?.orders || [])
+					setOrderHistoryPagination({
+						page: result.data?.page || 1,
+						limit: result.data?.limit || 10,
+						total: result.data?.total || 0,
+						totalPages: result.data?.totalPages || 0,
+					})
+					console.log('📜 Order history loaded:', result.data)
+				} else {
+					setOrderHistoryError(result.message || 'Failed to load order history')
+				}
+			} catch (error) {
+				console.error('Error fetching order history:', error)
+				setOrderHistoryError('An error occurred while loading order history')
+			} finally {
+				setOrderHistoryLoading(false)
+			}
+		},
+		[
+			customerAuth?.id,
+			customerAuth?.userId,
+			customerAuth?.ownerId,
+			customerAuth?.tenantId,
+			historyFilter,
+			historySortOrder,
+			orderHistoryPagination.limit,
+		],
+	)
+
+	const handleShowOrderHistory = () => {
+		setShowOrderHistory(true)
+		fetchOrderHistory(1, historyFilter, historySortOrder)
+	}
+
+	const handleFilterChange = (newFilter) => {
+		setHistoryFilter(newFilter)
+		fetchOrderHistory(1, newFilter, historySortOrder)
+	}
+
+	const handleSortOrderChange = () => {
+		const newSortOrder = historySortOrder === 'DESC' ? 'ASC' : 'DESC'
+		setHistorySortOrder(newSortOrder)
+		fetchOrderHistory(orderHistoryPagination.page, historyFilter, newSortOrder)
+	}
+
+	const handlePageChange = (newPage) => {
+		fetchOrderHistory(newPage, historyFilter, historySortOrder)
+	}
+
+	// Helper function to format date
+	const formatDate = (dateString) => {
+		const date = new Date(dateString)
+		return date.toLocaleDateString('vi-VN', {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit',
+		})
+	}
+
+	// Helper function to get status color
+	const getStatusColor = (status) => {
+		switch (status) {
+			case 'COMPLETED':
+				return 'bg-green-500/20 text-green-400 border-green-500/30'
+			case 'IN_PROGRESS':
+			case 'PREPARING':
+				return 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+			case 'PENDING':
+				return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+			case 'CANCELLED':
+				return 'bg-red-500/20 text-red-400 border-red-500/30'
+			default:
+				return 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+		}
+	}
+
+	// Helper function to get payment status color
+	const getPaymentStatusColor = (status) => {
+		switch (status) {
+			case 'PAID':
+				return 'bg-green-500/20 text-green-400'
+			case 'PENDING':
+				return 'bg-yellow-500/20 text-yellow-400'
+			case 'FAILED':
+			case 'REFUNDED':
+				return 'bg-red-500/20 text-red-400'
+			default:
+				return 'bg-gray-500/20 text-gray-400'
+		}
+	}
+
 	const handleLogout = () => {
 		customerLogoutAPI()
 		window.location.reload() // Reload to reset auth state
 	}
 
-	if (!customerAuth) {
+	const handleAuthSuccess = (customer) => {
+		console.log('✅ Login successful:', customer)
+
+		// Update guest mode flag
+		if (customer?.isGuest) {
+			localStorage.setItem('isGuestMode', 'true')
+		} else {
+			localStorage.setItem('isGuestMode', 'false')
+			if (customer) {
+				localStorage.setItem('customerAuth', JSON.stringify(customer))
+			}
+		}
+
+		// Reload to update state
+		window.location.reload()
+	}
+
+	// Guest mode or not logged in - show auth modal
+	if (customerAuth?.isGuest || !customerAuth) {
 		return (
-			<div className="flex flex-col items-center justify-center h-full p-6">
-				<span className="material-symbols-outlined text-gray-400 text-6xl mb-4">
-					person_off
-				</span>
-				<p className="text-gray-400 text-lg mb-4">You are not logged in</p>
-				<button
-					onClick={onBack}
-					className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-				>
-					Go Back
-				</button>
+			<div className="flex flex-col items-center justify-center h-full relative">
+				<CustomerAuth
+					onClose={() => {
+						if (onBack) onBack()
+					}}
+					onSuccess={handleAuthSuccess}
+				/>
 			</div>
 		)
 	}
@@ -281,8 +453,8 @@ const ProfilePage = ({ onBack }) => {
 										{checkingEmailStatus
 											? 'progress_activity'
 											: emailVerified
-											? 'verified'
-											: 'mail'}
+												? 'verified'
+												: 'mail'}
 									</span>
 								</div>
 								<div className="flex-1">
@@ -299,8 +471,8 @@ const ProfilePage = ({ onBack }) => {
 									checkingEmailStatus
 										? 'bg-gray-500/20 border border-gray-500/30'
 										: emailVerified
-										? 'bg-green-500/20 border border-green-500/30'
-										: 'bg-amber-500/20 border border-amber-500/30'
+											? 'bg-green-500/20 border border-green-500/30'
+											: 'bg-amber-500/20 border border-amber-500/30'
 								}`}
 							>
 								<span
@@ -308,30 +480,30 @@ const ProfilePage = ({ onBack }) => {
 										checkingEmailStatus
 											? 'text-gray-400 animate-spin'
 											: emailVerified
-											? 'text-green-400'
-											: 'text-amber-400'
+												? 'text-green-400'
+												: 'text-amber-400'
 									}`}
 								>
 									{checkingEmailStatus
 										? 'progress_activity'
 										: emailVerified
-										? 'check_circle'
-										: 'pending'}
+											? 'check_circle'
+											: 'pending'}
 								</span>
 								<span
 									className={`text-xs font-medium ${
 										checkingEmailStatus
 											? 'text-gray-400'
 											: emailVerified
-											? 'text-green-400'
-											: 'text-amber-400'
+												? 'text-green-400'
+												: 'text-amber-400'
 									}`}
 								>
 									{checkingEmailStatus
 										? 'Checking...'
 										: emailVerified
-										? 'Verified'
-										: 'Not Verified'}
+											? 'Verified'
+											: 'Not Verified'}
 								</span>
 							</div>
 						</div>
@@ -447,7 +619,10 @@ const ProfilePage = ({ onBack }) => {
 
 				{/* Actions Section */}
 				<div className="mt-8 space-y-3">
-					<button className="w-full bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 hover:bg-gray-700/50 transition-colors text-left">
+					<button
+						onClick={handleShowOrderHistory}
+						className="w-full bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 hover:bg-gray-700/50 transition-colors text-left"
+					>
 						<div className="flex items-center justify-between">
 							<div className="flex items-center gap-3">
 								<span className="material-symbols-outlined text-gray-400">history</span>
@@ -500,6 +675,226 @@ const ProfilePage = ({ onBack }) => {
 					</button>
 				</div>
 			</div>
+
+			{/* Order History Modal */}
+			<AnimatePresence>
+				{showOrderHistory && (
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						exit={{ opacity: 0 }}
+						className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center"
+						onClick={() => setShowOrderHistory(false)}
+					>
+						<motion.div
+							initial={{ y: '100%', opacity: 0 }}
+							animate={{ y: 0, opacity: 1 }}
+							exit={{ y: '100%', opacity: 0 }}
+							transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+							onClick={(e) => e.stopPropagation()}
+							className="w-full max-w-2xl max-h-[85vh] bg-gray-900 rounded-t-3xl sm:rounded-2xl overflow-hidden flex flex-col"
+						>
+							{/* Modal Header */}
+							<div className="flex items-center justify-between p-4 border-b border-gray-700">
+								<h2 className="text-xl font-bold text-white flex items-center gap-2">
+									<span className="material-symbols-outlined text-blue-400">history</span>
+									Order History
+								</h2>
+								<button
+									onClick={() => setShowOrderHistory(false)}
+									className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+								>
+									<span className="material-symbols-outlined text-gray-400">close</span>
+								</button>
+							</div>
+
+							{/* Filters */}
+							<div className="p-4 border-b border-gray-700 flex flex-wrap gap-2 items-center">
+								<div className="flex gap-2 flex-wrap flex-1">
+									{['all', 'COMPLETED', 'IN_PROGRESS', 'CANCELLED'].map((filter) => (
+										<button
+											key={filter}
+											onClick={() => handleFilterChange(filter)}
+											className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+												historyFilter === filter
+													? 'bg-blue-500 text-white'
+													: 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+											}`}
+										>
+											{filter === 'all' ? 'All' : filter.replace('_', ' ')}
+										</button>
+									))}
+								</div>
+								<button
+									onClick={handleSortOrderChange}
+									className="flex items-center gap-1 px-3 py-1.5 bg-gray-800 text-gray-400 hover:bg-gray-700 rounded-lg text-sm transition-colors"
+									title={historySortOrder === 'DESC' ? 'Newest first' : 'Oldest first'}
+								>
+									<span className="material-symbols-outlined text-base">
+										{historySortOrder === 'DESC' ? 'arrow_downward' : 'arrow_upward'}
+									</span>
+									{historySortOrder === 'DESC' ? 'Newest' : 'Oldest'}
+								</button>
+							</div>
+
+							{/* Content */}
+							<div className="flex-1 overflow-y-auto p-4">
+								{orderHistoryLoading ? (
+									<div className="flex flex-col items-center justify-center py-12">
+										<span className="material-symbols-outlined text-4xl text-blue-400 animate-spin">
+											progress_activity
+										</span>
+										<p className="text-gray-400 mt-4">Loading order history...</p>
+									</div>
+								) : orderHistoryError ? (
+									<div className="flex flex-col items-center justify-center py-12">
+										<span className="material-symbols-outlined text-4xl text-red-400">
+											error
+										</span>
+										<p className="text-red-400 mt-4">{orderHistoryError}</p>
+										<button
+											onClick={() =>
+												fetchOrderHistory(1, historyFilter, historySortOrder)
+											}
+											className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+										>
+											Retry
+										</button>
+									</div>
+								) : orderHistory.length === 0 ? (
+									<div className="flex flex-col items-center justify-center py-12">
+										<span className="material-symbols-outlined text-4xl text-gray-500">
+											receipt_long
+										</span>
+										<p className="text-gray-400 mt-4">No orders found</p>
+										<p className="text-gray-500 text-sm mt-1">
+											Your order history will appear here
+										</p>
+									</div>
+								) : (
+									<div className="space-y-4">
+										{orderHistory.map((order) => (
+											<div
+												key={order.id}
+												className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700"
+											>
+												{/* Order Header */}
+												<div className="flex items-start justify-between mb-3">
+													<div>
+														<p className="text-white font-medium">
+															Order #{order.orderNumber || order.id?.slice(0, 8)}
+														</p>
+														<p className="text-gray-400 text-sm">
+															{formatDate(order.createdAt)}
+														</p>
+													</div>
+													<div className="flex flex-col items-end gap-1">
+														<span
+															className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}
+														>
+															{order.status}
+														</span>
+														<span
+															className={`px-2 py-0.5 rounded text-xs ${getPaymentStatusColor(order.paymentStatus)}`}
+														>
+															{order.paymentStatus}
+														</span>
+													</div>
+												</div>
+
+												{/* Order Items */}
+												{order.items && order.items.length > 0 && (
+													<div className="border-t border-gray-700 pt-3 mt-3">
+														<p className="text-gray-400 text-xs mb-2">
+															{order.items.length} item(s)
+														</p>
+														<div className="space-y-2">
+															{order.items.slice(0, 3).map((item, idx) => (
+																<div
+																	key={item.id || idx}
+																	className="flex items-center justify-between text-sm"
+																>
+																	<div className="flex items-center gap-2">
+																		<span className="text-gray-300">
+																			{item.quantity}x
+																		</span>
+																		<span className="text-white">
+																			{item.menuItemName || item.name}
+																		</span>
+																	</div>
+																	<span className="text-gray-400">
+																		{item.itemTotal?.toLocaleString('vi-VN')}đ
+																	</span>
+																</div>
+															))}
+															{order.items.length > 3 && (
+																<p className="text-gray-500 text-xs">
+																	+{order.items.length - 3} more items...
+																</p>
+															)}
+														</div>
+													</div>
+												)}
+
+												{/* Order Total */}
+												<div className="border-t border-gray-700 pt-3 mt-3 flex items-center justify-between">
+													<span className="text-gray-400">Total</span>
+													<span className="text-white font-bold text-lg">
+														{order.total?.toLocaleString('vi-VN')}đ
+													</span>
+												</div>
+
+												{/* Table Info */}
+												{order.tableName && (
+													<div className="mt-2 text-xs text-gray-500">
+														Table: {order.tableName}
+														{order.floorName && ` - ${order.floorName}`}
+													</div>
+												)}
+											</div>
+										))}
+									</div>
+								)}
+							</div>
+
+							{/* Pagination */}
+							{orderHistoryPagination.totalPages > 1 && (
+								<div className="p-4 border-t border-gray-700 flex items-center justify-between">
+									<p className="text-gray-400 text-sm">
+										Page {orderHistoryPagination.page} of{' '}
+										{orderHistoryPagination.totalPages}
+										<span className="ml-2 text-gray-500">
+											({orderHistoryPagination.total} orders)
+										</span>
+									</p>
+									<div className="flex gap-2">
+										<button
+											onClick={() => handlePageChange(orderHistoryPagination.page - 1)}
+											disabled={orderHistoryPagination.page <= 1}
+											className="px-3 py-1.5 bg-gray-800 text-gray-400 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+										>
+											<span className="material-symbols-outlined text-base">
+												chevron_left
+											</span>
+										</button>
+										<button
+											onClick={() => handlePageChange(orderHistoryPagination.page + 1)}
+											disabled={
+												orderHistoryPagination.page >= orderHistoryPagination.totalPages
+											}
+											className="px-3 py-1.5 bg-gray-800 text-gray-400 rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+										>
+											<span className="material-symbols-outlined text-base">
+												chevron_right
+											</span>
+										</button>
+									</div>
+								</div>
+							)}
+						</motion.div>
+					</motion.div>
+				)}
+			</AnimatePresence>
 		</motion.div>
 	)
 }

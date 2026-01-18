@@ -32,7 +32,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"name\": \"Table 2\",\r\n  \"capacity\": 4,\r\n//   \"status\": \"AVAILABLE\", // default\r\n  \"floorId\": \"3ac7df6b-de49-45f5-9ddd-8c24dc8ad309\", // optional\r\n  \"gridX\": 0, // optional\r\n  \"gridY\": 0 // optional\r\n}",
+              "raw": "{\r\n  \"name\": \"Table 2\",\r\n  \"capacity\": 4,\r\n//   \"status\": \"AVAILABLE\", // default\r\n  \"floorId\": \"ce003054-fac9-4d35-8426-9eab683f50ad\", // optional\r\n  \"gridX\": 0, // optional\r\n  \"gridY\": 0 // optional\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -78,7 +78,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/4e40e08c-675a-4825-af78-7028ac86fe69",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/66094127-3af3-4550-9f7b-a17089ad0981",
               "host": [
                 "{{baseURL}}"
               ],
@@ -88,7 +88,7 @@
                 "tenants",
                 "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "tables",
-                "4e40e08c-675a-4825-af78-7028ac86fe69"
+                "66094127-3af3-4550-9f7b-a17089ad0981"
               ]
             }
           },
@@ -261,7 +261,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    \"name\": \"Tầng 2\",\r\n    \"floorNumber\": 2,\r\n    \"gridWidth\": 10,\r\n    \"gridHeight\": 10\r\n}",
+              "raw": "{\r\n    \"name\": \"Tầng 1\",\r\n    \"floorNumber\": 1,\r\n    \"gridWidth\": 10,\r\n    \"gridHeight\": 10\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -279,6 +279,54 @@
                 "tenants",
                 "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "floors"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Floor",
+          "id": "a38bbc0a-015b-460a-88ed-4febe00affb5",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    // All is optional\r\n    \"name\": \"Tầng 1 (Update)\"\r\n    // \"floorNumber\": 2,\r\n    // \"gridWidth\": 10,\r\n    // \"gridHeight\": 10,\r\n    // \"description\": \"hehe\",\r\n    // \"isActive\": true\r\n\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors/3ac7df6b-de49-45f5-9ddd-8c24dc8ad309",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "floors",
+                "3ac7df6b-de49-45f5-9ddd-8c24dc8ad309"
               ]
             }
           },
@@ -427,7 +475,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NjgwMzg5NSwiZXhwIjoxNzY2ODA0MTk1fQ.XAXyM8gXluawMkGyhOnG8va4-vLRrzd7B5gIoSz68XY",
+                  "value": "m",
                   "type": "string"
                 }
               ]
@@ -445,7 +493,7 @@
               "raw": ""
             },
             "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/0e4d0676-a58f-4946-be23-df9e3f95ce0e/qrcode",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/66094127-3af3-4550-9f7b-a17089ad0981/qrcode",
               "host": [
                 "{{baseURL}}"
               ],
@@ -455,7 +503,7 @@
                 "tenants",
                 "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "tables",
-                "0e4d0676-a58f-4946-be23-df9e3f95ce0e",
+                "66094127-3af3-4550-9f7b-a17089ad0981",
                 "qrcode"
               ]
             }
@@ -470,7 +518,13 @@
           },
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
             "url": {
               "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/scan/eyJ0YWJsZUlkIjoiZmYwOWM3OWQtZmNlZS00OTg5LWJlMGUtNThkODliYTI1MjQzIiwidGVuYW50SWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ0b2tlblZlcnNpb24iOjMsImlzc3VlZEF0IjoxNzY2MjIxNTc5MzAyfQ.SWQZgcp8FVvC1ZIJwdwQM-ZKINCLAgtf_y-ejO2djqU",
               "host": [
@@ -498,7 +552,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NjgwMTA3MywiZXhwIjoxNzY2ODAxMzczfQ.ox2Gwi0jpusKn8I1f8_2YiNu-DNKf1Bmj5q-yPLprRw",
+                  "value": "m",
                   "type": "string"
                 }
               ]
@@ -516,7 +570,7 @@
               "raw": ""
             },
             "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/ff09c79d-fcee-4989-be0e-58d89ba25243/qrcode",
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/66094127-3af3-4550-9f7b-a17089ad0981/qrcode",
               "host": [
                 "{{baseURL}}"
               ],
@@ -526,7 +580,7 @@
                 "tenants",
                 "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                 "tables",
-                "ff09c79d-fcee-4989-be0e-58d89ba25243",
+                "66094127-3af3-4550-9f7b-a17089ad0981",
                 "qrcode"
               ]
             }
@@ -542,7 +596,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NjgwMTA3MywiZXhwIjoxNzY2ODAxMzczfQ.ox2Gwi0jpusKn8I1f8_2YiNu-DNKf1Bmj5q-yPLprRw",
+                  "value": "m",
                   "type": "string"
                 }
               ]
@@ -577,8 +631,7 @@
               "query": [
                 {
                   "key": "format",
-                  "value": "svg",
-                  "uuid": "d12fc78a-6ca1-4e82-8f85-3f489dc1a4f3"
+                  "value": "svg"
                 }
               ]
             }
@@ -594,7 +647,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NjgwNDM4OSwiZXhwIjoxNzY2ODA0Njg5fQ.6Od-0nEXaIgWTKT8sNQfbw_v-z2fzoV6VTdc7fFaZZs",
+                  "value": "m",
                   "type": "string"
                 }
               ]
@@ -628,57 +681,8 @@
               "query": [
                 {
                   "key": "format",
-                  "value": "combined-pdf",
-                  "uuid": "a6f5331a-2415-4f01-9ad2-a7416e0619c2"
+                  "value": "combined-pdf"
                 }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update Floor",
-          "id": "a38bbc0a-015b-460a-88ed-4febe00affb5",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "m",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "x-api-key",
-                "value": "{{x-api-key}}",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\r\n    // All is optional\r\n    \"name\": \"Tầng 1 (Update)\"\r\n    // \"floorNumber\": 2,\r\n    // \"gridWidth\": 10,\r\n    // \"gridHeight\": 10,\r\n    // \"description\": \"hehe\",\r\n    // \"isActive\": true\r\n\r\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/floors/3ac7df6b-de49-45f5-9ddd-8c24dc8ad309",
-              "host": [
-                "{{baseURL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "tenants",
-                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
-                "floors",
-                "3ac7df6b-de49-45f5-9ddd-8c24dc8ad309"
               ]
             }
           },
@@ -746,7 +750,7 @@
                   "bearer": [
                     {
                       "key": "token",
-                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NjgwMTA3MywiZXhwIjoxNzY2ODAxMzczfQ.ox2Gwi0jpusKn8I1f8_2YiNu-DNKf1Bmj5q-yPLprRw",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
                       "type": "string"
                     }
                   ]
@@ -761,7 +765,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Beverages v4\",\n  \"description\": \"Enjoy meals with wonderful drinks\",\n  \"displayOrder\": 3,\n  \"imageUrl\": \"example-image.com\",\n  \"status\": \"ACTIVE\"\n}",
+                  "raw": "{\n  \"name\": \"Beverages v2\",\n  \"description\": \"Enjoy meals with wonderful drinks\",\n  \"displayOrder\": 2,\n  \"imageUrl\": \"example-image.com\",\n  \"status\": \"ACTIVE\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -788,6 +792,16 @@
               "name": "Get All Categories",
               "id": "7b515daa-e631-448c-a402-45c7f498b50a",
               "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+                      "type": "string"
+                    }
+                  ]
+                },
                 "method": "GET",
                 "header": [
                   {
@@ -1046,7 +1060,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"categoryId\": \"5f6f6d52-d12c-485d-aa98-b624f2a27329\",\n  \"name\": \"Caesar Salad\",\n  \"description\": \"Fresh romaine lettuce with Caesar dressing, parmesan cheese, and croutons\",\n  \"price\": 12.99,\n  \"currency\": \"VND\",\n  \"prepTimeMinutes\": 15,\n  \"status\": \"AVAILABLE\",\n  \"isChefRecommended\": true\n}",
+                  "raw": "{\n  \"categoryId\": \"4c557e4a-e438-496a-9196-f50794440766\",\n  \"name\": \"Fruit Salad\",\n  \"description\": \"Fresh romaine lettuce with Caesar dressing, parmesan cheese, and croutons\",\n  \"price\": 10.99,\n  \"currency\": \"USD\",\n  \"prepTimeMinutes\": 10,\n  \"status\": \"AVAILABLE\",\n  \"isChefRecommended\": true\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1092,7 +1106,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items?page=1&limit=20",
+                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items?sortBy=popularity&page=1&limit=20",
                   "host": [
                     "{{baseURL}}"
                   ],
@@ -1118,17 +1132,19 @@
                     },
                     {
                       "key": "search",
-                      "value": "",
+                      "value": "Ceasar",
+                      "uuid": "cccac4df-3fca-4c4e-8b8d-40dfaf9bf903",
                       "disabled": true
                     },
                     {
                       "key": "sortBy",
-                      "value": "createdAt",
-                      "disabled": true
+                      "value": "popularity",
+                      "uuid": "a881199d-bc9a-4be4-9a61-2da382cadea1"
                     },
                     {
                       "key": "sortOrder",
-                      "value": "DESC",
+                      "value": "ASC",
+                      "uuid": "ce8947fc-43d3-435f-8a73-b20886f2a895",
                       "disabled": true
                     },
                     {
@@ -1175,7 +1191,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6",
+                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/c0365bc5-c946-45df-8eb2-e8c0bd240b6d",
                   "host": [
                     "{{baseURL}}"
                   ],
@@ -1185,7 +1201,7 @@
                     "tenants",
                     "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                     "items",
-                    "2dc1b28b-76d6-4ee4-935c-8741157d60c6"
+                    "c0365bc5-c946-45df-8eb2-e8c0bd240b6d"
                   ],
                   "query": [
                     {
@@ -1343,6 +1359,100 @@
                 }
               },
               "response": []
+            },
+            {
+              "name": "Get Popular Menu Items",
+              "id": "popular-items-get-001",
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "x-api-key",
+                    "value": "{{x-api-key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/popular?limit=10",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "tenants",
+                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                    "items",
+                    "popular"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Number of popular items to return (default: 10, max: 100)",
+                      "uuid": "d66461a1-a374-4322-9f7b-1af5d084868e"
+                    },
+                    {
+                      "key": "categoryId",
+                      "value": "",
+                      "description": "Optional - Filter popular items by category",
+                      "disabled": true
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Increment Order Count",
+              "id": "increment-order-count-001",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "x-api-key",
+                    "value": "{{x-api-key}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"itemId\": \"dd9fb42b-71a0-421d-bdac-41ba34c7ef16\",\n  \"quantity\": 2\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/increment-order-count",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "tenants",
+                    "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                    "items",
+                    "increment-order-count"
+                  ]
+                }
+              },
+              "response": []
             }
           ],
           "id": "35cbdd74-9336-401c-8b41-ce20cd24c45d"
@@ -1382,7 +1492,7 @@
                   }
                 },
                 "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/photos",
+                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/dd9fb42b-71a0-421d-bdac-41ba34c7ef16/photos",
                   "host": [
                     "{{baseURL}}"
                   ],
@@ -1392,7 +1502,7 @@
                     "tenants",
                     "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                     "items",
-                    "2dc1b28b-76d6-4ee4-935c-8741157d60c6",
+                    "dd9fb42b-71a0-421d-bdac-41ba34c7ef16",
                     "photos"
                   ]
                 }
@@ -1846,7 +1956,7 @@
                   }
                 },
                 "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe/options",
+                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/61649a87-9b54-4b65-84dc-f1d6b7367cb3/options",
                   "host": [
                     "{{baseURL}}"
                   ],
@@ -1856,7 +1966,7 @@
                     "tenants",
                     "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                     "modifier-groups",
-                    "3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
+                    "61649a87-9b54-4b65-84dc-f1d6b7367cb3",
                     "options"
                   ]
                 }
@@ -1886,7 +1996,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/3b6f04c5-8517-42ff-ab76-8cb2d5c04abe/options?isActive=true",
+                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/modifier-groups/61649a87-9b54-4b65-84dc-f1d6b7367cb3/options?isActive=true",
                   "host": [
                     "{{baseURL}}"
                   ],
@@ -1896,7 +2006,7 @@
                     "tenants",
                     "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                     "modifier-groups",
-                    "3b6f04c5-8517-42ff-ab76-8cb2d5c04abe",
+                    "61649a87-9b54-4b65-84dc-f1d6b7367cb3",
                     "options"
                   ],
                   "query": [
@@ -2072,7 +2182,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"modifierGroups\": [\n    {\n      \"modifierGroupId\": \"3b6f04c5-8517-42ff-ab76-8cb2d5c04abe\",\n      \"displayOrder\": 0,\n      \"isRequired\": true,\n      \"minSelections\": 1,\n      \"maxSelections\": 1\n    }\n    // {\n    //   \"modifierGroupId\": \"{{groupId2}}\",\n    //   \"displayOrder\": 1,\n    //   \"isRequired\": false,\n    //   \"minSelections\": 0,\n    //   \"maxSelections\": 5\n    // }\n  ]\n}",
+                  "raw": "{\n  \"modifierGroups\": [\n    {\n      \"modifierGroupId\": \"61649a87-9b54-4b65-84dc-f1d6b7367cb3\",\n      \"displayOrder\": 0,\n      \"isRequired\": true,\n      \"minSelections\": 1,\n      \"maxSelections\": 1\n    }\n    // {\n    //   \"modifierGroupId\": \"{{groupId2}}\",\n    //   \"displayOrder\": 1,\n    //   \"isRequired\": false,\n    //   \"minSelections\": 0,\n    //   \"maxSelections\": 5\n    // }\n  ]\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -2080,7 +2190,7 @@
                   }
                 },
                 "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/modifiers",
+                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/c0365bc5-c946-45df-8eb2-e8c0bd240b6d/modifiers",
                   "host": [
                     "{{baseURL}}"
                   ],
@@ -2090,7 +2200,7 @@
                     "tenants",
                     "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                     "items",
-                    "2dc1b28b-76d6-4ee4-935c-8741157d60c6",
+                    "c0365bc5-c946-45df-8eb2-e8c0bd240b6d",
                     "modifiers"
                   ]
                 }
@@ -2120,7 +2230,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/2dc1b28b-76d6-4ee4-935c-8741157d60c6/modifiers",
+                  "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/items/dd9fb42b-71a0-421d-bdac-41ba34c7ef16/modifiers",
                   "host": [
                     "{{baseURL}}"
                   ],
@@ -2130,7 +2240,7 @@
                     "tenants",
                     "d95e73fb-b861-40eb-ba09-eff4b79084ef",
                     "items",
-                    "2dc1b28b-76d6-4ee4-935c-8741157d60c6",
+                    "dd9fb42b-71a0-421d-bdac-41ba34c7ef16",
                     "modifiers"
                   ]
                 }
@@ -2260,9 +2370,2568 @@
             }
           ],
           "id": "d7f09ab3-8d2e-45e5-bc51-b58902cbda94"
+        },
+        {
+          "name": "Reviews",
+          "item": [
+            {
+              "name": "Create Review",
+              "id": "create-review-001",
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "x-api-key",
+                    "value": "{{x-api-key}}",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"userId\": \"beaad7dd-386e-4168-ae9c-fb742619058e\",\n    \"userName\": \"Customer 1\",\n    \"rating\": 5,\n    \"comment\": \"Absolutely delicious! The best salad I've ever had. Highly recommended!\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseURL}}/api/v1/tenants/:tenantId/items/:itemId/reviews",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "tenants",
+                    ":tenantId",
+                    "items",
+                    ":itemId",
+                    "reviews"
+                  ],
+                  "variable": [
+                    {
+                      "key": "tenantId",
+                      "value": "d95e73fb-b861-40eb-ba09-eff4b79084ef"
+                    },
+                    {
+                      "key": "itemId",
+                      "value": "c0365bc5-c946-45df-8eb2-e8c0bd240b6d"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Reviews for Menu Item",
+              "id": "get-reviews-001",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "x-api-key",
+                    "value": "{{x-api-key}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseURL}}/api/v1/tenants/:tenantId/items/:itemId/reviews?page=1&limit=10",
+                  "host": [
+                    "{{baseURL}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "tenants",
+                    ":tenantId",
+                    "items",
+                    ":itemId",
+                    "reviews"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "uuid": "0555d0f4-4cd8-472b-afe0-b4e87b003217"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "uuid": "f580f364-b01d-4071-90fd-a0f0fb203793"
+                    }
+                  ],
+                  "variable": [
+                    {
+                      "key": "tenantId",
+                      "value": "d95e73fb-b861-40eb-ba09-eff4b79084ef"
+                    },
+                    {
+                      "key": "itemId",
+                      "value": "c0365bc5-c946-45df-8eb2-e8c0bd240b6d"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ],
+          "id": "reviews-folder-001"
         }
       ],
       "id": "8ab72cfb-05a5-48fc-bc3b-0dd9bb65b6ec"
+    },
+    {
+      "name": "Current User",
+      "item": [
+        {
+          "name": "login",
+          "id": "4976ee0f-eb78-469e-926b-df0edbfd9d16",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    // \"username\": \"waiter1\",\r\n    // \"username\": \"kitchen1\",\r\n    \"username\": \"test1\",\r\n    \"password\": \"StrongPassword!123\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/identity/auth/login",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "identity",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "logout",
+          "id": "bff09ec7-0431-4fcc-bee3-f9082ca07ad0",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzN2M4MmE1ZC00NGM2LTQ4YWItYjhjYi04MzYwM2JhODE3YmYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NSIsImVtYWlsIjoidXNlcjEyMzQ1QGV4YW1wbGUuY29tIiwicm9sZXMiOlsiQURNSU4iXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTYxMywiZXhwIjoxNzY1MDIxOTEzfQ.LcUhkzH8CWHoLsT75EY6ywgBcWoQQ1_fr3Jg0qIRCa8",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8888/api/v1/identity/auth/logout",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "identity",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "register user",
+          "id": "a7835302-c2eb-49cd-b7ec-81ac8f4d6607",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"birthDay\": \"1999-10-15\",\r\n  \"phoneNumber\": \"0987654321\",\r\n  \"address\": \"123 đường ABC, TP HCM\",\r\n  \"restaurantName\": \"Nhà hàng Đỉnh Cao\",\r\n  \"businessAddress\": \"456 đường XYZ, Hà Nội\",\r\n  \"contractNumber\": \"0123456789\",\r\n  \"contractEmail\": \"contract@example.com\",\r\n  \"cardHolderName\": \"Nguyen Van A\",\r\n  \"accountNumber\": \"9876543210123\",\r\n  \"expirationDate\": \"12/28\",\r\n  \"cvv\": \"456\",\r\n  \"frontImage\": \"base64_front_image\",\r\n  \"backImage\": \"base64_back_image\",\r\n  \"username\": \"test1\",\r\n  \"email\": \"test1@example.com\",\r\n  \"password\": \"StrongPassword!123\",\r\n  \"confirmPassword\": \"StrongPassword!123\",\r\n  \"fullName\": \"Nguyen Hung Thinh\",\r\n  \"roles\": [\"ADMIN\"]\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/identity/users/register",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "identity",
+                "users",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "my profile",
+          "id": "62426c60-81de-4ff1-8de4-0adef71dcf5c",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8888/api/v1/profiles/my-profile",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "profiles",
+                "my-profile"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "update profile",
+          "id": "1f14838b-625e-400e-80c1-3e656b16cdf3",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"verified\": true\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8888/api/v1/profiles/modify",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "profiles",
+                "modify"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "check verify account",
+          "id": "210ba3de-b922-4f6f-86c9-a426e7c39431",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8888/api/v1/profiles/verify-state",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "profiles",
+                "verify-state"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "705989e3-bd25-4f35-9b68-0a3093c081dc"
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "create authority",
+          "id": "9f11d17b-ccb5-45e3-a00c-61d37c30626e",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"WRITE\",\r\n    \"description\": \"aaaa\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8888/api/v1/identity/authorities/create-authority",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "identity",
+                "authorities",
+                "create-authority"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get authorities",
+          "id": "99849822-a4ee-4b03-9d86-2f7e8d010115",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8888/api/v1/identity/authorities/get-all-authorities",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "identity",
+                "authorities",
+                "get-all-authorities"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get all role",
+          "id": "daa0b0b6-9e60-4d24-9cff-0019538a3bf5",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8888/api/v1/identity/roles/get-all-roles",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "identity",
+                "roles",
+                "get-all-roles"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "craete role",
+          "id": "518994cf-21e4-4a5e-9c63-f84fe8390abd",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\" :\"USER\",\r\n    \"description\": \"user permission\",\r\n    \"authorities\": [\"READ\"]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "http://localhost:8888/api/v1/identity/roles/create-role",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "identity",
+                "roles",
+                "create-role"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get profile (admin)",
+          "id": "29c9c291-e778-4bec-9f01-83c563df6b3b",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzN2M4MmE1ZC00NGM2LTQ4YWItYjhjYi04MzYwM2JhODE3YmYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NSIsImVtYWlsIjoidXNlcjEyMzQ1QGV4YW1wbGUuY29tIiwicm9sZXMiOlsiQURNSU4iXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTYxMywiZXhwIjoxNzY1MDIxOTEzfQ.LcUhkzH8CWHoLsT75EY6ywgBcWoQQ1_fr3Jg0qIRCa8",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8888/api/v1/profiles/00f6ce01-fb86-4056-86c8-cd90e52b0f73",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "profiles",
+                "00f6ce01-fb86-4056-86c8-cd90e52b0f73"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get all users",
+          "id": "0e22c202-61fa-40b1-9cce-5ea223287f8c",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzN2M4MmE1ZC00NGM2LTQ4YWItYjhjYi04MzYwM2JhODE3YmYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NSIsImVtYWlsIjoidXNlcjEyMzQ1QGV4YW1wbGUuY29tIiwicm9sZXMiOlsiQURNSU4iXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTYxMywiZXhwIjoxNzY1MDIxOTEzfQ.LcUhkzH8CWHoLsT75EY6ywgBcWoQQ1_fr3Jg0qIRCa8",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8888/api/v1/identity/users/get-all-users",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8888",
+              "path": [
+                "api",
+                "v1",
+                "identity",
+                "users",
+                "get-all-users"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "f6da9c92-ccdd-4e2f-915a-854adde5c72c"
+    },
+    {
+      "name": "Order",
+      "item": [
+        {
+          "name": "Create Order",
+          "id": "create-order-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tableId\": \"66094127-3af3-4550-9f7b-a17089ad0981\",\n  \"customerId\": \"d95e73fb-b861-40eb-ba09-eff4b79084ef\",\n  \"customerName\": \"Test 1\",\n  \"orderType\": \"DINE_IN\",\n  \"items\": [\n    {\n      \"menuItemId\": \"dd9fb42b-71a0-421d-bdac-41ba34c7ef16\",\n      \"quantity\": 2,\n      \"notes\": \"no carrots\",\n      \"modifiers\": [\n        {\n          \"modifierGroupId\": \"61649a87-9b54-4b65-84dc-f1d6b7367cb3\",\n          \"modifierOptionId\": \"de183f95-bc1d-4762-bcaf-5012f31f6203\"\n        }\n      ]\n    }//,\n    // {\n    //   \"menuItemId\": \"f6a7b8c9-d0e1-2345-f123-456789012345\",\n    //   \"quantity\": 1,\n    //   \"notes\": \"No ice\"\n    // }\n  ],\n  \"notes\": \"Please serve quickly\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "orders"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order By ID",
+          "id": "get-order-by-id-002",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/3ee2b82f-9663-4a95-9775-d17c1a05b3c8",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "orders",
+                "3ee2b82f-9663-4a95-9775-d17c1a05b3c8"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Orders",
+          "id": "get-all-orders-003",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders?page=1&limit=10",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "orders"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "uuid": "142f0e78-86e0-40e6-87dc-1f6b4ab98f32",
+                  "disabled": true
+                },
+                {
+                  "key": "paymentStatus",
+                  "value": "PENDING",
+                  "uuid": "eca7f184-5cc2-4792-98fe-55509f455dec",
+                  "disabled": true
+                },
+                {
+                  "key": "tableId",
+                  "value": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                  "disabled": true
+                },
+                {
+                  "key": "customerId",
+                  "value": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                  "disabled": true
+                },
+                {
+                  "key": "waiterId",
+                  "value": "c3d4e5f6-a7b8-9012-cdef-123456789012",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "uuid": "2e1fec59-7c43-4939-8fbd-aa8c0f6dee7e"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "uuid": "336f3f7e-eca3-462e-a8cf-8bc827d1a475"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "uuid": "3cc65e3b-ecac-4202-9fca-7a5316c64f73",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "DESC",
+                  "uuid": "bd6994e5-cc1b-4c7b-b3e9-0add7f0d6ac0",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer Order History",
+          "id": "get-order-history-009",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/customer/d95e73fb-b861-40eb-ba09-eff4b79084ef/history?page=1&limit=10",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "orders",
+                "customer",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "history"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "COMPLETED",
+                  "uuid": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+                  "disabled": true
+                },
+                {
+                  "key": "paymentStatus",
+                  "value": "PAID",
+                  "uuid": "b2c3d4e5-f6a7-8901-2345-67890abcdef1",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "uuid": "c3d4e5f6-a7b8-9012-3456-7890abcdef12"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "uuid": "d4e5f6a7-b8c9-0123-4567-890abcdef123"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "createdAt",
+                  "uuid": "e5f6a7b8-c9d0-1234-5678-90abcdef1234",
+                  "disabled": true
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "DESC",
+                  "uuid": "f6a7b8c9-d0e1-2345-6789-0abcdef12345",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get order history for a specific customer account.\n\n**Authentication Required:**\n- Must be logged-in customer (USER role)\n- Bearer token required\n- API key required\n\n**Use Case:**\n- Customer views their past orders\n- Only available for logged-in customers (not guest customers)\n- Returns orders sorted by newest first\n\n**Query Parameters:**\n- page: Page number (default: 1)\n- limit: Items per page (default: 20)\n- status: Filter by order status (PENDING, IN_PROGRESS, COMPLETED, CANCELLED)\n- paymentStatus: Filter by payment status (PENDING, PAID, etc.)\n- sortBy: Sort field (createdAt, updatedAt, total) (default: createdAt)\n- sortOrder: Sort direction (ASC, DESC) (default: DESC)\n\n**Response:**\n- orders: Array of order objects with items\n- total: Total order count\n- page: Current page\n- limit: Items per page\n- totalPages: Total pages"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Items to Order",
+          "id": "add-items-to-order-004",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"menuItemId\": \"c0365bc5-c946-45df-8eb2-e8c0bd240b6d\",\n      \"quantity\": 1,\n      \"notes\": \"Extra cheese, no onions\",\n      \"modifiers\": [\n        {\n          \"modifierGroupId\": \"61649a87-9b54-4b65-84dc-f1d6b7367cb3\",\n          \"modifierOptionId\": \"de183f95-bc1d-4762-bcaf-5012f31f6203\"\n        }\n      ]\n    }\n  ],\n  \"notes\": \"Additional order from table\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/3a085fe8-a45f-4977-a2de-4f619a0c6db8/items",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "orders",
+                "3a085fe8-a45f-4977-a2de-4f619a0c6db8",
+                "items"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Order Status",
+          "id": "update-order-status-005",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROGRESS\",  // PENDING | IN_PROGRESS | COMPLETED | CANCELLED\n  \"waiterId\": \"d95e73fb-b861-40eb-ba09-eff4b79084ef\" // Optional - staff performing action\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/3a085fe8-a45f-4977-a2de-4f619a0c6db8/status",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "orders",
+                "3a085fe8-a45f-4977-a2de-4f619a0c6db8",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Order Items Status",
+          "id": "update-order-items-status-008",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemIds\": [\n    \"74795d44-3590-4d33-a6d4-3f39d1b06177\",\n    \"ea8d9fe4-7780-4c2f-b8f6-09e1c730cdde\"\n  ],\n  \"status\": \"ACCEPTED\",  // PENDING | ACCEPTED | PREPARING | READY | SERVED | REJECTED | CANCELLED\n  //\"rejectionReason\": \"Out of stock\",  // Required if status = REJECTED\n  \"waiterId\": \"2c93c61a-8c20-4824-af30-f4c7733b8405\"  // Optional\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/4448cd51-bf57-4eb6-8867-9c17db553f3e/items-status",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "orders",
+                "4448cd51-bf57-4eb6-8867-9c17db553f3e",
+                "items-status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Order",
+          "id": "cancel-order-006",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Customer changed mind\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/3a085fe8-a45f-4977-a2de-4f619a0c6db8/cancel",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "orders",
+                "3a085fe8-a45f-4977-a2de-4f619a0c6db8",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Payment Status",
+          "id": "update-payment-status-007",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentStatus\": \"PAID\",\n  \"paymentMethod\": \"CARD\",\n  \"paymentTransactionId\": \"txn_1234567890abcdef\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/3a085fe8-a45f-4977-a2de-4f619a0c6db8/payment",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "orders",
+                "3a085fe8-a45f-4977-a2de-4f619a0c6db8",
+                "payment"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Accept Order Items (Deprecated)",
+          "id": "order-accept-items-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemIds\": [\n    \"c5046a8e-7493-4272-a21f-271f46192b58\"\n  ],\n  \"waiterId\": \"d95e73fb-b861-40eb-ba09-eff4b79084ef\" // must be real waiter later\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/3ee2b82f-9663-4a95-9775-d17c1a05b3c8/accept-items",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "orders",
+                "3ee2b82f-9663-4a95-9775-d17c1a05b3c8",
+                "accept-items"
+              ]
+            },
+            "description": "Waiter accepts specific order items via API Gateway (multi-tenant route).\n\n**Item-Centric Architecture:**\n- Accept specific items by IDs (granular control)\n- Can accept item A while rejecting item B\n- Route: POST /tenants/:tenantId/orders/:orderId/accept-items\n- API Gateway proxies to Order Service\n\n**Request Body:**\n- itemIds: Array of item UUIDs to accept\n- waiterId: UUID of waiter accepting items\n\n**Response:**\n- Updated order with accepted items\n- Kitchen receives notification for accepted items"
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Order Items (Deprecated)",
+          "id": "order-reject-items-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemIds\": [\n    \"660e8400-e29b-41d4-a716-446655440003\"\n  ],\n  \"waiterId\": \"770e8400-e29b-41d4-a716-446655440003\",\n  \"rejectionReason\": \"Item out of stock - will be available tomorrow\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/550e8400-e29b-41d4-a716-446655440000/reject-items",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "orders",
+                "550e8400-e29b-41d4-a716-446655440000",
+                "reject-items"
+              ]
+            },
+            "description": "Waiter rejects specific order items with a reason via API Gateway (multi-tenant route).\n\n**Item-Centric Architecture:**\n- Reject specific items by IDs\n- Must provide rejection reason (min 5 characters)\n- Route: POST /tenants/:tenantId/orders/:orderId/reject-items\n- API Gateway proxies to Order Service\n\n**Request Body:**\n- itemIds: Array of item UUIDs to reject\n- waiterId: UUID of waiter rejecting items\n- rejectionReason: Reason for rejection (required, min 5 chars)\n\n**Response:**\n- Updated order with rejected items\n- Customer receives notification with rejection reason"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Revenue Report",
+          "id": "report-revenue-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/reports/revenue?timeRange=DAILY",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "reports",
+                "revenue"
+              ],
+              "query": [
+                {
+                  "key": "timeRange",
+                  "value": "DAILY",
+                  "description": "DAILY | WEEKLY | MONTHLY | CUSTOM (required)"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2026-01-01",
+                  "description": "ISO date (required for CUSTOM)",
+                  "disabled": true
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-01-17",
+                  "description": "ISO date (required for CUSTOM)",
+                  "disabled": true
+                },
+                {
+                  "key": "paymentStatus",
+                  "value": "PAID",
+                  "description": "Default: PAID",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get revenue report by time range for tenant admin dashboard.\n\n**Authentication Required:**\n- Must be logged-in tenant admin (USER role)\n- Bearer token required\n- API key required\n\n**Use Cases:**\n- Daily revenue tracking (last 30 days)\n- Weekly revenue comparison (last 12 weeks)\n- Monthly revenue trends (last 12 months)\n- Custom date range analysis\n\n**Query Parameters:**\n- timeRange: DAILY | WEEKLY | MONTHLY | CUSTOM (required)\n- startDate: ISO date string (required for CUSTOM, optional for others)\n- endDate: ISO date string (required for CUSTOM, optional for others)\n- paymentStatus: PAID | PENDING | etc. (default: PAID)\n\n**Response:**\n- data: Time-series revenue data points (period, date, orderCount, totalRevenue, averageOrderValue)\n- summary: Total revenue, orders, average order value\n- metadata: Chart configuration (chartType, xAxisLabel, yAxisLabel, dataKeys)\n\n**Chart Integration:**\n- Ready for Chart.js LineChart/BarChart\n- Ready for Recharts LineChart/AreaChart\n- Includes all necessary labels and formatting"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Top Revenue Items Report",
+          "id": "report-top-items-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/reports/top-items?limit=10",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "reports",
+                "top-items"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-01-01",
+                  "description": "ISO date (default: 30 days ago)",
+                  "disabled": true
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-01-17",
+                  "description": "ISO date (default: now)",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of top items (default: 10, max: 50)"
+                },
+                {
+                  "key": "paymentStatus",
+                  "value": "PAID",
+                  "description": "Default: PAID",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get top revenue items report for menu optimization and business insights.\n\n**Authentication Required:**\n- Must be logged-in tenant admin (USER role)\n- Bearer token required\n- API key required\n\n**Use Cases:**\n- Identify most profitable menu items\n- Menu optimization decisions\n- Inventory planning based on popularity\n- Marketing campaign planning\n- Staff training prioritization\n\n**Query Parameters:**\n- startDate: ISO date string (optional, default: 30 days ago)\n- endDate: ISO date string (optional, default: now)\n- limit: number (optional, default: 10, max: 50)\n- paymentStatus: PAID | PENDING | etc. (default: PAID)\n\n**Response:**\n- topItems: Ranked array of items (menuItemId, menuItemName, totalQuantity, totalRevenue, orderCount, averagePrice, currency)\n- summary: Total items count, total revenue, total quantity, currency, date range\n\n**Example Use:**\n- Show top 10 items in admin dashboard leaderboard\n- Display revenue contribution percentage\n- Compare with previous period\n- Export for business analysis"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Analytics Report",
+          "id": "report-analytics-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/reports/analytics",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "reports",
+                "analytics"
+              ],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2026-01-01",
+                  "description": "ISO date (default: 30 days ago)",
+                  "disabled": true
+                },
+                {
+                  "key": "endDate",
+                  "value": "2026-01-17",
+                  "description": "ISO date (default: now)",
+                  "disabled": true
+                },
+                {
+                  "key": "paymentStatus",
+                  "value": "PAID",
+                  "description": "Default: PAID",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get comprehensive analytics report for admin dashboard with multiple chart data.\n\n**Authentication Required:**\n- Must be logged-in tenant admin (USER role)\n- Bearer token required\n- API key required\n\n**Use Cases:**\n- Analytics dashboard with multiple visualizations\n- Operational insights for staffing decisions\n- Trend analysis for menu items\n- Business performance overview\n- Peak hour analysis for resource allocation\n\n**Query Parameters:**\n- startDate: ISO date string (optional, default: 30 days ago)\n- endDate: ISO date string (optional, default: now)\n- paymentStatus: PAID | PENDING | etc. (default: PAID)\n\n**Response Includes:**\n1. **dailyOrders**: Daily order trends (date, dayOfWeek, orderCount, totalRevenue, averageOrderValue)\n2. **peakHours**: 24-hour distribution (hour, hourLabel, orderCount, totalRevenue, averageOrderValue)\n3. **popularItems**: Top 5 items with daily trends (menuItemId, menuItemName, dailyData[])\n4. **summary**: Overall statistics (totalOrders, totalRevenue, averageOrderValue, peakHour, busiestDay)\n5. **metadata**: Chart configurations for each visualization type\n\n**Chart Types Supported:**\n- Daily Orders: Line chart or Bar chart\n- Peak Hours: Bar chart or Radar chart\n- Popular Items: Line chart or Area chart\n\n**Frontend Integration:**\n- Chart.js ready format\n- Recharts ready format\n- All data pre-formatted with labels\n- Optimized for real-time dashboard updates"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Bill",
+          "id": "generate-bill-001",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/:orderId/bill",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "orders",
+                ":orderId",
+                "bill"
+              ],
+              "variable": [
+                {
+                  "key": "orderId",
+                  "value": "3ee2b82f-9663-4a95-9775-d17c1a05b3c8",
+                  "description": "UUID of the order to generate bill for"
+                }
+              ]
+            },
+            "description": "Generate a comprehensive bill/invoice for a specific order.\n\n**Authentication:**\n- No authentication required (public bill access)\n- Can be restricted to STAFF/USER roles if needed (currently commented out in controller)\n- API key required\n\n**Use Cases:**\n- Generate receipt after successful payment\n- Customer requests invoice/receipt\n- Print bill for customer records\n- Email receipt to customer\n- Tax/accounting documentation\n- Download PDF receipt\n- Display bill in customer app\n\n**Path Parameters:**\n- tenantId: UUID of the tenant (restaurant)\n- orderId: UUID of the order to generate bill for\n\n**Response Structure:**\n```json\n{\n  \"tenant\": {\n    \"tenantId\": \"uuid\"\n  },\n  \"order\": {\n    \"orderId\": \"uuid\",\n    \"tableId\": \"uuid\",\n    \"customerId\": \"uuid\",\n    \"customerName\": \"John Doe\",\n    \"orderType\": \"DINE_IN\",\n    \"status\": \"COMPLETED\",\n    \"notes\": \"Allergic to peanuts\",\n    \"waiterId\": \"uuid\",\n    \"createdAt\": \"2026-01-17T10:00:00Z\",\n    \"completedAt\": \"2026-01-17T11:30:00Z\",\n    \"generatedAt\": \"2026-01-17T11:35:00Z\"\n  },\n  \"items\": [\n    {\n      \"id\": \"uuid\",\n      \"menuItemId\": \"uuid\",\n      \"name\": \"Burger\",\n      \"description\": \"Classic beef burger\",\n      \"unitPrice\": 100000,\n      \"quantity\": 2,\n      \"subtotal\": 200000,\n      \"modifiers\": [\n        {\n          \"optionId\": \"uuid\",\n          \"name\": \"Extra Cheese\",\n          \"price\": 10000\n        }\n      ],\n      \"modifiersTotal\": 20000,\n      \"total\": 220000,\n      \"notes\": \"Well done\",\n      \"status\": \"SERVED\",\n      \"currency\": \"VND\"\n    }\n  ],\n  \"summary\": {\n    \"subtotal\": 200000,\n    \"modifiersTotal\": 20000,\n    \"tax\": 22000,\n    \"discount\": 0,\n    \"total\": 242000,\n    \"currency\": \"VND\",\n    \"totalItems\": 1,\n    \"totalQuantity\": 2\n  },\n  \"payment\": {\n    \"paymentStatus\": \"PAID\",\n    \"paymentMethod\": \"ZALOPAY\",\n    \"paymentTransactionId\": \"ZALO123456789\",\n    \"paidAt\": \"2026-01-17T11:30:00Z\"\n  },\n  \"billNumber\": \"uuid\",\n  \"generatedAt\": \"2026-01-17T11:35:00Z\"\n}\n```\n\n**Frontend Integration:**\n- Render as HTML receipt with CSS styling\n- Convert to PDF using libraries:\n  - jsPDF (client-side PDF generation)\n  - react-pdf (React component for PDF)\n  - pdfmake (PDF document generation)\n- Format for thermal printer (58mm or 80mm)\n- Send to customer email as attachment\n- Display in modal/page for customer review\n- Save as invoice for accounting\n\n**Printer-Friendly:**\n- Contains all line items with clear pricing\n- Shows modifiers and special instructions\n- Includes taxes and discounts breakdown\n- Payment method and transaction ID for reference\n- Timestamps for audit trail\n\n**Business Use:**\n- Customer receipt after payment\n- Invoice for corporate customers\n- Tax documentation (VAT receipts)\n- Accounting and bookkeeping\n- Dispute resolution reference\n- Order history documentation"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Payment QR Code",
+          "id": "generate-payment-qr-001",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/orders/:orderId/payment-qr",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "orders",
+                ":orderId",
+                "payment-qr"
+              ],
+              "variable": [
+                {
+                  "key": "orderId",
+                  "value": "3ee2b82f-9663-4a95-9775-d17c1a05b3c8",
+                  "description": "UUID of the order to generate payment QR for"
+                }
+              ]
+            },
+            "description": "Generate a QR code that leads to Stripe payment checkout for an order.\n\n**Authentication:**\n- No authentication required (public payment access)\n- Can be restricted to STAFF/CUSTOMER roles if needed (currently commented out)\n- API key required\n\n**Business Flow:**\n1. System calls payment service to create Stripe checkout session\n2. Payment service returns Stripe checkout URL\n3. System generates QR code encoding the checkout URL\n4. Customer scans QR code and completes payment on Stripe\n5. After payment, customer is redirected back to restaurant app\n\n**Use Cases:**\n- Contactless payment via QR code scan\n- Display QR code on table tablet for self-checkout\n- Display QR code on waiter device\n- Print QR code on bill for easy payment\n- Send QR code via messaging (WhatsApp, SMS, Email)\n- Mobile-first payment experience\n\n**Path Parameters:**\n- tenantId: UUID of the tenant (restaurant)\n- orderId: UUID of the order to generate payment QR for\n\n**Response Structure:**\n```json\n{\n  \"qrCode\": \"iVBORw0KGgoAAAANSUhEUgAA...\",\n  \"paymentUrl\": \"https://checkout.stripe.com/c/pay/cs_test_...\",\n  \"orderId\": \"uuid\",\n  \"amount\": 24200,\n  \"currency\": \"usd\",\n  \"sessionId\": \"cs_test_a1b2c3d4e5f6g7h8i9j0\",\n  \"expiresAt\": null\n}\n```\n\n**Response Fields:**\n- qrCode: Base64-encoded PNG image of QR code (without data URI prefix)\n- paymentUrl: Stripe checkout URL (also encoded in QR code)\n- orderId: Order ID for reference\n- amount: Total amount in cents (e.g., 24200 = $242.00)\n- currency: Currency code (\"usd\")\n- sessionId: Stripe session ID for tracking\n- expiresAt: When payment session expires (Stripe default: 24 hours)\n\n**Frontend Integration:**\n```html\n<!-- Display QR code as image -->\n<img src=\"data:image/png;base64,{qrCode}\" alt=\"Payment QR Code\" width=\"300\" />\n\n<!-- Provide fallback link for manual payment -->\n<a href=\"{paymentUrl}\" target=\"_blank\" class=\"btn-primary\">\n  Or click here to pay\n</a>\n\n<!-- Show amount to customer -->\n<p class=\"total\">Total: ${amount / 100} {currency.toUpperCase()}</p>\n\n<!-- Optional: Add countdown timer if expiresAt is provided -->\n<p class=\"expires\">QR code expires in: <span id=\"countdown\"></span></p>\n```\n\n**Payment Service Integration:**\nThe system calls the deployed payment service with:\n- userId: orderId (maps order to payment)\n- productName: \"Restaurant Order Payment\"\n- description: \"Payment for order at table {tableId}\"\n- email: \"customer@restaurant.com\" (hardcoded)\n- price: order.total * 100 (converted to cents)\n- quantity: 1\n- currency: \"usd\"\n- image: Unsplash F&B image\n- urlHome: Return URL after payment completion\n\n**Security:**\n- Stripe handles all payment processing securely (PCI-DSS compliant)\n- No credit card info passes through our system\n- Payment URL is single-use session\n- Session expires after 24 hours by default\n- Customer redirected to urlHome after successful/cancelled payment\n- Payment webhook confirms transaction status\n\n**QR Code Details:**\n- Format: PNG image, Base64-encoded\n- Size: 300x300 pixels\n- Error correction: Medium (M level)\n- Margin: 2 modules\n- Encoded content: Stripe checkout URL\n\n**Mobile Experience:**\n1. Customer scans QR code with phone camera\n2. Phone opens Stripe checkout page\n3. Customer enters payment details securely on Stripe\n4. Payment processed by Stripe\n5. Customer redirected back to restaurant app\n6. Restaurant receives payment confirmation\n7. Order status updated to PAID\n8. Customer receives receipt\n\n**Error Handling:**\n- Payment service timeout: Returns error message\n- Invalid order: Returns 404 Not Found\n- Payment service unavailable: Returns service error\n- QR generation failure: Returns error message\n\n**Best Practices:**\n- Generate QR code when customer requests payment\n- Display QR code prominently with clear instructions\n- Provide fallback payment link for accessibility\n- Show total amount clearly before payment\n- Handle payment completion via webhook\n- Update order status after successful payment\n- Send receipt/bill after payment confirmation"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Stripe Session (Internal)",
+          "id": "38c22815-e3d9-41ee-9e09-0a2468355b34",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "lethanhcong",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"usedId\": \"123456abc\",\r\n    \"productName\": \"Test\",\r\n    \"description\": \"Test\",\r\n    \"email\": \"test@example.com\",\r\n    \"price\": 9900,\r\n    \"quantity\": 1,\r\n    \"currency\": \"usd\",\r\n    \"image\": \"https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=300\",\r\n    \"urlHome\": \"http://localhost:5173\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{paymentURL}}/payment/create-payment",
+              "host": [
+                "{{paymentURL}}"
+              ],
+              "path": [
+                "payment",
+                "create-payment"
+              ]
+            },
+            "description": "Generate a QR code that leads to Stripe payment checkout for an order.\n\n**Authentication:**\n- No authentication required (public payment access)\n- Can be restricted to STAFF/CUSTOMER roles if needed (currently commented out)\n- API key required\n\n**Business Flow:**\n1. System calls payment service to create Stripe checkout session\n2. Payment service returns Stripe checkout URL\n3. System generates QR code encoding the checkout URL\n4. Customer scans QR code and completes payment on Stripe\n5. After payment, customer is redirected back to restaurant app\n\n**Use Cases:**\n- Contactless payment via QR code scan\n- Display QR code on table tablet for self-checkout\n- Display QR code on waiter device\n- Print QR code on bill for easy payment\n- Send QR code via messaging (WhatsApp, SMS, Email)\n- Mobile-first payment experience\n\n**Path Parameters:**\n- tenantId: UUID of the tenant (restaurant)\n- orderId: UUID of the order to generate payment QR for\n\n**Response Structure:**\n```json\n{\n  \"qrCode\": \"iVBORw0KGgoAAAANSUhEUgAA...\",\n  \"paymentUrl\": \"https://checkout.stripe.com/c/pay/cs_test_...\",\n  \"orderId\": \"uuid\",\n  \"amount\": 24200,\n  \"currency\": \"usd\",\n  \"sessionId\": \"cs_test_a1b2c3d4e5f6g7h8i9j0\",\n  \"expiresAt\": null\n}\n```\n\n**Response Fields:**\n- qrCode: Base64-encoded PNG image of QR code (without data URI prefix)\n- paymentUrl: Stripe checkout URL (also encoded in QR code)\n- orderId: Order ID for reference\n- amount: Total amount in cents (e.g., 24200 = $242.00)\n- currency: Currency code (\"usd\")\n- sessionId: Stripe session ID for tracking\n- expiresAt: When payment session expires (Stripe default: 24 hours)\n\n**Frontend Integration:**\n```html\n<!-- Display QR code as image -->\n<img src=\"data:image/png;base64,{qrCode}\" alt=\"Payment QR Code\" width=\"300\" />\n\n<!-- Provide fallback link for manual payment -->\n<a href=\"{paymentUrl}\" target=\"_blank\" class=\"btn-primary\">\n  Or click here to pay\n</a>\n\n<!-- Show amount to customer -->\n<p class=\"total\">Total: ${amount / 100} {currency.toUpperCase()}</p>\n\n<!-- Optional: Add countdown timer if expiresAt is provided -->\n<p class=\"expires\">QR code expires in: <span id=\"countdown\"></span></p>\n```\n\n**Payment Service Integration:**\nThe system calls the deployed payment service with:\n- userId: orderId (maps order to payment)\n- productName: \"Restaurant Order Payment\"\n- description: \"Payment for order at table {tableId}\"\n- email: \"customer@restaurant.com\" (hardcoded)\n- price: order.total * 100 (converted to cents)\n- quantity: 1\n- currency: \"usd\"\n- image: Unsplash F&B image\n- urlHome: Return URL after payment completion\n\n**Security:**\n- Stripe handles all payment processing securely (PCI-DSS compliant)\n- No credit card info passes through our system\n- Payment URL is single-use session\n- Session expires after 24 hours by default\n- Customer redirected to urlHome after successful/cancelled payment\n- Payment webhook confirms transaction status\n\n**QR Code Details:**\n- Format: PNG image, Base64-encoded\n- Size: 300x300 pixels\n- Error correction: Medium (M level)\n- Margin: 2 modules\n- Encoded content: Stripe checkout URL\n\n**Mobile Experience:**\n1. Customer scans QR code with phone camera\n2. Phone opens Stripe checkout page\n3. Customer enters payment details securely on Stripe\n4. Payment processed by Stripe\n5. Customer redirected back to restaurant app\n6. Restaurant receives payment confirmation\n7. Order status updated to PAID\n8. Customer receives receipt\n\n**Error Handling:**\n- Payment service timeout: Returns error message\n- Invalid order: Returns 404 Not Found\n- Payment service unavailable: Returns service error\n- QR generation failure: Returns error message\n\n**Best Practices:**\n- Generate QR code when customer requests payment\n- Display QR code prominently with clear instructions\n- Provide fallback payment link for accessibility\n- Show total amount clearly before payment\n- Handle payment completion via webhook\n- Update order status after successful payment\n- Send receipt/bill after payment confirmation"
+          },
+          "response": []
+        }
+      ],
+      "id": "96d51aaf-d0f5-4156-a4b9-2f72854f97e9"
+    },
+    {
+      "name": "Waiter",
+      "item": [
+        {
+          "name": "Get Pending Notifications",
+          "id": "waiter-get-pending-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/waiter/notifications?page=1&limit=10",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "waiter",
+                "notifications"
+              ],
+              "query": [
+                {
+                  "key": "waiterId",
+                  "value": "770e8400-e29b-41d4-a716-446655440003",
+                  "description": "Optional: Filter by specific waiter",
+                  "disabled": true
+                },
+                {
+                  "key": "tableId",
+                  "value": "T01",
+                  "description": "Optional: Filter by specific table",
+                  "disabled": true
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Get list of pending notifications for waiter dashboard via API Gateway (multi-tenant route).\n\n**Pure Alert Layer:**\n- Returns UNREAD and READ notifications (excludes ARCHIVED)\n- Ordered by priority DESC, createdAt ASC\n- Route: GET /tenants/:tenantId/waiter/notifications\n- API Gateway proxies to Waiter Service (RabbitMQ)\n\n**Query Parameters:**\n- waiterId: (Optional) Filter by specific waiter\n- tableId: (Optional) Filter by specific table\n- page: Page number (default: 1)\n- limit: Items per page (default: 10)\n\n**Response:**\n- notifications: Array of notification objects\n- total: Total notification count\n- page: Current page\n- limit: Items per page\n- totalPages: Total pages"
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification as Read",
+          "id": "waiter-mark-read-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"waiterId\": \"770e8400-e29b-41d4-a716-446655440003\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/waiter/notifications/dbb16b4e-e026-4112-99fa-a154610982eb/read",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "waiter",
+                "notifications",
+                "dbb16b4e-e026-4112-99fa-a154610982eb",
+                "read"
+              ]
+            },
+            "description": "Mark notification as read when waiter views it via API Gateway (multi-tenant route).\n\n**UI State Tracking:**\n- Changes status from UNREAD → READ\n- Records readAt timestamp\n- Route: POST /tenants/:tenantId/waiter/notifications/:notificationId/read\n- API Gateway proxies to Waiter Service (RabbitMQ)\n- Pure notification layer (no business logic)\n\n**Request Body:**\n- waiterId: UUID of waiter viewing notification\n\n**Response:**\n- Updated notification object with READ status and readAt timestamp"
+          },
+          "response": []
+        },
+        {
+          "name": "Archive Notification",
+          "id": "waiter-archive-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/waiter/notifications/dbb16b4e-e026-4112-99fa-a154610982eb/archive",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "waiter",
+                "notifications",
+                "dbb16b4e-e026-4112-99fa-a154610982eb",
+                "archive"
+              ]
+            },
+            "description": "Archive notification (dismiss or order completed) via API Gateway (multi-tenant route).\n\n**UI State:**\n- Changes status to ARCHIVED\n- Removes from pending notifications list\n- Route: POST /tenants/:tenantId/waiter/notifications/:notificationId/archive\n- API Gateway proxies to Waiter Service (RabbitMQ)\n- Can be used when waiter dismisses alert or order is completed\n\n**Response:**\n- Success confirmation"
+          },
+          "response": []
+        }
+      ],
+      "id": "waiter-folder-main-001"
+    },
+    {
+      "name": "Cart",
+      "item": [
+        {
+          "name": "Add Item to Cart",
+          "id": "add-cart-item-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"menuItemId\": \"dd9fb42b-71a0-421d-bdac-41ba34c7ef16\",\n  \"name\": \"Ceasar Salad\",\n  \"quantity\": 1,\n  \"price\": 12.99,\n  \"modifiers\": [\n    {\n      \"modifierGroupId\": \"61649a87-9b54-4b65-84dc-f1d6b7367cb3\",\n      \"modifierOptionId\": \"de183f95-bc1d-4762-bcaf-5012f31f6203\",\n      \"name\": \"Large Size\",\n      \"price\": 2\n    }\n  ],\n  \"notes\": \"Extra onions please\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/66094127-3af3-4550-9f7b-a17089ad0981/cart/items",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "tables",
+                "66094127-3af3-4550-9f7b-a17089ad0981",
+                "cart",
+                "items"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cart",
+          "id": "get-cart-002",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/66094127-3af3-4550-9f7b-a17089ad0981/cart",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "tables",
+                "66094127-3af3-4550-9f7b-a17089ad0981",
+                "cart"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Cart Item Quantity",
+          "id": "update-cart-quantity-003",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/66094127-3af3-4550-9f7b-a17089ad0981/cart/items/8bd0f8b68aaa679abee306b86d9e3a22",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "tables",
+                "66094127-3af3-4550-9f7b-a17089ad0981",
+                "cart",
+                "items",
+                "8bd0f8b68aaa679abee306b86d9e3a22"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Cart Item",
+          "id": "remove-cart-item-004",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/66094127-3af3-4550-9f7b-a17089ad0981/cart/items/a7f3b2c1d4e5f6abc123",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "tables",
+                "66094127-3af3-4550-9f7b-a17089ad0981",
+                "cart",
+                "items",
+                "a7f3b2c1d4e5f6abc123"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Clear Cart",
+          "id": "clear-cart-005",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/66094127-3af3-4550-9f7b-a17089ad0981/cart",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "tables",
+                "66094127-3af3-4550-9f7b-a17089ad0981",
+                "cart"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Checkout from Cart",
+          "id": "checkout-cart-006",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"d95e73fb-b861-40eb-ba09-eff4b79084ef\",\n  \"customerName\": \"Test Customer 2\",\n  \"orderType\": \"DINE_IN\",\n  \"notes\": \"Allergic to peanuts, please serve warm\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/tables/66094127-3af3-4550-9f7b-a17089ad0981/cart/checkout",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "tables",
+                "66094127-3af3-4550-9f7b-a17089ad0981",
+                "cart",
+                "checkout"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "cart-folder-main-001"
+    },
+    {
+      "name": "Kitchen",
+      "item": [
+        {
+          "name": "Get Kitchen Display",
+          "id": "kitchen-display-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/display",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "display"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Tickets",
+          "id": "kitchen-tickets-list-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets?page=1&limit=20&priority=0",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "uuid": "0da49b5f-cc6e-4c53-b566-f24f7fb3c0ae"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "uuid": "4fe22f4d-6afe-4170-bc40-3abf5cbb8884"
+                },
+                {
+                  "key": "status",
+                  "value": "IN_PROGRESS",
+                  "uuid": "a38a840a-e939-427d-a931-befaf5dc9bf1",
+                  "disabled": true
+                },
+                {
+                  "key": "priority",
+                  "value": "0",
+                  "uuid": "0c7a4e84-3e3e-4d74-9063-0d6219ff90b0"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Ticket By ID",
+          "id": "kitchen-ticket-byid-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/fe350f9b-e509-46db-ba7a-d13f2c31ab9c",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "fe350f9b-e509-46db-ba7a-d13f2c31ab9c"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Start Ticket",
+          "id": "kitchen-start-ticket-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cookId\": \"0c50f7b1-8cd9-40d8-b14a-591e7c098501\", // fake uuid\n  \"cookName\": \"Chef Gordon\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/07ed6e87-7d51-4032-ab77-c8f3da71d831/start",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "07ed6e87-7d51-4032-ab77-c8f3da71d831",
+                "start"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Start Items",
+          "id": "kitchen-start-items-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemIds\": [\n    \"item-uuid-001\",\n    \"item-uuid-002\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/550e8400-e29b-41d4-a716-446655440000/items/start",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "550e8400-e29b-41d4-a716-446655440000",
+                "items",
+                "start"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Items Ready",
+          "id": "kitchen-items-ready-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemIds\": [\n    \"f2bdb31c-3a9e-4cec-8f12-8b1ee336a7d2\" // KitchenTicketItem ID\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/07ed6e87-7d51-4032-ab77-c8f3da71d831/items/ready",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "07ed6e87-7d51-4032-ab77-c8f3da71d831",
+                "items",
+                "ready"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Bump Ticket",
+          "id": "kitchen-bump-ticket-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/07ed6e87-7d51-4032-ab77-c8f3da71d831/bump",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "07ed6e87-7d51-4032-ab77-c8f3da71d831",
+                "bump"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Recall Items",
+          "id": "kitchen-recall-items-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemIds\": [\n    \"item-uuid-001\"\n  ],\n  \"reason\": \"Customer requested modification - extra spicy\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/550e8400-e29b-41d4-a716-446655440000/items/recall",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "550e8400-e29b-41d4-a716-446655440000",
+                "items",
+                "recall"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Items",
+          "id": "kitchen-cancel-items-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itemIds\": [\n    \"item-uuid-003\"\n  ],\n  \"reason\": \"Out of ingredients - salmon\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/550e8400-e29b-41d4-a716-446655440000/items/cancel",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "550e8400-e29b-41d4-a716-446655440000",
+                "items",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Ticket",
+          "id": "kitchen-cancel-ticket-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Customer left the restaurant\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/550e8400-e29b-41d4-a716-446655440000/cancel",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "550e8400-e29b-41d4-a716-446655440000",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Priority",
+          "id": "kitchen-update-priority-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"priority\": \"FIRE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/550e8400-e29b-41d4-a716-446655440000/priority",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "550e8400-e29b-41d4-a716-446655440000",
+                "priority"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Timer",
+          "id": "kitchen-toggle-timer-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pause\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/tickets/550e8400-e29b-41d4-a716-446655440000/timer",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "tickets",
+                "550e8400-e29b-41d4-a716-446655440000",
+                "timer"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Kitchen Statistics",
+          "id": "kitchen-stats-001",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "m",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{x-api-key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseURL}}/api/v1/tenants/d95e73fb-b861-40eb-ba09-eff4b79084ef/kitchen/stats",
+              "host": [
+                "{{baseURL}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "tenants",
+                "d95e73fb-b861-40eb-ba09-eff4b79084ef",
+                "kitchen",
+                "stats"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "id": "kitchen-folder-main-001"
     },
     {
       "name": "Update Floor",
@@ -2313,412 +4982,6 @@
       "response": []
     },
     {
-      "name": "create authority",
-      "id": "9f11d17b-ccb5-45e3-a00c-61d37c30626e",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n    \"name\": \"WRITE\",\r\n    \"description\": \"aaaa\"\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "http://localhost:8888/api/v1/identity/authorities/create-authority",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "identity",
-            "authorities",
-            "create-authority"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "get authorities",
-      "id": "99849822-a4ee-4b03-9d86-2f7e8d010115",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "http://localhost:8888/api/v1/identity/authorities/get-all-authorities",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "identity",
-            "authorities",
-            "get-all-authorities"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "craete role",
-      "id": "518994cf-21e4-4a5e-9c63-f84fe8390abd",
-      "request": {
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n    \"name\" :\"USER\",\r\n    \"description\": \"user permission\",\r\n    \"authorities\": [\"READ\"]\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "http://localhost:8888/api/v1/identity/roles/create-role",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "identity",
-            "roles",
-            "create-role"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "get all role",
-      "id": "daa0b0b6-9e60-4d24-9cff-0019538a3bf5",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "http://localhost:8888/api/v1/identity/roles/get-all-roles",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "identity",
-            "roles",
-            "get-all-roles"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "register user",
-      "id": "a7835302-c2eb-49cd-b7ec-81ac8f4d6607",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"birthDay\": \"1999-10-15\",\r\n  \"phoneNumber\": \"0987654321\",\r\n  \"address\": \"123 đường ABC, TP HCM\",\r\n  \"restaurantName\": \"Nhà hàng Đỉnh Cao\",\r\n  \"businessAddress\": \"456 đường XYZ, Hà Nội\",\r\n  \"contractNumber\": \"0123456789\",\r\n  \"contractEmail\": \"contract@example.com\",\r\n  \"cardHolderName\": \"Nguyen Van A\",\r\n  \"accountNumber\": \"9876543210123\",\r\n  \"expirationDate\": \"12/28\",\r\n  \"cvv\": \"456\",\r\n  \"frontImage\": \"base64_front_image\",\r\n  \"backImage\": \"base64_back_image\",\r\n  \"username\": \"admin_t1\",\r\n  \"email\": \"admin_t1@example.com\",\r\n  \"password\": \"StrongPassword!123\",\r\n  \"confirmPassword\": \"StrongPassword!123\",\r\n  \"fullName\": \"Nguyen Hung Thinh\",\r\n  \"roles\": [\"ADMIN\"]\r\n}\r\n",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{baseURL}}/api/v1/identity/users/register",
-          "host": [
-            "{{baseURL}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "identity",
-            "users",
-            "register"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "get all users",
-      "id": "0e22c202-61fa-40b1-9cce-5ea223287f8c",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzN2M4MmE1ZC00NGM2LTQ4YWItYjhjYi04MzYwM2JhODE3YmYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NSIsImVtYWlsIjoidXNlcjEyMzQ1QGV4YW1wbGUuY29tIiwicm9sZXMiOlsiQURNSU4iXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTYxMywiZXhwIjoxNzY1MDIxOTEzfQ.LcUhkzH8CWHoLsT75EY6ywgBcWoQQ1_fr3Jg0qIRCa8",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "GET",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "http://localhost:8888/api/v1/identity/users/get-all-users",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "identity",
-            "users",
-            "get-all-users"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "login",
-      "id": "4976ee0f-eb78-469e-926b-df0edbfd9d16",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n    \"username\": \"user123456\",\r\n    \"password\": \"StrongPassword!123\"\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{baseURL}}/api/v1/identity/auth/login",
-          "host": [
-            "{{baseURL}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "identity",
-            "auth",
-            "login"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "logout",
-      "id": "bff09ec7-0431-4fcc-bee3-f9082ca07ad0",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzN2M4MmE1ZC00NGM2LTQ4YWItYjhjYi04MzYwM2JhODE3YmYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NSIsImVtYWlsIjoidXNlcjEyMzQ1QGV4YW1wbGUuY29tIiwicm9sZXMiOlsiQURNSU4iXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTYxMywiZXhwIjoxNzY1MDIxOTEzfQ.LcUhkzH8CWHoLsT75EY6ywgBcWoQQ1_fr3Jg0qIRCa8",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "GET",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "http://localhost:8888/api/v1/identity/auth/logout",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "identity",
-            "auth",
-            "logout"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "get profile (admin)",
-      "id": "29c9c291-e778-4bec-9f01-83c563df6b3b",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIzN2M4MmE1ZC00NGM2LTQ4YWItYjhjYi04MzYwM2JhODE3YmYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NSIsImVtYWlsIjoidXNlcjEyMzQ1QGV4YW1wbGUuY29tIiwicm9sZXMiOlsiQURNSU4iXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTYxMywiZXhwIjoxNzY1MDIxOTEzfQ.LcUhkzH8CWHoLsT75EY6ywgBcWoQQ1_fr3Jg0qIRCa8",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "GET",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "http://localhost:8888/api/v1/profiles/00f6ce01-fb86-4056-86c8-cd90e52b0f73",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "profiles",
-            "00f6ce01-fb86-4056-86c8-cd90e52b0f73"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "my profile",
-      "id": "62426c60-81de-4ff1-8de4-0adef71dcf5c",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "GET",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "http://localhost:8888/api/v1/profiles/my-profile",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "profiles",
-            "my-profile"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "update profile",
-      "id": "1f14838b-625e-400e-80c1-3e656b16cdf3",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "PATCH",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n    \"verified\": true\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "http://localhost:8888/api/v1/profiles/modify",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "profiles",
-            "modify"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
       "name": "my user",
       "id": "6599b8d2-beea-4f7b-bfef-7c8478f97878",
       "request": {
@@ -2753,45 +5016,6 @@
             "identity",
             "users",
             "my-user"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "check verify account",
-      "id": "210ba3de-b922-4f6f-86c9-a426e7c39431",
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkOTVlNzNmYi1iODYxLTQwZWItYmEwOS1lZmY0Yjc5MDg0ZWYiLCJ1c2VybmFtZSI6InVzZXIxMjM0NTYiLCJlbWFpbCI6InVzZXIxMjM0NTZAZXhhbXBsZS5jb20iLCJyb2xlcyI6WyJBRE1JTiIsIlVTRVIiXSwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc2NTAyMTcyNiwiZXhwIjoxNzY1MDIyMDI2fQ.h8dDVV7BUMak5d71KR83OJ2b6mXuwowAQmbyOxRRGG4",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "GET",
-        "header": [
-          {
-            "key": "x-api-key",
-            "value": "{{x-api-key}}",
-            "type": "text"
-          }
-        ],
-        "url": {
-          "raw": "http://localhost:8888/api/v1/profiles/verify-state",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "8888",
-          "path": [
-            "api",
-            "v1",
-            "profiles",
-            "verify-state"
           ]
         }
       },

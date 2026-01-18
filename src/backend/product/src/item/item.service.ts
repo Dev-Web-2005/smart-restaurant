@@ -94,7 +94,7 @@ export class ItemService {
 			name: dto.name,
 			description: dto.description,
 			price: dto.price,
-			currency: dto.currency || 'VND',
+			currency: dto.currency || 'USD',
 			prepTimeMinutes: dto.prepTimeMinutes,
 			status: statusValue,
 			isChefRecommended: dto.isChefRecommended ?? false,
@@ -149,32 +149,62 @@ export class ItemService {
 			});
 		}
 
-		// Search by name (case-insensitive)
+		// Fuzzy search using pg_trgm with similarity ranking
 		if (dto.search) {
-			queryBuilder.andWhere('LOWER(item.name) LIKE LOWER(:search)', {
-				search: `%${dto.search}%`,
-			});
+			const searchTerm = dto.search.trim();
+
+			// Use pg_trgm similarity operator (%) for fuzzy matching
+			// Searches both name and description with similarity threshold
+			// Default similarity threshold is 0.3 (configurable via set_limit)
+			queryBuilder.andWhere(
+				`(
+					item.name % :search OR 
+					item.description % :search OR
+					item.name ILIKE :searchPattern OR
+					item.description ILIKE :searchPattern
+				)`,
+				{
+					search: searchTerm,
+					searchPattern: `%${searchTerm}%`,
+				},
+			);
+
+			// Add similarity score for ranking (higher similarity = better match)
+			queryBuilder.addSelect(
+				`GREATEST(
+					similarity(item.name, :search),
+					similarity(COALESCE(item.description, ''), :search)
+				)`,
+				'similarity_score',
+			);
 		}
 
 		// Sorting
 		const sortBy = dto.sortBy || MenuItemSortBy.CREATED_AT;
 		const sortOrder = dto.sortOrder || SortOrder.DESC;
 
-		switch (sortBy) {
-			case MenuItemSortBy.PRICE:
-				queryBuilder.orderBy('item.price', sortOrder);
-				break;
-			case MenuItemSortBy.NAME:
-				queryBuilder.orderBy('item.name', sortOrder);
-				break;
-			case MenuItemSortBy.POPULARITY:
-				// Future: join with order_items and count
-				queryBuilder.orderBy('item.createdAt', sortOrder);
-				break;
-			case MenuItemSortBy.CREATED_AT:
-			default:
-				queryBuilder.orderBy('item.createdAt', sortOrder);
-				break;
+		// If search is active and no explicit sort specified, prioritize by similarity
+		if (dto.search && !dto.sortBy) {
+			queryBuilder.orderBy('similarity_score', 'DESC');
+			queryBuilder.addOrderBy('item.name', 'ASC');
+		} else {
+			switch (sortBy) {
+				case MenuItemSortBy.PRICE:
+					queryBuilder.orderBy('item.price', sortOrder);
+					break;
+				case MenuItemSortBy.NAME:
+					queryBuilder.orderBy('item.name', sortOrder);
+					break;
+				case MenuItemSortBy.POPULARITY:
+					// Sort by order count (most popular first)
+					queryBuilder.orderBy('item.orderCount', sortOrder);
+					queryBuilder.addOrderBy('item.createdAt', 'DESC'); // Secondary sort by newest
+					break;
+				case MenuItemSortBy.CREATED_AT:
+				default:
+					queryBuilder.orderBy('item.createdAt', sortOrder);
+					break;
+			}
 		}
 
 		// Sort photos within each item (primary first, then by display order)
@@ -370,6 +400,7 @@ export class ItemService {
 			prepTimeMinutes: item.prepTimeMinutes,
 			status: menuItemStatusToString(item.status),
 			isChefRecommended: item.isChefRecommended,
+			orderCount: item.orderCount,
 			photos: item.photos?.map((photo) => ({
 				id: photo.id,
 				url: photo.url,
@@ -621,6 +652,101 @@ export class ItemService {
 			mimeType: photo.mimeType,
 			fileSize: photo.fileSize ? Number(photo.fileSize) : undefined,
 			createdAt: photo.createdAt,
+		};
+	}
+
+	/**
+	 * Increment order count for menu items
+	 * Called by Order Service when items are ordered
+	 *
+	 * Business Rules:
+	 * - Increments orderCount atomically using SQL UPDATE
+	 * - Can update multiple items at once (batch operation)
+	 * - Only increments if item exists and belongs to tenant
+	 */
+	async incrementOrderCount(dto: {
+		productApiKey: string;
+		tenantId: string;
+		itemId: string;
+		quantity: number;
+	}): Promise<{ success: boolean; updated: number }> {
+		this.validateApiKey(dto.productApiKey);
+
+		if (!dto.itemId) {
+			return { success: true, updated: 0 };
+		}
+
+		// Atomic increment using query builder
+		const result = await this.menuItemRepository
+			.createQueryBuilder()
+			.update(MenuItem)
+			.set({
+				orderCount: () => `"orderCount" + ${dto.quantity}`,
+			})
+			.where('id = :itemId', { itemId: dto.itemId })
+			.andWhere('tenantId = :tenantId', { tenantId: dto.tenantId })
+			.andWhere('deletedAt IS NULL')
+			.execute();
+
+		return {
+			success: true,
+			updated: result.affected || 0,
+		};
+	}
+
+	/**
+	 * Get most popular menu items
+	 * Returns items sorted by orderCount descending
+	 *
+	 * Use Cases:
+	 * - Homepage "Popular Dishes" section
+	 * - Recommendation engine
+	 * - Analytics dashboard
+	 */
+	async getPopularItems(dto: {
+		productApiKey: string;
+		tenantId: string;
+		limit?: number;
+		categoryId?: string;
+	}): Promise<PaginatedMenuItemsResponseDto> {
+		this.validateApiKey(dto.productApiKey);
+
+		const limit = dto.limit && dto.limit > 0 ? Math.min(dto.limit, 100) : 10;
+
+		const queryBuilder = this.menuItemRepository
+			.createQueryBuilder('item')
+			.leftJoinAndSelect('item.category', 'category')
+			.leftJoinAndSelect('item.photos', 'photos')
+			.where('item.tenantId = :tenantId', { tenantId: dto.tenantId })
+			.andWhere('item.deletedAt IS NULL')
+			.andWhere('item.status = :status', { status: MenuItemStatus.AVAILABLE })
+			.andWhere('item.orderCount > 0'); // Only items that have been ordered
+
+		// Filter by category if specified
+		if (dto.categoryId) {
+			queryBuilder.andWhere('item.categoryId = :categoryId', {
+				categoryId: dto.categoryId,
+			});
+		}
+
+		// Sort by popularity (orderCount DESC)
+		queryBuilder.orderBy('item.orderCount', 'DESC');
+		queryBuilder.addOrderBy('item.createdAt', 'DESC');
+
+		// Sort photos within each item
+		queryBuilder.addOrderBy('photos.isPrimary', 'DESC');
+		queryBuilder.addOrderBy('photos.displayOrder', 'ASC');
+
+		queryBuilder.take(limit);
+
+		const [items, total] = await queryBuilder.getManyAndCount();
+
+		return {
+			items: items.map((item) => this.toResponseDto(item, item.category?.name)),
+			total,
+			page: 1,
+			limit,
+			totalPages: 1,
 		};
 	}
 }

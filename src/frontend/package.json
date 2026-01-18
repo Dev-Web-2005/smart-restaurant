@@ -15,11 +15,13 @@
     "framer-motion": "^12.23.26",
     "jszip": "^3.10.1",
     "lucide-react": "^0.556.0",
+    "prop-types": "^15.8.1",
     "qrcode": "^1.5.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.10.1",
     "recharts": "^3.5.1",
+    "socket.io-client": "^4.7.5",
     "tailwindcss": "^4.1.17"
   },
   "devDependencies": {

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react'
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import ReactDOM from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import CustomerCategoryCard from '../components/CustomerCategoryCard'
@@ -97,6 +97,7 @@ const MenuPage = ({ tenantId, onAddToCart, onBack }) => {
 	// Search, Filter, Sort States
 	const [categorySearch, setCategorySearch] = useState('')
 	const [dishSearch, setDishSearch] = useState('')
+	const [debouncedDishSearch, setDebouncedDishSearch] = useState('') // ✅ Debounced search
 	const [availableFilter, setAvailableFilter] = useState('all') // 'all' | 'available'
 	const [sortBy, setSortBy] = useState('none') // 'none' | 'price-asc' | 'price-desc' | 'name'
 
@@ -110,11 +111,34 @@ const MenuPage = ({ tenantId, onAddToCart, onBack }) => {
 	const [selectedDish, setSelectedDish] = useState(null)
 	const [isCustomizationOpen, setIsCustomizationOpen] = useState(false)
 
-	// Fetch categories when component mounts
+	// Refs for debouncing and preventing duplicate fetches
+	const fetchDishesTimeoutRef = useRef(null)
+	const lastFetchParamsRef = useRef(null)
+	const isFetchingRef = useRef(false)
+	const categoriesCacheRef = useRef(null) // ✅ Cache categories
+
+	// ==================== DEBOUNCE SEARCH ====================
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setDebouncedDishSearch(dishSearch)
+		}, 400) // 400ms debounce
+
+		return () => clearTimeout(timer)
+	}, [dishSearch])
+
+	// Fetch categories when component mounts (with caching)
 	useEffect(() => {
 		if (!tenantId) {
 			console.error('❌ Missing tenantId')
 			setError('Invalid URL: Missing restaurant identifier')
+			setLoading(false)
+			return
+		}
+
+		// ✅ Check cache first
+		if (categoriesCacheRef.current && categoriesCacheRef.current.tenantId === tenantId) {
+			console.log('📦 Using cached categories')
+			setCategories(categoriesCacheRef.current.data)
 			setLoading(false)
 			return
 		}
@@ -137,6 +161,12 @@ const MenuPage = ({ tenantId, onAddToCart, onBack }) => {
 			if (response.success && response.categories) {
 				console.log('✅ Categories loaded:', response.categories.length)
 				setCategories(response.categories)
+				// ✅ Cache the result
+				categoriesCacheRef.current = {
+					tenantId,
+					data: response.categories,
+					timestamp: Date.now(),
+				}
 			} else {
 				console.warn('⚠️ No categories found:', response.message)
 				setCategories([])
@@ -151,91 +181,171 @@ const MenuPage = ({ tenantId, onAddToCart, onBack }) => {
 		}
 	}
 
-	// Fetch dishes for selected category
-	const fetchDishes = async (categoryId) => {
-		try {
-			setLoadingDishes(true)
-			setError(null)
-			console.log('📥 Fetching dishes for category:', categoryId)
+	// ==================== OPTIMIZED FETCH DISHES ====================
+	const fetchDishes = useCallback(
+		async (categoryId, page, search, sort, filter) => {
+			// ✅ Create a unique key for this fetch request
+			const fetchKey = JSON.stringify({ categoryId, page, search, sort, filter })
 
-			// Build params for API call
-			const params = {
-				categoryId,
-				page: currentPage,
-				limit: itemsPerPage,
+			// ✅ Skip if same params as last fetch
+			if (lastFetchParamsRef.current === fetchKey) {
+				console.log('⏭️ Skipping duplicate fetch request')
+				return
 			}
 
-			// Add search if present
-			if (dishSearch.trim()) {
-				params.search = dishSearch.trim()
-			}
-
-			// Add sort parameters
-			if (sortBy !== 'none') {
-				if (sortBy === 'price-asc') {
-					params.sortBy = 'price'
-					params.sortOrder = 'ASC'
-				} else if (sortBy === 'price-desc') {
-					params.sortBy = 'price'
-					params.sortOrder = 'DESC'
-				} else if (sortBy === 'name') {
-					params.sortBy = 'name'
-					params.sortOrder = 'ASC'
+			// ✅ Skip if already fetching
+			if (isFetchingRef.current) {
+				console.log('⏳ Fetch already in progress, queuing...')
+				// Queue the fetch for later
+				if (fetchDishesTimeoutRef.current) {
+					clearTimeout(fetchDishesTimeoutRef.current)
 				}
+				fetchDishesTimeoutRef.current = setTimeout(() => {
+					fetchDishes(categoryId, page, search, sort, filter)
+				}, 100)
+				return
 			}
 
-			const response = await getPublicMenuAPI(tenantId, params)
+			isFetchingRef.current = true
+			lastFetchParamsRef.current = fetchKey
 
-			if (response.success && response.items) {
-				console.log('✅ Dishes loaded:', response.items.length)
+			try {
+				setLoadingDishes(true)
+				setError(null)
+				console.log('📥 Fetching dishes for category:', categoryId, {
+					page,
+					search,
+					sort,
+					filter,
+				})
 
-				// Filter by availability on frontend if needed
-				let filteredItems = response.items
-				if (availableFilter === 'available') {
-					filteredItems = filteredItems.filter(
-						(item) => item.status === 'AVAILABLE' || item.isAvailable === true,
-					)
+				// Build params for API call
+				const params = {
+					categoryId,
+					page,
+					limit: itemsPerPage,
 				}
 
-				setDishes(filteredItems)
+				// Add search if present
+				if (search && search.trim()) {
+					params.search = search.trim()
+				}
 
-				// Update pagination info
-				if (response.pagination) {
-					setTotalPages(response.pagination.totalPages || 1)
-					setTotalItems(response.pagination.total || filteredItems.length)
+				// Add sort parameters
+				if (sort !== 'none') {
+					if (sort === 'price-asc') {
+						params.sortBy = 'price'
+						params.sortOrder = 'ASC'
+					} else if (sort === 'price-desc') {
+						params.sortBy = 'price'
+						params.sortOrder = 'DESC'
+					} else if (sort === 'name') {
+						params.sortBy = 'name'
+						params.sortOrder = 'ASC'
+					}
+				}
+
+				const response = await getPublicMenuAPI(tenantId, params)
+
+				if (response.success && response.items) {
+					console.log('✅ Dishes loaded:', response.items.length)
+
+					// Filter by availability on frontend if needed
+					let filteredItems = response.items
+					if (filter === 'available') {
+						filteredItems = filteredItems.filter(
+							(item) => item.status === 'AVAILABLE' || item.isAvailable === true,
+						)
+					}
+
+					setDishes(filteredItems)
+
+					// Update pagination info
+					if (response.pagination) {
+						setTotalPages(response.pagination.totalPages || 1)
+						setTotalItems(response.pagination.total || filteredItems.length)
+					} else {
+						setTotalPages(1)
+						setTotalItems(filteredItems.length)
+					}
 				} else {
+					console.warn('⚠️ No dishes found:', response.message)
+					setDishes([])
 					setTotalPages(1)
-					setTotalItems(filteredItems.length)
+					setTotalItems(0)
 				}
-			} else {
-				console.warn('⚠️ No dishes found:', response.message)
+			} catch (err) {
+				console.error('❌ Error fetching dishes:', err)
+				setError('Failed to load dishes. Please try again.')
 				setDishes([])
-				setTotalPages(1)
-				setTotalItems(0)
+			} finally {
+				setLoadingDishes(false)
+				isFetchingRef.current = false
 			}
-		} catch (err) {
-			console.error('❌ Error fetching dishes:', err)
-			setError('Failed to load dishes. Please try again.')
-			setDishes([])
-		} finally {
-			setLoadingDishes(false)
-		}
-	}
+		},
+		[tenantId],
+	)
 
-	// Refetch dishes when filters change
+	// ==================== SINGLE EFFECT FOR FETCHING DISHES ====================
+	// Combines page change and filter change handling to prevent double-fetch
 	useEffect(() => {
-		if (selectedCategory && view === 'DISHES') {
-			fetchDishes(selectedCategory.id)
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [selectedCategory, currentPage, dishSearch, sortBy, availableFilter, view])
+		if (!selectedCategory || view !== 'DISHES') return
 
-	// Reset to page 1 when filters change
+		// Clear any pending fetch
+		if (fetchDishesTimeoutRef.current) {
+			clearTimeout(fetchDishesTimeoutRef.current)
+		}
+
+		// Small delay to batch rapid changes
+		fetchDishesTimeoutRef.current = setTimeout(() => {
+			fetchDishes(
+				selectedCategory.id,
+				currentPage,
+				debouncedDishSearch,
+				sortBy,
+				availableFilter,
+			)
+		}, 50)
+
+		return () => {
+			if (fetchDishesTimeoutRef.current) {
+				clearTimeout(fetchDishesTimeoutRef.current)
+			}
+		}
+	}, [
+		selectedCategory,
+		currentPage,
+		debouncedDishSearch,
+		sortBy,
+		availableFilter,
+		view,
+		fetchDishes,
+	])
+
+	// ==================== RESET PAGE ON FILTER CHANGE ====================
+	// Only reset page, don't trigger fetch (the effect above will handle it)
+	const prevFiltersRef = useRef({ search: '', sort: 'none', filter: 'all' })
 	useEffect(() => {
-		if (selectedCategory && view === 'DISHES') {
+		if (!selectedCategory || view !== 'DISHES') return
+
+		const filtersChanged =
+			prevFiltersRef.current.search !== debouncedDishSearch ||
+			prevFiltersRef.current.sort !== sortBy ||
+			prevFiltersRef.current.filter !== availableFilter
+
+		if (filtersChanged && currentPage !== 1) {
+			// Reset to page 1 when filters change
 			setCurrentPage(1)
+			// Clear last fetch params to allow new fetch
+			lastFetchParamsRef.current = null
 		}
-	}, [dishSearch, sortBy, availableFilter, selectedCategory, view])
+
+		prevFiltersRef.current = {
+			search: debouncedDishSearch,
+			sort: sortBy,
+			filter: availableFilter,
+		}
+	}, [selectedCategory, view, debouncedDishSearch, sortBy, availableFilter, currentPage])
 
 	// Filter categories by search
 	const filteredCategories = useMemo(() => {
@@ -592,6 +702,7 @@ const MenuPage = ({ tenantId, onAddToCart, onBack }) => {
 			{isCustomizationOpen && selectedDish && (
 				<DishCustomizationModal
 					dish={selectedDish}
+					tenantId={tenantId}
 					onClose={() => {
 						setIsCustomizationOpen(false)
 						setSelectedDish(null)

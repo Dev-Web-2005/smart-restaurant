@@ -60,15 +60,20 @@ export class TablesService {
 	/**
 	 * Get a single table by ID
 	 * Enforces tenant isolation
+	 * Supports including floor relationship via includeFloor option
 	 */
 	async getTableById(dto: GetTableDto): Promise<TableDto> {
-		const table = await this.tableRepository.findOne({
-			where: {
-				id: dto.tableId,
-				tenantId: dto.tenantId,
-				isActive: true,
-			},
-		});
+		const queryBuilder = this.tableRepository
+			.createQueryBuilder('table')
+			.where('table.id = :tableId', { tableId: dto.tableId })
+			.andWhere('table.tenantId = :tenantId', { tenantId: dto.tenantId })
+			.andWhere('table.isActive = :isActive', { isActive: true });
+
+		if (dto.includeFloor) {
+			queryBuilder.leftJoinAndSelect('table.floor', 'floor');
+		}
+
+		const table = await queryBuilder.getOne();
 
 		if (!table) {
 			throw new AppException(ErrorCode.TABLE_NOT_FOUND);

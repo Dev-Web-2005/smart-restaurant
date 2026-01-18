@@ -1,0 +1,626 @@
+import {
+	Body,
+	Controller,
+	Get,
+	Inject,
+	Param,
+	Patch,
+	Post,
+	Query,
+	UseGuards,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { ClientProxy } from '@nestjs/microservices';
+import { AuthGuard } from 'src/common/guards/get-role/auth.guard';
+import Role from 'src/common/guards/check-role/check-role.guard';
+
+/**
+ * Order Controller - API Gateway
+ *
+ * Handles all order-related REST API endpoints and proxies to Order Service
+ * Implements multi-tenant isolation and authentication
+ *
+ * Endpoints:
+ * - POST   /tenants/:tenantId/orders - Create a new order
+ * - GET    /tenants/:tenantId/orders - Get all orders (paginated)
+ * - GET    /tenants/:tenantId/orders/:orderId - Get order by ID
+ * - POST   /tenants/:tenantId/orders/:orderId/items - Add items to order
+ * - PATCH  /tenants/:tenantId/orders/:orderId/status - Update order status
+ * - PATCH  /tenants/:tenantId/orders/:orderId/cancel - Cancel order
+ * - PATCH  /tenants/:tenantId/orders/:orderId/payment - Update payment status
+ * - POST   /tenants/:tenantId/orders/:orderId/accept-items - Waiter accepts specific items (ITEM-CENTRIC)
+ * - POST   /tenants/:tenantId/orders/:orderId/reject-items - Waiter rejects specific items (ITEM-CENTRIC)
+ * - GET    /tenants/:tenantId/reports/revenue - Get revenue report (ADMIN/TENANT)
+ * - GET    /tenants/:tenantId/reports/top-items - Get top revenue items (ADMIN/TENANT)
+ * - GET    /tenants/:tenantId/reports/analytics - Get analytics dashboard data (ADMIN/TENANT)
+ */
+@Controller()
+export class OrderController {
+	constructor(
+		@Inject('ORDER_SERVICE') private readonly orderClient: ClientProxy,
+		private readonly configService: ConfigService,
+	) {}
+
+	/**
+	 * Create a new order
+	 * POST /tenants/:tenantId/orders
+	 *
+	 * Body:
+	 * {
+	 *   "tableId": "uuid",
+	 *   "customerId": "uuid",
+	 *   "customerName": "John Doe",
+	 *   "items": [
+	 *     {
+	 *       "menuItemId": "uuid",
+	 *       "quantity": 2,
+	 *       "modifiers": [
+	 *         {
+	 *           "optionId": "uuid",
+	 *           "name": "Extra Cheese",
+	 *           "price": 10000
+	 *         }
+	 *       ],
+	 *       "notes": "No onions"
+	 *     }
+	 *   ],
+	 *   "notes": "Allergic to peanuts"
+	 * }
+	 */
+	@Post('tenants/:tenantId/orders')
+	// @UseGuards(AuthGuard)
+	createOrder(@Param('tenantId') tenantId: string, @Body() data: any) {
+		return this.orderClient.send('orders:create', {
+			...data,
+			tenantId,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+
+	/**
+	 * Get all orders (paginated)
+	 * GET /tenants/:tenantId/orders
+	 *
+	 * Query params:
+	 * - page: number (default: 1)
+	 * - limit: number (default: 20)
+	 * - status: string (PENDING, ACCEPTED, PREPARING, READY, SERVED, COMPLETED, CANCELLED)
+	 * - tableId: uuid
+	 * - customerId: uuid
+	 * - paymentStatus: string (PENDING, PROCESSING, PAID, FAILED, REFUNDED)
+	 */
+	@Get('tenants/:tenantId/orders')
+	@UseGuards(AuthGuard, Role('USER', 'STAFF', 'CHEF'))
+	getOrders(
+		@Param('tenantId') tenantId: string,
+		@Query('page') page?: number,
+		@Query('limit') limit?: number,
+		@Query('status') status?: string,
+		@Query('tableId') tableId?: string,
+		@Query('customerId') customerId?: string,
+		@Query('paymentStatus') paymentStatus?: string,
+	) {
+		return this.orderClient.send('orders:get-all', {
+			tenantId,
+			page: page ? +page : 1,
+			limit: limit ? +limit : 20,
+			status,
+			tableId,
+			customerId,
+			paymentStatus,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+
+	/**
+	 * Get customer order history
+	 * GET /tenants/:tenantId/orders/customer/:customerId/history
+	 *
+	 * Returns all past orders linked to a customer account
+	 * Only available for logged-in customers (not guest customers)
+	 *
+	 * Query params:
+	 * - page: number (default: 1)
+	 * - limit: number (default: 20)
+	 * - status: string (PENDING, IN_PROGRESS, COMPLETED, CANCELLED)
+	 * - paymentStatus: string (PENDING, PROCESSING, PAID, FAILED, REFUNDED)
+	 * - sortBy: string (createdAt, updatedAt, total) (default: createdAt)
+	 * - sortOrder: string (ASC, DESC) (default: DESC)
+	 */
+	@Get('tenants/:tenantId/orders/customer/:customerId/history')
+	@UseGuards(AuthGuard, Role('CUSTOMER'))
+	getOrderHistory(
+		@Param('tenantId') tenantId: string,
+		@Param('customerId') customerId: string,
+		@Query('page') page?: number,
+		@Query('limit') limit?: number,
+		@Query('status') status?: string,
+		@Query('paymentStatus') paymentStatus?: string,
+		@Query('sortBy') sortBy?: string,
+		@Query('sortOrder') sortOrder?: 'ASC' | 'DESC',
+	) {
+		return this.orderClient.send('orders:get-history', {
+			tenantId,
+			customerId,
+			page: page ? +page : 1,
+			limit: limit ? +limit : 20,
+			status,
+			paymentStatus,
+			sortBy,
+			sortOrder,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+
+	/**
+	 * Get order by ID
+	 * GET /tenants/:tenantId/orders/:orderId
+	 */
+	@Get('tenants/:tenantId/orders/:orderId')
+	// @UseGuards(AuthGuard)
+	getOrder(@Param('tenantId') tenantId: string, @Param('orderId') orderId: string) {
+		return this.orderClient.send('orders:get', {
+			tenantId,
+			orderId,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+
+	/**
+	 * Add items to an existing order
+	 * POST /tenants/:tenantId/orders/:orderId/items
+	 *
+	 * Body:
+	 * {
+	 *   "items": [
+	 *     {
+	 *       "menuItemId": "uuid",
+	 *       "quantity": 1,
+	 *       "modifiers": [...],
+	 *       "notes": "Extra spicy"
+	 *     }
+	 *   ]
+	 * }
+	 */
+	@Post('tenants/:tenantId/orders/:orderId/items')
+	// @UseGuards(AuthGuard)
+	addItemsToOrder(
+		@Param('tenantId') tenantId: string,
+		@Param('orderId') orderId: string,
+		@Body() data: any,
+	) {
+		return this.orderClient.send('orders:add-items', {
+			...data,
+			tenantId,
+			orderId,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+
+	/**
+	 * Update order status
+	 * PATCH /tenants/:tenantId/orders/:orderId/status
+	 *
+	 * SIMPLIFIED for Item-Level Status Architecture:
+	 * - Order status now only supports: PENDING, IN_PROGRESS, COMPLETED, CANCELLED
+	 * - Detailed preparation states moved to OrderItem level
+	 * - This endpoint primarily used for payment completion and cancellation
+	 *
+	 * Body:
+	 * {
+	 *   "status": "IN_PROGRESS",  // PENDING | IN_PROGRESS | COMPLETED | CANCELLED
+	 *   "waiterId": "uuid"  // Optional
+	 * }
+	 */
+	@Patch('tenants/:tenantId/orders/:orderId/status')
+	@UseGuards(AuthGuard, Role('USER', 'STAFF', 'CHEF'))
+	updateOrderStatus(
+		@Param('tenantId') tenantId: string,
+		@Param('orderId') orderId: string,
+		@Body() data: any,
+	) {
+		return this.orderClient.send('orders:update-status', {
+			...data,
+			tenantId,
+			orderId,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+
+	/**
+	 * Update order items status
+	 * PATCH /tenants/:tenantId/orders/:orderId/items-status
+	 *
+	 * NEW: Item-level status management
+	 * Allows kitchen/waiter to update individual item statuses
+	 *
+	 * Use Cases:
+	 * - Kitchen marks items as PREPARING when they start cooking
+	 * - Kitchen marks items as READY when food is cooked
+	 * - Waiter marks items as SERVED when delivered to table
+	 * - Staff can REJECT items if ingredients unavailable
+	 *
+	 * Body:
+	 * {
+	 *   "itemIds": ["uuid1", "uuid2"],  // Array of order item IDs
+	 *   "status": "PREPARING",  // PENDING | ACCEPTED | PREPARING | READY | SERVED | REJECTED | CANCELLED
+	 *   "rejectionReason": "Out of stock",  // Required if status = REJECTED
+	 *   "waiterId": "uuid"  // Optional
+	 * }
+	 */
+	@Patch('tenants/:tenantId/orders/:orderId/items-status')
+	@UseGuards(AuthGuard, Role('USER', 'STAFF', 'CHEF'))
+	updateOrderItemsStatus(
+		@Param('tenantId') tenantId: string,
+		@Param('orderId') orderId: string,
+		@Body() data: any,
+	) {
+		return this.orderClient.send('orders:update-items-status', {
+			...data,
+			tenantId,
+			orderId,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+
+	/**
+	 * Cancel order
+	 * PATCH /tenants/:tenantId/orders/:orderId/cancel
+	 *
+	 * Body:
+	 * {
+	 *   "reason": "Customer requested cancellation"
+	 * }
+	 */
+	@Patch('tenants/:tenantId/orders/:orderId/cancel')
+	// @UseGuards(AuthGuard)
+	cancelOrder(
+		@Param('tenantId') tenantId: string,
+		@Param('orderId') orderId: string,
+		@Body() data: any,
+	) {
+		return this.orderClient.send('orders:cancel', {
+			...data,
+			tenantId,
+			orderId,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+
+	/**
+	 * Update payment status
+	 * PATCH /tenants/:tenantId/orders/:orderId/payment
+	 *
+	 * Body:
+	 * {
+	 *   "paymentStatus": "PAID",
+	 *   "paymentMethod": "ZALOPAY",
+	 *   "paymentTransactionId": "ZALO123456789"
+	 * }
+	 */
+	@Patch('tenants/:tenantId/orders/:orderId/payment')
+	@UseGuards(AuthGuard, Role('USER', 'STAFF'))
+	updatePaymentStatus(
+		@Param('tenantId') tenantId: string,
+		@Param('orderId') orderId: string,
+		@Body() data: any,
+	) {
+		return this.orderClient.send('orders:update-payment', {
+			...data,
+			tenantId,
+			orderId,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+
+	/**
+	 * Accept specific order items (ITEM-CENTRIC ARCHITECTURE)
+	 * POST /tenants/:tenantId/orders/:orderId/accept-items
+	 *
+	 * Body:
+	 * {
+	 *   "itemIds": ["uuid1", "uuid2"],
+	 *   "waiterId": "uuid"
+	 * }
+	 *
+	 * Business Flow:
+	 * - Waiter accepts specific items (granular control)
+	 * - Items status updated to ACCEPTED
+	 * - Kitchen receives notification for accepted items
+	 */
+	// DO NOT USE THIS ENDPOINT FOR NOW, USE ORDER ITEMS STATUS UPDATE INSTEAD
+	/*
+	@Post('tenants/:tenantId/orders/:orderId/accept-items')
+	@UseGuards(AuthGuard, Role('USER', 'STAFF'))
+	acceptOrderItems(
+		@Param('tenantId') tenantId: string,
+		@Param('orderId') orderId: string,
+		@Body() data: any,
+	) {
+		return this.orderClient.send('orders:accept-items', {
+			...data,
+			tenantId,
+			orderId,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+	*/
+
+	/**
+	 * Reject specific order items (ITEM-CENTRIC ARCHITECTURE)
+	 * POST /tenants/:tenantId/orders/:orderId/reject-items
+	 *
+	 * Body:
+	 * {
+	 *   "itemIds": ["uuid1", "uuid2"],
+	 *   "waiterId": "uuid",
+	 *   "rejectionReason": "Out of stock - will be available tomorrow"
+	 * }
+	 *
+	 * Business Flow:
+	 * - Waiter rejects specific items with reason
+	 * - Items status updated to REJECTED
+	 * - Customer receives notification with rejection reason
+	 */
+	// DO NOT USE THIS ENDPOINT FOR NOW, USE ORDER ITEMS STATUS UPDATE INSTEAD
+	/*
+	@Post('tenants/:tenantId/orders/:orderId/reject-items')
+	@UseGuards(AuthGuard, Role('USER', 'STAFF'))
+	rejectOrderItems(
+		@Param('tenantId') tenantId: string,
+		@Param('orderId') orderId: string,
+		@Body() data: any,
+	) {
+		return this.orderClient.send('orders:reject-items', {
+			...data,
+			tenantId,
+			orderId,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+	*/
+
+	// ==================== REPORT ENDPOINTS ====================
+
+	/**
+	 * Get revenue report by time range
+	 * GET /tenants/:tenantId/reports/revenue
+	 *
+	 * Query params:
+	 * - timeRange: DAILY | WEEKLY | MONTHLY | CUSTOM (required)
+	 * - startDate: ISO date string (required for CUSTOM, optional for others)
+	 * - endDate: ISO date string (required for CUSTOM, optional for others)
+	 * - paymentStatus: PAID | PENDING | etc. (default: PAID)
+	 *
+	 * Returns:
+	 * - Time-series revenue data grouped by period
+	 * - Summary statistics (total revenue, orders, average order value)
+	 * - Chart metadata for frontend visualization
+	 *
+	 * Use Cases:
+	 * - Daily revenue tracking for the last 30 days
+	 * - Weekly revenue comparison for last 12 weeks
+	 * - Monthly revenue trends for the year
+	 * - Custom date range analysis
+	 *
+	 * Requires USER role (tenant admin)
+	 */
+	@Get('tenants/:tenantId/reports/revenue')
+	@UseGuards(AuthGuard, Role('USER'))
+	getRevenueReport(
+		@Param('tenantId') tenantId: string,
+		@Query('timeRange') timeRange: string,
+		@Query('startDate') startDate?: string,
+		@Query('endDate') endDate?: string,
+		@Query('paymentStatus') paymentStatus?: string,
+	) {
+		return this.orderClient.send('orders:get-revenue-report', {
+			tenantId,
+			timeRange,
+			startDate,
+			endDate,
+			paymentStatus,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+
+	/**
+	 * Get top revenue items report
+	 * GET /tenants/:tenantId/reports/top-items
+	 *
+	 * Query params:
+	 * - startDate: ISO date string (optional, default: 30 days ago)
+	 * - endDate: ISO date string (optional, default: now)
+	 * - limit: number (optional, default: 10, max: 50)
+	 * - paymentStatus: PAID | PENDING | etc. (default: PAID)
+	 *
+	 * Returns:
+	 * - Ranked list of best-selling items by revenue
+	 * - Quantity sold, order count, average price per item
+	 * - Summary statistics
+	 *
+	 * Use Cases:
+	 * - Identify most profitable menu items
+	 * - Menu optimization decisions
+	 * - Inventory planning
+	 * - Marketing campaign planning
+	 *
+	 * Requires USER role (tenant admin)
+	 */
+	@Get('tenants/:tenantId/reports/top-items')
+	@UseGuards(AuthGuard, Role('USER'))
+	getTopItemsReport(
+		@Param('tenantId') tenantId: string,
+		@Query('startDate') startDate?: string,
+		@Query('endDate') endDate?: string,
+		@Query('limit') limit?: number,
+		@Query('paymentStatus') paymentStatus?: string,
+	) {
+		return this.orderClient.send('orders:get-top-items-report', {
+			tenantId,
+			startDate,
+			endDate,
+			limit: limit ? +limit : undefined,
+			paymentStatus,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+
+	/**
+	 * Get analytics report for dashboard
+	 * GET /tenants/:tenantId/reports/analytics
+	 *
+	 * Query params:
+	 * - startDate: ISO date string (optional, default: 30 days ago)
+	 * - endDate: ISO date string (optional, default: now)
+	 * - paymentStatus: PAID | PENDING | etc. (default: PAID)
+	 *
+	 * Returns comprehensive analytics data:
+	 * - Daily orders trend (time series)
+	 * - Peak hours analysis (24-hour distribution)
+	 * - Popular items trends (top 5 items with daily data)
+	 * - Summary statistics (total orders, revenue, peak hour, busiest day)
+	 * - Chart metadata for multiple visualizations
+	 *
+	 * Use Cases:
+	 * - Analytics dashboard with multiple charts
+	 * - Operational insights (peak hours for staffing)
+	 * - Trend analysis for menu items
+	 * - Business performance overview
+	 *
+	 * Chart-friendly format for:
+	 * - Chart.js (line, bar, radar charts)
+	 * - Recharts (LineChart, BarChart, AreaChart)
+	 * - Any charting library
+	 *
+	 * Requires USER role (tenant admin)
+	 */
+	@Get('tenants/:tenantId/reports/analytics')
+	@UseGuards(AuthGuard, Role('USER'))
+	getAnalyticsReport(
+		@Param('tenantId') tenantId: string,
+		@Query('startDate') startDate?: string,
+		@Query('endDate') endDate?: string,
+		@Query('paymentStatus') paymentStatus?: string,
+	) {
+		return this.orderClient.send('orders:get-analytics-report', {
+			tenantId,
+			startDate,
+			endDate,
+			paymentStatus,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+
+	// ==================== BILL GENERATION ====================
+
+	/**
+	 * Generate bill for a specific order
+	 * GET /tenants/:tenantId/orders/:orderId/bill
+	 *
+	 * Creates a comprehensive bill/invoice document for an order.
+	 * Contains all order details, itemized breakdown, and payment information.
+	 *
+	 * Use Cases:
+	 * - Generate receipt after successful payment
+	 * - Customer requests invoice/receipt
+	 * - Print bill for customer records
+	 * - Email receipt to customer
+	 * - Tax/accounting documentation
+	 * - Download PDF receipt
+	 *
+	 * Response Structure:
+	 * - tenant: Restaurant/tenant information
+	 * - order: Order metadata (table, customer, timestamps)
+	 * - items: Itemized list with prices and modifiers
+	 * - summary: Total breakdown (subtotal, tax, discount, total)
+	 * - payment: Payment details (status, method, transaction ID)
+	 * - billNumber: Unique bill identifier
+	 * - generatedAt: Bill generation timestamp
+	 *
+	 * Authentication:
+	 * - No authentication required (public bill access via order ID)
+	 * - Alternatively can require STAFF/USER role if needed
+	 *
+	 * Frontend Integration:
+	 * - Can render as HTML receipt
+	 * - Can convert to PDF using libraries like jsPDF or react-pdf
+	 * - Can format for thermal printer
+	 * - Can send to customer email
+	 */
+	@Get('tenants/:tenantId/orders/:orderId/bill')
+	// @UseGuards(AuthGuard, Role('USER', 'STAFF')) // Optional: Add if you want to restrict access
+	generateBill(@Param('tenantId') tenantId: string, @Param('orderId') orderId: string) {
+		return this.orderClient.send('orders:generate-bill', {
+			tenantId,
+			orderId,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+
+	/**
+	 * Generate payment QR code for an order
+	 * GET /tenants/:tenantId/orders/:orderId/payment-qr
+	 *
+	 * Creates a QR code that leads to Stripe payment checkout.
+	 * Customers scan the QR code to pay for their order via Stripe.
+	 *
+	 * Business Flow:
+	 * 1. System calls payment service to create Stripe checkout session
+	 * 2. Payment service returns Stripe checkout URL
+	 * 3. System generates QR code encoding the checkout URL
+	 * 4. Customer scans QR code and completes payment on Stripe
+	 * 5. After payment, customer is redirected back to restaurant app
+	 *
+	 * Use Cases:
+	 * - Contactless payment via QR code scan
+	 * - Display QR code on table tablet
+	 * - Display QR code on waiter device
+	 * - Print QR code on bill
+	 * - Send QR code via messaging (WhatsApp, SMS)
+	 * - Email QR code to customer
+	 *
+	 * Response Structure:
+	 * - qrCode: Base64-encoded PNG image of QR code
+	 * - paymentUrl: Stripe checkout URL (also encoded in QR)
+	 * - orderId: Order ID for reference
+	 * - amount: Total amount in cents (e.g., 10000 = $100.00)
+	 * - currency: Currency code (e.g., "usd")
+	 * - sessionId: Stripe session ID (optional)
+	 * - expiresAt: When payment session expires (optional)
+	 *
+	 * Authentication:
+	 * - No authentication required (public payment access)
+	 * - Can add STAFF/CUSTOMER role if needed
+	 *
+	 * Frontend Integration:
+	 * ```html
+	 * <!-- Display QR code as image -->
+	 * <img src="data:image/png;base64,{qrCode}" alt="Payment QR Code" />
+	 *
+	 * <!-- Provide fallback link -->
+	 * <a href="{paymentUrl}" target="_blank">Or click here to pay</a>
+	 *
+	 * <!-- Show amount -->
+	 * <p>Total: ${amount / 100}</p>
+	 * ```
+	 *
+	 * Security:
+	 * - Stripe handles all payment processing securely
+	 * - No credit card info passes through our system
+	 * - Payment URL is single-use and expires after 24 hours
+	 * - Customer redirected back to restaurant app after payment
+	 */
+	@Get('tenants/:tenantId/orders/:orderId/payment-qr')
+	// @UseGuards(AuthGuard, Role('USER', 'STAFF', 'CUSTOMER')) // Optional: Add if you want to restrict access
+	generatePaymentQr(
+		@Param('tenantId') tenantId: string,
+		@Param('orderId') orderId: string,
+	) {
+		return this.orderClient.send('orders:generate-payment-qr', {
+			tenantId,
+			orderId,
+			orderApiKey: this.configService.get('ORDER_API_KEY'),
+		});
+	}
+}

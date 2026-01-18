@@ -5,9 +5,10 @@ import { LoadingProvider } from './contexts/LoadingContext'
 import { AlertProvider } from './contexts/AlertContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { NotificationProvider } from './contexts/NotificationContext'
+import { KitchenSocketProvider } from './contexts/KitchenSocketContext'
 import ProtectedRoute from './routes/ProtectedRoute'
 
-import Login from './pages/auth/Login'
+import UnifiedLogin from './pages/auth/UnifiedLogin'
 import SignUp from './pages/auth/SignUp'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
@@ -37,8 +38,18 @@ import RestaurantQRHandler from './pages/customer/scan/RestaurantQRHandler'
 import SelectTable from './pages/customer/scan/SelectTable'
 
 import RestaurantQRGenerator from './pages/user/qr/RestaurantQRGenerator'
+import KitchenManagement from './pages/user/kitchen/KitchenManagement'
 
-// Component chuyển hướng dựa trên role
+// Kitchen Display System
+import KitchenDisplay from './pages/kitchen/KitchenDisplay'
+
+// Waiter Panel
+import WaiterPanel from './pages/waiter/WaiterPanel'
+
+/**
+ * Role-based redirect component
+ * Redirects users to appropriate dashboard based on their role and tenant context
+ */
 const RoleBasedRedirect = () => {
 	const { user, loading } = useUser()
 
@@ -54,12 +65,84 @@ const RoleBasedRedirect = () => {
 		return <Navigate to="/login" replace />
 	}
 
-	// Admin redirect to dashboard, User redirect to menu
-	if (user.role.toLowerCase().includes('administrator')) {
+	const roles = user.roles || []
+	const userOwnerId = user.ownerId || localStorage.getItem('currentTenantId')
+
+	// Admin redirect to dashboard
+	if (roles.includes('ADMIN') || user.role?.toLowerCase().includes('administrator')) {
 		return <Navigate to="/admin/dashboard" replace />
-	} else {
+	}
+
+	// Chef redirect to kitchen (with tenant context) - STRICT: must have ownerId
+	if (roles.includes('CHEF')) {
+		if (userOwnerId) {
+			return <Navigate to={`/r/${userOwnerId}/kitchen`} replace />
+		}
+		// SECURITY: Chef without ownerId = invalid session, clear and redirect to login
+		console.warn('🚫 Chef without ownerId - clearing session')
+		localStorage.removeItem('user')
+		localStorage.removeItem('currentTenantId')
+		return (
+			<Navigate
+				to="/login"
+				replace
+				state={{ error: 'Session expired. Please login via your restaurant login page.' }}
+			/>
+		)
+	}
+
+	// Staff redirect to waiter panel (with tenant context) - STRICT: must have ownerId
+	if (roles.includes('STAFF')) {
+		if (userOwnerId) {
+			return <Navigate to={`/r/${userOwnerId}/waiter`} replace />
+		}
+		// SECURITY: Staff without ownerId = invalid session, clear and redirect to login
+		console.warn('🚫 Staff without ownerId - clearing session')
+		localStorage.removeItem('user')
+		localStorage.removeItem('currentTenantId')
+		return (
+			<Navigate
+				to="/login"
+				replace
+				state={{ error: 'Session expired. Please login via your restaurant login page.' }}
+			/>
+		)
+	}
+
+	// Customer redirect to ordering interface (with tenant context) - STRICT: must have ownerId
+	if (roles.includes('CUSTOMER')) {
+		if (userOwnerId) {
+			return <Navigate to={`/r/${userOwnerId}/order/table/0`} replace />
+		}
+		// SECURITY: Customer without ownerId = invalid session, clear and redirect to login
+		console.warn('🚫 Customer without ownerId - clearing session')
+		localStorage.removeItem('user')
+		localStorage.removeItem('currentTenantId')
+		return (
+			<Navigate
+				to="/login"
+				replace
+				state={{ error: 'Session expired. Please login via your restaurant login page.' }}
+			/>
+		)
+	}
+
+	// User (Owner) redirect to menu - ONLY for USER role explicitly
+	if (roles.includes('USER')) {
 		return <Navigate to="/user/menu" replace />
 	}
+
+	// SECURITY: Unknown role - don't default to user/menu, redirect to login
+	console.warn('🚫 Unknown role detected - redirecting to login:', roles)
+	localStorage.removeItem('user')
+	localStorage.removeItem('currentTenantId')
+	return (
+		<Navigate
+			to="/login"
+			replace
+			state={{ error: 'Invalid session. Please login again.' }}
+		/>
+	)
 }
 
 function App() {
@@ -71,15 +154,25 @@ function App() {
 						<NotificationProvider>
 							<BrowserRouter>
 								<Routes>
-									<Route path="/login" element={<Login />} />
+									{/* ========== Authentication Routes ========== */}
+									{/* Unified login - handles all roles */}
+									<Route path="/login" element={<UnifiedLogin />} />
+									{/* Login with tenant context (Staff/Chef/Customer) */}
+									<Route path="/login/:ownerId" element={<UnifiedLogin />} />
+
+									{/* Legacy customer login routes (redirect to unified) */}
+									<Route path="/customer-login" element={<CustomerLogin />} />
+									<Route path="/customer-login/:ownerId" element={<CustomerLogin />} />
+
+									{/* Other auth routes */}
 									<Route path="/signup" element={<SignUp />} />
+									<Route path="/customer-signup/:ownerId" element={<SignUp />} />
 									<Route path="/forgot-password" element={<ForgotPassword />} />
 									<Route path="/reset-password" element={<ResetPassword />} />
 									<Route path="/onboarding" element={<RestaurantSetupWizard />} />
 									<Route path="/email-confirmation" element={<EmailConfirmation />} />
-									<Route path="/customer-login" element={<CustomerLogin />} />
-									<Route path="/customer-login/:ownerId" element={<CustomerLogin />} />
 
+									{/* ========== QR Code Scan Routes ========== */}
 									<Route
 										path="/tenants/:tenantId/tables/scan/:token"
 										element={<QRScanHandler />}
@@ -105,11 +198,33 @@ function App() {
 										element={<OrderingInterface />}
 									/>
 
+									{/* ========== Admin Routes ========== */}
 									<Route
 										path="/admin/dashboard"
 										element={
 											<ProtectedRoute allowedRoles={['Super Administrator']}>
 												<TenantManagementListView />
+											</ProtectedRoute>
+										}
+									/>
+									<Route
+										path="/admin/tenant-management"
+										element={
+											<ProtectedRoute allowedRoles={['Super Administrator']}>
+												<TenantManagementListView />
+											</ProtectedRoute>
+										}
+									/>
+									<Route
+										path="/admin/user-management"
+										element={
+											<ProtectedRoute allowedRoles={['Super Administrator']}>
+												{/* TODO: Create UserManagement component */}
+												<div className="flex min-h-screen bg-[#101922] items-center justify-center">
+													<p className="text-white text-xl">
+														👥 User Management - Coming Soon
+													</p>
+												</div>
 											</ProtectedRoute>
 										}
 									/>
@@ -164,6 +279,14 @@ function App() {
 										}
 									/>
 									<Route
+										path="/user/kitchen"
+										element={
+											<ProtectedRoute allowedRoles={['User']}>
+												<KitchenManagement />
+											</ProtectedRoute>
+										}
+									/>
+									<Route
 										path="/user/help-requests"
 										element={
 											<ProtectedRoute allowedRoles={['User']}>
@@ -187,6 +310,39 @@ function App() {
 											</ProtectedRoute>
 										}
 									/>
+
+									{/* ========== Multi-tenant Routes (/r/:ownerId/...) ========== */}
+									{/* Kitchen Display System - For Chef role */}
+									<Route
+										path="/r/:ownerId/kitchen"
+										element={
+											<ProtectedRoute allowedRoles={['User', 'Chef']} requireTenant>
+												<KitchenSocketProvider>
+													<KitchenDisplay />
+												</KitchenSocketProvider>
+											</ProtectedRoute>
+										}
+									/>
+
+									{/* Waiter Panel - For Staff role */}
+									<Route
+										path="/r/:ownerId/waiter"
+										element={
+											<ProtectedRoute allowedRoles={['User', 'Staff']} requireTenant>
+												<WaiterPanel />
+											</ProtectedRoute>
+										}
+									/>
+
+									{/* Customer Order Interface - Multi-tenant */}
+									<Route
+										path="/r/:ownerId/order/table/:tableId"
+										element={<OrderingInterface />}
+									/>
+
+									{/* Legacy routes - redirect to new pattern */}
+									<Route path="/kitchen" element={<RoleBasedRedirect />} />
+									<Route path="/waiter" element={<RoleBasedRedirect />} />
 
 									{/* Profile - Available for both roles */}
 									<Route

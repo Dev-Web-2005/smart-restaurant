@@ -150,6 +150,57 @@ export class ProductController {
 		});
 	}
 
+	// ============ POPULARITY / ANALYTICS ============
+	// ⚠️ IMPORTANT: This route MUST come BEFORE /:itemId to avoid route conflicts
+
+	/**
+	 * Get popular menu items (sorted by order count)
+	 * GET /tenants/:tenantId/items/popular
+	 *
+	 * Query params:
+	 * - limit: number (default: 10, max: 100)
+	 * - categoryId: uuid (optional - filter by category)
+	 *
+	 * Returns items sorted by orderCount descending
+	 * Use for: Homepage highlights, recommendations, trending items
+	 */
+	@Get('tenants/:tenantId/items/popular')
+	getPopularItems(
+		@Param('tenantId') tenantId: string,
+		@Query('limit') limit?: number,
+		@Query('categoryId') categoryId?: string,
+	) {
+		return this.productClient.send('menu-items:get-popular', {
+			tenantId,
+			limit,
+			categoryId,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	/**
+	 * Increment order count for menu items
+	 * POST /tenants/:tenantId/items/increment-order-count
+	 *
+	 * Body:
+	 * {
+	 *   "itemIds": ["uuid1", "uuid2", ...]
+	 * }
+	 *
+	 * This is called by Order Service (internal use)
+	 * Can also be triggered manually for testing/analytics
+	 */
+	@Post('tenants/:tenantId/items/increment-order-count')
+	@UseGuards(AuthGuard, Role('USER', 'STAFF'))
+	incrementOrderCount(@Param('tenantId') tenantId: string, @Body() data: any) {
+		return this.productClient.send('menu-items:increment-order-count', {
+			tenantId,
+			itemId: data.itemId,
+			quantity: data.quantity,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
 	@Get('tenants/:tenantId/items/:itemId')
 	// @UseGuards(AuthGuard, Role('USER'))
 	getItem(@Param('tenantId') tenantId: string, @Param('itemId') itemId: string) {
@@ -491,6 +542,62 @@ export class ProductController {
 			sortOrder,
 			page,
 			limit,
+		});
+	}
+
+	// ============ REVIEWS ============
+
+	/**
+	 * Create a review for a menu item
+	 * POST /tenants/:tenantId/items/:itemId/reviews
+	 *
+	 * Body:
+	 * {
+	 *   "rating": 5,
+	 *   "comment": "Great dish!"
+	 * }
+	 *
+	 * Requires authentication - userId and userName extracted from JWT
+	 */
+	@Post('tenants/:tenantId/items/:itemId/reviews')
+	@UseGuards(AuthGuard)
+	createReview(
+		@Param('tenantId') tenantId: string,
+		@Param('itemId') itemId: string,
+		@Body() data: any,
+	) {
+		return this.productClient.send('reviews:create', {
+			...data,
+			tenantId,
+			menuItemId: itemId,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
+		});
+	}
+
+	/**
+	 * Get reviews for a menu item
+	 * GET /tenants/:tenantId/items/:itemId/reviews
+	 *
+	 * Query params:
+	 * - page: number (default: 1)
+	 * - limit: number (default: 10)
+	 *
+	 * Returns paginated reviews with average rating
+	 * Public endpoint - no authentication required
+	 */
+	@Get('tenants/:tenantId/items/:itemId/reviews')
+	getReviews(
+		@Param('tenantId') tenantId: string,
+		@Param('itemId') itemId: string,
+		@Query('page') page?: number,
+		@Query('limit') limit?: number,
+	) {
+		return this.productClient.send('reviews:get-all', {
+			tenantId,
+			menuItemId: itemId,
+			page,
+			limit,
+			productApiKey: this.configService.get('PRODUCT_API_KEY'),
 		});
 	}
 }

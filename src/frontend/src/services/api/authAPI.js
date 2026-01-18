@@ -20,7 +20,15 @@ export const loginAPI = async (username, password) => {
 		const { code, message, data } = response.data
 
 		if (code === 1000) {
-			const { accessToken, userId, username: userName, email, roles, authorities } = data
+			const {
+				accessToken,
+				userId,
+				username: userName,
+				email,
+				roles,
+				authorities,
+				ownerId,
+			} = data
 
 			// ✅ Don't store in window - will be stored in React state
 			const userData = {
@@ -29,11 +37,24 @@ export const loginAPI = async (username, password) => {
 				email,
 				roles,
 				authorities,
+				ownerId: ownerId || null, // Include ownerId for multi-tenant context
 			}
 			localStorage.setItem('user', JSON.stringify(userData))
 
-			// Set tenantId for table management (userId = tenantId in this system)
-			window.currentTenantId = userId
+			// Set tenantId for table management
+			// ADMIN không có ownerId - chỉ USER (owner) và Staff/Chef/Customer mới có
+			// USER's userId = ownerId của restaurant họ sở hữu
+			// Staff/Chef/Customer's ownerId = userId của owner
+			const isAdmin = roles && roles.includes('ADMIN')
+			if (!isAdmin && ownerId) {
+				window.currentTenantId = ownerId
+				localStorage.setItem('currentTenantId', ownerId)
+			} else if (!isAdmin && roles && roles.includes('USER')) {
+				// USER (owner) - their userId IS the ownerId for their restaurant
+				window.currentTenantId = userId
+				localStorage.setItem('currentTenantId', userId)
+			}
+			// Admin doesn't need tenantId
 
 			return {
 				success: true,
@@ -55,6 +76,90 @@ export const loginAPI = async (username, password) => {
 		switch (errorCode) {
 			case 1001:
 				userMessage = 'Invalid username or password.'
+				break
+			case 2901:
+				userMessage = 'Invalid input. Please check your credentials.'
+				break
+			case 9002:
+				userMessage = 'Cannot connect to server. Please check your internet connection.'
+				break
+			default:
+				userMessage = errorMessage || userMessage
+		}
+
+		return {
+			success: false,
+			message: userMessage,
+			errorCode,
+		}
+	}
+}
+
+/**
+ * Login user with ownerId context (for Staff/Chef/Customer in multi-tenant)
+ * Uses the endpoint: POST /identity/auth/login/:ownerId
+ * @param {string} username - Username or email
+ * @param {string} password - Password
+ * @param {string} ownerId - Restaurant owner's userId (tenant context)
+ * @returns {Promise} Response with user data, access token, and ownerId
+ */
+export const loginWithOwnerAPI = async (username, password, ownerId) => {
+	try {
+		const response = await apiClient.post(`/identity/auth/login/${ownerId}`, {
+			username,
+			password,
+		})
+
+		const { code, message, data } = response.data
+
+		if (code === 1000 || code === 200) {
+			const {
+				accessToken,
+				userId,
+				username: userName,
+				email,
+				roles,
+				authorities,
+				ownerId: responseOwnerId,
+			} = data
+
+			const userData = {
+				userId,
+				username: userName,
+				email,
+				roles,
+				authorities,
+				ownerId: responseOwnerId || ownerId, // Use response ownerId or fallback to param
+			}
+			localStorage.setItem('user', JSON.stringify(userData))
+
+			// Set tenantId for operations
+			window.currentTenantId = responseOwnerId || ownerId
+			localStorage.setItem('currentTenantId', responseOwnerId || ownerId)
+
+			return {
+				success: true,
+				accessToken,
+				user: userData,
+				message,
+			}
+		} else {
+			return {
+				success: false,
+				message: message || 'Login failed',
+			}
+		}
+	} catch (error) {
+		const errorCode = error?.code || error?.response?.data?.code
+		const errorMessage = error?.message || error?.response?.data?.message
+		let userMessage = 'Login failed. Please try again.'
+
+		switch (errorCode) {
+			case 1001:
+				userMessage = 'Invalid username or password.'
+				break
+			case 1004:
+				userMessage = 'Account not found in this restaurant.'
 				break
 			case 2901:
 				userMessage = 'Invalid input. Please check your credentials.'
@@ -134,8 +239,8 @@ export const registerAPI = async (signupData, onboardingData) => {
 			birthDay: signupData.yearOfBirth
 				? new Date(`${signupData.yearOfBirth}-01-01`).toISOString()
 				: onboardingData.citizenInfo?.dateOfBirth
-				? new Date(onboardingData.citizenInfo.dateOfBirth).toISOString()
-				: undefined,
+					? new Date(onboardingData.citizenInfo.dateOfBirth).toISOString()
+					: undefined,
 			phoneNumber: signupData.phoneNumber || '',
 			address: signupData.address || onboardingData.citizenInfo?.address || '',
 
@@ -570,6 +675,188 @@ export const resendVerificationEmailAPI = async (email) => {
 			message:
 				error.response?.data?.message ||
 				'Failed to resend verification email. Please try again.',
+		}
+	}
+}
+
+/**
+ * Update user password
+ * @param {Object} data - Password update data
+ * @param {string} data.oldPassword - Current password
+ * @param {string} data.newPassword - New password (min 8 characters)
+ * @returns {Promise} Response with success status
+ */
+export const updatePasswordAPI = async ({ oldPassword, newPassword }) => {
+	try {
+		const response = await apiClient.put('/identity/auth/change-password', {
+			oldPassword,
+			newPassword,
+		})
+
+		const { code, message, data } = response.data
+
+		if (code === 1000) {
+			return {
+				success: true,
+				message: message || 'Password updated successfully',
+				data,
+			}
+		} else {
+			return {
+				success: false,
+				message: message || 'Failed to update password',
+			}
+		}
+	} catch (error) {
+		console.error('❌ Update password error:', error)
+		return {
+			success: false,
+			message:
+				error.response?.data?.message ||
+				'Failed to update password. Please check your current password.',
+		}
+	}
+}
+
+/**
+ * Update user profile information
+ * @param {Object} profileData - Profile data to update
+ * @param {string} [profileData.phoneNumber] - Phone number
+ * @param {string} [profileData.address] - Address
+ * @param {Date|string} [profileData.birthDay] - Birth date
+ * @param {string} [profileData.restaurantName] - Restaurant name (for Owner)
+ * @param {string} [profileData.businessAddress] - Business address (for Owner)
+ * @param {string} [profileData.contractNumber] - Contract number
+ * @param {string} [profileData.contractEmail] - Contract email
+ * @param {string} [profileData.cardHolderName] - Card holder name
+ * @param {string} [profileData.accountNumber] - Account number
+ * @param {string} [profileData.expirationDate] - Expiration date
+ * @param {string} [profileData.cvv] - CVV
+ * @param {string} [profileData.frontImage] - Front image (CMND/CCCD)
+ * @param {string} [profileData.backImage] - Back image (CMND/CCCD)
+ * @returns {Promise<{success: boolean, message: string, data?: Object}>} Response with success status and profile data
+ */
+export const updateProfileAPI = async (profileData) => {
+	try {
+		console.log('📤 Updating profile with data:', profileData)
+		const response = await apiClient.patch('/profiles/modify', profileData)
+
+		console.log('📥 Profile update response:', response.data)
+
+		// Profile service returns direct object or wrapped in response structure
+		const responseData = response.data
+
+		// Check if response is wrapped (has code/message) or direct profile object
+		if (responseData && typeof responseData === 'object') {
+			// Wrapped response structure (has code/message/data)
+			if (responseData.code !== undefined) {
+				const { code, message, data } = responseData
+				// Accept HTTP success codes (200-299) or custom success codes (1000, 100)
+				if ((code >= 200 && code < 300) || code === 1000 || code === 100) {
+					return {
+						success: true,
+						message: message || 'Profile updated successfully',
+						data: data,
+					}
+				} else {
+					return {
+						success: false,
+						message: message || 'Failed to update profile',
+					}
+				}
+			}
+
+			// Direct profile object from microservice (no code wrapper)
+			if (responseData.userId) {
+				return {
+					success: true,
+					message: 'Profile updated successfully',
+					data: responseData,
+				}
+			}
+		}
+
+		return {
+			success: false,
+			message: 'Invalid response format',
+		}
+	} catch (error) {
+		console.error('❌ Update profile error:', error)
+		console.error('❌ Error response:', error.response?.data)
+		return {
+			success: false,
+			message:
+				error.response?.data?.message ||
+				error.message ||
+				'Failed to update profile. Please try again.',
+		}
+	}
+}
+
+/**
+ * Get user profile information
+ * @returns {Promise<{success: boolean, message: string, data?: Object}>} Response with profile data
+ */
+export const getMyProfileAPI = async () => {
+	try {
+		console.log('📤 Fetching user profile...')
+		const response = await apiClient.get('/profiles/my-profile')
+
+		console.log('📥 Profile fetch response:', response.data)
+
+		const responseData = response.data
+
+		// Check if response is wrapped or direct profile object
+		if (responseData && typeof responseData === 'object') {
+			// Wrapped response structure (has code/message/data)
+			if (responseData.code !== undefined) {
+				const { code, message, data } = responseData
+				// Accept HTTP success codes (200-299) or custom success codes (1000, 100)
+				if ((code >= 200 && code < 300) || code === 1000 || code === 100) {
+					return {
+						success: true,
+						message: message || 'Profile fetched successfully',
+						data: data,
+					}
+				} else {
+					return {
+						success: false,
+						message: message || 'Failed to fetch profile',
+					}
+				}
+			}
+
+			// Direct profile object from microservice (no code wrapper)
+			if (responseData.userId) {
+				return {
+					success: true,
+					message: 'Profile fetched successfully',
+					data: responseData,
+				}
+			}
+		}
+
+		return {
+			success: false,
+			message: 'Invalid response format',
+		}
+	} catch (error) {
+		console.error('❌ Get profile error:', error)
+		console.error('❌ Error response:', error.response?.data)
+
+		// Handle 404 - profile not found (first time user)
+		if (error.response?.status === 404) {
+			return {
+				success: true,
+				message: 'Profile not found',
+				data: null, // Will be created on first update
+			}
+		}
+
+		return {
+			success: false,
+			message:
+				error.response?.data?.message || error.message || 'Failed to fetch profile',
 		}
 	}
 }

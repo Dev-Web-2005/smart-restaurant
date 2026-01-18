@@ -67,6 +67,7 @@ async function bootstrap() {
 	app.connectMicroservice<MicroserviceOptions>({
 		transport: Transport.TCP,
 		options: {
+			host: '0.0.0.0',
 			port: port,
 		},
 	});
@@ -97,10 +98,8 @@ async function bootstrap() {
 	console.log(
 		`Notification Service TCP is running on port ${parseInt(process.env.PORT, 10) || 8085}`,
 	);
-
-	await app.listen(parseInt(process.env.PORT, 10) || 8085, '127.0.0.1');
 	console.log(
-		`HTTP Health endpoint listening on 127.0.0.1:${parseInt(process.env.PORT, 10) || 8085}`,
+		`Microservice is running on port ${parseInt(process.env.PORT, 10) || 8085}`,
 	);
 
 	process.on('SIGINT', () => {
