@@ -2508,7 +2508,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n    // \"username\": \"waiter1\",\r\n    \"username\": \"kitchen1\",\r\n    \"password\": \"StrongPassword!123\"\r\n}",
+              "raw": "{\r\n    // \"username\": \"waiter1\",\r\n    // \"username\": \"kitchen1\",\r\n    \"username\": \"test1\",\r\n    \"password\": \"StrongPassword!123\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
