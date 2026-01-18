@@ -57,6 +57,18 @@ import { KitchenTicket, KitchenTicketItem } from '../common/entities';
 					},
 				}),
 			},
+			{
+				name: 'TABLE_SERVICE',
+				imports: [ConfigModule],
+				inject: [ConfigService],
+				useFactory: (configService: ConfigService) => ({
+					transport: Transport.TCP,
+					options: {
+						host: configService.get<string>('HOST_TABLE_SERVICE') || 'localhost',
+						port: parseInt(configService.get<string>('PORT_TABLE_SERVICE') || '8083', 10),
+					},
+				}),
+			},
 		]),
 	],
 	controllers: [KitchenController],
