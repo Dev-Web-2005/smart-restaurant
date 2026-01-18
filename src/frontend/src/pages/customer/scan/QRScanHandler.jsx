@@ -60,6 +60,35 @@ const QRScanHandler = () => {
 		console.log('✅ Customer authenticated:', customer)
 		setShowAuthModal(false)
 
+		// Handle guest mode
+		if (customer?.isGuest) {
+			console.log('🚶 Guest mode - no authentication required')
+			localStorage.setItem('isGuestMode', 'true')
+			// Remove any existing auth tokens for guest
+			localStorage.removeItem('authToken')
+			localStorage.removeItem('customerAuth')
+			localStorage.removeItem('customerData')
+		} else {
+			// Normal login - store customer data
+			localStorage.setItem('isGuestMode', 'false')
+
+			// ✅ Store access token for persistence
+			if (customer?.accessToken) {
+				localStorage.setItem('authToken', customer.accessToken)
+				window.accessToken = customer.accessToken
+				console.log('✅ Stored access token for persistence')
+			} else if (customer?.token) {
+				localStorage.setItem('authToken', customer.token)
+				window.accessToken = customer.token
+				console.log('✅ Stored token for persistence')
+			}
+
+			if (customer) {
+				// Store in customerAuth (used by ProfilePage)
+				localStorage.setItem('customerAuth', JSON.stringify(customer))
+			}
+		}
+
 		// Navigate to ordering interface with table UUID (not table number!)
 		// tableInfo.tableId is the UUID needed for API calls
 		const tableUuid = tableInfo?.tableId
@@ -72,7 +101,7 @@ const QRScanHandler = () => {
 		// Store tableId for later use
 		localStorage.setItem('currentTableId', tableUuid)
 
-		navigate(`/order/${tenantId}/table/${tableUuid}`, { replace: true })
+		navigate(`/tenant/${tenantId}/table/${tableUuid}`, { replace: true })
 	}
 
 	const handleAuthClose = () => {

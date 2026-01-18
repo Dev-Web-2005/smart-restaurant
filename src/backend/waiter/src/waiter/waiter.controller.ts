@@ -156,5 +156,4 @@ export class WaiterController {
 			throw error;
 		}
 	}
-
 }

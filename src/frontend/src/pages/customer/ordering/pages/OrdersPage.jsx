@@ -161,6 +161,8 @@ const OrdersPage = ({
 	const [loadingQr, setLoadingQr] = useState(false)
 	const [paymentError, setPaymentError] = useState(null)
 	const [paymentStep, setPaymentStep] = useState('bill') // 'bill' | 'qr' | 'success'
+	const [downloadingReceipt, setDownloadingReceipt] = useState(false)
+	const receiptRef = useRef(null)
 
 	// ✅ Auto refresh effect
 	useEffect(() => {
@@ -334,6 +336,48 @@ const OrdersPage = ({
 				onBrowseMenu()
 			}
 		}, 2000)
+	}
+
+	// ✅ Download receipt as image
+	const handleDownloadReceipt = async () => {
+		if (!receiptRef.current || !billData) return
+
+		setDownloadingReceipt(true)
+
+		try {
+			// Dynamically import html2canvas
+			const html2canvas = (await import('html2canvas')).default
+
+			// Capture the receipt element
+			const canvas = await html2canvas(receiptRef.current, {
+				backgroundColor: '#1A202C',
+				scale: 2, // Higher quality
+				logging: false,
+				allowTaint: true,
+				useCORS: true,
+			})
+
+			// Convert canvas to blob
+			canvas.toBlob((blob) => {
+				if (!blob) return
+
+				// Create download link
+				const url = URL.createObjectURL(blob)
+				const link = document.createElement('a')
+				const fileName = `receipt-${billData.order.orderId.slice(0, 8)}-${new Date().getTime()}.png`
+				link.href = url
+				link.download = fileName
+				document.body.appendChild(link)
+				link.click()
+				document.body.removeChild(link)
+				URL.revokeObjectURL(url)
+			}, 'image/png')
+		} catch (error) {
+			console.error('Error downloading receipt:', error)
+			alert('Failed to download receipt. Please try again.')
+		} finally {
+			setDownloadingReceipt(false)
+		}
 	}
 
 	// ✅ Close payment modal
@@ -605,7 +649,7 @@ const OrdersPage = ({
 										<div className="text-center mb-6">
 											<p className="text-[#9dabb9] text-sm">Amount to pay</p>
 											<p className="text-3xl font-bold text-green-400">
-												${(paymentQrData.amount / 100).toFixed(2)}{' '}
+												${(paymentQrData.amount || 0).toFixed(2)}{' '}
 												{paymentQrData.currency?.toUpperCase()}
 											</p>
 										</div>
@@ -683,22 +727,9 @@ const OrdersPage = ({
 
 								{/* Bill Content */}
 								{!loadingBill && billData && (
-									<div className="space-y-4">
-										{/* Bill Number */}
-										<div className="text-center py-2 bg-white/5 rounded-lg">
-											<p className="text-[#9dabb9] text-xs">Receipt Number</p>
-											<p className="text-white font-mono text-lg">
-												{billData.billNumber}
-											</p>
-										</div>
-
-										{/* Order Info */}
-										<div className="flex justify-between text-sm">
-											<span className="text-[#9dabb9]">Table</span>
-											<span className="text-white">
-												{billData.order?.tableId || 'N/A'}
-											</span>
-										</div>
+								<>
+									{/* Receipt Container - for screenshot */}
+									<div ref={receiptRef} className="bg-[#1A202C] p-6 rounded-xl space-y-4 mb-4">
 										<div className="flex justify-between text-sm">
 											<span className="text-[#9dabb9]">Date</span>
 											<span className="text-white">
@@ -707,8 +738,6 @@ const OrdersPage = ({
 													: 'N/A'}
 											</span>
 										</div>
-
-										{/* Payment Status Badge */}
 										<div className="flex justify-center">
 											<span className="px-4 py-2 bg-green-500/20 text-green-400 rounded-full text-sm font-medium border border-green-500/30">
 												✓ PAID
@@ -733,7 +762,7 @@ const OrdersPage = ({
 															)}
 														</div>
 														<span className="text-white">
-															${(item.total / 100).toFixed(2)}
+															${(item.total || 0).toFixed(2)}
 														</span>
 													</div>
 												))}
@@ -745,14 +774,14 @@ const OrdersPage = ({
 											<div className="flex justify-between text-sm">
 												<span className="text-[#9dabb9]">Subtotal</span>
 												<span className="text-white">
-													${((billData.summary?.subtotal || 0) / 100).toFixed(2)}
+													${(billData.summary?.subtotal || 0).toFixed(2)}
 												</span>
 											</div>
 											{billData.summary?.modifiersTotal > 0 && (
 												<div className="flex justify-between text-sm">
 													<span className="text-[#9dabb9]">Modifiers</span>
 													<span className="text-white">
-														${(billData.summary.modifiersTotal / 100).toFixed(2)}
+														${(billData.summary.modifiersTotal || 0).toFixed(2)}
 													</span>
 												</div>
 											)}
@@ -760,7 +789,7 @@ const OrdersPage = ({
 												<div className="flex justify-between text-sm">
 													<span className="text-[#9dabb9]">Tax</span>
 													<span className="text-white">
-														${(billData.summary.tax / 100).toFixed(2)}
+														${(billData.summary.tax || 0).toFixed(2)}
 													</span>
 												</div>
 											)}
@@ -768,32 +797,53 @@ const OrdersPage = ({
 												<div className="flex justify-between text-sm">
 													<span className="text-[#9dabb9]">Discount</span>
 													<span className="text-green-400">
-														-${(billData.summary.discount / 100).toFixed(2)}
+														-${(billData.summary.discount || 0).toFixed(2)}
 													</span>
 												</div>
 											)}
 											<div className="flex justify-between text-lg font-bold pt-2 border-t border-white/10">
 												<span className="text-white">Total Paid</span>
 												<span className="text-green-400">
-													${((billData.summary?.total || 0) / 100).toFixed(2)}
+													${(billData.summary?.total || 0).toFixed(2)}
 												</span>
 											</div>
 										</div>
-
-										{/* Actions */}
-										<div className="pt-4">
-											<button
-												onClick={handleFinalComplete}
-												className="w-full px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
-											>
-												Done - Return to Menu
-											</button>
-										</div>
 									</div>
-								)}
 
-								{/* Error or No Bill Yet */}
-								{!loadingBill && !billData && (
+									{/* Actions */}
+									<div className="pt-4 space-y-3">
+										{/* Download Receipt Button */}
+										<button
+										onClick={handleDownloadReceipt}
+										disabled={downloadingReceipt}
+										className="w-full px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+									>
+										{downloadingReceipt ? (
+											<>
+												<span className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full"></span>
+												<span>Generating...</span>
+											</>
+										) : (
+											<>
+												<span className="material-symbols-outlined text-xl">download</span>
+												<span>Download Receipt</span>
+											</>
+										)}
+									</button>
+
+									{/* Done Button */}
+									<button
+										onClick={handleFinalComplete}
+										className="w-full px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+									>
+										Done - Return to Menu
+									</button>
+								</div>
+								</>
+							)}
+
+							{/* Error or No Bill Yet */}
+							{!loadingBill && !billData && (
 									<div className="space-y-4">
 										{paymentError ? (
 											<div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4 text-center">

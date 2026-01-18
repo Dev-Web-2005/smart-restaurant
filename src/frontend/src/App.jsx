@@ -194,7 +194,7 @@ function App() {
 
 									{/* Customer ordering interface */}
 									<Route
-										path="/order/:tenantId/table/:tableId"
+										path="/tenant/:tenantId/table/:tableId"
 										element={<OrderingInterface />}
 									/>
 

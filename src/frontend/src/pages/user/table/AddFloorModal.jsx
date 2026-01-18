@@ -22,23 +22,26 @@ const AddFloorModal = ({ isOpen, onClose, onConfirm, existingFloorNumbers = [] }
 	const handleSubmit = () => {
 		// Validation
 		if (!formData.name.trim()) {
-			showWarning('Lỗi nhập liệu', 'Vui lòng nhập tên tầng')
+			showWarning('Input Error', 'Please enter a floor name')
 			return
 		}
 
 		if (!formData.floorNumber || formData.floorNumber < 0) {
-			showWarning('Lỗi nhập liệu', 'Vui lòng nhập số tầng hợp lệ (>= 0)')
+			showWarning('Input Error', 'Please enter a valid floor number (>= 0)')
 			return
 		}
 
 		// Check if floor number already exists
 		if (existingFloorNumbers.includes(parseInt(formData.floorNumber))) {
-			showWarning('Lỗi trùng lặp', 'Số tầng này đã tồn tại. Vui lòng chọn số khác.')
+			showWarning(
+				'Duplicate Error',
+				'This floor number already exists. Please choose a different number.',
+			)
 			return
 		}
 
 		if (formData.gridWidth < 4 || formData.gridHeight < 4) {
-			showWarning('Lỗi kích thước', 'Kích thước lưới phải ít nhất 4x4')
+			showWarning('Size Error', 'Grid size must be at least 4x4')
 			return
 		}
 
@@ -80,7 +83,7 @@ const AddFloorModal = ({ isOpen, onClose, onConfirm, existingFloorNumbers = [] }
 			<div className="bg-black/40 backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-white/20">
 				{/* Header */}
 				<div className="bg-black/20 backdrop-blur-md px-6 py-4 rounded-t-2xl border-b border-white/20">
-					<h2 className="text-2xl font-bold text-white">Thêm Tầng Mới</h2>
+					<h2 className="text-2xl font-bold text-white">Add New Floor</h2>
 				</div>
 
 				{/* Body */}
@@ -88,13 +91,13 @@ const AddFloorModal = ({ isOpen, onClose, onConfirm, existingFloorNumbers = [] }
 					{/* Floor Name */}
 					<div>
 						<label className="block text-sm font-semibold text-gray-300 mb-2">
-							Tên Tầng <span className="text-red-500">*</span>
+							Floor Name <span className="text-red-500">*</span>
 						</label>
 						<input
 							type="text"
 							value={formData.name}
 							onChange={(e) => handleChange('name', e.target.value)}
-							placeholder="VD: Tầng 1, Tầng trệt, Tầng VIP..."
+							placeholder="E.g: Floor 1, Ground Floor, VIP Floor..."
 							className="w-full px-4 py-3 bg-black/30 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
 							maxLength={50}
 						/>
@@ -103,18 +106,18 @@ const AddFloorModal = ({ isOpen, onClose, onConfirm, existingFloorNumbers = [] }
 					{/* Floor Number */}
 					<div>
 						<label className="block text-sm font-semibold text-gray-300 mb-2">
-							Số Tầng <span className="text-red-500">*</span>
+							Floor Number <span className="text-red-500">*</span>
 						</label>
 						<input
 							type="number"
 							value={formData.floorNumber}
 							onChange={(e) => handleChange('floorNumber', e.target.value)}
-							placeholder="VD: 1, 2, 3..."
+							placeholder="E.g: 1, 2, 3..."
 							min="0"
 							className="w-full px-4 py-3 bg-black/30 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
 						/>
 						<p className="text-xs text-gray-400 mt-1">
-							Số tầng dùng để sắp xếp (có thể khác tên tầng)
+							Floor number is used for ordering (can be different from floor name)
 						</p>
 					</div>
 
@@ -122,7 +125,7 @@ const AddFloorModal = ({ isOpen, onClose, onConfirm, existingFloorNumbers = [] }
 					<div className="grid grid-cols-2 gap-4">
 						<div>
 							<label className="block text-sm font-semibold text-gray-300 mb-2">
-								Số Cột (Rộng)
+								Columns (Width)
 							</label>
 							<input
 								type="number"
@@ -135,7 +138,7 @@ const AddFloorModal = ({ isOpen, onClose, onConfirm, existingFloorNumbers = [] }
 						</div>
 						<div>
 							<label className="block text-sm font-semibold text-gray-300 mb-2">
-								Số Hàng (Cao)
+								Rows (Height)
 							</label>
 							<input
 								type="number"
@@ -151,12 +154,12 @@ const AddFloorModal = ({ isOpen, onClose, onConfirm, existingFloorNumbers = [] }
 					{/* Description */}
 					<div>
 						<label className="block text-sm font-semibold text-gray-300 mb-2">
-							Mô Tả (Tùy chọn)
+							Description (Optional)
 						</label>
 						<textarea
 							value={formData.description}
 							onChange={(e) => handleChange('description', e.target.value)}
-							placeholder="Mô tả về tầng này..."
+							placeholder="Description of this floor..."
 							rows={3}
 							className="w-full px-4 py-3 bg-black/30 backdrop-blur-md border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
 						/>
@@ -169,13 +172,13 @@ const AddFloorModal = ({ isOpen, onClose, onConfirm, existingFloorNumbers = [] }
 						onClick={handleCancel}
 						className="px-6 py-2.5 bg-white/10 backdrop-blur-md text-white rounded-xl font-medium hover:bg-white/20 transition-all duration-200 hover:scale-105 border border-white/20"
 					>
-						Hủy
+						Cancel
 					</button>
 					<button
 						onClick={handleSubmit}
 						className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-blue-500/50"
 					>
-						Thêm Tầng
+						Add Floor
 					</button>
 				</div>
 			</div>
