@@ -89,10 +89,15 @@ repomix-output.txt
 # Migrations (nếu được generate)
 # migrations/*.js (uncomment nếu cần)
 
-# Documentation ngoại trừ README
+# Documentation ngoại trừ README và evidence
 *.md
 !README.md
 !**/README.md
+!docs/evidence/*.md
+!docs/evidence/**/*.md
+
+# Temp folder in docs
+docs/temp/
 
 src/backend/api-gateway/logs/
 

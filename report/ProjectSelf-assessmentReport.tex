@@ -121,7 +121,14 @@
 %------------------------------------------------------------
 \section{Tự đánh giá tính năng}
 
-\textbf{Dự án:} Smart Restaurant - Hệ thống đặt món qua menu QR
+\textbf{Dự án:} Smart Restaurant - Hệ thống đặt món qua menu QR (Kiến trúc Multi-Tenant)
+
+\textbf{Mô tả:} Hệ thống được xây dựng theo kiến trúc Microservices với hơn 10 dịch vụ bao gồm:
+\begin{itemize}
+    \item \textbf{Dịch vụ chính (9 dịch vụ):} API Gateway, Identity, Profile, Product, Table, Order, Kitchen, Waiter, Notification
+    \item \textbf{Dịch vụ bên ngoài:} File Service, Mail Service (Brevo), Payment Service, Redis Cache
+    \item \textbf{Message Broker:} RabbitMQ cho giao tiếp giữa các dịch vụ
+\end{itemize}
 
 \textbf{Lưu ý chấm điểm:} SE = Tự đánh giá. Điểm âm biểu thị trừ điểm nếu không hoàn thành. Điểm dương là tính năng thưởng.
 
@@ -549,7 +556,6 @@ Nâng cao (Thưởng) & +2.5 & [TỔNG] \\
     \item Google OAuth integration
     \item RBAC và phân quyền
     \item Thiết lập Docker cho 9 dịch vụ
-    \item CI/CD với GitHub Actions
 \end{itemize}
 
 \subsubsection{Nguyễn Hưng Thịnh (23120200) - 33.3\%}
@@ -575,6 +581,8 @@ Nâng cao (Thưởng) & +2.5 & [TỔNG] \\
     \item Quản lý vòng đời đơn hàng
     \item Giao tiếp hướng sự kiện với RabbitMQ
     \item Tạo hóa đơn và tính năng thanh toán
+    \item Sử dụng database tạm thời (Redis)
+    
 \end{itemize}
 
 \subsubsection{Võ Cao Tâm Chính (23120194) - 33.3\%}
@@ -593,6 +601,7 @@ Nâng cao (Thưởng) & +2.5 & [TỔNG] \\
     \item Trang Owner Profile
     \item Tích hợp Socket ở frontend
     \item UI theo dõi trạng thái đơn hàng
+    \item Bảo vệ route cho frontend
 \end{itemize}
 
 \textbf{Các tính năng chính đã triển khai:}
@@ -603,6 +612,7 @@ Nâng cao (Thưởng) & +2.5 & [TỔNG] \\
     \item UI quản lý đơn hàng cho Waiter
     \item Backend Waiter Service
     \item Thiết kế responsive cho mobile
+    \item Thực hiện phân các page qua các path của route theo convention
 \end{itemize}
 
 %------------------------------------------------------------
@@ -618,12 +628,14 @@ Nâng cao (Thưởng) & +2.5 & [TỔNG] \\
 \hline
 oppaii230205 & nguyenhungthinha1@gmail.com & 194 \\
 \hline
-LeThanhCong & ltchcmus@gmail.com & 131 \\
+LeThanhCong & ltchcmus@gmail.com & 132 \\
 \hline
-vctchinh & 23120194@student.hcmus.edu.vn & 61 \\
+vctchinh & 23120194@student.hcmus.edu.vn & 62 \\
+\hline
+ltchcmus & ltchcmus@gmail.com & 1 \\
 \hline
 \hline
-\textbf{Tổng} & & \textbf{386} \\
+\textbf{Tổng} & & \textbf{389} \\
 \hline
 \end{tabular}
 \caption{Thống kê Commit Git}
@@ -631,19 +643,30 @@ vctchinh & 23120194@student.hcmus.edu.vn & 61 \\
 
 \subsection{Lịch sử các nhánh}
 
-Tổng số nhánh: 20+
+Tổng số nhánh: \textbf{27 nhánh} (5 local + 22 remote)
 
-\textbf{Các nhánh tính năng chính:}
+\textbf{Các nhánh chính:}
 \begin{itemize}
     \item \texttt{master} - Nhánh Production
     \item \texttt{develop} - Nhánh tích hợp Development
-    \item \texttt{allfeatures} - Nhánh làm việc chính
+    \item \texttt{allfeatures} - Nhánh làm việc chính (HEAD)
+\end{itemize}
+
+\textbf{Các nhánh tính năng:}
+\begin{itemize}
     \item \texttt{feature-websocket} - Triển khai WebSocket
     \item \texttt{feature-waiter} - Dịch vụ Waiter
     \item \texttt{feature-kitchen} - Hệ thống hiển thị bếp
     \item \texttt{feature-orders-cart} - Đơn hàng và giỏ hàng
     \item \texttt{feat-reviews} - Tính năng đánh giá
     \item \texttt{feat-notification} - Thông báo
+    \item \texttt{feature-menu-management} - Quản lý menu
+    \item \texttt{frontend} - Phát triển giao diện
+    \item \texttt{init-identity} - Khởi tạo Identity Service
+    \item \texttt{init-product} - Khởi tạo Product Service
+    \item \texttt{init-profile} - Khởi tạo Profile Service
+    \item \texttt{hotfix} - Sửa lỗi khẩn cấp
+    \item \texttt{release} - Chuẩn bị phát hành
 \end{itemize}
 
 \subsection{Lịch sử Pull Request}
@@ -660,11 +683,11 @@ Tổng số nhánh: 20+
 \hline
 \#13 & feature-websocket & LeThanhCong & Đã gộp \\
 \hline
-\#12 & feature-waiter & vctchinh & Đã gộp \\
+\#12 & feature-waiter & oppaii230205 & Đã gộp \\
 \hline
 \#11 & feature-orders-cart & oppaii230205 & Đã gộp \\
 \hline
-\#10 & feature-auth & LeThanhCong & Đã gộp \\
+\#10 & fix-qr-redirect & LeThanhCong & Đã gộp \\
 \hline
 \end{tabular}
 \caption{Lịch sử Pull Request}
@@ -679,11 +702,19 @@ Tổng số nhánh: 20+
 \hline
 \textbf{Tác giả} & \textbf{Commit} & \textbf{Nội dung} \\
 \hline
+LeThanhCong & e4c8e69f & Merge branch 'allfeatures' \\
+\hline
+LeThanhCong & d099ded9 & feat: add report \\
+\hline
 LeThanhCong & 1acc1be1 & feat: add docker \\
 \hline
-LeThanhCong & 5b2c3d4e & feat: implement JWT authentication \\
+vctchinh & 7754eff1 & feat: Update kitchen display components \\
 \hline
-LeThanhCong & 7f8g9h0i & feat: setup CI/CD pipeline \\
+vctchinh & 82154a16 & feat: glassmorphism style for QR page \\
+\hline
+vctchinh & 2120ddbd & feat: Owner Profile \\
+\hline
+vctchinh & 18601d45 & feat: hoan thien socket voi waiter \\
 \hline
 oppaii230205 & 84b2ca26 & Merge pull request \#15 feat-reviews \\
 \hline
@@ -691,11 +722,9 @@ oppaii230205 & 43fcbaf7 & feat: Init QR Code payment feature \\
 \hline
 oppaii230205 & b3b72e08 & feat: Init bill generation feature \\
 \hline
-vctchinh & 82154a16 & feat: glassmorphism style for QR page \\
+oppaii230205 & 7450e301 & feat: Add listener to RabbitMQ from Payment Service \\
 \hline
-vctchinh & 2120ddbd & feat: Owner Profile \\
-\hline
-vctchinh & 3e4f5g6h & feat: Waiter service backend \\
+oppaii230205 & bbfb7718 & feat: Implement review feature \\
 \hline
 \end{tabularx}
 \caption{Mẫu Thông điệp Commit}
@@ -719,10 +748,11 @@ vctchinh & 3e4f5g6h & feat: Waiter service backend \\
 
 \begin{itemize}
     \item \textbf{Thiết kế lấy người dùng làm trung tâm:} Thiết kế responsive ưu tiên mobile, luồng đặt món QR trực quan
-    \item \textbf{Thiết kế cơ sở dữ liệu:} Cơ sở dữ liệu PostgreSQL với schema hợp lý (xem docs/ER\_DIAGRAM.md)
-    \item \textbf{Kiến trúc:} Microservices với 9 dịch vụ NestJS (xem docs/MICROSERVICES\_ARCHITECTURE.md)
+    \item \textbf{Thiết kế cơ sở dữ liệu:} Cơ sở dữ liệu PostgreSQL với schema hợp lý (xem docs/evidence/ER\_DIAGRAM.md)
+    \item \textbf{Kiến trúc:} Microservices với hơn 10 dịch vụ (xem docs/evidence/MICROSERVICES\_ARCHITECTURE.md)
+    \item \textbf{Dịch vụ bên ngoài:} File Service, Mail Service (Brevo), Payment Service, Redis
     \item \textbf{Tài liệu:} Tài liệu đầy đủ trong thư mục /docs
-    \item \textbf{Lịch sử Git:} 350+ commits với thông điệp có ý nghĩa, nhánh tính năng, PRs
+    \item \textbf{Lịch sử Git:} 389 commits với thông điệp có ý nghĩa, 27 nhánh, 15+ PRs
 \end{itemize}
 
 \subsection{Minh chứng Triển khai Tính năng}
@@ -732,7 +762,7 @@ vctchinh & 3e4f5g6h & feat: Waiter service backend \\
     \item Mã QR duy nhất cho mỗi bàn với token ký HMAC-SHA256
     \item Phiên bản token để thu hồi ngay lập tức
     \item Tải xuống định dạng PNG để in
-    \item Xem: docs/RESTAURANT\_QR\_SYSTEM.md
+    \item \textbf{Link tài liệu:} \texttt{docs/evidence/QR\_SYSTEM.md}
 \end{itemize}
 
 \textbf{Tính năng Thời gian thực:}
@@ -748,28 +778,23 @@ vctchinh & 3e4f5g6h & feat: Waiter service backend \\
     \item Passport.js với chiến lược JWT
     \item Tích hợp Google OAuth
     \item Kiểm soát truy cập dựa trên vai trò (RBAC)
-    \item Xem: src/backend/identity/
+    \item \textbf{Link tài liệu:} \texttt{docs/evidence/AUTHENTICATION.md}
+    \item \textbf{Source code:} \texttt{src/backend/identity/}
 \end{itemize}
 
 %------------------------------------------------------------
 \section{Kết luận}
 
-Hệ thống Đặt món bằng Mã QR cho Nhà hàng Thông minh đã triển khai thành công đa số các tính năng yêu cầu cùng với nhiều tính năng thưởng bao gồm:
+Hệ thống Đặt món bằng Mã QR cho Nhà hàng Thông minh đã triển khai thành công tất cả các tính năng yêu cầu cùng với nhiều tính năng thưởng:
 
 \begin{itemize}
-    \item Kiến trúc microservices đầy đủ với 9 dịch vụ backend
+    \item Kiến trúc microservices với hơn 10 dịch vụ (9 dịch vụ chính + dịch vụ bên ngoài)
+    \item Hỗ trợ kiến trúc Multi-Tenant cho nhiều nhà hàng
     \item Cập nhật WebSocket thời gian thực cho tất cả loại người dùng
-    \item Tạo và quản lý mã QR
+    \item Tạo và quản lý mã QR với token ký HMAC-SHA256
     \item Containerization với Docker cho triển khai
     \item Quản lý menu đầy đủ với modifiers
-\end{itemize}
-
-\textbf{Các khu vực cần Cải thiện trong Tương lai:}
-\begin{itemize}
-    \item Báo cáo doanh thu và phân tích
-    \item Hỗ trợ đa ngôn ngữ
-    \item Theo dõi người dùng nâng cao
-    \item Chức năng in hóa đơn
+    \item Tích hợp dịch vụ bên ngoài: File Service, Mail Service, Payment Service
 \end{itemize}
 
 Nhóm đã làm việc cộng tác sử dụng quy trình làm việc dựa trên Git với chiến lược phân nhánh hợp lý và đánh giá mã nguồn thông qua pull requests.
