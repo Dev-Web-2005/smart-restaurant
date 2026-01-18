@@ -92,10 +92,86 @@ const OrderManagementInterface = () => {
 	const [view, setView] = useState('MENU') // MENU | ORDERS | CART
 	const [orders, setOrders] = useState([]) // Orders history (fetched from backend)
 	const [loadingOrders, setLoadingOrders] = useState(false)
+	const [isAuthRestored, setIsAuthRestored] = useState(false) // ✅ Track auth restoration
 
 	// Settings state
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 	const [currentBackground, setCurrentBackground] = useState(0)
+
+	// ==================== AUTH RESTORATION ====================
+	// ✅ Restore customer auth on component mount (handles F5/refresh)
+	useEffect(() => {
+		const restoreAuth = async () => {
+			// Check if already has token in memory
+			if (window.accessToken) {
+				console.log('✅ Access token already in memory')
+				setIsAuthRestored(true)
+				return
+			}
+
+			// Check if guest mode
+			const isGuest = localStorage.getItem('isGuestMode') === 'true'
+			if (isGuest) {
+				console.log('🚶 Guest mode - no auth required')
+				setIsAuthRestored(true)
+				return
+			}
+
+			// Try to restore from localStorage (customer session)
+			const customerAuthStr = localStorage.getItem('customerAuth')
+			if (customerAuthStr) {
+				try {
+					const customerAuth = JSON.parse(customerAuthStr)
+					console.log('🔄 Restoring customer session...', customerAuth)
+
+					// Customer sessions don't have refresh token mechanism like admin
+					// So we need to use the stored ownerId to try refresh if available
+					const ownerId = customerAuth.ownerId || tenantId
+
+					if (ownerId) {
+						// Try to refresh the token using httpOnly cookie
+						try {
+							const refreshResponse = await apiClient.get('/identity/auth/refresh', {
+								withCredentials: true,
+							})
+
+							if (refreshResponse.data.code === 1000) {
+								const newAccessToken = refreshResponse.data.data.accessToken
+								window.accessToken = newAccessToken
+								console.log('✅ Customer session restored via refresh token')
+
+								// Update customerAuth with any new data
+								if (refreshResponse.data.data.userId) {
+									const updatedAuth = {
+										...customerAuth,
+										userId: refreshResponse.data.data.userId,
+										username: refreshResponse.data.data.username,
+										email: refreshResponse.data.data.email,
+										roles: refreshResponse.data.data.roles,
+									}
+									localStorage.setItem('customerAuth', JSON.stringify(updatedAuth))
+								}
+
+								setIsAuthRestored(true)
+								return
+							}
+						} catch (refreshError) {
+							console.warn('⚠️ Token refresh failed:', refreshError.message)
+							// Refresh failed, but don't clear auth yet - might be guest-allowed actions
+						}
+					}
+				} catch (error) {
+					console.error('❌ Failed to restore customer session:', error)
+				}
+			}
+
+			// No valid session found, but allow guest actions
+			console.log('ℹ️ No valid customer session, allowing guest actions')
+			setIsAuthRestored(true)
+		}
+
+		restoreAuth()
+	}, [tenantId])
 
 	// Available background images
 	const backgroundImages = [
@@ -115,55 +191,81 @@ const OrderManagementInterface = () => {
 	const FETCH_ORDERS_DEBOUNCE = 500 // ms
 	const FETCH_ORDERS_MIN_INTERVAL = 2000 // Minimum 2 seconds between fetches
 
-	// Fetch cart from backend
-	const fetchCart = useCallback(async () => {
-		try {
-			if (!tenantId || !tableId) {
-				console.warn('⚠️ fetchCart: Missing tenantId or tableId')
-				return
-			}
+	// ✅ Refs to prevent duplicate initialization
+	const initialFetchDoneRef = useRef(false)
+	const socketSetupDoneRef = useRef(false)
+	const lastFetchCartTimeRef = useRef(0)
+	const FETCH_CART_MIN_INTERVAL = 2000 // Minimum 2 seconds between cart fetches
+	const orderRoomJoinedRef = useRef(false) // ✅ Track if order room already joined
 
-			console.log('📥 Fetching cart from:', `/tenants/${tenantId}/tables/${tableId}/cart`)
-			const response = await apiClient.get(`/tenants/${tenantId}/tables/${tableId}/cart`)
-			console.log('📥 Cart response:', response.data)
-
-			const backendCart = response.data?.data || {}
-			const backendItems = backendCart.items || []
-
-			// Map backend cart items to frontend format
-			const mappedItems = backendItems.map((item) => {
-				const modifierTotal =
-					item.modifiers?.reduce((sum, mod) => sum + (mod.price || 0), 0) || 0
-				return {
-					id: item.menuItemId,
-					name: item.name,
-					price: item.price,
-					qty: item.quantity,
-					totalPrice: item.total || (item.price + modifierTotal) * item.quantity,
-					modifiers:
-						item.modifiers?.map((mod) => ({
-							groupId: mod.modifierGroupId,
-							optionId: mod.modifierOptionId,
-							name: mod.name,
-							price: mod.price,
-						})) || [],
-					specialNotes: item.notes || '',
-					itemKey: item.itemKey,
-					uniqueKey: `${item.menuItemId}-${JSON.stringify(item.modifiers || [])}`,
+	// Fetch cart from backend (with rate limiting)
+	const fetchCart = useCallback(
+		async (force = false) => {
+			try {
+				if (!tenantId || !tableId) {
+					console.warn('⚠️ fetchCart: Missing tenantId or tableId')
+					return
 				}
-			})
 
-			setCartItems(mappedItems)
-			console.log('✅ Cart fetched successfully:', mappedItems.length, 'items')
-		} catch (error) {
-			console.error('❌ Error fetching cart:', error)
-			console.error('❌ Fetch cart error details:', {
-				message: error.message,
-				response: error.response?.data,
-				status: error.response?.status,
-			})
-		}
-	}, [tenantId, tableId])
+				// ✅ Rate limiting - prevent too frequent fetches
+				const now = Date.now()
+				const timeSinceLastFetch = now - lastFetchCartTimeRef.current
+				if (!force && timeSinceLastFetch < FETCH_CART_MIN_INTERVAL) {
+					console.log(
+						`⏳ Skipping cart fetch, only ${timeSinceLastFetch}ms since last fetch`,
+					)
+					return
+				}
+
+				console.log(
+					'📥 Fetching cart from:',
+					`/tenants/${tenantId}/tables/${tableId}/cart`,
+				)
+				const response = await apiClient.get(
+					`/tenants/${tenantId}/tables/${tableId}/cart`,
+				)
+				console.log('📥 Cart response:', response.data)
+
+				const backendCart = response.data?.data || {}
+				const backendItems = backendCart.items || []
+
+				// Map backend cart items to frontend format
+				const mappedItems = backendItems.map((item) => {
+					const modifierTotal =
+						item.modifiers?.reduce((sum, mod) => sum + (mod.price || 0), 0) || 0
+					return {
+						id: item.menuItemId,
+						name: item.name,
+						price: item.price,
+						qty: item.quantity,
+						totalPrice: item.total || (item.price + modifierTotal) * item.quantity,
+						modifiers:
+							item.modifiers?.map((mod) => ({
+								groupId: mod.modifierGroupId,
+								optionId: mod.modifierOptionId,
+								name: mod.name,
+								price: mod.price,
+							})) || [],
+						specialNotes: item.notes || '',
+						itemKey: item.itemKey,
+						uniqueKey: `${item.menuItemId}-${JSON.stringify(item.modifiers || [])}`,
+					}
+				})
+
+				setCartItems(mappedItems)
+				console.log('✅ Cart fetched successfully:', mappedItems.length, 'items')
+				lastFetchCartTimeRef.current = Date.now() // ✅ Update last fetch time
+			} catch (error) {
+				console.error('❌ Error fetching cart:', error)
+				console.error('❌ Fetch cart error details:', {
+					message: error.message,
+					response: error.response?.data,
+					status: error.response?.status,
+				})
+			}
+		},
+		[tenantId, tableId],
+	)
 
 	// Fetch customer's order by orderId from localStorage (with debouncing)
 	const fetchOrders = useCallback(
@@ -253,26 +355,48 @@ const OrderManagementInterface = () => {
 		}, FETCH_ORDERS_DEBOUNCE)
 	}, [fetchOrders])
 
-	// Load cart on component mount
+	// ✅ Load cart ONLY AFTER auth restoration (prevents duplicate fetches on F5)
 	useEffect(() => {
-		fetchCart()
-	}, [tenantId, tableId, fetchCart])
+		if (!isAuthRestored) {
+			console.log('⏳ Waiting for auth restoration before fetching cart...')
+			return
+		}
 
-	// Fetch orders when view changes to 'ORDERS' or on mount
+		// ✅ Prevent duplicate initial fetch
+		if (initialFetchDoneRef.current) {
+			console.log('⏳ Initial fetch already done, skipping...')
+			return
+		}
+
+		console.log('🚀 Auth restored, performing initial fetch...')
+		initialFetchDoneRef.current = true
+		fetchCart(true) // Force initial fetch
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isAuthRestored, tenantId, tableId]) // ✅ Remove fetchCart from deps to prevent loops
+
+	// Fetch orders when view changes to 'ORDERS'
 	useEffect(() => {
-		if (view === 'ORDERS') {
+		if (view === 'ORDERS' && isAuthRestored) {
 			fetchOrders(true) // Force fetch when switching to orders view
 		}
-	}, [view, fetchOrders])
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [view, isAuthRestored]) // ✅ Remove fetchOrders from deps to prevent loops
 
 	// WebSocket setup for real-time order updates (Customer side)
 	useEffect(() => {
-		if (!tenantId || !tableId) {
+		if (!tenantId || !tableId || !isAuthRestored) {
+			return
+		}
+
+		// ✅ Prevent duplicate socket setup
+		if (socketSetupDoneRef.current) {
+			console.log('⏳ Socket already setup, skipping...')
 			return
 		}
 
 		console.log('🔌 Setting up WebSocket for customer order updates')
 		console.log('📍 Table:', tableId, 'Tenant:', tenantId)
+		socketSetupDoneRef.current = true
 
 		// Get customer info from localStorage
 		const customerAuthStr = localStorage.getItem('customerAuth')
@@ -316,16 +440,29 @@ const OrderManagementInterface = () => {
 		const handleConnectionSuccess = () => {
 			console.log('✅ [Socket] Connection ready, setting up order tracking')
 
-			// Join order room if we have an active order
+			// Join order room if we have an active order AND haven't joined yet
 			if (orderSession && orderSession.orderId && orderSession.tableId === tableId) {
+				// ✅ Prevent duplicate join attempts
+				if (orderRoomJoinedRef.current) {
+					console.log('⏳ Already joined order room, skipping...')
+					return
+				}
+
 				console.log('🚪 Joining order room:', orderSession.orderId)
+				orderRoomJoinedRef.current = true // Mark as joining
+
 				socketClient.joinOrderRoom(orderSession.orderId).then((response) => {
 					if (response.success) {
 						console.log('✅ Successfully joined order room:', orderSession.orderId)
-						// Fetch order immediately after joining to sync current state
-						fetchOrders(true) // Force fetch on initial join
+						// ✅ Only fetch if we haven't fetched orders recently
+						if (Date.now() - lastFetchOrdersTimeRef.current > FETCH_ORDERS_MIN_INTERVAL) {
+							fetchOrders(true) // Force fetch on initial join
+						} else {
+							console.log('⏳ Skipping fetch after join, recent fetch exists')
+						}
 					} else {
 						console.error('❌ Failed to join order room:', response.error)
+						orderRoomJoinedRef.current = false // Allow retry
 					}
 				})
 			}
@@ -360,8 +497,13 @@ const OrderManagementInterface = () => {
 				console.log('🚪 Leaving order room:', orderSession.orderId)
 				socketClient.leaveOrderRoom(orderSession.orderId)
 			}
+
+			// ✅ Reset refs on cleanup (for HMR)
+			socketSetupDoneRef.current = false
+			orderRoomJoinedRef.current = false
 		}
-	}, [tenantId, tableId, fetchOrders, debouncedFetchOrders])
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [tenantId, tableId, isAuthRestored]) // ✅ Remove fetchOrders/debouncedFetchOrders from deps
 
 	// Handle adding item to cart from MenuPage
 	const handleAddToCart = async (cartItem) => {
@@ -443,6 +585,16 @@ const OrderManagementInterface = () => {
 				<div className="absolute inset-0 bg-black/60" />
 			</div>
 
+			{/* Loading State while restoring auth */}
+			{!isAuthRestored && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+					<div className="text-center text-white">
+						<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+						<p className="text-lg">Loading your session...</p>
+					</div>
+				</div>
+			)}
+
 			{/* Content Layer - All UI components */}
 			<div className="relative z-10">
 				{/* Radial Navigation Menu - Floating Action Button */}
@@ -462,6 +614,14 @@ const OrderManagementInterface = () => {
 						orders={orders}
 						loading={loadingOrders}
 						onBrowseMenu={() => setView('MENU')}
+						tenantId={tenantId}
+						onRefresh={() => fetchOrders(true)} // ✅ Add refresh callback for auto refresh
+						onOrderCancelled={() => {
+							// Remove cancelled order from list or refresh
+							showAlert('success', 'Order cancelled successfully')
+							// Refresh orders to get updated status
+							fetchOrders()
+						}}
 					/>
 				)}
 				{view === 'MENU' && (

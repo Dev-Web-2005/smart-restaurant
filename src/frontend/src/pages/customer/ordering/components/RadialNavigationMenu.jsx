@@ -31,14 +31,27 @@ const RadialNavigationMenu = ({
 	// Check customer authentication status
 	const loadCustomerAuth = () => {
 		const auth = localStorage.getItem('customerAuth')
+		const isGuestMode = localStorage.getItem('isGuestMode') === 'true'
+
 		if (auth) {
 			try {
-				setCustomerAuth(JSON.parse(auth))
+				const parsedAuth = JSON.parse(auth)
+				setCustomerAuth(parsedAuth)
+
+				// ✅ Also restore window.accessToken if we have auth token in storage
+				const storedToken = localStorage.getItem('authToken')
+				if (storedToken && !window.accessToken) {
+					window.accessToken = storedToken
+					console.log('🔄 Restored window.accessToken from localStorage')
+				}
 			} catch (error) {
 				console.error('Failed to parse customer auth:', error)
 				localStorage.removeItem('customerAuth')
 				setCustomerAuth(null)
 			}
+		} else if (isGuestMode) {
+			// Guest mode - set a placeholder auth to avoid showing login
+			setCustomerAuth({ isGuest: true })
 		} else {
 			setCustomerAuth(null)
 		}
@@ -359,12 +372,12 @@ const RadialNavigationMenu = ({
 											left: snapTarget.left,
 											top: snapTarget.top,
 											opacity: 1,
-									  }
+										}
 									: {
 											scale: 1.15,
 											left: dragPosition.x - (isMobile ? 28 : 32),
 											top: dragPosition.y - (isMobile ? 28 : 32),
-									  }
+										}
 							}
 							transition={{
 								type: 'spring',

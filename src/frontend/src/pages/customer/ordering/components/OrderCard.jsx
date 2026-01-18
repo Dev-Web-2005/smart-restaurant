@@ -1,7 +1,10 @@
 import React from 'react'
 import OrderStatusTimeline from './OrderStatusTimeline'
 
-const OrderCard = ({ order }) => {
+const OrderCard = ({ order, canCancel = false, onCancelClick, isCancelling = false }) => {
+	// Check if order is cancelled
+	const isOrderCancelled = order.status === 'CANCELLED'
+
 	// Get status color for order or item status
 	const getStatusColor = (status) => {
 		switch (status) {
@@ -15,6 +18,7 @@ const OrderCard = ({ order }) => {
 			case 'SERVED':
 				return 'bg-green-500/20 text-green-400 border-green-500/30'
 			case 'REJECTED':
+			case 'CANCELLED':
 				return 'bg-red-500/20 text-red-400 border-red-500/30'
 			default:
 				return 'bg-gray-500/20 text-gray-400 border-gray-500/30'
@@ -103,16 +107,53 @@ const OrderCard = ({ order }) => {
 	}
 
 	return (
-		<div className="backdrop-blur-xl bg-[#1A202C]/80 rounded-xl shadow-lg border border-white/20 overflow-hidden transition-all duration-300 hover:shadow-2xl">
+		<div
+			className={`backdrop-blur-xl bg-[#1A202C]/80 rounded-xl shadow-lg border overflow-hidden transition-all duration-300 hover:shadow-2xl ${
+				isOrderCancelled ? 'border-red-500/30 opacity-75' : 'border-white/20'
+			}`}
+		>
+			{/* Cancelled Banner */}
+			{isOrderCancelled && (
+				<div className="bg-red-500/20 border-b border-red-500/30 px-4 py-3 flex items-center justify-center gap-2">
+					<span className="material-symbols-outlined text-red-400">cancel</span>
+					<span className="text-red-400 font-medium">Order Cancelled</span>
+				</div>
+			)}
+
 			{/* Header - Total Amount Only */}
 			<div className="p-4 sm:p-6 border-b border-white/10">
-				<div className="flex items-center justify-center">
-					<div className="text-center">
+				<div className="flex items-center justify-between">
+					<div className="text-center flex-1">
 						<p className="text-xs text-[#9dabb9]">Total Amount</p>
-						<p className="text-xl sm:text-2xl font-bold text-[#4ade80]">
+						<p
+							className={`text-xl sm:text-2xl font-bold ${
+								isOrderCancelled ? 'text-gray-500 line-through' : 'text-[#4ade80]'
+							}`}
+						>
 							${(order.total || order.totalAmount || 0).toFixed(2)}
 						</p>
 					</div>
+
+					{/* Cancel Button - Only show if can cancel and not already cancelled */}
+					{canCancel && !isOrderCancelled && (
+						<button
+							onClick={onCancelClick}
+							disabled={isCancelling}
+							className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 border border-red-500/30 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+						>
+							{isCancelling ? (
+								<>
+									<span className="animate-spin h-4 w-4 border-2 border-red-400/30 border-t-red-400 rounded-full"></span>
+									Cancelling...
+								</>
+							) : (
+								<>
+									<span className="material-symbols-outlined text-lg">cancel</span>
+									Cancel Order
+								</>
+							)}
+						</button>
+					)}
 				</div>
 			</div>
 
@@ -165,14 +206,14 @@ const OrderCard = ({ order }) => {
 												isRejected
 													? 'bg-red-500/10 border-red-500/20'
 													: isPending
-													? 'bg-blue-500/10 border-blue-500/20'
-													: isPreparing
-													? 'bg-yellow-500/10 border-yellow-500/20'
-													: isReady
-													? 'bg-green-500/10 border-green-500/20'
-													: isServed
-													? 'bg-emerald-500/10 border-emerald-500/20 opacity-75'
-													: 'bg-[#2D3748]/50 border-white/10'
+														? 'bg-blue-500/10 border-blue-500/20'
+														: isPreparing
+															? 'bg-yellow-500/10 border-yellow-500/20'
+															: isReady
+																? 'bg-green-500/10 border-green-500/20'
+																: isServed
+																	? 'bg-emerald-500/10 border-emerald-500/20 opacity-75'
+																	: 'bg-[#2D3748]/50 border-white/10'
 											}`}
 										>
 											<div className="flex-1">
@@ -183,29 +224,29 @@ const OrderCard = ({ order }) => {
 															isRejected
 																? 'bg-red-500/20 text-red-400'
 																: isPending
-																? 'bg-blue-500/20 text-blue-400'
-																: isPreparing
-																? 'bg-yellow-500/20 text-yellow-400'
-																: isReady
-																? 'bg-green-500/20 text-green-400'
-																: isServed
-																? 'bg-emerald-500/20 text-emerald-400'
-																: 'bg-gray-500/20 text-gray-400'
+																	? 'bg-blue-500/20 text-blue-400'
+																	: isPreparing
+																		? 'bg-yellow-500/20 text-yellow-400'
+																		: isReady
+																			? 'bg-green-500/20 text-green-400'
+																			: isServed
+																				? 'bg-emerald-500/20 text-emerald-400'
+																				: 'bg-gray-500/20 text-gray-400'
 														}`}
 													>
 														{isRejected
 															? '❌ REJECTED'
 															: isPending
-															? '⏳ PENDING'
-															: item.status === 'PREPARING'
-															? '🔥 COOKING'
-															: item.status === 'ACCEPTED'
-															? '✓ CONFIRMED'
-															: isReady
-															? '✓ READY'
-															: isServed
-															? '✓✓ SERVED'
-															: item.status}
+																? '⏳ PENDING'
+																: item.status === 'PREPARING'
+																	? '🔥 COOKING'
+																	: item.status === 'ACCEPTED'
+																		? '✓ CONFIRMED'
+																		: isReady
+																			? '✓ READY'
+																			: isServed
+																				? '✓✓ SERVED'
+																				: item.status}
 													</span>
 												</div>
 
