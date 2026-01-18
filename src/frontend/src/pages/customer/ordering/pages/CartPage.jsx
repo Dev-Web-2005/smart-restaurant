@@ -53,12 +53,14 @@ const CartPage = ({
 			const payload = {}
 
 			// Add customer info if authenticated
+			// ✅ FIX: Use correct field names - userId (not id), username/email for name
 			if (customerAuth) {
-				payload.customerId = customerAuth.id
-				payload.customerName = customerAuth.name || customerAuth.email
+				payload.customerId = customerAuth.userId || customerAuth.id // userId is the correct field
+				payload.customerName =
+					customerAuth.username || customerAuth.name || customerAuth.email
 			}
 
-			console.log('🛒 Checkout request:', { tenantId, tableId, payload })
+			console.log('🛒 Checkout request:', { tenantId, tableId, payload, customerAuth })
 
 			// Call checkout API directly
 			const response = await apiClient.post(
