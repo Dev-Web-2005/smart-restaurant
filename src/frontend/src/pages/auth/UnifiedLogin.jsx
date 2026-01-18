@@ -7,11 +7,11 @@ import BackgroundImage from '../../components/common/BackgroundImage'
 
 /**
  * Unified Login Page - Handles all user types in multi-tenant architecture
- * 
+ *
  * Routes:
  * - /login - Owner/Admin login (no ownerId)
  * - /login/:ownerId - Staff/Chef/Customer login (with ownerId = tenant context)
- * 
+ *
  * After login, auto-redirects based on role:
  * - ADMIN -> /admin/dashboard
  * - USER (Owner) -> /user/menu
@@ -80,7 +80,11 @@ const UnifiedLogin = () => {
 
 			if (isTenantLogin) {
 				// Login with ownerId for Staff/Chef/Customer
-				result = await loginWithOwner(credentials.username, credentials.password, currentOwnerId)
+				result = await loginWithOwner(
+					credentials.username,
+					credentials.password,
+					currentOwnerId,
+				)
 			} else {
 				// Normal login for Owner/Admin
 				result = await login(credentials.username, credentials.password)
@@ -128,7 +132,9 @@ const UnifiedLogin = () => {
 				localStorage.setItem('currentTenantId', userOwnerId)
 				navigate(`/r/${userOwnerId}/kitchen`, { replace: true })
 			} else {
-				setErrorMessage('Chef account requires restaurant context. Please use QR code to login.')
+				setErrorMessage(
+					'Chef account requires restaurant context. Please use QR code to login.',
+				)
 			}
 			return
 		}
@@ -139,7 +145,9 @@ const UnifiedLogin = () => {
 				localStorage.setItem('currentTenantId', userOwnerId)
 				navigate(`/r/${userOwnerId}/waiter`, { replace: true })
 			} else {
-				setErrorMessage('Staff account requires restaurant context. Please use QR code to login.')
+				setErrorMessage(
+					'Staff account requires restaurant context. Please use QR code to login.',
+				)
 			}
 			return
 		}
@@ -150,7 +158,9 @@ const UnifiedLogin = () => {
 				localStorage.setItem('currentTenantId', userOwnerId)
 				navigate(`/r/${userOwnerId}/order/table/${tableId}`, { replace: true })
 			} else {
-				setErrorMessage('Customer account requires restaurant context. Please scan QR code.')
+				setErrorMessage(
+					'Customer account requires restaurant context. Please scan QR code.',
+				)
 			}
 			return
 		}
@@ -161,15 +171,17 @@ const UnifiedLogin = () => {
 
 	const handleGoogleLogin = () => {
 		const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
-		const redirectUri = import.meta.env.VITE_REDIRECT_URI || import.meta.env.VITE_GOOGLE_REDIRECT_URI
-		
+		const redirectUri =
+			import.meta.env.VITE_REDIRECT_URI || import.meta.env.VITE_GOOGLE_REDIRECT_URI
+
 		// Include ownerId in state for post-OAuth routing
 		const state = JSON.stringify({
 			ownerId: currentOwnerId || '',
 			tableId: tableId,
 		})
 
-		const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+		const googleAuthUrl =
+			`https://accounts.google.com/o/oauth2/v2/auth?` +
 			`client_id=${clientId}` +
 			`&redirect_uri=${encodeURIComponent(redirectUri)}` +
 			`&response_type=code` +
@@ -205,8 +217,8 @@ const UnifiedLogin = () => {
 							{isOwnerLogin ? 'Owner Login' : 'Login'}
 						</h2>
 						<p className="mt-1 text-sm text-[#9dabbb]">
-							{isOwnerLogin 
-								? 'Access your restaurant management panel' 
+							{isOwnerLogin
+								? 'Access your restaurant management panel'
 								: 'Login as Staff, Chef, or Customer'}
 						</p>
 					</div>
@@ -318,10 +330,22 @@ const UnifiedLogin = () => {
 								className="w-full flex items-center justify-center gap-3 bg-white/10 border border-white/20 text-white py-3 rounded-lg font-semibold hover:bg-white/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
 							>
 								<svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-									<path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
-									<path d="M9.003 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.96v2.332C2.438 15.983 5.482 18 9.003 18z" fill="#34A853"/>
-									<path d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.96H.957C.347 6.175 0 7.55 0 9.002c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
-									<path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.428 0 9.003 0 5.482 0 2.438 2.017.96 4.958L3.967 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
+									<path
+										d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"
+										fill="#4285F4"
+									/>
+									<path
+										d="M9.003 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.96v2.332C2.438 15.983 5.482 18 9.003 18z"
+										fill="#34A853"
+									/>
+									<path
+										d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.96H.957C.347 6.175 0 7.55 0 9.002c0 1.452.348 2.827.957 4.042l3.007-2.332z"
+										fill="#FBBC05"
+									/>
+									<path
+										d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.428 0 9.003 0 5.482 0 2.438 2.017.96 4.958L3.967 7.29c.708-2.127 2.692-3.71 5.036-3.71z"
+										fill="#EA4335"
+									/>
 								</svg>
 								Continue with Google
 							</button>

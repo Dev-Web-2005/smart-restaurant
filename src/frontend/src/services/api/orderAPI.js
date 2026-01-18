@@ -239,7 +239,7 @@ export const cancelOrderAPI = async ({ tenantId, orderId, reason }) => {
 			throw new Error('Cancellation reason is required and must be a string')
 		}
 
-		const response = await apiClient.post(
+		const response = await apiClient.patch(
 			`/tenants/${tenantId}/orders/${orderId}/cancel`,
 			{
 				reason,
