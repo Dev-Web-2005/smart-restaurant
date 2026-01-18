@@ -110,11 +110,30 @@ class SocketClient {
 		this.socket.on('disconnect', (reason) => {
 			this.isConnected = false
 			console.warn('⚠️ [Socket] Disconnected:', reason)
+
+			// ✅ If token was refreshed, try to reconnect with new token
+			if (reason === 'io server disconnect' || reason === 'transport close') {
+				const newToken = window.accessToken
+				if (newToken && this.socket?.auth) {
+					console.log('🔄 [Socket] Attempting reconnect with refreshed token...')
+					this.socket.auth.token = newToken
+					this.socket.connect()
+				}
+			}
 		})
 
 		this.socket.on('connect_error', (error) => {
 			this.reconnectAttempts++
 			console.error('❌ [Socket] Connection error:', error.message)
+
+			// ✅ Check if token is stale and update before retry
+			if (error.message.includes('unauthorized') || error.message.includes('jwt')) {
+				const newToken = window.accessToken
+				if (newToken && this.socket?.auth) {
+					console.log('🔄 [Socket] Updating auth token for retry...')
+					this.socket.auth.token = newToken
+				}
+			}
 
 			if (this.reconnectAttempts >= this.maxReconnectAttempts) {
 				console.error('❌ [Socket] Max reconnection attempts reached')
@@ -369,6 +388,30 @@ class SocketClient {
 		this.socket.disconnect()
 		this.socket = null
 		this.isConnected = false
+	}
+
+	/**
+	 * Update auth token for existing connection
+	 * Call this after token refresh to keep socket authenticated
+	 * @param {string} newToken - New JWT access token
+	 */
+	updateToken(newToken) {
+		if (!this.socket) {
+			console.warn('⚠️ [Socket] No socket instance to update token')
+			return
+		}
+
+		// Update the auth object
+		if (this.socket.auth) {
+			this.socket.auth.token = newToken
+			console.log('✅ [Socket] Auth token updated')
+		}
+
+		// If disconnected, try to reconnect with new token
+		if (!this.socket.connected) {
+			console.log('🔄 [Socket] Reconnecting with new token...')
+			this.socket.connect()
+		}
 	}
 
 	/**

@@ -196,7 +196,7 @@ const TicketCard = ({
 						<div className="text-2xl font-bold text-blue-400">#{ticket.ticketNumber}</div>
 						<div className="text-sm">
 							<div className="font-semibold text-white">
-								Table {ticket.tableNumber || ticket.tableId}
+								{ticket.tableNumber || `Table ${ticket.tableId?.slice(0, 8)}`}
 							</div>
 							<div className="text-xs text-gray-400">
 								{ticket.items?.length || 0} items
@@ -222,7 +222,7 @@ const TicketCard = ({
 					</div>
 					<div className="min-w-0">
 						<div className="text-base md:text-lg font-bold text-white truncate">
-							Table {ticket.tableNumber || ticket.tableId}
+							{ticket.tableNumber || `Table ${ticket.tableId?.slice(0, 8)}`}
 						</div>
 						{ticket.customerName && (
 							<div className="text-sm text-gray-400 truncate">{ticket.customerName}</div>
