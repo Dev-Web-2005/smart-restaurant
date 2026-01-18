@@ -354,13 +354,13 @@ const ActiveOrderCard = ({ order, onAction, onView, timeData, actionType }) => {
 					text: 'Kitchen Complete',
 					icon: 'restaurant',
 					color: 'bg-blue-500/20 text-blue-400 border-blue-400/50 hover:bg-blue-600/30',
-			  }
+				}
 			: {
 					text: 'Mark as Served',
 					icon: 'check_circle',
 					color:
 						'bg-[#4ade80]/20 text-[#4ade80] border-[#4ade80]/50 hover:bg-green-600/30',
-			  }
+				}
 
 	return (
 		<div
@@ -1129,8 +1129,11 @@ const OrderManagement = () => {
 
 					// Optionally show browser notification
 					if ('Notification' in window && Notification.permission === 'granted') {
+						const tableName =
+							payload.data.snapshotTableName ||
+							`Table ${tableId?.slice(0, 8) || 'Unknown'}`
 						new Notification('New Order Received', {
-							body: `${itemCount} item(s) from Table ${tableId}`,
+							body: `${itemCount} item(s) from ${tableName}`,
 							icon: '/logo.png',
 						})
 					}
@@ -1455,10 +1458,10 @@ const OrderManagement = () => {
 								{view === 'PENDING'
 									? 'Pending'
 									: view === 'READY'
-									? 'Ready to Serve'
-									: view === 'SERVED'
-									? 'Served'
-									: 'Payment'}
+										? 'Ready to Serve'
+										: view === 'SERVED'
+											? 'Served'
+											: 'Payment'}
 							</button>
 						))}
 					</div>
@@ -1527,7 +1530,14 @@ const OrderManagement = () => {
 											</span>
 											<div>
 												<h3 className="text-white text-lg font-semibold">
-													{order.table?.name || `Table ${order.tableId}`}
+													{order.snapshotTableName ||
+														order.table?.name ||
+														`Table ${order.tableId?.slice(0, 8)}`}
+													{order.snapshotFloorName && (
+														<span className="text-gray-400 text-sm font-normal ml-2">
+															({order.snapshotFloorName})
+														</span>
+													)}
 												</h3>
 												<p className="text-gray-400 text-sm">
 													{order.items.length} item(s) • Order #{order.id.slice(0, 8)}

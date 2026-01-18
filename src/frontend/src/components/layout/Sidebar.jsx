@@ -25,7 +25,7 @@ const tenantNavItems = [
 	{ icon: 'restaurant', label: 'Kitchen', route: '/user/kitchen' },
 	{ icon: 'qr_code_2', label: 'Restaurant QR', route: '/user/restaurant-qr' },
 	{ icon: 'notifications_active', label: 'Help Requests', route: '/user/help-requests' },
-	{ icon: 'analytics', label: 'Analytics', route: '/user/analytics' },
+	{ icon: 'analytics', label: 'Report Dashboard', route: '/user/analytics' },
 	{ icon: 'person', label: 'Profile', route: '/profile' },
 	{ icon: 'settings', label: 'Setting', route: '/user/settings' },
 ]

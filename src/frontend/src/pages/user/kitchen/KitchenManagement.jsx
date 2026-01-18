@@ -1,191 +1,248 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useUser } from '../../../contexts/UserContext'
-// import { useNotifications } from '../../../contexts/NotificationContext'
 import BasePageLayout from '../../../components/layout/BasePageLayout'
 import { CardSkeleton } from '../../../components/common/LoadingSpinner'
 import CustomCheckbox from '../../../components/common/CustomCheckbox'
 import socketClient from '../../../services/websocket/socketClient'
 import {
-	getOrdersAPI,
-	markItemsPreparingAPI,
-	markItemsReadyAPI,
-	updateItemsStatusAPI,
-} from '../../../services/api/orderAPI'
+	getKitchenDisplay,
+	startTicket,
+	startItems,
+	markItemsReady,
+} from '../../../services/api/kitchenAPI'
 
 /**
  * KitchenManagement - Kitchen Display System (KDS)
  *
- * Displays orders that need kitchen attention:
- * - ACCEPTED: Orders accepted by kitchen, ready to cook
- * - PREPARING: Orders currently being cooked (with countdown timer)
+ * ⚠️ REFACTORED: Now uses Kitchen Service API (tickets) instead of Order Service API
+ * This ensures synchronization with KitchenDisplay (CHEF view)
+ *
+ * Displays tickets that need kitchen attention:
+ * - PENDING: Tickets waiting to start cooking (tab: ACCEPTED)
+ * - IN_PROGRESS: Tickets currently being cooked (tab: PREPARING)
  *
  * Status Flow:
- * ACCEPTED → PREPARING → READY (moves to Order Management)
+ * PENDING → IN_PROGRESS → READY → COMPLETED
  *
- * Note: PENDING items are handled by Order Management (Waiter)
+ * API Flow:
+ * - startTicket() → Kitchen Service → Order Service RPC → WebSocket events
+ * - markItemsReady() → Kitchen Service → Order Service RPC → WebSocket events
+ *
+ * This ensures both KitchenManagement and KitchenDisplay stay in sync!
  */
 
-// Order Item Status Constants
-// Backend returns status as STRING labels, not numbers
+// Ticket Status Constants (matching Kitchen Service)
+const TICKET_STATUS = {
+	PENDING: 'PENDING',
+	IN_PROGRESS: 'IN_PROGRESS',
+	READY: 'READY',
+	COMPLETED: 'COMPLETED',
+	CANCELLED: 'CANCELLED',
+}
+
+// Item Status Constants (matching Kitchen Ticket Items)
 const ITEM_STATUS = {
 	PENDING: 'PENDING',
-	ACCEPTED: 'ACCEPTED',
 	PREPARING: 'PREPARING',
 	READY: 'READY',
-	SERVED: 'SERVED',
-	REJECTED: 'REJECTED',
 	CANCELLED: 'CANCELLED',
 }
 
 const ITEM_STATUS_LABELS = {
 	[ITEM_STATUS.PENDING]: 'Pending',
-	[ITEM_STATUS.ACCEPTED]: 'Accepted',
 	[ITEM_STATUS.PREPARING]: 'Preparing',
 	[ITEM_STATUS.READY]: 'Ready',
-	[ITEM_STATUS.SERVED]: 'Served',
-	[ITEM_STATUS.REJECTED]: 'Rejected',
 	[ITEM_STATUS.CANCELLED]: 'Cancelled',
 }
 
 const ITEM_STATUS_COLORS = {
-	[ITEM_STATUS.PENDING]: 'bg-yellow-500/20 text-yellow-300',
-	[ITEM_STATUS.ACCEPTED]: 'bg-blue-500/20 text-blue-300',
+	[ITEM_STATUS.PENDING]: 'bg-blue-500/20 text-blue-300',
 	[ITEM_STATUS.PREPARING]: 'bg-orange-500/20 text-orange-300',
 	[ITEM_STATUS.READY]: 'bg-green-500/20 text-green-300',
-	[ITEM_STATUS.SERVED]: 'bg-gray-500/20 text-gray-300',
-	[ITEM_STATUS.REJECTED]: 'bg-red-500/20 text-red-300',
 	[ITEM_STATUS.CANCELLED]: 'bg-gray-500/20 text-gray-300',
+}
+
+const TICKET_STATUS_COLORS = {
+	[TICKET_STATUS.PENDING]: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+	[TICKET_STATUS.IN_PROGRESS]: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
+	[TICKET_STATUS.READY]: 'bg-green-500/20 text-green-300 border-green-500/30',
+	[TICKET_STATUS.COMPLETED]: 'bg-gray-500/20 text-gray-300 border-gray-500/30',
+	[TICKET_STATUS.CANCELLED]: 'bg-red-500/20 text-red-300 border-red-500/30',
+}
+
+// Priority colors for visual indicators
+const PRIORITY_COLORS = {
+	NORMAL: 'border-l-gray-500',
+	HIGH: 'border-l-yellow-500',
+	URGENT: 'border-l-orange-500',
+	FIRE: 'border-l-red-500',
 }
 
 const KitchenManagement = () => {
 	const { user } = useUser()
-	// const { setPendingOrdersCount } = useNotifications()
 
-	// State management
+	// State management - now using tickets instead of orders
 	const [loading, setLoading] = useState(true)
-	// const [refreshing, setRefreshing] = useState(false)
-	const [orders, setOrders] = useState([])
-	const [filteredOrders, setFilteredOrders] = useState([])
-	const [selectedStatus, setSelectedStatus] = useState('ACCEPTED') // ACCEPTED, PREPARING
+	const [tickets, setTickets] = useState([])
+	const [filteredTickets, setFilteredTickets] = useState([])
+	const [selectedTab, setSelectedTab] = useState('ACCEPTED') // ACCEPTED = PENDING tickets, PREPARING = IN_PROGRESS tickets
 	const [searchQuery, setSearchQuery] = useState('')
-	const [expandedOrders, setExpandedOrders] = useState(new Set())
+	const [expandedTickets, setExpandedTickets] = useState(new Set())
 
 	// Multi-select state for batch operations
-	const [selectedItems, setSelectedItems] = useState(new Map()) // Map<orderId, Set<itemId>>
+	const [selectedItems, setSelectedItems] = useState(new Map()) // Map<ticketId, Set<itemId>>
 	const [isProcessingBatch, setIsProcessingBatch] = useState(false)
 
-	// TTS state management
+	// TTS state management (preserved from original)
 	const [isSpeaking] = useState(false)
-	// const [announcedItems] = useState(new Set()) // Track which items have been announced
-	const [autoAnnounce, setAutoAnnounce] = useState(true) // Toggle auto-announcement
+	const [autoAnnounce, setAutoAnnounce] = useState(true)
 
 	// Auto-refresh interval
 	const intervalRef = useRef(null)
-	// const previousPreparingItemsRef = useRef(new Set()) // Track previous preparing items
+	const fetchDebounceRef = useRef(null)
+	const isFetchingRef = useRef(false)
+	const lastFetchRef = useRef(0)
 
-	// Fetch orders from API
-	const fetchOrders = useCallback(
+	/**
+	 * Get effective tenantId for current user
+	 */
+	const getEffectiveTenantId = useCallback(() => {
+		return (
+			user?.ownerId ||
+			user?.userId ||
+			user?.tenantId ||
+			localStorage.getItem('currentTenantId')
+		)
+	}, [user?.ownerId, user?.userId, user?.tenantId])
+
+	/**
+	 * Fetch kitchen display data (tickets) from Kitchen Service
+	 * Uses the same API as KitchenDisplay to ensure synchronization
+	 */
+	const fetchTickets = useCallback(
 		async (showLoader = true) => {
-			if (!user?.userId) return
+			const tenantId = getEffectiveTenantId()
+			if (!tenantId) {
+				console.error('❌ [KitchenManagement] No tenantId available')
+				return
+			}
 
+			// Prevent concurrent fetches
+			if (isFetchingRef.current) {
+				console.log('⏳ [KitchenManagement] Already fetching, skipping...')
+				return
+			}
+
+			// Throttle requests (max 1 per 2 seconds)
+			const now = Date.now()
+			if (now - lastFetchRef.current < 2000) {
+				console.log('⏳ [KitchenManagement] Throttled, skipping...')
+				return
+			}
+			lastFetchRef.current = now
+
+			isFetchingRef.current = true
 			if (showLoader) setLoading(true)
 
 			try {
-				console.log('🔄 Fetching kitchen orders for tenant:', user.userId)
+				console.log(
+					'🔄 [KitchenManagement] Fetching kitchen tickets for tenant:',
+					tenantId,
+				)
 
-				// ❌ REMOVED status: 'IN_PROGRESS' filter
-				// Reason: Orders with newly accepted items might still have PENDING status at order level
-				// Now fetching ALL unpaid orders and filtering by item status
-				const response = await getOrdersAPI({
-					tenantId: user.userId,
-					page: 1,
-					limit: 100,
-					// status: 'IN_PROGRESS', // ❌ REMOVED - need orders with ACCEPTED items!
-					paymentStatus: 'PENDING', // Only unpaid orders
-				})
+				const response = await getKitchenDisplay(tenantId)
 
-				if (response.code === 1000 && response.data) {
-					const fetchedOrders = response.data.orders || []
+				if (response.success && response.data) {
+					// Combine all ticket categories from the display data
+					const allTickets = [
+						...(response.data.fireTickets || []),
+						...(response.data.urgentTickets || []),
+						...(response.data.activeTickets || []),
+						...(response.data.pendingTickets || []),
+						...(response.data.readyTickets || []),
+					]
 
-					// Filter orders to only include those with ACCEPTED or PREPARING items
-					const kitchenOrders = fetchedOrders
-						.map((order) => {
-							const relevantItems = order.items.filter(
-								(item) => item.status === 'ACCEPTED' || item.status === 'PREPARING',
-							)
-							if (relevantItems.length === 0) return null
-							return { ...order, items: relevantItems }
-						})
-						.filter(Boolean)
+					// Remove duplicates by ticket ID
+					const uniqueMap = new Map()
+					allTickets.forEach((t) => uniqueMap.set(t.id, t))
+					const uniqueTickets = Array.from(uniqueMap.values())
 
-					console.log('✅ Kitchen orders fetched:', kitchenOrders.length, 'orders')
-					setOrders(kitchenOrders)
+					// Filter only PENDING and IN_PROGRESS tickets (exclude READY, COMPLETED)
+					const kitchenTickets = uniqueTickets.filter(
+						(t) =>
+							t.status === TICKET_STATUS.PENDING ||
+							t.status === TICKET_STATUS.IN_PROGRESS,
+					)
+
+					console.log(
+						'✅ [KitchenManagement] Kitchen tickets fetched:',
+						kitchenTickets.length,
+					)
+					setTickets(kitchenTickets)
 				} else {
-					console.warn('⚠️ Unexpected response format:', response)
-					setOrders([])
+					console.warn('⚠️ [KitchenManagement] Unexpected response:', response)
+					setTickets([])
 				}
 			} catch (error) {
-				console.error('❌ Error fetching kitchen orders:', error)
-				setOrders([])
+				console.error('❌ [KitchenManagement] Error fetching tickets:', error)
+				setTickets([])
 			} finally {
 				setLoading(false)
+				isFetchingRef.current = false
 			}
 		},
-		[user?.userId],
+		[getEffectiveTenantId],
 	)
 
-	// Check for new preparing items and announce them
-	// eslint-disable-next-line no-unused-vars
-	const checkAndAnnounceNewItems = (currentOrders) => {
-		// Disabled - TTS functionality removed
-		console.log('🔊 TTS Auto-announce disabled')
-	}
+	/**
+	 * Debounced fetch - coalesces rapid events into single API call
+	 */
+	const debouncedFetchTickets = useCallback(() => {
+		if (fetchDebounceRef.current) {
+			clearTimeout(fetchDebounceRef.current)
+		}
+		fetchDebounceRef.current = setTimeout(() => {
+			fetchTickets(false)
+		}, 500)
+	}, [fetchTickets])
 
-	// Announce new items
-	// eslint-disable-next-line no-unused-vars
-	const announceNewItems = async (newItems) => {
-		// TODO: Replace with real TTS API call
-		console.log('🔊 Would announce new items:', newItems)
-		// API call removed - functionality disabled
-	}
-
-	// Announce all preparing orders
+	// Announce all preparing orders (preserved from original)
 	const announceAllPreparingOrders = async () => {
-		// Get all preparing orders
-		const preparingOrders = orders.filter((order) =>
-			order.items.some((item) => item.status === ITEM_STATUS.PREPARING),
-		)
+		const preparingTickets = tickets.filter((t) => t.status === TICKET_STATUS.IN_PROGRESS)
 
-		if (preparingOrders.length === 0) {
-			alert('No orders are currently preparing')
+		if (preparingTickets.length === 0) {
+			alert('No tickets are currently preparing')
 			return
 		}
 
-		console.log('🔊 Would announce all preparing orders')
+		console.log('🔊 Would announce all preparing tickets')
 		alert('API call removed - TTS functionality disabled')
 	}
 
 	// Initial load
 	useEffect(() => {
-		fetchOrders()
+		fetchTickets()
 
 		// Auto-refresh every 30 seconds (backup for WebSocket)
 		intervalRef.current = setInterval(() => {
-			fetchOrders(false)
+			fetchTickets(false)
 		}, 30000)
 
 		return () => {
 			if (intervalRef.current) {
 				clearInterval(intervalRef.current)
 			}
+			if (fetchDebounceRef.current) {
+				clearTimeout(fetchDebounceRef.current)
+			}
 		}
-	}, [fetchOrders])
+	}, [fetchTickets])
 
 	// WebSocket setup for real-time updates
 	useEffect(() => {
 		const setupWebSocket = () => {
 			const authToken = window.accessToken || localStorage.getItem('authToken')
-			const tenantId = user?.userId
+			const tenantId = getEffectiveTenantId()
 
 			if (!authToken || !tenantId) {
 				console.error(
@@ -199,44 +256,58 @@ const KitchenManagement = () => {
 				console.log(
 					'🔵 [KitchenManagement] WebSocket already connected, reusing connection',
 				)
-				return
+			} else {
+				// Connect WebSocket
+				socketClient.connect(authToken)
 			}
 
-			// Connect WebSocket
-			socketClient.connect(authToken)
+			// Define event handlers - listen to BOTH kitchen and order events
+			const handleKitchenTicketNew = (payload) => {
+				console.log('🎫 [KitchenManagement] New kitchen ticket - refreshing', payload)
+				debouncedFetchTickets()
+			}
 
-			// Define event handlers
+			const handleKitchenTicketReady = (payload) => {
+				console.log('✅ [KitchenManagement] Ticket ready - refreshing', payload)
+				debouncedFetchTickets()
+			}
+
+			const handleKitchenTicketCompleted = (payload) => {
+				console.log('🎉 [KitchenManagement] Ticket completed - refreshing', payload)
+				debouncedFetchTickets()
+			}
+
 			const handleItemsAccepted = (payload) => {
 				console.log(
-					'✅ [KitchenManagement] Items accepted - refreshing kitchen display',
+					'✅ [KitchenManagement] Items accepted (new ticket will be created) - refreshing',
 					payload,
 				)
-				fetchOrders(false) // Silent refresh
+				debouncedFetchTickets()
 			}
 
 			const handleItemsPreparing = (payload) => {
-				console.log(
-					'🔥 [KitchenManagement] Items preparing - refreshing kitchen display',
-					payload,
-				)
-				fetchOrders(false)
+				console.log('🔥 [KitchenManagement] Items preparing - refreshing', payload)
+				debouncedFetchTickets()
 			}
 
 			const handleItemsReady = (payload) => {
-				console.log(
-					'✅ [KitchenManagement] Items ready - refreshing kitchen display',
-					payload,
-				)
-				fetchOrders(false)
+				console.log('✅ [KitchenManagement] Items ready - refreshing', payload)
+				debouncedFetchTickets()
 			}
 
-			// Listen for kitchen-relevant events
+			// Listen for kitchen-specific events (from Kitchen Service)
+			socketClient.on('kitchen.ticket.new', handleKitchenTicketNew)
+			socketClient.on('kitchen.ticket.ready', handleKitchenTicketReady)
+			socketClient.on('kitchen.ticket.completed', handleKitchenTicketCompleted)
+
+			// Also listen to order events (from Order Service)
 			socketClient.on('order.items.accepted', handleItemsAccepted)
 			socketClient.on('order.items.preparing', handleItemsPreparing)
 			socketClient.on('order.items.ready', handleItemsReady)
 		}
 
-		if (user?.userId) {
+		const tenantId = getEffectiveTenantId()
+		if (tenantId) {
 			setupWebSocket()
 		} else {
 			console.error(
@@ -246,93 +317,156 @@ const KitchenManagement = () => {
 
 		// Cleanup on unmount
 		return () => {
+			socketClient.off('kitchen.ticket.new')
+			socketClient.off('kitchen.ticket.ready')
+			socketClient.off('kitchen.ticket.completed')
 			socketClient.off('order.items.accepted')
 			socketClient.off('order.items.preparing')
 			socketClient.off('order.items.ready')
 		}
-	}, [user?.userId, fetchOrders])
+	}, [getEffectiveTenantId, debouncedFetchTickets])
 
-	// Filter orders based on status and search
+	// Compute stats from tickets
+	const stats = useMemo(() => {
+		const pendingCount = tickets.filter((t) => t.status === TICKET_STATUS.PENDING).length
+		const inProgressCount = tickets.filter(
+			(t) => t.status === TICKET_STATUS.IN_PROGRESS,
+		).length
+		const pendingItemsCount = tickets
+			.filter((t) => t.status === TICKET_STATUS.PENDING)
+			.reduce((sum, t) => sum + (t.items?.length || 0), 0)
+		const inProgressItemsCount = tickets
+			.filter((t) => t.status === TICKET_STATUS.IN_PROGRESS)
+			.reduce((sum, t) => sum + (t.items?.length || 0), 0)
+
+		return {
+			pendingTickets: pendingCount,
+			inProgressTickets: inProgressCount,
+			pendingItems: pendingItemsCount,
+			inProgressItems: inProgressItemsCount,
+		}
+	}, [tickets])
+
+	// Filter tickets based on tab and search
 	useEffect(() => {
-		let filtered = [...orders]
+		let filtered = [...tickets]
 
-		// Filter by status
-		const statusValue = ITEM_STATUS[selectedStatus]
-		filtered = filtered
-			.map((order) => {
-				const items = order.items.filter((item) => item.status === statusValue)
-				if (items.length === 0) return null
-				return { ...order, items }
-			})
-			.filter(Boolean)
+		// Filter by tab (ACCEPTED = PENDING tickets, PREPARING = IN_PROGRESS tickets)
+		if (selectedTab === 'ACCEPTED') {
+			filtered = filtered.filter((t) => t.status === TICKET_STATUS.PENDING)
+		} else if (selectedTab === 'PREPARING') {
+			filtered = filtered.filter((t) => t.status === TICKET_STATUS.IN_PROGRESS)
+		}
 
 		// Filter by search query (table name or item name)
 		if (searchQuery.trim()) {
 			const query = searchQuery.toLowerCase()
-			filtered = filtered
-				.map((order) => {
-					// Check if table name matches
-					if (order.table?.name?.toLowerCase().includes(query)) {
-						return order
-					}
+			filtered = filtered.filter((ticket) => {
+				// Check if table name matches
+				if (ticket.tableNumber?.toLowerCase().includes(query)) {
+					return true
+				}
 
-					// Check if any item name matches
-					const matchingItems = order.items.filter((item) =>
-						item.name?.toLowerCase().includes(query),
-					)
-					if (matchingItems.length > 0) {
-						return { ...order, items: matchingItems }
-					}
+				// Check if ticket number matches
+				if (ticket.ticketNumber?.toString().includes(query)) {
+					return true
+				}
 
-					return null
-				})
-				.filter(Boolean)
+				// Check if any item name matches
+				if (ticket.items?.some((item) => item.name?.toLowerCase().includes(query))) {
+					return true
+				}
+
+				return false
+			})
 		}
 
-		setFilteredOrders(filtered)
-	}, [orders, selectedStatus, searchQuery])
+		// Sort by createdAt (oldest first)
+		filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
 
-	// Update item status
-	const handleUpdateItemStatus = async (
-		orderId,
-		itemIds,
-		newStatus,
-		rejectionReason = null,
-	) => {
-		if (!user?.userId) return
+		setFilteredTickets(filtered)
+	}, [tickets, selectedTab, searchQuery])
+
+	/**
+	 * Start cooking a ticket - calls Kitchen Service API
+	 * This ensures synchronization with KitchenDisplay
+	 */
+	const handleStartTicket = async (ticketId) => {
+		const tenantId = getEffectiveTenantId()
+		if (!tenantId) return
 
 		try {
-			console.log('🔄 Updating item status:', {
-				orderId,
-				itemIds,
-				newStatus: ITEM_STATUS_LABELS[newStatus],
-				rejectionReason,
+			console.log('🔥 [KitchenManagement] Starting ticket:', ticketId)
+
+			const response = await startTicket(tenantId, ticketId, {
+				cookId: user?.userId,
+				cookName: user?.username || user?.email,
 			})
 
-			// Choose API based on new status
-			if (newStatus === ITEM_STATUS.PREPARING) {
-				await markItemsPreparingAPI({
-					tenantId: user.userId,
-					orderId,
-					itemIds,
-					userId: user.userId,
-				})
-				console.log('✅ Items marked as PREPARING')
-			} else if (newStatus === ITEM_STATUS.READY) {
-				await markItemsReadyAPI({
-					tenantId: user.userId,
-					orderId,
-					itemIds,
-					userId: user.userId,
-				})
-				console.log('✅ Items marked as READY')
+			if (response.success) {
+				console.log('✅ [KitchenManagement] Ticket started successfully')
+				// Refresh to get updated data
+				await fetchTickets(false)
+			} else {
+				console.error('❌ [KitchenManagement] Failed to start ticket:', response.message)
+				alert(response.message || 'Failed to start ticket')
 			}
-
-			// Refresh orders after update
-			await fetchOrders(false)
 		} catch (error) {
-			console.error('❌ Error updating item status:', error)
-			alert('Failed to update item status. Please try again.')
+			console.error('❌ [KitchenManagement] Error starting ticket:', error)
+			alert('Failed to start ticket. Please try again.')
+		}
+	}
+
+	/**
+	 * Start cooking specific items in a ticket - calls Kitchen Service API
+	 */
+	const handleStartItems = async (ticketId, itemIds) => {
+		const tenantId = getEffectiveTenantId()
+		if (!tenantId) return
+
+		try {
+			console.log('🔥 [KitchenManagement] Starting items:', { ticketId, itemIds })
+
+			const response = await startItems(tenantId, ticketId, itemIds)
+
+			if (response.success) {
+				console.log('✅ [KitchenManagement] Items started successfully')
+				await fetchTickets(false)
+			} else {
+				console.error('❌ [KitchenManagement] Failed to start items:', response.message)
+				alert(response.message || 'Failed to start items')
+			}
+		} catch (error) {
+			console.error('❌ [KitchenManagement] Error starting items:', error)
+			alert('Failed to start items. Please try again.')
+		}
+	}
+
+	/**
+	 * Mark items as ready - calls Kitchen Service API
+	 */
+	const handleMarkItemsReady = async (ticketId, itemIds) => {
+		const tenantId = getEffectiveTenantId()
+		if (!tenantId) return
+
+		try {
+			console.log('✅ [KitchenManagement] Marking items ready:', { ticketId, itemIds })
+
+			const response = await markItemsReady(tenantId, ticketId, itemIds)
+
+			if (response.success) {
+				console.log('✅ [KitchenManagement] Items marked ready successfully')
+				await fetchTickets(false)
+			} else {
+				console.error(
+					'❌ [KitchenManagement] Failed to mark items ready:',
+					response.message,
+				)
+				alert(response.message || 'Failed to mark items ready')
+			}
+		} catch (error) {
+			console.error('❌ [KitchenManagement] Error marking items ready:', error)
+			alert('Failed to mark items ready. Please try again.')
 		}
 	}
 
@@ -340,58 +474,34 @@ const KitchenManagement = () => {
 
 	/**
 	 * Toggle item selection for batch operations
-	 * @param {string} orderId - Order ID
-	 * @param {string} itemId - Item ID to toggle
 	 */
-	const toggleItemSelection = useCallback((orderId, itemId) => {
+	const toggleItemSelection = useCallback((ticketId, itemId) => {
 		setSelectedItems((prev) => {
 			const newMap = new Map(prev)
-			// Clone the Set to avoid mutating previous state
-			const existingSet = prev.get(orderId)
-			const orderSet = existingSet ? new Set(existingSet) : new Set()
+			const existingSet = prev.get(ticketId)
+			const ticketSet = existingSet ? new Set(existingSet) : new Set()
 
-			if (orderSet.has(itemId)) {
-				orderSet.delete(itemId)
+			if (ticketSet.has(itemId)) {
+				ticketSet.delete(itemId)
 			} else {
-				orderSet.add(itemId)
+				ticketSet.add(itemId)
 			}
 
-			if (orderSet.size === 0) {
-				newMap.delete(orderId)
+			if (ticketSet.size === 0) {
+				newMap.delete(ticketId)
 			} else {
-				newMap.set(orderId, orderSet)
+				newMap.set(ticketId, ticketSet)
 			}
-
-			console.log('📊 Selected items updated:', {
-				orderId: orderId.slice(0, 8),
-				itemId: itemId.slice(0, 8),
-				action: existingSet?.has(itemId) ? 'removed' : 'added',
-				count: orderSet.size,
-			})
 
 			return newMap
 		})
 	}, [])
 
 	/**
-	 * Get selected count for specific order
-	 * @param {string} orderId - Order ID
-	 * @returns {number} Number of selected items
+	 * Get selected count for specific ticket
 	 */
-	const getSelectedCount = (orderId) => {
-		return selectedItems.get(orderId)?.size || 0
-	}
-
-	/**
-	 * Get total selected count across all orders
-	 * @returns {number} Total number of selected items
-	 */
-	const getTotalSelectedCount = () => {
-		let total = 0
-		selectedItems.forEach((itemSet) => {
-			total += itemSet.size
-		})
-		return total
+	const getSelectedCount = (ticketId) => {
+		return selectedItems.get(ticketId)?.size || 0
 	}
 
 	/**
@@ -402,14 +512,10 @@ const KitchenManagement = () => {
 	}
 
 	/**
-	 * Start cooking for selected items in a specific order
-	 * Uses updateItemsStatusAPI which emits WebSocket events
-	 * @param {string} orderId - Order ID
+	 * Start cooking for selected items in a specific ticket
 	 */
-	const handleStartCookingSelected = async (orderId) => {
-		if (!user?.userId || !orderId) return
-
-		const itemIds = Array.from(selectedItems.get(orderId) || [])
+	const handleStartCookingSelected = async (ticketId) => {
+		const itemIds = Array.from(selectedItems.get(ticketId) || [])
 		if (itemIds.length === 0) {
 			alert('No items selected')
 			return
@@ -418,32 +524,31 @@ const KitchenManagement = () => {
 		setIsProcessingBatch(true)
 
 		try {
-			console.log('🔥 Starting cooking for selected items:', {
-				orderId: orderId.slice(0, 8),
-				itemIds: itemIds.map((id) => id.slice(0, 8)),
-				count: itemIds.length,
-			})
+			// Find the ticket to check if it's PENDING
+			const ticket = tickets.find((t) => t.id === ticketId)
 
-			// Use updateItemsStatusAPI - this triggers WebSocket events via RabbitMQ
-			await updateItemsStatusAPI({
-				tenantId: user.userId,
-				orderId,
-				itemIds,
-				status: 'PREPARING',
-				userId: user.userId,
-			})
+			if (ticket?.status === TICKET_STATUS.PENDING) {
+				// If ticket is PENDING and all items selected, start the whole ticket
+				const allItemIds = ticket.items?.map((i) => i.id) || []
+				const allSelected = itemIds.length === allItemIds.length
 
-			console.log('✅ Batch items marked as PREPARING')
+				if (allSelected) {
+					await handleStartTicket(ticketId)
+				} else {
+					// Start specific items
+					await handleStartItems(ticketId, itemIds)
+				}
+			} else {
+				// Ticket already IN_PROGRESS, start specific items
+				await handleStartItems(ticketId, itemIds)
+			}
 
-			// Clear selections for this order
+			// Clear selections for this ticket
 			setSelectedItems((prev) => {
 				const newMap = new Map(prev)
-				newMap.delete(orderId)
+				newMap.delete(ticketId)
 				return newMap
 			})
-
-			// Refresh orders
-			await fetchOrders(false)
 		} catch (error) {
 			console.error('❌ Error starting cooking for selected items:', error)
 			alert('Failed to start cooking. Please try again.')
@@ -452,65 +557,35 @@ const KitchenManagement = () => {
 		}
 	}
 
-	// ==================== END MULTI-SELECT FUNCTIONS ====================
-
 	/**
 	 * Mark all PREPARING items as READY
-	 * Groups items by orderId and calls updateItemsStatusAPI for each order
 	 */
 	const handleMarkAllReady = async () => {
-		if (!user?.userId) return
+		const preparingTickets = filteredTickets.filter(
+			(t) => t.status === TICKET_STATUS.IN_PROGRESS,
+		)
 
-		// Collect all PREPARING items grouped by orderId
-		const itemsByOrder = new Map() // Map<orderId, itemId[]>
-
-		filteredOrders.forEach((order) => {
-			const preparingItems = order.items.filter(
-				(item) => item.status === ITEM_STATUS.PREPARING,
-			)
-			if (preparingItems.length > 0) {
-				itemsByOrder.set(
-					order.id,
-					preparingItems.map((item) => item.id),
-				)
-			}
-		})
-
-		if (itemsByOrder.size === 0) {
-			alert('No preparing items to mark as ready')
+		if (preparingTickets.length === 0) {
+			alert('No preparing tickets to mark as ready')
 			return
 		}
-
-		const totalItems = Array.from(itemsByOrder.values()).reduce(
-			(sum, ids) => sum + ids.length,
-			0,
-		)
 
 		setIsProcessingBatch(true)
 
 		try {
-			console.log('✅ Marking all preparing items as READY:', {
-				orders: itemsByOrder.size,
-				totalItems,
-			})
+			console.log('✅ [KitchenManagement] Marking all preparing items as READY')
 
-			// Process each order
-			const promises = Array.from(itemsByOrder.entries()).map(([orderId, itemIds]) =>
-				updateItemsStatusAPI({
-					tenantId: user.userId,
-					orderId,
-					itemIds,
-					status: 'READY',
-					userId: user.userId,
-				}),
-			)
-
-			await Promise.all(promises)
+			// Process each ticket
+			for (const ticket of preparingTickets) {
+				const preparingItems =
+					ticket.items?.filter((i) => i.status === ITEM_STATUS.PREPARING) || []
+				if (preparingItems.length > 0) {
+					const itemIds = preparingItems.map((i) => i.id)
+					await handleMarkItemsReady(ticket.id, itemIds)
+				}
+			}
 
 			console.log('✅ All items marked as READY')
-
-			// Refresh orders
-			await fetchOrders(false)
 		} catch (error) {
 			console.error('❌ Error marking items as ready:', error)
 			alert('Failed to mark items as ready. Please try again.')
@@ -519,47 +594,49 @@ const KitchenManagement = () => {
 		}
 	}
 
-	// Toggle order expansion
-	const toggleOrderExpansion = (orderId) => {
-		setExpandedOrders((prev) => {
+	// Toggle ticket expansion
+	const toggleTicketExpansion = (ticketId) => {
+		setExpandedTickets((prev) => {
 			const newSet = new Set(prev)
-			if (newSet.has(orderId)) {
-				newSet.delete(orderId)
+			if (newSet.has(ticketId)) {
+				newSet.delete(ticketId)
 			} else {
-				newSet.add(orderId)
+				newSet.add(ticketId)
 			}
 			return newSet
 		})
 	}
 
-	// Calculate elapsed time since item started preparing
-	const calculateElapsedTime = (preparingAt) => {
-		if (!preparingAt) return null
-		const start = new Date(preparingAt)
+	// Calculate elapsed time since ticket started
+	const calculateElapsedTime = (startedAt) => {
+		if (!startedAt) return null
+		const start = new Date(startedAt)
 		const now = new Date()
 		const diffMs = now - start
 		const diffMins = Math.floor(diffMs / 60000)
 		return diffMins
 	}
 
-	// Get countdown display
-	const getTimeDisplay = (item) => {
-		if (item.status !== ITEM_STATUS.PREPARING || !item.preparingAt) return null
+	// Get time display for ticket/item
+	const getTimeDisplay = (ticket) => {
+		if (ticket.status !== TICKET_STATUS.IN_PROGRESS) return null
 
-		const elapsed = calculateElapsedTime(item.preparingAt)
+		const startTime = ticket.startedAt || ticket.createdAt
+		const elapsed = calculateElapsedTime(startTime)
 		if (elapsed === null) return null
 
-		const estimatedTime = item.estimatedPrepTime || 15 // Default 15 minutes
-		const remaining = estimatedTime - elapsed
+		const estimatedTime = ticket.estimatedTime || 15 // Default 15 minutes
 
-		if (remaining > 0) {
+		if (elapsed <= estimatedTime) {
 			return (
-				<span className="text-orange-400 font-medium">⏱️ {remaining} mins remaining</span>
+				<span className="text-orange-400 font-medium">
+					⏱️ {elapsed} mins ({estimatedTime - elapsed} mins remaining)
+				</span>
 			)
 		} else {
 			return (
 				<span className="text-red-400 font-medium animate-pulse">
-					⚠️ Overdue by {Math.abs(remaining)} mins
+					⚠️ Overdue by {elapsed - estimatedTime} mins
 				</span>
 			)
 		}
@@ -588,7 +665,12 @@ const KitchenManagement = () => {
 				<div className="flex items-center justify-between">
 					<div>
 						<h1 className="text-3xl font-bold text-white mb-2">Kitchen Display</h1>
-						<p className="text-gray-400">Manage incoming orders and cooking status</p>
+						<p className="text-gray-400">
+							Manage incoming tickets and cooking status
+							<span className="ml-2 text-xs text-blue-400">
+								(Synced with CHEF Display)
+							</span>
+						</p>
 					</div>
 					<div className="flex items-center gap-2">
 						{/* Test TTS button */}
@@ -626,20 +708,27 @@ const KitchenManagement = () => {
 						{/* Announce all button */}
 						<button
 							onClick={announceAllPreparingOrders}
-							disabled={isSpeaking || orders.length === 0}
+							disabled={isSpeaking || tickets.length === 0}
 							className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-							title="Announce all preparing orders"
+							title="Announce all preparing tickets"
 						>
 							<span
-								className={`material-symbols-outlined ${
-									isSpeaking ? 'animate-pulse' : ''
-								}`}
+								className={`material-symbols-outlined ${isSpeaking ? 'animate-pulse' : ''}`}
 							>
 								campaign
 							</span>
 							<span className="text-sm font-medium">
 								{isSpeaking ? 'Speaking...' : 'Announce All'}
 							</span>
+						</button>
+
+						{/* Refresh button */}
+						<button
+							onClick={() => fetchTickets()}
+							className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-lg transition-colors"
+							title="Refresh tickets"
+						>
+							<span className="material-symbols-outlined">refresh</span>
 						</button>
 					</div>
 				</div>
@@ -652,15 +741,9 @@ const KitchenManagement = () => {
 								check_circle
 							</span>
 							<div>
-								<p className="text-blue-400 text-sm font-medium">Accepted</p>
+								<p className="text-blue-400 text-sm font-medium">Accepted (Pending)</p>
 								<p className="text-white text-2xl font-bold">
-									{orders.reduce(
-										(count, order) =>
-											count +
-											order.items.filter((item) => item.status === ITEM_STATUS.ACCEPTED)
-												.length,
-										0,
-									)}
+									{stats.pendingTickets} tickets ({stats.pendingItems} items)
 								</p>
 							</div>
 						</div>
@@ -674,13 +757,7 @@ const KitchenManagement = () => {
 							<div>
 								<p className="text-orange-400 text-sm font-medium">Preparing</p>
 								<p className="text-white text-2xl font-bold">
-									{orders.reduce(
-										(count, order) =>
-											count +
-											order.items.filter((item) => item.status === ITEM_STATUS.PREPARING)
-												.length,
-										0,
-									)}
+									{stats.inProgressTickets} tickets ({stats.inProgressItems} items)
 								</p>
 							</div>
 						</div>
@@ -696,7 +773,7 @@ const KitchenManagement = () => {
 							</span>
 							<input
 								type="text"
-								placeholder="Search by table or item name..."
+								placeholder="Search by table, ticket number, or item name..."
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
 								className="w-full pl-10 pr-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -705,34 +782,41 @@ const KitchenManagement = () => {
 					</div>
 
 					<div className="flex gap-2">
-						{['ACCEPTED', 'PREPARING'].map((status) => (
+						{['ACCEPTED', 'PREPARING'].map((tab) => (
 							<button
-								key={status}
-								onClick={() => setSelectedStatus(status)}
+								key={tab}
+								onClick={() => setSelectedTab(tab)}
 								className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-									selectedStatus === status
+									selectedTab === tab
 										? 'bg-blue-500 text-white'
 										: 'bg-white/10 text-gray-300 hover:bg-white/20'
 								}`}
 							>
-								{status}
+								{tab === 'ACCEPTED'
+									? `Accepted (${stats.pendingTickets})`
+									: `Preparing (${stats.inProgressTickets})`}
 							</button>
 						))}
 					</div>
 				</div>
 
-				{/* Orders List */}
-				{filteredOrders.length === 0 ? (
+				{/* Tickets List */}
+				{filteredTickets.length === 0 ? (
 					<div className="bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-12 text-center">
 						<span className="material-symbols-outlined text-gray-400 text-6xl mb-4">
 							restaurant
 						</span>
-						<p className="text-gray-400 text-lg">No orders to display</p>
+						<p className="text-gray-400 text-lg">No tickets to display</p>
+						<p className="text-gray-500 text-sm mt-2">
+							{selectedTab === 'ACCEPTED'
+								? 'No pending tickets waiting to be cooked'
+								: 'No tickets currently being prepared'}
+						</p>
 					</div>
 				) : (
 					<div className="space-y-4">
 						{/* Mark All Ready button - only show on PREPARING tab */}
-						{selectedStatus === 'PREPARING' && (
+						{selectedTab === 'PREPARING' && (
 							<div className="flex justify-end">
 								<button
 									onClick={handleMarkAllReady}
@@ -751,16 +835,18 @@ const KitchenManagement = () => {
 							</div>
 						)}
 
-						{filteredOrders.map((order) => (
+						{filteredTickets.map((ticket) => (
 							<div
-								key={order.id}
-								className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 overflow-hidden"
+								key={ticket.id}
+								className={`bg-white/10 backdrop-blur-md rounded-lg border border-white/20 overflow-hidden border-l-4 ${
+									PRIORITY_COLORS[ticket.priority] || PRIORITY_COLORS.NORMAL
+								}`}
 							>
-								{/* Order Header */}
+								{/* Ticket Header */}
 								<div className="p-4 border-b border-white/10">
 									<div
 										className="flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors py-2 px-2 rounded-lg"
-										onClick={() => toggleOrderExpansion(order.id)}
+										onClick={() => toggleTicketExpansion(ticket.id)}
 									>
 										<div className="flex items-center gap-4">
 											<span className="material-symbols-outlined text-blue-400 text-3xl">
@@ -768,76 +854,125 @@ const KitchenManagement = () => {
 											</span>
 											<div>
 												<h3 className="text-white text-lg font-semibold">
-													{order.table?.name || `Table ${order.tableId}`}
+													{ticket.tableNumber || `Table`}
+													<span className="ml-2 text-sm font-normal text-gray-400">
+														Ticket #{ticket.ticketNumber}
+													</span>
 												</h3>
 												<p className="text-gray-400 text-sm">
-													{order.items.length} item(s) • Order #{order.id.slice(0, 8)}
+													{ticket.items?.length || 0} item(s) • Order #
+													{ticket.orderId?.slice(0, 8)}
 												</p>
+												{ticket.status === TICKET_STATUS.IN_PROGRESS && (
+													<div className="mt-1">{getTimeDisplay(ticket)}</div>
+												)}
 											</div>
 										</div>
 
-										{/* Batch Actions when items selected */}
-										{getSelectedCount(order.id) > 0 && (
-											<div className="flex items-center gap-2">
-												<button
-													onClick={(e) => {
-														e.stopPropagation()
-														handleStartCookingSelected(order.id)
-													}}
-													disabled={isProcessingBatch}
-													className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-500/50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
-												>
-													{isProcessingBatch ? (
-														<span className="material-symbols-outlined animate-spin text-sm">
-															progress_activity
-														</span>
-													) : (
-														<span>🔥</span>
-													)}
-													Start Cooking ({getSelectedCount(order.id)})
-												</button>
-												<button
-													onClick={(e) => {
-														e.stopPropagation()
-														clearSelections()
-													}}
-													disabled={isProcessingBatch}
-													className="px-2 py-1.5 bg-gray-600 hover:bg-gray-500 disabled:bg-gray-600/50 disabled:cursor-not-allowed text-white rounded-lg text-sm transition-colors"
-													title="Clear selections"
-												>
-													<span className="material-symbols-outlined text-sm">close</span>
-												</button>
-											</div>
-										)}
+										<div className="flex items-center gap-3">
+											{/* Ticket Status Badge */}
+											<span
+												className={`px-3 py-1 rounded-full text-xs font-medium ${
+													TICKET_STATUS_COLORS[ticket.status]
+												}`}
+											>
+												{ticket.status}
+											</span>
 
-										<span
-											className={`material-symbols-outlined text-white transition-transform ${
-												expandedOrders.has(order.id) ? 'rotate-180' : ''
-											}`}
-										>
-											expand_more
-										</span>
+											{/* Priority Badge */}
+											{ticket.priority && ticket.priority !== 'NORMAL' && (
+												<span
+													className={`px-2 py-1 rounded text-xs font-bold ${
+														ticket.priority === 'FIRE'
+															? 'bg-red-500 text-white animate-pulse'
+															: ticket.priority === 'URGENT'
+																? 'bg-orange-500 text-white'
+																: 'bg-yellow-500 text-black'
+													}`}
+												>
+													{ticket.priority}
+												</span>
+											)}
+
+											{/* Batch Actions when items selected */}
+											{getSelectedCount(ticket.id) > 0 && selectedTab === 'ACCEPTED' && (
+												<div className="flex items-center gap-2">
+													<button
+														onClick={(e) => {
+															e.stopPropagation()
+															handleStartCookingSelected(ticket.id)
+														}}
+														disabled={isProcessingBatch}
+														className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-500/50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+													>
+														{isProcessingBatch ? (
+															<span className="material-symbols-outlined animate-spin text-sm">
+																progress_activity
+															</span>
+														) : (
+															<span>🔥</span>
+														)}
+														Start Cooking ({getSelectedCount(ticket.id)})
+													</button>
+													<button
+														onClick={(e) => {
+															e.stopPropagation()
+															clearSelections()
+														}}
+														disabled={isProcessingBatch}
+														className="px-2 py-1.5 bg-gray-600 hover:bg-gray-500 disabled:bg-gray-600/50 disabled:cursor-not-allowed text-white rounded-lg text-sm transition-colors"
+														title="Clear selections"
+													>
+														<span className="material-symbols-outlined text-sm">
+															close
+														</span>
+													</button>
+												</div>
+											)}
+
+											{/* Start All button for PENDING tickets */}
+											{ticket.status === TICKET_STATUS.PENDING &&
+												getSelectedCount(ticket.id) === 0 && (
+													<button
+														onClick={(e) => {
+															e.stopPropagation()
+															handleStartTicket(ticket.id)
+														}}
+														className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+													>
+														🔥 Start All
+													</button>
+												)}
+
+											<span
+												className={`material-symbols-outlined text-white transition-transform ${
+													expandedTickets.has(ticket.id) ? 'rotate-180' : ''
+												}`}
+											>
+												expand_more
+											</span>
+										</div>
 									</div>
 								</div>
 
-								{/* Order Items (Expanded) */}
-								{expandedOrders.has(order.id) && (
+								{/* Ticket Items (Expanded) */}
+								{expandedTickets.has(ticket.id) && (
 									<div className="p-4 space-y-3">
-										{order.items.map((item) => (
+										{ticket.items?.map((item) => (
 											<div key={item.id} className="bg-white/5 rounded-lg p-4 space-y-3">
 												{/* Item Info */}
 												<div className="flex items-start gap-3">
-													{/* Checkbox for ACCEPTED items */}
-													{item.status === ITEM_STATUS.ACCEPTED && (
+													{/* Checkbox for PENDING items */}
+													{item.status === ITEM_STATUS.PENDING && (
 														<div
 															className="shrink-0 pt-1"
 															onClick={(e) => e.stopPropagation()}
 														>
 															<CustomCheckbox
 																checked={
-																	selectedItems.get(order.id)?.has(item.id) || false
+																	selectedItems.get(ticket.id)?.has(item.id) || false
 																}
-																onChange={() => toggleItemSelection(order.id, item.id)}
+																onChange={() => toggleItemSelection(ticket.id, item.id)}
 																variant="orange"
 																size="md"
 																title="Select for batch cooking"
@@ -868,7 +1003,10 @@ const KitchenManagement = () => {
 																	{item.modifiers.map((mod, idx) => (
 																		<li key={idx}>
 																			<span className="text-white font-medium">
-																				{mod.modifierGroupName || 'Option'}:
+																				{mod.modifierGroupName ||
+																					mod.groupName ||
+																					'Option'}
+																				:
 																			</span>{' '}
 																			{mod.optionName || mod.name || 'N/A'}
 																		</li>
@@ -881,25 +1019,14 @@ const KitchenManagement = () => {
 														{item.notes && (
 															<p className="text-yellow-400 text-sm">📝 {item.notes}</p>
 														)}
-
-														{/* Timer for PREPARING items */}
-														{item.status === ITEM_STATUS.PREPARING && (
-															<div className="mt-2">{getTimeDisplay(item)}</div>
-														)}
 													</div>
 												</div>
 
 												{/* Action Buttons */}
 												<div className="flex gap-2">
-													{item.status === ITEM_STATUS.ACCEPTED && (
+													{item.status === ITEM_STATUS.PENDING && (
 														<button
-															onClick={() =>
-																handleUpdateItemStatus(
-																	order.id,
-																	[item.id],
-																	ITEM_STATUS.PREPARING,
-																)
-															}
+															onClick={() => handleStartItems(ticket.id, [item.id])}
 															className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors"
 														>
 															🔥 Start Cooking
@@ -908,13 +1035,7 @@ const KitchenManagement = () => {
 
 													{item.status === ITEM_STATUS.PREPARING && (
 														<button
-															onClick={() =>
-																handleUpdateItemStatus(
-																	order.id,
-																	[item.id],
-																	ITEM_STATUS.READY,
-																)
-															}
+															onClick={() => handleMarkItemsReady(ticket.id, [item.id])}
 															className="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors"
 														>
 															✓ Mark Ready

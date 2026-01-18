@@ -637,10 +637,12 @@ const WaiterPanel = () => {
 				if (payload?.data) {
 					const { tableId, items } = payload.data
 					const itemCount = items?.length || 0
+					const tableName =
+						payload.data.snapshotTableName || `Table ${tableId?.slice(0, 8) || 'Unknown'}`
 
 					if ('Notification' in window && Notification.permission === 'granted') {
 						new Notification('New Order Received', {
-							body: `${itemCount} item(s) from Table ${tableId}`,
+							body: `${itemCount} item(s) from ${tableName}`,
 							icon: '/logo.png',
 						})
 					}
@@ -671,10 +673,12 @@ const WaiterPanel = () => {
 				if (payload?.data) {
 					const itemCount = payload.data.items?.length || 0
 					const tableId = payload.data.tableId
+					const tableName =
+						payload.data.snapshotTableName || `Table ${tableId?.slice(0, 8) || 'Unknown'}`
 
 					if ('Notification' in window && Notification.permission === 'granted') {
 						new Notification('Items Ready for Pickup!', {
-							body: `${itemCount} item(s) ready for Table ${tableId}`,
+							body: `${itemCount} item(s) ready for ${tableName}`,
 							icon: '/logo.png',
 						})
 					}
@@ -773,8 +777,11 @@ const WaiterPanel = () => {
 			const query = searchQuery.toLowerCase()
 			filtered = filtered
 				.map((order) => {
-					// Check if table name matches
-					if (order.table?.name?.toLowerCase().includes(query)) {
+					// Check if table name matches (snapshotTableName or table.name)
+					if (
+						order.snapshotTableName?.toLowerCase().includes(query) ||
+						order.table?.name?.toLowerCase().includes(query)
+					) {
 						return order
 					}
 
@@ -1085,7 +1092,14 @@ const WaiterPanel = () => {
 													</span>
 													<div>
 														<h3 className="text-white text-base sm:text-lg font-semibold">
-															{order.table?.name || `Table ${order.tableId}`}
+															{order.snapshotTableName ||
+																order.table?.name ||
+																`Table ${order.tableId?.slice(0, 8)}`}
+															{order.snapshotFloorName && (
+																<span className="text-gray-400 text-xs font-normal ml-2">
+																	({order.snapshotFloorName})
+																</span>
+															)}
 														</h3>
 														<p className="text-gray-400 text-xs sm:text-sm">
 															{order.items.length} item(s) • #{order.id.slice(0, 8)}

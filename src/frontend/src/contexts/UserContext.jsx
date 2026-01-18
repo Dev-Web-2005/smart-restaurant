@@ -8,6 +8,8 @@ const USE_MOCK_API = import.meta.env.DEV && false // Always false, can be change
 
 // Import real API (always used in production)
 import * as realAPI from '../services/api/authAPI'
+// Import proactive refresh functions
+import { startProactiveRefresh, stopProactiveRefresh } from '../services/apiClient'
 
 // Conditionally import mock API only in development
 let mockAPI = null
@@ -71,6 +73,8 @@ export const UserProvider = ({ children }) => {
 				localStorage.setItem('user', JSON.stringify(result.user))
 				// ✅ Mark this tab as active session (persists through F5, clears on tab close)
 				sessionStorage.setItem('tabSession', Date.now().toString())
+				// ✅ Start proactive token refresh
+				startProactiveRefresh()
 				setLoading(false)
 				return { success: true, user: userData }
 			} else {
@@ -111,6 +115,8 @@ export const UserProvider = ({ children }) => {
 				localStorage.setItem('currentTenantId', result.user.ownerId || ownerId)
 				window.currentTenantId = result.user.ownerId || ownerId
 
+				// ✅ Start proactive token refresh
+				startProactiveRefresh()
 				setLoading(false)
 				return { success: true, user: userData }
 			} else {
@@ -166,6 +172,8 @@ export const UserProvider = ({ children }) => {
 	// Hàm gọi khi đăng xuất
 	const logout = async () => {
 		try {
+			// ⏹️ Stop proactive refresh timer
+			stopProactiveRefresh()
 			// 🚀 Call real logout API (blacklist tokens)
 			await logoutAPI()
 		} catch (error) {
@@ -268,6 +276,10 @@ export const UserProvider = ({ children }) => {
 						localStorage.setItem('currentTenantId', refreshResult.user.ownerId)
 						window.currentTenantId = refreshResult.user.ownerId
 					}
+
+					// ✅ Start proactive token refresh after successful restore
+					startProactiveRefresh()
+					console.log('✅ Session restored from refresh token')
 				} else {
 					// ❌ Refresh token expired or invalid
 					window.accessToken = null
