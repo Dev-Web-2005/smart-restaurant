@@ -19,6 +19,7 @@ const TicketCard = ({
 	// Local state - elapsedSeconds initialized from prop and updated by timer
 	const [elapsedSeconds, setElapsedSeconds] = useState(ticket.elapsedSeconds || 0)
 	const [isExpanded, setIsExpanded] = useState(!isCompact)
+	const [isProcessing, setIsProcessing] = useState(false) // ✅ Track button processing state
 	const timerRef = useRef(null)
 
 	// Sync with prop updates
@@ -196,8 +197,13 @@ const TicketCard = ({
 						<div className="text-2xl font-bold text-blue-400">#{ticket.ticketNumber}</div>
 						<div className="text-sm">
 							<div className="font-semibold text-white">
-								{ticket.tableNumber || `Table ${ticket.tableId?.slice(0, 8)}`}
+								{ticket.snapshotTableName ||
+									ticket.tableNumber ||
+									`Table ${ticket.tableId?.slice(0, 8)}`}
 							</div>
+							{ticket.snapshotFloorName && (
+								<div className="text-xs text-blue-400">{ticket.snapshotFloorName}</div>
+							)}
 							<div className="text-xs text-gray-400">
 								{ticket.items?.length || 0} items
 							</div>
@@ -222,8 +228,15 @@ const TicketCard = ({
 					</div>
 					<div className="min-w-0">
 						<div className="text-base md:text-lg font-bold text-white truncate">
-							{ticket.tableNumber || `Table ${ticket.tableId?.slice(0, 8)}`}
+							{ticket.snapshotTableName ||
+								ticket.tableNumber ||
+								`Table ${ticket.tableId?.slice(0, 8)}`}
 						</div>
+						{ticket.snapshotFloorName && (
+							<div className="text-xs text-blue-400 truncate">
+								{ticket.snapshotFloorName}
+							</div>
+						)}
 						{ticket.customerName && (
 							<div className="text-sm text-gray-400 truncate">{ticket.customerName}</div>
 						)}
@@ -290,33 +303,64 @@ const TicketCard = ({
 			<div className="grid grid-cols-2 gap-2">
 				{canStart && (
 					<button
-						onClick={() => onStart && onStart(ticket.id)}
-						className="px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors text-sm"
+						onClick={async () => {
+							if (isProcessing) return
+							setIsProcessing(true)
+							try {
+								onStart && (await onStart(ticket.id))
+							} finally {
+								setIsProcessing(false)
+							}
+						}}
+						disabled={isProcessing}
+						className={`px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors text-sm ${
+							isProcessing ? 'opacity-50 cursor-not-allowed' : ''
+						}`}
 					>
-						🍳 Start Cooking
+						{isProcessing ? '⏳ Starting...' : '🍳 Start Cooking'}
 					</button>
 				)}
 
 				{canMarkReady && (
 					<button
-						onClick={() =>
-							onMarkReady &&
-							onMarkReady(
-								ticket.items?.filter((i) => i.status === 'PREPARING').map((i) => i.id),
-							)
-						}
-						className="px-3 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors text-sm"
+						onClick={async () => {
+							if (isProcessing) return
+							setIsProcessing(true)
+							try {
+								const preparingItems = ticket.items
+									?.filter((i) => i.status === 'PREPARING')
+									.map((i) => i.id)
+								onMarkReady && (await onMarkReady(preparingItems))
+							} finally {
+								setIsProcessing(false)
+							}
+						}}
+						disabled={isProcessing}
+						className={`px-3 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors text-sm ${
+							isProcessing ? 'opacity-50 cursor-not-allowed' : ''
+						}`}
 					>
-						✅ Mark Ready
+						{isProcessing ? '⏳ Processing...' : '✅ Mark Ready'}
 					</button>
 				)}
 
 				{canBump && (
 					<button
-						onClick={() => onBump && onBump(ticket.id)}
-						className="col-span-2 px-3 py-3 bg-purple-500 hover:bg-purple-600 text-white font-bold text-base rounded-lg transition-colors"
+						onClick={async () => {
+							if (isProcessing) return
+							setIsProcessing(true)
+							try {
+								onBump && (await onBump(ticket.id))
+							} finally {
+								setIsProcessing(false)
+							}
+						}}
+						disabled={isProcessing}
+						className={`col-span-2 px-3 py-3 bg-purple-500 hover:bg-purple-600 text-white font-bold text-base rounded-lg transition-colors ${
+							isProcessing ? 'opacity-50 cursor-not-allowed' : ''
+						}`}
 					>
-						🎯 BUMP (Complete)
+						{isProcessing ? '⏳ Bumping...' : '🎯 BUMP (Complete)'}
 					</button>
 				)}
 			</div>

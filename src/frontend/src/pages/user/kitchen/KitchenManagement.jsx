@@ -2,12 +2,10 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useUser } from '../../../contexts/UserContext'
 import BasePageLayout from '../../../components/layout/BasePageLayout'
 import { CardSkeleton } from '../../../components/common/LoadingSpinner'
-import CustomCheckbox from '../../../components/common/CustomCheckbox'
 import socketClient from '../../../services/websocket/socketClient'
 import {
 	getKitchenDisplay,
 	startTicket,
-	startItems,
 	markItemsReady,
 } from '../../../services/api/kitchenAPI'
 
@@ -88,9 +86,6 @@ const KitchenManagement = () => {
 	const [selectedTab, setSelectedTab] = useState('ACCEPTED') // ACCEPTED = PENDING tickets, PREPARING = IN_PROGRESS tickets
 	const [searchQuery, setSearchQuery] = useState('')
 	const [expandedTickets, setExpandedTickets] = useState(new Set())
-
-	// Multi-select state for batch operations
-	const [selectedItems, setSelectedItems] = useState(new Map()) // Map<ticketId, Set<itemId>>
 	const [isProcessingBatch, setIsProcessingBatch] = useState(false)
 
 	// TTS state management (preserved from original)
@@ -418,31 +413,6 @@ const KitchenManagement = () => {
 	}
 
 	/**
-	 * Start cooking specific items in a ticket - calls Kitchen Service API
-	 */
-	const handleStartItems = async (ticketId, itemIds) => {
-		const tenantId = getEffectiveTenantId()
-		if (!tenantId) return
-
-		try {
-			console.log('🔥 [KitchenManagement] Starting items:', { ticketId, itemIds })
-
-			const response = await startItems(tenantId, ticketId, itemIds)
-
-			if (response.success) {
-				console.log('✅ [KitchenManagement] Items started successfully')
-				await fetchTickets(false)
-			} else {
-				console.error('❌ [KitchenManagement] Failed to start items:', response.message)
-				alert(response.message || 'Failed to start items')
-			}
-		} catch (error) {
-			console.error('❌ [KitchenManagement] Error starting items:', error)
-			alert('Failed to start items. Please try again.')
-		}
-	}
-
-	/**
 	 * Mark items as ready - calls Kitchen Service API
 	 */
 	const handleMarkItemsReady = async (ticketId, itemIds) => {
@@ -470,95 +440,26 @@ const KitchenManagement = () => {
 		}
 	}
 
-	// ==================== MULTI-SELECT FUNCTIONS ====================
-
 	/**
-	 * Toggle item selection for batch operations
+	 * Mark all items in a specific ticket as ready
 	 */
-	const toggleItemSelection = useCallback((ticketId, itemId) => {
-		setSelectedItems((prev) => {
-			const newMap = new Map(prev)
-			const existingSet = prev.get(ticketId)
-			const ticketSet = existingSet ? new Set(existingSet) : new Set()
+	const handleMarkTicketReady = async (ticketId) => {
+		const ticket = tickets.find((t) => t.id === ticketId)
+		if (!ticket) return
 
-			if (ticketSet.has(itemId)) {
-				ticketSet.delete(itemId)
-			} else {
-				ticketSet.add(itemId)
-			}
-
-			if (ticketSet.size === 0) {
-				newMap.delete(ticketId)
-			} else {
-				newMap.set(ticketId, ticketSet)
-			}
-
-			return newMap
-		})
-	}, [])
-
-	/**
-	 * Get selected count for specific ticket
-	 */
-	const getSelectedCount = (ticketId) => {
-		return selectedItems.get(ticketId)?.size || 0
-	}
-
-	/**
-	 * Clear all selections
-	 */
-	const clearSelections = () => {
-		setSelectedItems(new Map())
-	}
-
-	/**
-	 * Start cooking for selected items in a specific ticket
-	 */
-	const handleStartCookingSelected = async (ticketId) => {
-		const itemIds = Array.from(selectedItems.get(ticketId) || [])
-		if (itemIds.length === 0) {
-			alert('No items selected')
+		const preparingItems =
+			ticket.items?.filter((i) => i.status === ITEM_STATUS.PREPARING) || []
+		if (preparingItems.length === 0) {
+			alert('No preparing items to mark as ready')
 			return
 		}
 
-		setIsProcessingBatch(true)
-
-		try {
-			// Find the ticket to check if it's PENDING
-			const ticket = tickets.find((t) => t.id === ticketId)
-
-			if (ticket?.status === TICKET_STATUS.PENDING) {
-				// If ticket is PENDING and all items selected, start the whole ticket
-				const allItemIds = ticket.items?.map((i) => i.id) || []
-				const allSelected = itemIds.length === allItemIds.length
-
-				if (allSelected) {
-					await handleStartTicket(ticketId)
-				} else {
-					// Start specific items
-					await handleStartItems(ticketId, itemIds)
-				}
-			} else {
-				// Ticket already IN_PROGRESS, start specific items
-				await handleStartItems(ticketId, itemIds)
-			}
-
-			// Clear selections for this ticket
-			setSelectedItems((prev) => {
-				const newMap = new Map(prev)
-				newMap.delete(ticketId)
-				return newMap
-			})
-		} catch (error) {
-			console.error('❌ Error starting cooking for selected items:', error)
-			alert('Failed to start cooking. Please try again.')
-		} finally {
-			setIsProcessingBatch(false)
-		}
+		const itemIds = preparingItems.map((i) => i.id)
+		await handleMarkItemsReady(ticketId, itemIds)
 	}
 
 	/**
-	 * Mark all PREPARING items as READY
+	 * Mark all PREPARING items as READY (all tickets)
 	 */
 	const handleMarkAllReady = async () => {
 		const preparingTickets = filteredTickets.filter(
@@ -854,7 +755,12 @@ const KitchenManagement = () => {
 											</span>
 											<div>
 												<h3 className="text-white text-lg font-semibold">
-													{ticket.tableNumber || `Table`}
+													{ticket.snapshotTableName || ticket.tableNumber || 'Table'}
+													{ticket.snapshotFloorName && (
+														<span className="ml-2 text-sm font-normal text-blue-400">
+															({ticket.snapshotFloorName})
+														</span>
+													)}
 													<span className="ml-2 text-sm font-normal text-gray-400">
 														Ticket #{ticket.ticketNumber}
 													</span>
@@ -894,55 +800,31 @@ const KitchenManagement = () => {
 												</span>
 											)}
 
-											{/* Batch Actions when items selected */}
-											{getSelectedCount(ticket.id) > 0 && selectedTab === 'ACCEPTED' && (
-												<div className="flex items-center gap-2">
-													<button
-														onClick={(e) => {
-															e.stopPropagation()
-															handleStartCookingSelected(ticket.id)
-														}}
-														disabled={isProcessingBatch}
-														className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-500/50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
-													>
-														{isProcessingBatch ? (
-															<span className="material-symbols-outlined animate-spin text-sm">
-																progress_activity
-															</span>
-														) : (
-															<span>🔥</span>
-														)}
-														Start Cooking ({getSelectedCount(ticket.id)})
-													</button>
-													<button
-														onClick={(e) => {
-															e.stopPropagation()
-															clearSelections()
-														}}
-														disabled={isProcessingBatch}
-														className="px-2 py-1.5 bg-gray-600 hover:bg-gray-500 disabled:bg-gray-600/50 disabled:cursor-not-allowed text-white rounded-lg text-sm transition-colors"
-														title="Clear selections"
-													>
-														<span className="material-symbols-outlined text-sm">
-															close
-														</span>
-													</button>
-												</div>
+											{/* Start All button for PENDING tickets */}
+											{ticket.status === TICKET_STATUS.PENDING && (
+												<button
+													onClick={(e) => {
+														e.stopPropagation()
+														handleStartTicket(ticket.id)
+													}}
+													className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+												>
+													🔥 Start All
+												</button>
 											)}
 
-											{/* Start All button for PENDING tickets */}
-											{ticket.status === TICKET_STATUS.PENDING &&
-												getSelectedCount(ticket.id) === 0 && (
-													<button
-														onClick={(e) => {
-															e.stopPropagation()
-															handleStartTicket(ticket.id)
-														}}
-														className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
-													>
-														🔥 Start All
-													</button>
-												)}
+											{/* Mark Ready button for IN_PROGRESS tickets */}
+											{ticket.status === TICKET_STATUS.IN_PROGRESS && (
+												<button
+													onClick={(e) => {
+														e.stopPropagation()
+														handleMarkTicketReady(ticket.id)
+													}}
+													className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+												>
+													✓ Mark Ready
+												</button>
+											)}
 
 											<span
 												className={`material-symbols-outlined text-white transition-transform ${
@@ -959,26 +841,9 @@ const KitchenManagement = () => {
 								{expandedTickets.has(ticket.id) && (
 									<div className="p-4 space-y-3">
 										{ticket.items?.map((item) => (
-											<div key={item.id} className="bg-white/5 rounded-lg p-4 space-y-3">
+											<div key={item.id} className="bg-white/5 rounded-lg p-4">
 												{/* Item Info */}
 												<div className="flex items-start gap-3">
-													{/* Checkbox for PENDING items */}
-													{item.status === ITEM_STATUS.PENDING && (
-														<div
-															className="shrink-0 pt-1"
-															onClick={(e) => e.stopPropagation()}
-														>
-															<CustomCheckbox
-																checked={
-																	selectedItems.get(ticket.id)?.has(item.id) || false
-																}
-																onChange={() => toggleItemSelection(ticket.id, item.id)}
-																variant="orange"
-																size="md"
-																title="Select for batch cooking"
-															/>
-														</div>
-													)}
 													<div className="flex-1">
 														<div className="flex items-center gap-3 mb-2">
 															<h4 className="text-white font-semibold">{item.name}</h4>
@@ -1020,27 +885,6 @@ const KitchenManagement = () => {
 															<p className="text-yellow-400 text-sm">📝 {item.notes}</p>
 														)}
 													</div>
-												</div>
-
-												{/* Action Buttons */}
-												<div className="flex gap-2">
-													{item.status === ITEM_STATUS.PENDING && (
-														<button
-															onClick={() => handleStartItems(ticket.id, [item.id])}
-															className="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors"
-														>
-															🔥 Start Cooking
-														</button>
-													)}
-
-													{item.status === ITEM_STATUS.PREPARING && (
-														<button
-															onClick={() => handleMarkItemsReady(ticket.id, [item.id])}
-															className="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors"
-														>
-															✓ Mark Ready
-														</button>
-													)}
 												</div>
 											</div>
 										))}

@@ -702,6 +702,7 @@ const MenuPage = ({ tenantId, onAddToCart, onBack }) => {
 			{isCustomizationOpen && selectedDish && (
 				<DishCustomizationModal
 					dish={selectedDish}
+					tenantId={tenantId}
 					onClose={() => {
 						setIsCustomizationOpen(false)
 						setSelectedDish(null)
