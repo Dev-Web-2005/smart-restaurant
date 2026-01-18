@@ -282,10 +282,12 @@ jobs:
 
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.api-gateway }}" == "true" ]; then
               echo "Restarting api-gateway..."
-              pm2 stop api-gateway || true
-              pm2 delete api-gateway || true
-              pkill -f "api-gateway/src/main.js" || true
-              sleep 1
+              if [ "$BUILD_ALL" != "true" ]; then
+                pm2 stop api-gateway || true
+                pm2 delete api-gateway || true
+                pkill -f "api-gateway/src/main.js" || true
+                sleep 1
+              fi
               cd api-gateway
               cat > .env << 'EOF'
             PORT=8888
@@ -343,10 +345,12 @@ jobs:
 
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.identity }}" == "true" ]; then
               echo "Restarting identity..."
-              pm2 stop identity || true
-              pm2 delete identity || true
-              pkill -f "identity/src/main.js" || true
-              sleep 1
+              if [ "$BUILD_ALL" != "true" ]; then
+                pm2 stop identity || true
+                pm2 delete identity || true
+                pkill -f "identity/src/main.js" || true
+                sleep 1
+              fi
               cd identity
               cat > .env << 'EOF'
             PORT=8080
@@ -383,10 +387,12 @@ jobs:
 
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.product }}" == "true" ]; then
               echo "Restarting product..."
-              pm2 stop product || true
-              pm2 delete product || true
-              pkill -f "product/src/main.js" || true
-              sleep 1
+              if [ "$BUILD_ALL" != "true" ]; then
+                pm2 stop product || true
+                pm2 delete product || true
+                pkill -f "product/src/main.js" || true
+                sleep 1
+              fi
               cd product
               cat > .env << 'EOF'
             PORT=8082
@@ -405,10 +411,12 @@ jobs:
 
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.profile }}" == "true" ]; then
               echo "Restarting profile..."
-              pm2 stop profile || true
-              pm2 delete profile || true
-              pkill -f "profile/src/main.js" || true
-              sleep 1
+              if [ "$BUILD_ALL" != "true" ]; then
+                pm2 stop profile || true
+                pm2 delete profile || true
+                pkill -f "profile/src/main.js" || true
+                sleep 1
+              fi
               cd profile
               cat > .env << 'EOF'
             PORT=8081
@@ -427,10 +435,12 @@ jobs:
 
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.table }}" == "true" ]; then
               echo "Restarting table..."
-              pm2 stop table || true
-              pm2 delete table || true
-              pkill -f "table/src/main.js" || true
-              sleep 1
+              if [ "$BUILD_ALL" != "true" ]; then
+                pm2 stop table || true
+                pm2 delete table || true
+                pkill -f "table/src/main.js" || true
+                sleep 1
+              fi
               cd table
               cat > .env << 'EOF'
             PORT=8083
@@ -454,10 +464,12 @@ jobs:
 
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.kitchen }}" == "true" ]; then
               echo "Restarting kitchen..."
-              pm2 stop kitchen || true
-              pm2 delete kitchen || true
-              pkill -f "kitchen/src/main.js" || true
-              sleep 1
+              if [ "$BUILD_ALL" != "true" ]; then
+                pm2 stop kitchen || true
+                pm2 delete kitchen || true
+                pkill -f "kitchen/src/main.js" || true
+                sleep 1
+              fi
               cd kitchen
               cat > .env << 'EOF'
             PORT=8086
@@ -487,10 +499,12 @@ jobs:
 
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.notification }}" == "true" ]; then
               echo "Restarting notification..."
-              pm2 stop notification || true
-              pm2 delete notification || true
-              pkill -f "notification/src/main.js" || true
-              sleep 1
+              if [ "$BUILD_ALL" != "true" ]; then
+                pm2 stop notification || true
+                pm2 delete notification || true
+                pkill -f "notification/src/main.js" || true
+                sleep 1
+              fi
               cd notification
               cat > .env << 'EOF'
             PORT=8085
@@ -520,10 +534,12 @@ jobs:
 
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.order }}" == "true" ]; then
               echo "Restarting order..."
-              pm2 stop order || true
-              pm2 delete order || true
-              pkill -f "order/src/main.js" || true
-              sleep 1
+              if [ "$BUILD_ALL" != "true" ]; then
+                pm2 stop order || true
+                pm2 delete order || true
+                pkill -f "order/src/main.js" || true
+                sleep 1
+              fi
               cd order
               cat > .env << 'EOF'
             PORT=8087
@@ -562,10 +578,12 @@ jobs:
 
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.waiter }}" == "true" ]; then
               echo "Restarting waiter..."
-              pm2 stop waiter || true
-              pm2 delete waiter || true
-              pkill -f "waiter/src/main.js" || true
-              sleep 1
+              if [ "$BUILD_ALL" != "true" ]; then
+                pm2 stop waiter || true
+                pm2 delete waiter || true
+                pkill -f "waiter/src/main.js" || true
+                sleep 1
+              fi
               cd waiter
               cat > .env << 'EOF'
             PORT=8088
