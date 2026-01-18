@@ -48,14 +48,7 @@ export const getFloorsAPI = async (options = {}) => {
 			params.isActive = options.isActive
 		}
 
-		console.log('📋 GET /tenants/:tenantId/floors', { tenantId, params })
-
 		const response = await apiClient.get(`/tenants/${tenantId}/floors`, { params })
-
-		console.log('✅ getFloorsAPI response:', response.data)
-		console.log('✅ getFloorsAPI response type:', typeof response.data)
-		console.log('✅ getFloorsAPI response keys:', Object.keys(response.data))
-		console.log('✅ Is array?:', Array.isArray(response.data))
 
 		// Check if response is wrapped in an object
 		if (
@@ -65,15 +58,12 @@ export const getFloorsAPI = async (options = {}) => {
 		) {
 			// Try common wrapper keys
 			if (Array.isArray(response.data.floors)) {
-				console.log('✅ Found floors in response.data.floors')
 				return response.data.floors
 			}
 			if (Array.isArray(response.data.data)) {
-				console.log('✅ Found floors in response.data.data')
 				return response.data.data
 			}
 			if (Array.isArray(response.data.items)) {
-				console.log('✅ Found floors in response.data.items')
 				return response.data.items
 			}
 		}
@@ -117,15 +107,15 @@ export const createFloorAPI = async (floorData) => {
 			payload.description = floorData.description
 		}
 
-		console.log('📤 POST /tenants/:tenantId/floors', { tenantId, payload })
-
 		const response = await apiClient.post(`/tenants/${tenantId}/floors`, payload)
 
-		console.log('✅ createFloorAPI response:', response.data)
+		// ✅ FIX: Extract floor from nested response structure
+		// Backend returns {code, message, data} where data is the floor object
+		const floorResult = response.data?.data || response.data
 
 		return {
 			success: true,
-			floor: response.data,
+			floor: floorResult,
 		}
 	} catch (error) {
 		console.error('❌ createFloorAPI error:', error)
@@ -151,11 +141,7 @@ export const getFloorByIdAPI = async (floorId) => {
 			throw new Error('Tenant ID is required. Please log in again.')
 		}
 
-		console.log('📋 GET /tenants/:tenantId/floors/:floorId', { tenantId, floorId })
-
 		const response = await apiClient.get(`/tenants/${tenantId}/floors/${floorId}`)
-
-		console.log('✅ getFloorByIdAPI response:', response.data)
 
 		return response.data
 	} catch (error) {
@@ -197,18 +183,10 @@ export const updateFloorAPI = async (floorId, updates) => {
 		if (updates.description !== undefined) payload.description = updates.description
 		if (updates.isActive !== undefined) payload.isActive = updates.isActive
 
-		console.log('📤 PATCH /tenants/:tenantId/floors/:floorId', {
-			tenantId,
-			floorId,
-			payload,
-		})
-
 		const response = await apiClient.patch(
 			`/tenants/${tenantId}/floors/${floorId}`,
 			payload,
 		)
-
-		console.log('✅ updateFloorAPI response:', response.data)
 
 		return {
 			success: true,
@@ -238,11 +216,7 @@ export const deleteFloorAPI = async (floorId) => {
 			throw new Error('Tenant ID is required. Please log in again.')
 		}
 
-		console.log('📤 DELETE /tenants/:tenantId/floors/:floorId', { tenantId, floorId })
-
 		const response = await apiClient.delete(`/tenants/${tenantId}/floors/${floorId}`)
-
-		console.log('✅ deleteFloorAPI response:', response.data)
 
 		return {
 			success: true,
@@ -272,16 +246,9 @@ export const deleteFloorPermanentAPI = async (floorId) => {
 			throw new Error('Tenant ID is required. Please log in again.')
 		}
 
-		console.log('📤 DELETE /tenants/:tenantId/floors/:floorId/permanent', {
-			tenantId,
-			floorId,
-		})
-
 		const response = await apiClient.delete(
 			`/tenants/${tenantId}/floors/${floorId}/permanent`,
 		)
-
-		console.log('✅ deleteFloorPermanentAPI response:', response.data)
 
 		return {
 			success: true,

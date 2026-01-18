@@ -680,7 +680,7 @@ const TableStatusModal = ({
 												year: 'numeric',
 												month: '2-digit',
 												day: '2-digit',
-										  })
+											})
 										: 'N/A'}
 								</p>
 							</div>
@@ -691,8 +691,8 @@ const TableStatusModal = ({
 										table.status === 'Available'
 											? 'text-green-500'
 											: table.status === 'Occupied'
-											? 'text-red-500'
-											: 'text-yellow-500'
+												? 'text-red-500'
+												: 'text-yellow-500'
 									}`}
 								>
 									{table.status}
@@ -724,8 +724,8 @@ const TableStatusModal = ({
 										{status === 'Available'
 											? '✓ Sẵn sàng'
 											: status === 'Occupied'
-											? '● Đang sử dụng'
-											: '🧹 Đang dọn dẹp'}
+												? '● Đang sử dụng'
+												: '🧹 Đang dọn dẹp'}
 									</button>
 								))}
 							</div>
@@ -1446,6 +1446,39 @@ const RestaurantTableManagement = () => {
 	const handleSaveTable = async (tableData, customId = null) => {
 		const floorToAdd = currentPage
 
+		// ✅ Validate floorId before creating table
+		const floorIdToUse = tableData.floorId || currentFloorId
+		if (!floorIdToUse) {
+			showError('Lỗi', 'Vui lòng chọn tầng trước khi tạo bàn')
+			return
+		}
+
+		// ✅ Verify floor exists in floors array
+		const floorExists = floors.find((f) => f.id === floorIdToUse)
+		if (!floorExists) {
+			showWarning('Đang đồng bộ dữ liệu', 'Vui lòng đợi một chút rồi thử lại')
+			console.log('⚠️ Floor not found in state:', {
+				floorIdToUse,
+				currentFloorId,
+				floorsInState: floors.map((f) => ({ id: f.id, name: f.name })),
+			})
+			// Force refetch floors
+			try {
+				const floorsData = await getFloorsAPI()
+				const floorsArray = Array.isArray(floorsData) ? floorsData : []
+				setFloors(floorsArray)
+				// Also try to find and set the correct floor
+				const foundFloor = floorsArray.find((f) => f.id === floorIdToUse)
+				if (foundFloor) {
+					setCurrentFloorId(foundFloor.id)
+					setCurrentPage(foundFloor.floorNumber)
+				}
+			} catch (error) {
+				console.error('Error refetching floors:', error)
+			}
+			return
+		}
+
 		// Find empty position
 		let foundPosition = false
 		let newGridX = 0
@@ -1493,10 +1526,10 @@ const RestaurantTableManagement = () => {
 
 				rawTablesData.push(newTableData)
 
-				// Refresh tables from API
-				setCurrentPage(floorToAdd)
-				await fetchTables(floorToAdd)
-				await fetchTableStats()
+				// ✅ FIX: Trigger API refetch instead of using local fetchTables
+				// The useEffect with currentFloorId dependency will handle the actual API call
+				setRefreshTrigger((prev) => prev + 1)
+				showSuccess('Tạo bàn thành công!')
 			} else {
 				showError('Tạo bàn thất bại', `Không thể tạo bàn: ${result.message}`)
 			}
@@ -1527,14 +1560,39 @@ const RestaurantTableManagement = () => {
 				// Re-fetch floors to update count
 				const floorsData = await getFloorsAPI()
 				const floorsArray = Array.isArray(floorsData) ? floorsData : []
+
+				// ✅ FIX: Get the new floor from the fetched data to ensure consistency
+				const newFloorFromAPI = floorsArray.find((f) => f.id === result.floor.id)
+
+				// ✅ Update state in correct order
+				// 1. Update floors first (so the new floor exists in state)
 				setFloors(floorsArray)
 				setTotalPages(floorsArray.length)
 
-				// Switch to the newly created floor
-				setCurrentPage(result.floor.floorNumber)
-				setCurrentFloorId(result.floor.id)
+				// 2. Clear tables for the new floor (it's empty)
+				setTables([])
+				rawTablesData = []
+
+				// 3. Switch to the newly created floor using data from API
+				const newFloorNumber = newFloorFromAPI?.floorNumber || result.floor.floorNumber
+				const newFloorId = newFloorFromAPI?.id || result.floor.id
+
+				setCurrentPage(newFloorNumber)
+				setCurrentFloorId(newFloorId)
+
+				console.log('✅ Floor created and state updated:', {
+					newFloorId,
+					newFloorNumber,
+					totalFloors: floorsArray.length,
+					floorsInState: floorsArray.map((f) => ({ id: f.id, name: f.name })),
+				})
 
 				setIsAddFloorModalOpen(false)
+
+				// ✅ FIX: Delay refresh trigger to ensure state updates are processed
+				setTimeout(() => {
+					setRefreshTrigger((prev) => prev + 1)
+				}, 50)
 			} else {
 				showError('Không thể tạo tầng mới')
 			}
