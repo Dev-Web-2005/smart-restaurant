@@ -624,6 +624,13 @@ const OrderManagementInterface = () => {
 						onBrowseMenu={() => setView('MENU')}
 						tenantId={tenantId}
 						onRefresh={() => fetchOrders(true)} // ✅ Add refresh callback for auto refresh
+						onPaymentComplete={() => {
+							// After payment complete, redirect to menu
+							showAlert('success', 'Payment successful! Thank you for dining with us.')
+							setView('MENU')
+							// Optionally refresh orders to get updated status
+							fetchOrders()
+						}}
 						onOrderCancelled={() => {
 							// Remove cancelled order from list or refresh
 							showAlert('success', 'Order cancelled successfully')
