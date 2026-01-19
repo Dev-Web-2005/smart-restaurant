@@ -748,52 +748,6 @@ const TableStatusModal = ({
 								))}
 							</div>
 						</div>
-
-						{/* Payment Button - Only show when table is Occupied */}
-						{table.status === 'Occupied' && (
-							<div className="mt-4 bg-gradient-to-br from-green-600/20 to-green-700/20 rounded-lg p-4 border-2 border-green-500/50">
-								<div className="flex items-center justify-between mb-3">
-									<div>
-										<p className="text-sm font-semibold text-green-400 mb-1">
-											TABLE CHECKOUT
-										</p>
-										<p className="text-xs text-gray-400">
-											Process payment and release table
-										</p>
-									</div>
-									<span className="material-symbols-outlined text-3xl text-green-400">
-										payments
-									</span>
-								</div>
-								<button
-									onClick={async () => {
-										const confirmed = await showConfirm(
-											'Confirm Checkout',
-											`Are you sure you want to checkout ${table.name}? The table will be set to "Cleaning" status.`,
-										)
-										if (confirmed) {
-											showLoading('Processing payment...')
-											// TODO: Call payment API
-											// await axios.post(`/api/tables/${table.id}/checkout`)
-
-											// Simulate API call
-											setTimeout(async () => {
-												await onUpdateStatus(table.id, 'Cleaning')
-												hideLoading()
-												showSuccess(
-													'Payment Successful',
-													'Table has been set to cleaning status',
-												)
-											}, 1500)
-										}
-									}}
-									className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white text-base font-bold rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-green-500/50"
-								>
-									<span className="material-symbols-outlined">paid</span>
-									<span>Checkout</span>
-								</button>
-							</div>
-						)}
 					</div>
 				</div>
 
@@ -927,7 +881,15 @@ const RestaurantTableManagement = () => {
 		// Check global cache first
 		if (globalQRCodeCache.has(tableId)) {
 			console.log('✅ QR code found in global cache for table:', tableId)
-			return globalQRCodeCache.get(tableId)
+			const cachedQrUrl = globalQRCodeCache.get(tableId)
+
+			// ✅ Also update tables state when returning from cache
+			// This ensures the table has qrCodeUrl even after status updates
+			setTables((prev) =>
+				prev.map((t) => (t.id === tableId ? { ...t, qrCodeUrl: cachedQrUrl } : t)),
+			)
+
+			return cachedQrUrl
 		}
 
 		try {

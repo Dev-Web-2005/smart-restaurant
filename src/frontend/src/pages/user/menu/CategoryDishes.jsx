@@ -2794,7 +2794,7 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 		if (!dishToDelete) return
 
 		if (!user || !user.userId) {
-			alert('User not found. Please login again.')
+			showWarning('Warning', 'User not found. Please login again.')
 			setDishToDelete(null)
 			return
 		}
@@ -2820,21 +2820,24 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 				setSelectedDish(null)
 			}
 
-			alert('Món ăn đã được xóa thành công!')
+			showSuccess('Success', 'Món ăn đã được xóa thành công!')
 		} catch (error) {
 			console.error('❌ Delete menu item error:', error)
-			alert(`Không thể xóa món ăn: ${error.message}`)
+			showError('Error', `Không thể xóa món ăn: ${error.message}`)
 		}
 	}
 
 	const handleSaveNewDish = async (newDish) => {
 		if (!user || !user.userId) {
-			alert('User not found. Please login again.')
+			showWarning('Warning', 'User not found. Please login again.')
 			return
 		}
 
 		if (!category || !category.id) {
-			alert('Category information is missing. Please go back and try again.')
+			showWarning(
+				'Warning',
+				'Category information is missing. Please go back and try again.',
+			)
 			return
 		}
 
@@ -2869,27 +2872,33 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 			}
 
 			// If there are image URLs, add them as photos
+			// If no images provided, use a default food placeholder image
 			const photoUrls = []
-			if (newDish.imageUrls && newDish.imageUrls.length > 0) {
-				// Upload photos sequentially with isPrimary flag for first photo
-				for (let i = 0; i < newDish.imageUrls.length; i++) {
-					const url = newDish.imageUrls[i]
-					try {
-						const photoResult = await addMenuItemPhotoAPI(tenantId, result.item.id, {
-							url: url,
-							isPrimary: i === 0, // First image is primary
-							displayOrder: i + 1,
-						})
+			const imagesToUpload =
+				newDish.imageUrls && newDish.imageUrls.length > 0
+					? newDish.imageUrls
+					: [
+							'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop&q=80',
+						] // Default food image
 
-						if (photoResult.success) {
-							photoUrls.push(photoResult.photo)
-						} else {
-							console.warn(`⚠️ Photo ${i + 1} upload failed:`, photoResult.message)
-						}
-					} catch (photoError) {
-						console.error(`❌ Error adding photo ${i + 1}:`, photoError)
-						// Continue with other photos even if one fails
+			// Upload photos sequentially with isPrimary flag for first photo
+			for (let i = 0; i < imagesToUpload.length; i++) {
+				const url = imagesToUpload[i]
+				try {
+					const photoResult = await addMenuItemPhotoAPI(tenantId, result.item.id, {
+						url: url,
+						isPrimary: i === 0, // First image is primary
+						displayOrder: i + 1,
+					})
+
+					if (photoResult.success) {
+						photoUrls.push(photoResult.photo)
+					} else {
+						console.warn(`⚠️ Photo ${i + 1} upload failed:`, photoResult.message)
 					}
+				} catch (photoError) {
+					console.error(`❌ Error adding photo ${i + 1}:`, photoError)
+					// Continue with other photos even if one fails
 				}
 			}
 
@@ -2909,14 +2918,15 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 			])
 
 			setIsAddDishModalOpen(false)
-			alert(
+			showSuccess(
+				'Success',
 				`Menu item created successfully${
 					photoUrls.length > 0 ? ` with ${photoUrls.length} photo(s)` : ''
 				}!`,
 			)
 		} catch (error) {
 			console.error('❌ Error creating menu item:', error)
-			alert(error.message || 'Failed to create menu item. Please try again.')
+			showError('Error', error.message || 'Failed to create menu item. Please try again.')
 		}
 	}
 
@@ -2926,7 +2936,7 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 
 	const handleSaveCategory = async (updatedCategory) => {
 		if (!user || !user.userId || !category || !category.id) {
-			alert('User or category information not found. Please try again.')
+			showWarning('Warning', 'User or category information not found. Please try again.')
 			return
 		}
 
