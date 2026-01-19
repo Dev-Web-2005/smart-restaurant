@@ -115,14 +115,6 @@ const Sidebar = ({ activeRoute, userProfile, handleLogout, isCollapsed, onToggle
 			{/* Footer and Logout - Luôn ở dưới cùng */}
 			<div className="flex-shrink-0 p-4 border-t border-white/10">
 				<div className="flex flex-col space-y-2">
-					<a
-						href="#"
-						className="flex items-center space-x-3 p-2 rounded-sm text-sm font-medium text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
-					>
-						<span className="material-symbols-outlined flex-shrink-0">help</span>
-						<p className="truncate">Support</p>
-					</a>
-
 					<button
 						onClick={handleLogout}
 						className="w-full h-10 px-4 rounded-sm text-sm font-bold tracking-wider text-red-300 bg-red-500/20 hover:bg-red-500/30 transition-colors border-none cursor-pointer flex items-center justify-center"

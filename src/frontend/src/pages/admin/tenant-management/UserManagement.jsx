@@ -75,6 +75,87 @@ const EmailVerifiedBadge = ({ isVerified }) => {
 }
 
 // ----------------------------------------------------------------------
+// 🎨 HELPER COMPONENT: Custom Dropdown
+// ----------------------------------------------------------------------
+const CustomDropdown = ({ label, value, options, onChange, icon }) => {
+	const [isOpen, setIsOpen] = useState(false)
+	const dropdownRef = React.useRef(null)
+
+	// Close dropdown when clicking outside
+	useEffect(() => {
+		const handleClickOutside = (event) => {
+			if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+				setIsOpen(false)
+			}
+		}
+		document.addEventListener('mousedown', handleClickOutside)
+		return () => document.removeEventListener('mousedown', handleClickOutside)
+	}, [])
+
+	const selectedOption = options.find((opt) => opt.value === value)
+
+	return (
+		<div className="relative" ref={dropdownRef}>
+			<p className="text-sm font-medium text-[#9dabb9] mb-1">{label}</p>
+			<button
+				type="button"
+				onClick={() => setIsOpen(!isOpen)}
+				className="flex h-10 w-full items-center justify-between gap-2 rounded-lg bg-white/5 border border-white/10 px-4 text-white text-sm font-medium hover:bg-white/10 hover:border-white/20 transition-colors cursor-pointer"
+			>
+				<div className="flex items-center gap-2">
+					{icon && (
+						<span className="material-symbols-outlined text-[#9dabb9] text-lg">
+							{icon}
+						</span>
+					)}
+					<span>{selectedOption?.label || 'Select...'}</span>
+				</div>
+				<span
+					className={`material-symbols-outlined text-[#9dabb9] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+				>
+					expand_more
+				</span>
+			</button>
+
+			{/* Dropdown Menu */}
+			{isOpen && (
+				<div className="absolute z-[100] mt-1 w-full rounded-lg bg-[#0d1520]/90 backdrop-blur-xl border border-white/15 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+					{options.map((option) => (
+						<button
+							key={option.value}
+							type="button"
+							onClick={() => {
+								onChange(option.value)
+								setIsOpen(false)
+							}}
+							className={`flex w-full items-center gap-3 px-4 py-2.5 text-sm transition-colors cursor-pointer border-none ${
+								value === option.value
+									? 'bg-white/10 text-white'
+									: 'text-[#9dabb9] hover:bg-white/5 hover:text-white'
+							}`}
+						>
+							{option.icon && (
+								<span
+									className={`material-symbols-outlined text-lg ${value === option.value ? 'text-[#4ade80]' : 'text-[#9dabb9]'}`}
+								>
+									{option.icon}
+								</span>
+							)}
+							<span className="flex-1 text-left">{option.label}</span>
+							{value === option.value && (
+								<span className="material-symbols-outlined text-[#4ade80] text-lg">
+									check
+								</span>
+							)}
+						</button>
+					))}
+				</div>
+			)}
+		</div>
+	)
+}
+
+// ----------------------------------------------------------------------
 // 🧑‍💼 MAIN COMPONENT: UserManagement
 // ----------------------------------------------------------------------
 const UserManagement = () => {
@@ -144,16 +225,6 @@ const UserManagement = () => {
 	// Handlers
 	const handleSearchChange = (e) => {
 		setSearchTerm(e.target.value)
-		setCurrentPage(1)
-	}
-
-	const handleRoleFilterChange = (e) => {
-		setFilterRole(e.target.value)
-		setCurrentPage(1)
-	}
-
-	const handleStatusFilterChange = (e) => {
-		setFilterStatus(e.target.value)
 		setCurrentPage(1)
 	}
 
@@ -279,7 +350,7 @@ const UserManagement = () => {
 			</header>
 
 			{/* Filter/Search Box */}
-			<div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-xl p-4 mb-6">
+			<div className="bg-black/30 backdrop-blur-md border border-white/10 rounded-xl p-4 mb-6 overflow-visible relative z-20">
 				<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 items-end">
 					{/* Search */}
 					<div className="lg:col-span-2">
@@ -301,33 +372,37 @@ const UserManagement = () => {
 					</div>
 
 					{/* Role Filter */}
-					<div>
-						<p className="text-sm font-medium text-[#9dabb9] mb-1">Role</p>
-						<select
-							className="flex h-10 w-full items-center justify-between gap-2 rounded-lg bg-white/5 border border-white/10 px-4 text-white text-sm font-medium focus:ring-0 focus:border-white/20 cursor-pointer appearance-none"
-							value={filterRole}
-							onChange={handleRoleFilterChange}
-						>
-							<option value="USER">Restaurant Owners</option>
-							<option value="STAFF">Staff</option>
-							<option value="CHEF">Chefs</option>
-							<option value="CUSTOMER">Customers</option>
-						</select>
-					</div>
+					<CustomDropdown
+						label="Role"
+						value={filterRole}
+						onChange={(value) => {
+							setFilterRole(value)
+							setCurrentPage(1)
+						}}
+						icon="badge"
+						options={[
+							{ value: 'USER', label: 'Restaurant Owners', icon: 'storefront' },
+							{ value: 'STAFF', label: 'Staff', icon: 'support_agent' },
+							{ value: 'CHEF', label: 'Chefs', icon: 'restaurant' },
+							{ value: 'CUSTOMER', label: 'Customers', icon: 'person' },
+						]}
+					/>
 
 					{/* Status Filter */}
-					<div>
-						<p className="text-sm font-medium text-[#9dabb9] mb-1">Status</p>
-						<select
-							className="flex h-10 w-full items-center justify-between gap-2 rounded-lg bg-white/5 border border-white/10 px-4 text-white text-sm font-medium focus:ring-0 focus:border-white/20 cursor-pointer appearance-none"
-							value={filterStatus}
-							onChange={handleStatusFilterChange}
-						>
-							<option value="all">All Status</option>
-							<option value="active">Active</option>
-							<option value="inactive">Inactive</option>
-						</select>
-					</div>
+					<CustomDropdown
+						label="Status"
+						value={filterStatus}
+						onChange={(value) => {
+							setFilterStatus(value)
+							setCurrentPage(1)
+						}}
+						icon="toggle_on"
+						options={[
+							{ value: 'all', label: 'All Status', icon: 'apps' },
+							{ value: 'active', label: 'Active', icon: 'check_circle' },
+							{ value: 'inactive', label: 'Inactive', icon: 'cancel' },
+						]}
+					/>
 				</div>
 			</div>
 
@@ -456,8 +531,7 @@ const UserManagement = () => {
 				{totalUsers > 0 && (
 					<div className="flex items-center justify-between p-4 border-t border-white/10 flex-wrap gap-4">
 						<p className="text-sm text-[#9dabb9] whitespace-nowrap">
-							Showing {(currentPage - 1) * itemsPerPage + 1} to{' '}
-							{Math.min(currentPage * itemsPerPage, totalUsers)} of {totalUsers} users
+							Page {currentPage} of {totalPages}
 						</p>
 						<div className="flex items-center space-x-2">
 							<button

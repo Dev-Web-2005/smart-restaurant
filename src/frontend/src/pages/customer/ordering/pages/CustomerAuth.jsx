@@ -16,6 +16,7 @@ const CustomerAuth = ({ onClose, onSuccess, tenantId: propTenantId }) => {
 	const [errorMessage, setErrorMessage] = useState('')
 	const [successMessage, setSuccessMessage] = useState('')
 	const [passwordVisible, setPasswordVisible] = useState(false)
+	const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false)
 	const [ownerId, setOwnerId] = useState('')
 
 	// Forgot password state
@@ -236,18 +237,21 @@ const CustomerAuth = ({ onClose, onSuccess, tenantId: propTenantId }) => {
 			if (result.success) {
 				setLoading(false)
 
-				// Callback to parent component with customer data AND accessToken
-				if (onSuccess) {
-					onSuccess({
-						...result.customer,
-						accessToken: result.accessToken, // ✅ Include accessToken for persistence
-					})
-				}
+				// Show success message
+				setSuccessMessage('🎉 Registration successful! Please login with your new account.')
+				
+				// Clear signup form
+				setSignupData({
+					username: '',
+					fullName: '',
+					phoneNumber: '',
+					email: '',
+					password: '',
+					confirmPassword: '',
+				})
 
-				// Close modal
-				if (onClose) {
-					onClose()
-				}
+				// Switch to login tab
+				setActiveTab('login')
 			} else {
 				setErrorMessage(result.message || 'Registration failed. Please try again.')
 				setLoading(false)
@@ -262,6 +266,11 @@ const CustomerAuth = ({ onClose, onSuccess, tenantId: propTenantId }) => {
 	// Toggle password visibility
 	const togglePasswordVisibility = () => {
 		setPasswordVisible((prev) => !prev)
+	}
+
+	// Toggle confirm password visibility
+	const toggleConfirmPasswordVisibility = () => {
+		setConfirmPasswordVisible((prev) => !prev)
 	}
 
 	// Handle forgot password submission
@@ -699,7 +708,7 @@ const CustomerAuth = ({ onClose, onSuccess, tenantId: propTenantId }) => {
 								<div className="relative">
 									<FloatingInputField
 										label="Confirm Password"
-										type={passwordVisible ? 'text' : 'password'}
+										type={confirmPasswordVisible ? 'text' : 'password'}
 										id="confirmPassword"
 										name="confirmPassword"
 										value={signupData.confirmPassword}
@@ -712,11 +721,11 @@ const CustomerAuth = ({ onClose, onSuccess, tenantId: propTenantId }) => {
 									<button
 										className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors focus:outline-none z-20 bg-transparent border-none cursor-pointer"
 										type="button"
-										onClick={togglePasswordVisibility}
+										onClick={toggleConfirmPasswordVisibility}
 										disabled={loading}
 									>
 										<span className="material-symbols-outlined text-lg">
-											{passwordVisible ? 'visibility_off' : 'visibility'}
+											{confirmPasswordVisible ? 'visibility_off' : 'visibility'}
 										</span>
 									</button>
 								</div>

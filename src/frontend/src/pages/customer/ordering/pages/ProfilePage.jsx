@@ -315,7 +315,12 @@ const ProfilePage = ({ onBack }) => {
 
 	const handleLogout = () => {
 		customerLogoutAPI()
-		window.location.reload() // Reload to reset auth state
+		// Clear guest mode flag
+		localStorage.removeItem('isGuestMode')
+		// Set flag to show CustomerAuth modal after reload
+		localStorage.setItem('showAuthAfterLogout', 'true')
+		// Reload to show CustomerAuth modal
+		window.location.reload()
 	}
 
 	const handleAuthSuccess = (customer) => {

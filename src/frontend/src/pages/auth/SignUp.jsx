@@ -24,6 +24,7 @@ const SignUp = () => {
 		confirmPassword: '',
 	})
 	const [passwordVisible, setPasswordVisible] = useState(false)
+	const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false)
 	const [errorMessage, setErrorMessage] = useState('')
 	const [loading, setLoading] = useState(false)
 
@@ -156,6 +157,11 @@ const SignUp = () => {
 	// Hàm Toggle Password Visibility
 	const togglePasswordVisibility = () => {
 		setPasswordVisible((prev) => !prev)
+	}
+
+	// Hàm Toggle Confirm Password Visibility
+	const toggleConfirmPasswordVisibility = () => {
+		setConfirmPasswordVisible((prev) => !prev)
 	}
 
 	return (
@@ -298,7 +304,7 @@ const SignUp = () => {
 						<div className="relative">
 							<FloatingInputField
 								label="Confirm Password"
-								type={passwordVisible ? 'text' : 'password'}
+								type={confirmPasswordVisible ? 'text' : 'password'}
 								id="confirmPassword"
 								name="confirmPassword"
 								value={formData.confirmPassword}
@@ -312,12 +318,12 @@ const SignUp = () => {
 							<button
 								className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors focus:outline-none z-20 bg-transparent border-none cursor-pointer"
 								type="button"
-								title="Toggle Password Visibility"
-								onClick={togglePasswordVisibility}
+								title="Toggle Confirm Password Visibility"
+								onClick={toggleConfirmPasswordVisibility}
 								disabled={loading}
 							>
 								<span className="material-symbols-outlined text-lg">
-									{passwordVisible ? 'visibility_off' : 'visibility'}
+									{confirmPasswordVisible ? 'visibility_off' : 'visibility'}
 								</span>
 							</button>
 						</div>

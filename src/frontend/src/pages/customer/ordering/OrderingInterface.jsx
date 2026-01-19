@@ -11,6 +11,7 @@ import OrdersPage from './pages/OrdersPage'
 import CartPage from './pages/CartPage'
 import SettingsPage from './pages/SettingsPage'
 import ProfilePage from './pages/ProfilePage'
+import CustomerAuth from './pages/CustomerAuth'
 
 // Import shared components
 import RadialNavigationMenu from './components/RadialNavigationMenu'
@@ -93,10 +94,21 @@ const OrderManagementInterface = () => {
 	const [orders, setOrders] = useState([]) // Orders history (fetched from backend)
 	const [loadingOrders, setLoadingOrders] = useState(false)
 	const [isAuthRestored, setIsAuthRestored] = useState(false) // ✅ Track auth restoration
+	const [showAuthModal, setShowAuthModal] = useState(false) // ✅ Show CustomerAuth modal after logout
 
 	// Settings state
 	const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 	const [currentBackground, setCurrentBackground] = useState(0)
+
+	// ==================== CHECK IF SHOULD SHOW AUTH MODAL ====================
+	// ✅ Check on mount if user logged out and should show auth modal
+	useEffect(() => {
+		const shouldShowAuth = localStorage.getItem('showAuthAfterLogout')
+		if (shouldShowAuth === 'true') {
+			localStorage.removeItem('showAuthAfterLogout')
+			setShowAuthModal(true)
+		}
+	}, [])
 
 	// ==================== AUTH RESTORATION ====================
 	// ✅ Restore customer auth on component mount (handles F5/refresh)
@@ -664,6 +676,32 @@ const OrderManagementInterface = () => {
 					currentBackground={currentBackground}
 					setCurrentBackground={setCurrentBackground}
 				/>
+
+				{/* CUSTOMER AUTH MODAL - Show after logout */}
+				{showAuthModal && (
+					<CustomerAuth
+						onClose={() => setShowAuthModal(false)}
+						onSuccess={(customer) => {
+							// Update guest mode flag
+							if (customer?.isGuest) {
+								localStorage.setItem('isGuestMode', 'true')
+							} else {
+								localStorage.setItem('isGuestMode', 'false')
+								if (customer) {
+									localStorage.setItem('customerAuth', JSON.stringify(customer))
+									// Restore access token
+									if (customer.accessToken) {
+										window.accessToken = customer.accessToken
+									}
+								}
+							}
+							setShowAuthModal(false)
+							// Reload to update state
+							window.location.reload()
+						}}
+						tenantId={tenantId}
+					/>
+				)}
 			</div>
 		</div>
 	)
