@@ -53,6 +53,16 @@ jobs:
           VITE_REDIRECT_URI: ${{ secrets.VITE_REDIRECT_URI }}
           VITE_PROD: "true"
         run: |
+          echo "========== DEBUG: Environment Variables =========="
+          echo "VITE_API_GATEWAY_URL: $VITE_API_GATEWAY_URL"
+          echo "VITE_API_URL: $VITE_API_URL"
+          echo "VITE_FILE_SERVICE_URL: $VITE_FILE_SERVICE_URL"
+          echo "VITE_CLIENT_ID: $VITE_CLIENT_ID"
+          echo "VITE_REDIRECT_URI: $VITE_REDIRECT_URI"
+          echo "VITE_DIDIT_CALLBACK_URL: $VITE_DIDIT_CALLBACK_URL"
+          echo "VITE_API_KEY length: ${#VITE_API_KEY}"
+          echo "VITE_DIDIT_API_KEY length: ${#VITE_DIDIT_API_KEY}"
+          echo "=================================================="
           cd src/frontend
           npm install
           npm run build
