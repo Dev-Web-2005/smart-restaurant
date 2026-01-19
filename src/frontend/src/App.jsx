@@ -16,7 +16,6 @@ import RestaurantSetupWizard from './pages/onboarding/RestaurantSetupWizard'
 import EmailConfirmation from './pages/onboarding/EmailConfirmation'
 import KYCCallback from './pages/kyc/KYCCallback'
 import GoogleAuthenticate from './pages/auth/GoogleAuthenticate/GoogleAuthenticate'
-import SetPassword from './pages/auth/SetPassword/SetPassword'
 import CustomerLogin from './pages/auth/CustomerLogin/CustomerLogin'
 
 import UserManagement from './pages/admin/tenant-management/UserManagement'
@@ -177,6 +176,7 @@ function App() {
 									<Route path="/customer-signup/:ownerId" element={<SignUp />} />
 									<Route path="/forgot-password" element={<ForgotPassword />} />
 									<Route path="/reset-password" element={<ResetPassword />} />
+									<Route path="/google-authenticate" element={<GoogleAuthenticate />} />
 									<Route path="/onboarding" element={<RestaurantSetupWizard />} />
 									<Route path="/email-confirmation" element={<EmailConfirmation />} />
 
