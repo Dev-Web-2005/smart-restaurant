@@ -32,98 +32,70 @@ env:
   VITE_REDIRECT_URI: ${{ secrets.VITE_REDIRECT_URI }}
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 25
-
-      - name: Build frontend
-        env:
-          VITE_API_GATEWAY_URL: ${{ vars.VITE_API_GATEWAY_URL }}
-          VITE_API_URL: ${{ vars.VITE_API_URL }}
-          VITE_FILE_SERVICE_URL: ${{ vars.VITE_FILE_SERVICE_URL }}
-          VITE_API_KEY: ${{ vars.VITE_API_KEY }}
-          VITE_DIDIT_API_KEY: ${{ secrets.VITE_DIDIT_API_KEY }}
-          VITE_DIDIT_WORKFLOW_ID: ${{ secrets.VITE_DIDIT_WORKFLOW_ID }}
-          VITE_DIDIT_CALLBACK_URL: ${{ secrets.VITE_DIDIT_CALLBACK_URL }}
-          VITE_CLIENT_ID: ${{ secrets.VITE_CLIENT_ID }}
-          VITE_REDIRECT_URI: ${{ secrets.VITE_REDIRECT_URI }}
-          VITE_PROD: "true"
-        run: |
-          cd src/frontend
-
-          # Create .env file for Vite to read during build
-          echo "Creating .env file for Vite..."
-          cat > .env << EOF
-          VITE_API_GATEWAY_URL=$VITE_API_GATEWAY_URL
-          VITE_API_URL=$VITE_API_URL
-          VITE_FILE_SERVICE_URL=$VITE_FILE_SERVICE_URL
-          VITE_API_KEY=$VITE_API_KEY
-          VITE_DIDIT_API_KEY=$VITE_DIDIT_API_KEY
-          VITE_DIDIT_WORKFLOW_ID=$VITE_DIDIT_WORKFLOW_ID
-          VITE_DIDIT_CALLBACK_URL=$VITE_DIDIT_CALLBACK_URL
-          VITE_CLIENT_ID=$VITE_CLIENT_ID
-          VITE_REDIRECT_URI=$VITE_REDIRECT_URI
-          VITE_PROD=true
-          EOF
-
-          echo "========== DEBUG: .env file content =========="
-          cat .env
-          echo "=============================================="
-
-          echo "========== DEBUG: Checking VITE_CLIENT_ID =========="
-          echo "VITE_CLIENT_ID length: ${#VITE_CLIENT_ID}"
-          echo "VITE_CLIENT_ID first 25 chars: ${VITE_CLIENT_ID:0:25}"
-          echo "===================================================="
-
-          npm install
-          npm run build
-
-          # Verify CLIENT_ID is in build output
-          echo "========== DEBUG: Checking build output for CLIENT_ID =========="
-          grep -r "424511485278" dist/assets/*.js | head -1 || echo "CLIENT_ID not found in build!"
-          echo "================================================================"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: src/frontend/dist
-
   deploy:
-    needs: test
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: frontend-build
-          path: folder-contain-dist/dist
+      - uses: actions/checkout@v4
 
-      - name: Copy folder dist to server
+      - name: Deploy frontend to server
         uses: appleboy/scp-action@v0.1.6
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
           port: ${{ secrets.VPS_PORT }}
-          source: "folder-contain-dist/dist"
-          target: "/home/${{ secrets.VPS_USER }}/projects/frontend/"
+          source: "src/frontend"
+          target: "/home/${{ secrets.VPS_USER }}/projects/"
           timeout: 5m
           command_timeout: 10m
 
-      - uses: appleboy/ssh-action@v1.0.3
+      - name: Build and deploy on server
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           key: ${{ secrets.VPS_KEY }}
           port: ${{ secrets.VPS_PORT }}
           username: ${{ secrets.VPS_USER }}
           script: |
-            cd /home/${{ secrets.VPS_USER }}/projects/frontend/
+            cd /home/${{ secrets.VPS_USER }}/projects/src/frontend
+
+            # Create .env file
+            echo "========== Creating .env file =========="
+            cat > .env << 'EOF'
+            VITE_API_GATEWAY_URL=${{ vars.VITE_API_GATEWAY_URL }}
+            VITE_API_URL=${{ vars.VITE_API_URL }}
+            VITE_FILE_SERVICE_URL=${{ vars.VITE_FILE_SERVICE_URL }}
+            VITE_API_KEY=${{ vars.VITE_API_KEY }}
+            VITE_DIDIT_API_KEY=${{ secrets.VITE_DIDIT_API_KEY }}
+            VITE_DIDIT_WORKFLOW_ID=${{ secrets.VITE_DIDIT_WORKFLOW_ID }}
+            VITE_DIDIT_CALLBACK_URL=${{ secrets.VITE_DIDIT_CALLBACK_URL }}
+            VITE_CLIENT_ID=${{ secrets.VITE_CLIENT_ID }}
+            VITE_REDIRECT_URI=${{ secrets.VITE_REDIRECT_URI }}
+            VITE_PROD=true
+            EOF
+
+            echo "========== .env content =========="
+            cat .env
+            echo "=================================="
+
+            # Install dependencies and build
+            echo "========== Installing dependencies =========="
+            npm install
+
+            echo "========== Building frontend =========="
+            npm run build
+
+            echo "========== Checking CLIENT_ID in build =========="
+            grep -r "424511485278" dist/assets/*.js | head -1 || echo "⚠️ CLIENT_ID not found in build!"
+
+            # Deploy to web directory
+            echo "========== Deploying to web directory =========="
             sudo rm -rf /var/www/html/web-dev.lethanhcong.site/*
-            sudo cp -r folder-contain-dist/dist/* /var/www/html/web-dev.lethanhcong.site/
-            sudo rm -rf folder-contain-dist
+            sudo cp -r dist/* /var/www/html/web-dev.lethanhcong.site/
+
+            echo "========== Restarting nginx =========="
             sudo systemctl restart nginx
+
+            echo "✅ Deployment complete!"
