@@ -332,15 +332,15 @@ export const getAnalyticsReportAPI = async ({
 // ==================== UTILITY FUNCTIONS ====================
 
 /**
- * Format currency value for display (VND)
+ * Format currency value for display (USD)
  * @param {number} value - The value to format
- * @param {string} [currency='VND'] - Currency code
+ * @param {string} [currency='USD'] - Currency code
  * @returns {string} Formatted currency string
  */
-export const formatCurrency = (value, currency = 'VND') => {
-	if (value === null || value === undefined) return '0'
+export const formatCurrency = (value, currency = 'USD') => {
+	if (value === null || value === undefined) return '$0'
 
-	return new Intl.NumberFormat('vi-VN', {
+	return new Intl.NumberFormat('en-US', {
 		style: 'currency',
 		currency: currency,
 		minimumFractionDigits: 0,

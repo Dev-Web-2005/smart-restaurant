@@ -29,6 +29,13 @@ import { useUser } from '../../../contexts/UserContext'
 import { InlineLoader, SkeletonLoader } from '../../../components/common/LoadingSpinner'
 import AuthenticationWarning from '../../../components/common/AuthenticationWarning'
 
+// 🚀 Module-level cache - persists across tab switches (component unmount/remount)
+// Only cleared on page refresh or explicit invalidation
+const globalTablesCache = new Map()
+const globalQRCodeCache = new Map()
+const globalFloorsCache = { data: null, timestamp: 0 }
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes TTL for floors cache
+
 // rawTablesData will be populated from API
 let rawTablesData = []
 
@@ -175,7 +182,7 @@ const TableCard = ({ table, onClick, onDelete, onDragStart, onDragEnd, isDraggin
 						textShadow: isHovered ? '0 1px 4px rgba(0, 0, 0, 0.4)' : 'none',
 					}}
 				>
-					{table.capacity} chỗ
+					{table.capacity} seats
 				</p>
 
 				{/* Ngày tạo - Giảm kích thước */}
@@ -253,8 +260,10 @@ const TableStatusModal = ({
 	showConfirm,
 	showSuccess,
 	showError,
+	showWarning,
 	showLoading,
 	hideLoading,
+	setRefreshTrigger,
 }) => {
 	const modalRef = React.useRef(null)
 	const nameInputRef = React.useRef(null)
@@ -391,7 +400,7 @@ const TableStatusModal = ({
 					<div className="md:col-span-1 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-md rounded-xl p-6 border border-white/10">
 						<div className="flex flex-col items-center">
 							<p className="text-lg font-semibold text-gray-300 mb-4 text-center">
-								Mã QR Bàn
+								Table QR Code
 							</p>
 							{table.qrCodeUrl ? (
 								<>
@@ -410,14 +419,14 @@ const TableStatusModal = ({
 
 									{/* QR Info */}
 									<div className="text-center mb-4">
-										<p className="text-sm text-gray-400 mb-1">Quét để đặt bàn</p>
+										<p className="text-sm text-gray-400 mb-1">Scan to order</p>
 										<p className="text-xs text-gray-500">{table.name}</p>
 									</div>
 								</>
 							) : (
 								<div className="bg-white/10 rounded-xl p-8 shadow-2xl mb-4 flex flex-col items-center justify-center min-h-[300px]">
 									<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-									<p className="text-gray-400 text-sm">Đang tải QR Code...</p>
+									<p className="text-gray-400 text-sm">Loading QR Code...</p>
 								</div>
 							)}
 
@@ -483,21 +492,21 @@ const TableStatusModal = ({
 												printWindow.print()
 											}, 500)
 										} else {
-											showError('Lỗi in QR', result.message)
+											showError('Print QR Error', result.message)
 										}
 									}}
 									className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600/20 border-2 border-indigo-600/30 text-indigo-400 rounded-lg hover:bg-indigo-600/40 hover:border-indigo-500 transition-all duration-200"
-									title="In QR Code"
+									title="Print QR Code"
 								>
 									<span className="text-lg">🖨️</span>
-									<span className="font-semibold">In QR Code</span>
+									<span className="font-semibold">Print QR Code</span>
 								</button>
 
-								{/* 2-4. Download QR with format selection (downloadTableQRCodeAPI) */}
+								{/* Download Buttons */}
 								<div className="grid grid-cols-3 gap-2">
 									<button
 										onClick={async () => {
-											showLoading('Đang tải PNG...')
+											showLoading('Downloading PNG...')
 											try {
 												console.log('📥 Downloading PNG for table:', table.id, table.name)
 												// Try backend API first
@@ -514,28 +523,31 @@ const TableStatusModal = ({
 														document.body.appendChild(link)
 														link.click()
 														document.body.removeChild(link)
-														showSuccess('✅ Đã tải PNG từ cache')
+														showSuccess('✅ PNG downloaded from cache')
 													} else {
-														showError('❌ Lỗi tải PNG', result.message)
+														showError('❌ PNG Download Error', result.message)
 													}
 												} else {
-													showSuccess('✅ Đã tải PNG thành công')
+													showSuccess('✅ PNG downloaded successfully')
 												}
 											} catch (error) {
 												hideLoading()
 												console.error('❌ Download PNG error:', error)
-												showError('❌ Lỗi tải PNG', error.message || 'Lỗi không xác định')
+												showError(
+													'❌ PNG Download Error',
+													error.message || 'Unknown error',
+												)
 											}
 										}}
 										className="flex flex-col items-center justify-center gap-1 px-2 py-2 bg-blue-600/20 border border-blue-600/30 text-blue-400 rounded-lg hover:bg-blue-600/40 hover:border-blue-500 transition-all duration-200 text-xs"
-										title="Tải QR PNG"
+										title="Download QR PNG"
 									>
 										<span>📥</span>
 										<span className="font-semibold">PNG</span>
 									</button>
 									<button
 										onClick={async () => {
-											showLoading('Đang tải PDF...')
+											showLoading('Downloading PDF...')
 											try {
 												console.log('📥 Downloading PDF for table:', table.id, table.name)
 												// Try backend API first
@@ -544,28 +556,31 @@ const TableStatusModal = ({
 												if (!result.success) {
 													console.error('❌ Backend download failed:', result.message)
 													showError(
-														'❌ Lỗi tải PDF',
+														'❌ PDF Download Error',
 														result.message ||
-															'Backend chưa hỗ trợ tải PDF. Vui lòng sử dụng In QR Code hoặc tải PNG.',
+															'Backend does not support PDF download. Please use Print QR Code or download PNG.',
 													)
 												} else {
-													showSuccess('✅ Đã tải PDF thành công')
+													showSuccess('✅ PDF downloaded successfully')
 												}
 											} catch (error) {
 												hideLoading()
 												console.error('❌ Download PDF error:', error)
-												showError('❌ Lỗi tải PDF', error.message || 'Lỗi không xác định')
+												showError(
+													'❌ PDF Download Error',
+													error.message || 'Unknown error',
+												)
 											}
 										}}
 										className="flex flex-col items-center justify-center gap-1 px-2 py-2 bg-red-600/20 border border-red-600/30 text-red-400 rounded-lg hover:bg-red-600/40 hover:border-red-500 transition-all duration-200 text-xs"
-										title="Tải QR PDF"
+										title="Download QR PDF"
 									>
 										<span>📥</span>
 										<span className="font-semibold">PDF</span>
 									</button>
 									<button
 										onClick={async () => {
-											showLoading('Đang tải SVG...')
+											showLoading('Downloading SVG...')
 											try {
 												console.log('📥 Downloading SVG for table:', table.id, table.name)
 												// Try backend API first
@@ -574,21 +589,24 @@ const TableStatusModal = ({
 												if (!result.success) {
 													console.error('❌ Backend download failed:', result.message)
 													showError(
-														'❌ Lỗi tải SVG',
+														'❌ SVG Download Error',
 														result.message ||
-															'Backend chưa hỗ trợ tải SVG. Vui lòng sử dụng PNG.',
+															'Backend does not support SVG download. Please use PNG.',
 													)
 												} else {
-													showSuccess('✅ Đã tải SVG thành công')
+													showSuccess('✅ SVG downloaded successfully')
 												}
 											} catch (error) {
 												hideLoading()
 												console.error('❌ Download SVG error:', error)
-												showError('❌ Lỗi tải SVG', error.message || 'Lỗi không xác định')
+												showError(
+													'❌ SVG Download Error',
+													error.message || 'Unknown error',
+												)
 											}
 										}}
 										className="flex flex-col items-center justify-center gap-1 px-2 py-2 bg-purple-600/20 border border-purple-600/30 text-purple-400 rounded-lg hover:bg-purple-600/40 hover:border-purple-500 transition-all duration-200 text-xs"
-										title="Tải QR SVG"
+										title="Download QR SVG"
 									>
 										<span>📥</span>
 										<span className="font-semibold">SVG</span>
@@ -599,29 +617,29 @@ const TableStatusModal = ({
 								<button
 									onClick={async () => {
 										const confirmed = await showConfirm(
-											'Tạo lại QR Code',
-											`Bạn có chắc muốn tạo lại QR Code cho ${table.name}?\nQR cũ sẽ không còn hoạt động.`,
+											'Regenerate QR Code',
+											`Are you sure you want to regenerate QR Code for ${table.name}?\nThe old QR will no longer work.`,
 										)
 										if (confirmed) {
 											const result = await regenerateTableQRAPI(table.id)
 											if (result.success) {
 												showSuccess(
-													'QR Code đã được tạo mới!',
-													'QR cũ đã hết hạn và không còn hoạt động.',
+													'QR Code regenerated!',
+													'The old QR is expired and no longer works.',
 												)
 												onClose()
 												// Trigger refetch instead of full page reload
 												setRefreshTrigger((prev) => prev + 1)
 											} else {
-												showError('Lỗi tạo QR', result.message)
+												showError('QR Regeneration Error', result.message)
 											}
 										}
 									}}
 									className="flex items-center justify-center gap-2 px-4 py-3 bg-yellow-600/20 border-2 border-yellow-600/30 text-yellow-400 rounded-lg hover:bg-yellow-600/40 hover:border-yellow-500 transition-all duration-200"
-									title="Tạo lại QR Code"
+									title="Regenerate QR Code"
 								>
 									<span className="text-lg">🔄</span>
-									<span className="font-semibold">Tạo Lại QR</span>
+									<span className="font-semibold">Regenerate QR</span>
 								</button>
 							</div>
 						</div>
@@ -633,7 +651,7 @@ const TableStatusModal = ({
 						<div className="grid grid-cols-2 gap-4 mb-6">
 							{/* Tên Bàn - Editable */}
 							<div className="bg-black/30 rounded-lg p-4 border border-white/10">
-								<p className="text-xs text-gray-400 mb-1">Tên Bàn</p>
+								<p className="text-xs text-gray-400 mb-1">Table Name</p>
 								{isEditMode ? (
 									<input
 										ref={nameInputRef}
@@ -644,7 +662,7 @@ const TableStatusModal = ({
 											setTimeout(() => nameInputRef.current?.focus(), 0)
 										}}
 										className="w-full bg-white/10 text-white text-lg font-bold rounded px-2 py-1 border border-white/20 focus:outline-none focus:border-blue-500"
-										placeholder="Nhập tên bàn"
+										placeholder="Enter table name"
 										maxLength={50}
 									/>
 								) : (
@@ -653,7 +671,7 @@ const TableStatusModal = ({
 							</div>
 							{/* Sức Chứa - Editable */}
 							<div className="bg-black/30 rounded-lg p-4 border border-white/10">
-								<p className="text-xs text-gray-400 mb-1">Sức Chứa</p>
+								<p className="text-xs text-gray-400 mb-1">Capacity</p>
 								{isEditMode ? (
 									<input
 										ref={capacityInputRef}
@@ -664,16 +682,16 @@ const TableStatusModal = ({
 											setTimeout(() => capacityInputRef.current?.focus(), 0)
 										}}
 										className="w-full bg-white/10 text-white text-lg font-bold rounded px-2 py-1 border border-white/20 focus:outline-none focus:border-blue-500"
-										placeholder="Số chỗ"
+										placeholder="Seats"
 										min="1"
 										max="20"
 									/>
 								) : (
-									<p className="text-lg font-bold text-white">{table.capacity} chỗ</p>
+									<p className="text-lg font-bold text-white">{table.capacity} seats</p>
 								)}
 							</div>
 							<div className="bg-black/30 rounded-lg p-4 border border-white/10">
-								<p className="text-xs text-gray-400 mb-1">Ngày Tạo</p>
+								<p className="text-xs text-gray-400 mb-1">Created Date</p>
 								<p className="text-lg font-bold text-white">
 									{table.createdAt
 										? new Date(table.createdAt).toLocaleDateString('vi-VN', {
@@ -685,7 +703,7 @@ const TableStatusModal = ({
 								</p>
 							</div>
 							<div className="bg-black/30 rounded-lg p-4 border border-white/10">
-								<p className="text-xs text-gray-400 mb-1">Trạng Thái</p>
+								<p className="text-xs text-gray-400 mb-1">Status</p>
 								<p
 									className={`text-lg font-bold ${
 										table.status === 'Available'
@@ -703,7 +721,7 @@ const TableStatusModal = ({
 						{/* Description */}
 						{table.description && (
 							<div className="mb-6 bg-black/30 rounded-lg p-4 border border-white/10">
-								<p className="text-xs text-gray-400 mb-2">MÔ TẢ BÀN</p>
+								<p className="text-xs text-gray-400 mb-2">TABLE DESCRIPTION</p>
 								<p className="text-sm text-white leading-relaxed">{table.description}</p>
 							</div>
 						)}
@@ -722,10 +740,10 @@ const TableStatusModal = ({
 										className={getStatusButtonClass(status)}
 									>
 										{status === 'Available'
-											? '✓ Sẵn sàng'
+											? '✓ Available'
 											: status === 'Occupied'
-												? '● Đang sử dụng'
-												: '🧹 Đang dọn dẹp'}
+												? '● In Use'
+												: '🧹 Cleaning'}
 									</button>
 								))}
 							</div>
@@ -737,9 +755,11 @@ const TableStatusModal = ({
 								<div className="flex items-center justify-between mb-3">
 									<div>
 										<p className="text-sm font-semibold text-green-400 mb-1">
-											THANH TOÁN BÀN
+											TABLE CHECKOUT
 										</p>
-										<p className="text-xs text-gray-400">Xử lý thanh toán và trả bàn</p>
+										<p className="text-xs text-gray-400">
+											Process payment and release table
+										</p>
 									</div>
 									<span className="material-symbols-outlined text-3xl text-green-400">
 										payments
@@ -748,11 +768,11 @@ const TableStatusModal = ({
 								<button
 									onClick={async () => {
 										const confirmed = await showConfirm(
-											'Xác nhận thanh toán',
-											`Bạn có chắc chắn muốn thanh toán cho ${table.name}? Bàn sẽ được chuyển sang trạng thái "Đang dọn dẹp".`,
+											'Confirm Checkout',
+											`Are you sure you want to checkout ${table.name}? The table will be set to "Cleaning" status.`,
 										)
 										if (confirmed) {
-											showLoading('Đang xử lý thanh toán...')
+											showLoading('Processing payment...')
 											// TODO: Call payment API
 											// await axios.post(`/api/tables/${table.id}/checkout`)
 
@@ -761,8 +781,8 @@ const TableStatusModal = ({
 												await onUpdateStatus(table.id, 'Cleaning')
 												hideLoading()
 												showSuccess(
-													'Thanh toán thành công',
-													'Bàn đã được chuyển sang trạng thái dọn dẹp',
+													'Payment Successful',
+													'Table has been set to cleaning status',
 												)
 											}, 1500)
 										}
@@ -770,7 +790,7 @@ const TableStatusModal = ({
 									className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white text-base font-bold rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-green-500/50"
 								>
 									<span className="material-symbols-outlined">paid</span>
-									<span>Thanh Toán</span>
+									<span>Checkout</span>
 								</button>
 							</div>
 						)}
@@ -790,18 +810,18 @@ const TableStatusModal = ({
 								disabled={isSaving}
 								className="h-10 px-4 rounded-lg bg-gray-600/40 backdrop-blur-md text-white text-sm font-bold hover:bg-gray-600/60 transition-colors disabled:opacity-50"
 							>
-								Hủy
+								Cancel
 							</button>
 							<button
 								onClick={async () => {
 									// Validation
 									if (!editedName.trim()) {
-										showWarning('Lỗi nhập liệu', 'Tên bàn không được để trống')
+										showWarning('Input Error', 'Table name cannot be empty')
 										return
 									}
 									const capacity = parseInt(editedCapacity)
 									if (!capacity || capacity < 1 || capacity > 20) {
-										showWarning('Lỗi nhập liệu', 'Sức chứa phải từ 1 đến 20 chỗ')
+										showWarning('Input Error', 'Capacity must be between 1 and 20 seats')
 										return
 									}
 
@@ -841,10 +861,10 @@ const TableStatusModal = ({
 												d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
 											></path>
 										</svg>
-										<span>Đang lưu...</span>
+										<span>Saving...</span>
 									</>
 								) : (
-									'Lưu thay đổi'
+									'Save Changes'
 								)}
 							</button>
 						</>
@@ -853,7 +873,7 @@ const TableStatusModal = ({
 							onClick={onClose}
 							className="h-10 px-4 rounded-lg bg-black/40 backdrop-blur-md text-white text-sm font-bold hover:bg-black/60 transition-colors"
 						>
-							Đóng
+							Close
 						</button>
 					)}
 				</div>
@@ -897,17 +917,17 @@ const RestaurantTableManagement = () => {
 		Occupied: 0,
 		Cleaning: 0,
 	})
-	// 🚀 QR Code cache to prevent re-fetching
-	const [qrCodeCache, setQrCodeCache] = useState(new Map())
+	// 🚀 Use ref to track cache version (triggers re-render when cache is invalidated)
+	const [cacheVersion, setCacheVersion] = useState(0)
 
 	const currentFloor = currentPage
 
-	// 🚀 Lazy load QR code for a specific table (with caching)
+	// 🚀 Lazy load QR code for a specific table (with global caching)
 	const fetchTableQRCode = async (tableId) => {
-		// Check cache first
-		if (qrCodeCache.has(tableId)) {
-			console.log('✅ QR code found in cache for table:', tableId)
-			return qrCodeCache.get(tableId)
+		// Check global cache first
+		if (globalQRCodeCache.has(tableId)) {
+			console.log('✅ QR code found in global cache for table:', tableId)
+			return globalQRCodeCache.get(tableId)
 		}
 
 		try {
@@ -917,8 +937,8 @@ const RestaurantTableManagement = () => {
 					? qrResult.image
 					: `data:image/png;base64,${qrResult.image}`
 
-				// Cache the QR code
-				setQrCodeCache((prev) => new Map(prev).set(tableId, qrDataUrl))
+				// Cache the QR code in global cache
+				globalQRCodeCache.set(tableId, qrDataUrl)
 
 				// Update rawTablesData
 				const tableIndex = rawTablesData.findIndex((t) => t.id === tableId)
@@ -939,7 +959,7 @@ const RestaurantTableManagement = () => {
 		return null
 	}
 
-	// ✅ Fetch floors from API when component mounts
+	// ✅ Fetch floors from API when component mounts (with global cache)
 	useEffect(() => {
 		// ⏳ Wait for authentication to complete before fetching data
 		if (authLoading) {
@@ -953,14 +973,32 @@ const RestaurantTableManagement = () => {
 			return
 		}
 
-		console.log('✅ Authentication complete, fetching floors...')
+		console.log('✅ Authentication complete, checking floors cache...')
 
 		const fetchFloors = async () => {
+			// 🚀 Check global floors cache first
+			const now = Date.now()
+			if (globalFloorsCache.data && now - globalFloorsCache.timestamp < CACHE_TTL) {
+				console.log('📦 Using cached floors data')
+				const floorsArray = globalFloorsCache.data
+				setFloors(floorsArray)
+				setTotalPages(floorsArray.length)
+				if (floorsArray.length > 0 && !currentFloorId) {
+					setCurrentFloorId(floorsArray[0].id)
+				}
+				return
+			}
+
 			try {
 				const floorsData = await getFloorsAPI()
 
 				// Ensure floorsData is an array
 				const floorsArray = Array.isArray(floorsData) ? floorsData : []
+
+				// 🚀 Save to global cache
+				globalFloorsCache.data = floorsArray
+				globalFloorsCache.timestamp = Date.now()
+
 				setFloors(floorsArray)
 
 				if (floorsArray.length > 0) {
@@ -984,20 +1022,36 @@ const RestaurantTableManagement = () => {
 				console.error('❌ Error status:', error.response?.status)
 				setFloors([])
 				setCurrentFloorId(null)
-				showError(`Không thể tải danh sách tầng: ${error.message}`)
+				showError(`Cannot load floor list: ${error.message}`)
 			}
 		}
 		fetchFloors()
 	}, [authLoading, user])
 
-	// ✅ Fetch tables from API when floor changes or filters change
+	// ✅ Fetch tables from API when floor changes or filters change (with global cache)
 	useEffect(() => {
 		// Don't fetch if no floor is selected
 		if (!currentFloorId) {
 			return
 		}
 
+		// 🚀 Generate cache key based on floor and filters
+		const cacheKey = `${currentFloorId}_${filterStatus}_${filterLocation}_${sortBy}_${sortOrder}`
+
 		const fetchTables = async () => {
+			// 🚀 Check global cache first (skip cache if refreshTrigger > 0 means manual refresh)
+			const cachedData = globalTablesCache.get(cacheKey)
+			if (cachedData && refreshTrigger === 0) {
+				console.log('📦 Using global cached tables for floor:', currentFloorId)
+				setTables(cachedData.tables)
+				rawTablesData = cachedData.rawTables
+				setGridSize(cachedData.gridSize)
+				if (cachedData.totalFloors) {
+					setTotalPages(cachedData.totalFloors)
+				}
+				return
+			}
+
 			showLoading('fetchTables')
 			try {
 				const floorId = currentFloorId
@@ -1018,22 +1072,22 @@ const RestaurantTableManagement = () => {
 
 				if (result.success) {
 					// Update rawTablesData with real data from backend
-					rawTablesData = result.tables.map((table) => ({
+					const newRawTables = result.tables.map((table) => ({
 						...table,
 						// Add frontend-only fields if not present
 						floor: currentFloor, // Infer from current floor
 						location: table.location || 'Trong nhà', // Default if missing
 						qrCodeUrl: null, // Will be lazy-loaded when modal opens
 					}))
+					rawTablesData = newRawTables
 
 					// Ensure location field exists in state tables
-					setTables(
-						result.tables.map((table) => ({
-							...table,
-							location: table.location || 'Trong nhà', // Default if missing
-							qrCodeUrl: null, // Lazy load QR codes to prevent rate limiting
-						})),
-					)
+					const newTables = result.tables.map((table) => ({
+						...table,
+						location: table.location || 'Trong nhà', // Default if missing
+						qrCodeUrl: null, // Lazy load QR codes to prevent rate limiting
+					}))
+					setTables(newTables)
 
 					// 🚀 OPTIMIZATION: Remove automatic QR fetching to prevent rate limiting
 					// QR codes will be fetched on-demand when user opens table modal
@@ -1047,6 +1101,21 @@ const RestaurantTableManagement = () => {
 					// ✅ Calculate and update grid size based on tables (enforce minimum 4x4)
 					const newGridSize = calculateGridSize(rawTablesData)
 					setGridSize(newGridSize)
+
+					// 🚀 Save to global cache (persists across tab switches)
+					globalTablesCache.set(cacheKey, {
+						tables: newTables,
+						rawTables: newRawTables,
+						gridSize: newGridSize,
+						totalFloors: result.totalFloors,
+						timestamp: Date.now(),
+					})
+					// Limit cache size to 10 entries (remove oldest if exceeded)
+					if (globalTablesCache.size > 10) {
+						const firstKey = globalTablesCache.keys().next().value
+						globalTablesCache.delete(firstKey)
+					}
+					console.log('✅ Saved tables to global cache for floor:', currentFloorId)
 				} else {
 					console.warn('⚠️ Failed to fetch tables from API, using mock data')
 					// Fallback to mock data
@@ -1072,51 +1141,38 @@ const RestaurantTableManagement = () => {
 		}
 
 		fetchTables()
+
+		// Reset refreshTrigger after fetch to enable cache for next navigation
+		if (refreshTrigger > 0) {
+			setRefreshTrigger(0)
+		}
 	}, [
 		currentFloorId,
 		filterStatus,
 		filterLocation,
 		sortBy,
 		sortOrder,
-		showLoading,
-		hideLoading,
-		floors, // ✅ Add floors to dependencies to refetch when floors change
+		// Note: Removed floors, showLoading, hideLoading from dependencies
+		// to prevent unnecessary re-fetches that cause "too many requests"
 		refreshTrigger, // ✅ Trigger refetch when this changes
+		cacheVersion, // Include cache version in dependencies (for invalidation)
 	])
 
-	// ✅ Fetch table stats from API
+	// ✅ Calculate table stats from local data (no API call needed)
 	useEffect(() => {
-		const fetchStats = async () => {
-			try {
-				const result = await getTableStatsAPI()
-				if (result.success && result.stats) {
-					setTableStats(result.stats)
-				} else {
-					// Fallback: Calculate stats from current tables
-					const stats = rawTablesData.reduce(
-						(acc, table) => {
-							acc[table.status] = (acc[table.status] || 0) + 1
-							return acc
-						},
-						{ Available: 0, Occupied: 0, Cleaning: 0 },
-					)
-					setTableStats(stats)
-				}
-			} catch (error) {
-				console.error('❌ Error fetching stats:', error)
-				// Calculate from current data
-				const stats = rawTablesData.reduce(
-					(acc, table) => {
-						acc[table.status] = (acc[table.status] || 0) + 1
-						return acc
-					},
-					{ Available: 0, Occupied: 0, Cleaning: 0 },
-				)
-				setTableStats(stats)
-			}
+		// Calculate stats from current tables instead of API call
+		// This prevents "too many requests" error
+		if (tables && tables.length > 0) {
+			const stats = tables.reduce(
+				(acc, table) => {
+					const status = table.status || 'Available'
+					acc[status] = (acc[status] || 0) + 1
+					return acc
+				},
+				{ Available: 0, Occupied: 0, Cleaning: 0 },
+			)
+			setTableStats(stats)
 		}
-
-		fetchStats()
 	}, [tables])
 
 	const calculateGridSize = (tablesOnFloor) => {
@@ -1196,6 +1252,28 @@ const RestaurantTableManagement = () => {
 		[filterStatus, filterLocation, sortBy, sortOrder],
 	)
 
+	// 🚀 Helper function to invalidate global cache for current floor (call after CRUD operations)
+	const invalidateCurrentFloorCache = useCallback(() => {
+		// Remove all cache entries for current floor from global cache
+		for (const key of globalTablesCache.keys()) {
+			if (key.startsWith(currentFloorId)) {
+				globalTablesCache.delete(key)
+			}
+		}
+		console.log('🗑️ Global cache invalidated for floor:', currentFloorId)
+		// Trigger re-render by updating cache version
+		setCacheVersion((prev) => prev + 1)
+	}, [currentFloorId])
+
+	// 🚀 Helper function to invalidate all caches (call after major changes like floor create/delete)
+	const invalidateAllCaches = useCallback(() => {
+		globalTablesCache.clear()
+		globalFloorsCache.data = null
+		globalFloorsCache.timestamp = 0
+		console.log('🗑️ All global caches cleared')
+		setCacheVersion((prev) => prev + 1)
+	}, [])
+
 	const fetchTableStats = useCallback(async () => {
 		const stats = {
 			Available: rawTablesData.filter((t) => t.status === 'Available').length,
@@ -1273,13 +1351,15 @@ const RestaurantTableManagement = () => {
 					rawTablesData[tableIndex].status = newStatus
 				}
 
+				// 🚀 Invalidate cache after status update
+				invalidateCurrentFloorCache()
 				await fetchTableStats()
 			} else {
-				showError('Cập nhật thất bại', `Không thể cập nhật trạng thái: ${result.message}`)
+				showError('Update Failed', `Cannot update status: ${result.message}`)
 			}
 		} catch (error) {
 			console.error('❌ Error updating table status:', error)
-			showError('Lỗi kết nối', 'Lỗi mạng. Vui lòng thử lại.')
+			showError('Connection Error', 'Network error. Please try again.')
 		} finally {
 			hideLoading('updateStatus')
 			setIsStatusModalOpen(false)
@@ -1294,7 +1374,7 @@ const RestaurantTableManagement = () => {
 			const result = await updateTableAPI(tableId, updateData)
 
 			if (result.success) {
-				showSuccess('Cập nhật thành công', `Thông tin bàn đã được cập nhật!`)
+				showSuccess('Update Successful', `Table information has been updated!`)
 
 				// Update local state
 				setTables((prevTables) =>
@@ -1313,14 +1393,17 @@ const RestaurantTableManagement = () => {
 					setSelectedTable({ ...selectedTable, ...updateData })
 				}
 
+				// 🚀 Invalidate cache after table info update
+				invalidateCurrentFloorCache()
+
 				return true
 			} else {
-				showError('Cập nhật thất bại', result.message)
+				showError('Update Failed', result.message)
 				return false
 			}
 		} catch (error) {
 			console.error('❌ Error updating table info:', error)
-			showError('Lỗi', error?.message || 'Không thể cập nhật thông tin bàn')
+			showError('Error', error?.message || 'Cannot update table information')
 			return false
 		} finally {
 			hideLoading('updateTable')
@@ -1329,8 +1412,8 @@ const RestaurantTableManagement = () => {
 
 	const handleDeleteTable = async (tableId) => {
 		const confirmed = await showConfirm(
-			'Xác nhận xóa bàn',
-			`Bạn có chắc chắn muốn xóa bàn này?\nHành động này không thể hoàn tác.`,
+			'Confirm Delete Table',
+			`Are you sure you want to delete this table?\nThis action cannot be undone.`,
 		)
 		if (!confirmed) {
 			return
@@ -1345,12 +1428,14 @@ const RestaurantTableManagement = () => {
 				// Update local state
 				setTables((prevTables) => prevTables.filter((table) => table.id !== tableId))
 				rawTablesData = rawTablesData.filter((table) => table.id !== tableId)
+				// 🚀 Invalidate cache after delete
+				invalidateCurrentFloorCache()
 			} else {
-				showError('Xóa thất bại', `Không thể xóa bàn: ${result.message}`)
+				showError('Delete Failed', `Cannot delete table: ${result.message}`)
 			}
 		} catch (error) {
 			console.error('❌ Error deleting table:', error)
-			showError('Lỗi kết nối', 'Lỗi mạng. Vui lòng thử lại.')
+			showError('Connection Error', 'Network error. Please try again.')
 		} finally {
 			hideLoading('deleteTable')
 		}
@@ -1377,7 +1462,7 @@ const RestaurantTableManagement = () => {
 		)
 
 		if (isOccupied) {
-			showWarning('Vị trí đã có bàn', 'Vui lòng chọn vị trí trống khác.')
+			showWarning('Position Occupied', 'Please select another empty position.')
 			setDraggingTable(null)
 			setDropTarget(null)
 			return
@@ -1412,7 +1497,7 @@ const RestaurantTableManagement = () => {
 					rawTablesData[tableIndex].gridY = newGridY
 				}
 			} else {
-				showError('Cập nhật vị trí thất bại', result.message)
+				showError('Position Update Failed', result.message)
 			}
 		} catch (error) {
 			console.error('❌ Error updating table position:', error)
@@ -1449,14 +1534,14 @@ const RestaurantTableManagement = () => {
 		// ✅ Validate floorId before creating table
 		const floorIdToUse = tableData.floorId || currentFloorId
 		if (!floorIdToUse) {
-			showError('Lỗi', 'Vui lòng chọn tầng trước khi tạo bàn')
+			showError('Error', 'Please select a floor before creating a table')
 			return
 		}
 
 		// ✅ Verify floor exists in floors array
 		const floorExists = floors.find((f) => f.id === floorIdToUse)
 		if (!floorExists) {
-			showWarning('Đang đồng bộ dữ liệu', 'Vui lòng đợi một chút rồi thử lại')
+			showWarning('Syncing Data', 'Please wait a moment and try again')
 			console.log('⚠️ Floor not found in state:', {
 				floorIdToUse,
 				currentFloorId,
@@ -1526,16 +1611,19 @@ const RestaurantTableManagement = () => {
 
 				rawTablesData.push(newTableData)
 
+				// 🚀 Invalidate cache before triggering refetch
+				invalidateCurrentFloorCache()
+
 				// ✅ FIX: Trigger API refetch instead of using local fetchTables
 				// The useEffect with currentFloorId dependency will handle the actual API call
 				setRefreshTrigger((prev) => prev + 1)
-				showSuccess('Tạo bàn thành công!')
+				showSuccess('Table created successfully!')
 			} else {
-				showError('Tạo bàn thất bại', `Không thể tạo bàn: ${result.message}`)
+				showError('Table Creation Failed', `Cannot create table: ${result.message}`)
 			}
 		} catch (error) {
 			console.error('❌ Error creating table:', error)
-			showError('Lỗi kết nối', 'Lỗi mạng. Vui lòng thử lại.')
+			showError('Connection Error', 'Network error. Please try again.')
 		} finally {
 			hideLoading('createTable')
 		}
@@ -1555,11 +1643,18 @@ const RestaurantTableManagement = () => {
 			const result = await createFloorAPI(floorData)
 
 			if (result.success) {
-				showSuccess('Tạo tầng mới thành công!')
+				showSuccess('Floor created successfully!')
+
+				// 🚀 Invalidate all caches when creating new floor
+				invalidateAllCaches()
 
 				// Re-fetch floors to update count
 				const floorsData = await getFloorsAPI()
 				const floorsArray = Array.isArray(floorsData) ? floorsData : []
+
+				// Update global floors cache
+				globalFloorsCache.data = floorsArray
+				globalFloorsCache.timestamp = Date.now()
 
 				// ✅ FIX: Get the new floor from the fetched data to ensure consistency
 				const newFloorFromAPI = floorsArray.find((f) => f.id === result.floor.id)
@@ -1594,11 +1689,11 @@ const RestaurantTableManagement = () => {
 					setRefreshTrigger((prev) => prev + 1)
 				}, 50)
 			} else {
-				showError('Không thể tạo tầng mới')
+				showError('Cannot create floor')
 			}
 		} catch (error) {
 			console.error('❌ Error creating floor:', error)
-			showError(error.message || 'Lỗi khi tạo tầng mới')
+			showError(error.message || 'Error creating new floor')
 		} finally {
 			hideLoading('createFloor')
 		}
@@ -1606,16 +1701,16 @@ const RestaurantTableManagement = () => {
 
 	const handleDeleteFloor = async () => {
 		if (!currentFloorId) {
-			showWarning('Không có tầng nào để xóa')
+			showWarning('No floor to delete')
 			return
 		}
 
 		const currentFloorData = floors.find((f) => f.id === currentFloorId)
-		const floorName = currentFloorData?.name || `Tầng ${currentPage}`
+		const floorName = currentFloorData?.name || `Floor ${currentPage}`
 
 		const confirmed = await showConfirm(
-			`Xóa tầng "${floorName}"`,
-			`Bạn có chắc chắn muốn XÓA tầng này?\n\nLưu ý:\n- Tất cả bàn ăn trên tầng này sẽ KHÔNG bị xóa\n- Các bàn sẽ không còn liên kết với tầng này`,
+			`Delete floor "${floorName}"`,
+			`Are you sure you want to DELETE this floor?\n\nNote:\n- All tables on this floor will NOT be deleted\n- Tables will no longer be linked to this floor`,
 		)
 		if (!confirmed) {
 			return
@@ -1627,11 +1722,19 @@ const RestaurantTableManagement = () => {
 			const result = await deleteFloorAPI(currentFloorId)
 
 			if (result.success) {
-				showSuccess(`Đã xóa tầng "${floorName}" thành công`)
+				showSuccess(`Floor "${floorName}" deleted successfully`)
+
+				// 🚀 Invalidate all caches when deleting floor
+				invalidateAllCaches()
 
 				// Re-fetch floors
 				const floorsData = await getFloorsAPI()
 				const floorsArray = Array.isArray(floorsData) ? floorsData : []
+
+				// Update global floors cache
+				globalFloorsCache.data = floorsArray
+				globalFloorsCache.timestamp = Date.now()
+
 				setFloors(floorsArray)
 
 				if (floorsArray.length > 0) {
@@ -1650,11 +1753,11 @@ const RestaurantTableManagement = () => {
 					setTables([])
 				}
 			} else {
-				showError('Không thể xóa tầng')
+				showError('Cannot delete floor')
 			}
 		} catch (error) {
 			console.error('❌ Error deleting floor:', error)
-			showError(error.message || 'Lỗi khi xóa tầng')
+			showError(error.message || 'Error deleting floor')
 		} finally {
 			hideLoading('deleteFloor')
 		}
@@ -1662,7 +1765,7 @@ const RestaurantTableManagement = () => {
 
 	const handleDeleteRow = () => {
 		if (gridSize.rows <= 1) {
-			showWarning('Không thể xóa hàng', 'Lưới phải có ít nhất 1 hàng.')
+			showWarning('Cannot delete row', 'Grid must have at least 1 row.')
 			return
 		}
 
@@ -1672,8 +1775,8 @@ const RestaurantTableManagement = () => {
 		if (tablesInLastRow.length > 0) {
 			const tableNames = tablesInLastRow.map((t) => t.name).join(', ')
 			showWarning(
-				'Không thể xóa hàng',
-				`Các bàn sau đang ở hàng này: ${tableNames}. Vui lòng di chuyển hoặc xóa chúng trước.`,
+				'Cannot delete row',
+				`The following tables are in this row: ${tableNames}. Please move or delete them first.`,
 			)
 			return
 		}
@@ -1687,7 +1790,7 @@ const RestaurantTableManagement = () => {
 
 	const handleAddColumn = () => {
 		if (gridSize.cols >= 10) {
-			showWarning('Không thể thêm cột', 'Lưới chỉ được phép tối đa 10 cột.')
+			showWarning('Cannot add column', 'Grid can have maximum 10 columns.')
 			return
 		}
 
@@ -1700,7 +1803,7 @@ const RestaurantTableManagement = () => {
 
 	const handleDeleteColumn = () => {
 		if (gridSize.cols <= 1) {
-			showWarning('Không thể xóa cột', 'Lưới phải có ít nhất 1 cột.')
+			showWarning('Cannot delete column', 'Grid must have at least 1 column.')
 			return
 		}
 
@@ -1710,8 +1813,8 @@ const RestaurantTableManagement = () => {
 		if (tablesInLastCol.length > 0) {
 			const tableNames = tablesInLastCol.map((t) => t.name).join(', ')
 			showWarning(
-				'Không thể xóa cột',
-				`Các bàn sau đang ở cột này: ${tableNames}. Vui lòng di chuyển hoặc xóa chúng trước.`,
+				'Cannot delete column',
+				`The following tables are in this column: ${tableNames}. Please move or delete them first.`,
 			)
 			return
 		}
@@ -1723,20 +1826,9 @@ const RestaurantTableManagement = () => {
 		})
 	}
 
-	useEffect(() => {
-		if (currentPage >= 1) {
-			fetchTables(currentPage)
-			fetchTableStats()
-		}
-	}, [
-		currentPage,
-		fetchTables,
-		fetchTableStats,
-		filterStatus,
-		filterLocation,
-		sortBy,
-		sortOrder,
-	])
+	// Note: Removed duplicate useEffect that was causing "too many requests"
+	// The main useEffect with currentFloorId dependency handles API calls
+	// fetchTables and fetchTableStats are now legacy functions for fallback only
 
 	const renderGrid = () => {
 		const grid = []
@@ -1869,7 +1961,7 @@ const RestaurantTableManagement = () => {
 											onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
 											className="px-4 py-2.5 bg-black/90 backdrop-blur-md border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all cursor-pointer hover:bg-black/40 min-w-[140px] text-left flex items-center justify-between gap-3"
 										>
-											<span>{filterStatus === 'All' ? 'Tất cả' : 'Trống'}</span>
+											<span>{filterStatus === 'All' ? 'All' : 'Available'}</span>
 											<svg
 												xmlns="http://www.w3.org/2000/svg"
 												width="12"
@@ -1893,7 +1985,7 @@ const RestaurantTableManagement = () => {
 														filterStatus === 'All' ? 'bg-white/5' : ''
 													}`}
 												>
-													Tất cả
+													All
 												</button>
 												<button
 													onClick={() => {
@@ -1904,7 +1996,7 @@ const RestaurantTableManagement = () => {
 														filterStatus === 'AVAILABLE' ? 'bg-white/5' : ''
 													}`}
 												>
-													Trống
+													Available
 												</button>
 											</div>
 										)}
@@ -1917,7 +2009,7 @@ const RestaurantTableManagement = () => {
 										onClick={() => setDownloadDropdownOpen(!downloadDropdownOpen)}
 										className="px-4 py-2 bg-blue-600/20 border-2 border-blue-600/30 text-blue-400 rounded-lg hover:bg-blue-600/40 hover:border-blue-500 transition-colors font-semibold flex items-center gap-2"
 									>
-										📥 Tải QR Code
+										📥 Download QR Code
 										<span className="text-xs">{downloadDropdownOpen ? '▲' : '▼'}</span>
 									</button>
 
@@ -1926,7 +2018,7 @@ const RestaurantTableManagement = () => {
 											<button
 												onClick={async () => {
 													setDownloadDropdownOpen(false)
-													showLoading('Đang tạo file PDF...')
+													showLoading('Creating PDF file...')
 													try {
 														const tableIds = rawTablesData
 															.filter((t) => t.floor === currentFloor)
@@ -1937,20 +2029,21 @@ const RestaurantTableManagement = () => {
 															'combined-pdf',
 														)
 														hideLoading()
-														if (!result.success) showError('Lỗi tải file', result.message)
+														if (!result.success)
+															showError('Download Error', result.message)
 													} catch (error) {
 														hideLoading()
-														showError('Lỗi', error.message)
+														showError('Error', error.message)
 													}
 												}}
 												className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-2 border-b border-white/10"
 											>
-												📄 Tải Combined PDF
+												📄 Download Combined PDF
 											</button>
 											<button
 												onClick={async () => {
 													setDownloadDropdownOpen(false)
-													showLoading('Đang tạo file ZIP...')
+													showLoading('Creating ZIP file...')
 													try {
 														const tableIds = rawTablesData
 															.filter((t) => t.floor === currentFloor)
@@ -1961,20 +2054,21 @@ const RestaurantTableManagement = () => {
 															'zip-png',
 														)
 														hideLoading()
-														if (!result.success) showError('Lỗi tải file', result.message)
+														if (!result.success)
+															showError('Download Error', result.message)
 													} catch (error) {
 														hideLoading()
-														showError('Lỗi', error.message)
+														showError('Error', error.message)
 													}
 												}}
 												className="w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center gap-2 border-b border-white/10"
 											>
-												🗜️ Tải ZIP PNG
+												🗜️ Download ZIP PNG
 											</button>
 											<button
 												onClick={async () => {
 													setDownloadDropdownOpen(false)
-													showLoading('Đang tạo file ZIP...')
+													showLoading('Creating ZIP file...')
 													try {
 														const tableIds = rawTablesData
 															.filter((t) => t.floor === currentFloor)
@@ -1985,15 +2079,16 @@ const RestaurantTableManagement = () => {
 															'zip-pdf',
 														)
 														hideLoading()
-														if (!result.success) showError('Lỗi tải file', result.message)
+														if (!result.success)
+															showError('Download Error', result.message)
 													} catch (error) {
 														hideLoading()
-														showError('Lỗi', error.message)
+														showError('Error', error.message)
 													}
 												}}
 												className="w-full px-4 py-3 text-left text-base text-white hover:bg-white/10 transition-colors flex items-center gap-2"
 											>
-												📦 Tải ZIP PDF
+												📦 Download ZIP PDF
 											</button>
 										</div>
 									)}
@@ -2006,34 +2101,34 @@ const RestaurantTableManagement = () => {
 											(t) => t.floor === currentFloor,
 										)
 										const confirmed = await showConfirm(
-											'Xác nhận tạo lại tất cả QR Code',
-											`Bạn có chắc muốn tạo lại QR Code cho ${floorTables.length} bàn trên tầng ${currentFloor}?\nTất cả QR cũ sẽ không còn hoạt động.`,
+											'Confirm Regenerate All QR Codes',
+											`Are you sure you want to regenerate QR codes for ${floorTables.length} tables on floor ${currentFloor}?\nAll old QR codes will no longer work.`,
 										)
 										if (confirmed) {
-											showLoading('Đang tạo lại QR Code...')
+											showLoading('Regenerating QR Codes...')
 											try {
 												const tableIds = floorTables.map((t) => t.id)
 												const result = await bulkRegenerateQRCodesAPI(tableIds, null)
 												hideLoading()
 												if (result.success) {
 													showSuccess(
-														'Tạo QR thành công',
-														`Đã tạo mới ${result.regeneratedCount} QR Code!`,
+														'QR Created Successfully',
+														`${result.regeneratedCount} QR Codes have been regenerated!`,
 													)
 													// Trigger refetch instead of full page reload
 													setRefreshTrigger((prev) => prev + 1)
 												} else {
-													showError('Lỗi tạo QR', result.message)
+													showError('QR Generation Error', result.message)
 												}
 											} catch (error) {
 												hideLoading()
-												showError('Lỗi', error.message)
+												showError('Error', error.message)
 											}
 										}
 									}}
 									className="px-4 py-2 bg-orange-600/20 border-2 border-orange-600/30 text-orange-400 rounded-lg hover:bg-orange-600/40 hover:border-orange-500 transition-colors font-semibold"
 								>
-									🔄 Tạo lại tất cả QR
+									🔄 Regenerate All QR
 								</button>
 							</div>
 						</div>
@@ -2088,15 +2183,15 @@ const RestaurantTableManagement = () => {
 							<div className="ml-auto flex items-center gap-4">
 								<div className="flex items-center gap-2">
 									<div className="w-3 h-3 rounded-full bg-green-600/30 border border-green-600/50"></div>
-									<span className="text-xs text-gray-400">Trống</span>
+									<span className="text-xs text-gray-400">Available</span>
 								</div>
 								<div className="flex items-center gap-2">
 									<div className="w-3 h-3 rounded-full bg-red-600/30 border border-red-600/50"></div>
-									<span className="text-xs text-gray-400">Đang sử dụng</span>
+									<span className="text-xs text-gray-400">In Use</span>
 								</div>
 								<div className="flex items-center gap-2">
 									<div className="w-3 h-3 rounded-full bg-yellow-600/30 border border-yellow-600/50"></div>
-									<span className="text-xs text-gray-400">Đang dọn dẹp</span>
+									<span className="text-xs text-gray-400">Cleaning</span>
 								</div>
 								<div className="text-sm text-gray-400 ml-4">
 									Total: {tables.length} tables
@@ -2108,18 +2203,16 @@ const RestaurantTableManagement = () => {
 							{floors.length === 0 ? (
 								<div className="flex flex-col items-center justify-center py-16 bg-black/20 rounded-2xl border-2 border-dashed border-gray-600">
 									<div className="text-6xl mb-4">🏢</div>
-									<h3 className="text-2xl font-bold text-gray-300 mb-2">
-										Chưa có tầng nào
-									</h3>
+									<h3 className="text-2xl font-bold text-gray-300 mb-2">No Floors Yet</h3>
 									<p className="text-gray-400 mb-6 text-center max-w-md">
-										Hãy tạo tầng đầu tiên để bắt đầu quản lý bàn ăn của nhà hàng
+										Create your first floor to start managing restaurant tables
 									</p>
 									<button
 										onClick={handleAddFloor}
 										className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-blue-500/50 hover:scale-105"
 									>
 										<span className="text-xl mr-2">➕</span>
-										Tạo Tầng Đầu Tiên
+										Create First Floor
 									</button>
 								</div>
 							) : tables.length > 0 || gridSize.rows > 0 ? (
@@ -2153,23 +2246,23 @@ const RestaurantTableManagement = () => {
 									<div className="flex items-center gap-4">
 										<div className="text-sm text-gray-400">
 											{floors.find((f) => f.id === currentFloorId)?.name ||
-												`Tầng ${currentPage}`}{' '}
+												`Floor ${currentPage}`}{' '}
 											({currentPage}/{totalPages})
 										</div>
 										<button
 											onClick={handleAddFloor}
 											className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-purple-800 transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-purple-500/50 flex items-center gap-2"
-											title="Thêm tầng mới"
+											title="Add new floor"
 										>
 											<span>🏢</span>
-											<span>Thêm Tầng</span>
+											<span>Add Floor</span>
 										</button>
 										<button
 											onClick={handleDeleteFloor}
 											className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 shadow-lg"
-											title="Xóa tầng hiện tại"
+											title="Delete current floor"
 										>
-											🗑️ Xóa Tầng
+											🗑️ Delete Floor
 										</button>
 									</div>
 
@@ -2241,8 +2334,10 @@ const RestaurantTableManagement = () => {
 				showConfirm={showConfirm}
 				showSuccess={showSuccess}
 				showError={showError}
+				showWarning={showWarning}
 				showLoading={showLoading}
 				hideLoading={hideLoading}
+				setRefreshTrigger={setRefreshTrigger}
 			/>
 
 			<AddTableModal

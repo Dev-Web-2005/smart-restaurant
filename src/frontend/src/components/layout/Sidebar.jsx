@@ -4,17 +4,13 @@ import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useNotifications } from '../../contexts/NotificationContext'
 
-// Menu cho Super Admin (Ví dụ)
+// Menu cho Super Admin - Chỉ còn User Management
 const adminNavItems = [
-	{ icon: 'dashboard', label: 'Dashboard', route: '/admin/dashboard' },
 	{
-		icon: 'storefront',
-		label: 'Tenant Management',
-		route: '/admin/tenant-management',
+		icon: 'group',
+		label: 'User Management',
+		route: '/admin/user-management',
 	},
-	{ icon: 'group', label: 'User Management', route: '/admin/user-management' },
-	{ icon: 'person', label: 'Profile', route: '/profile' },
-	{ icon: 'settings', label: 'System Settings', route: '/admin/settings' },
 ]
 
 // Menu cho Tenant Admin (Menu, Table, Order, Kitchen ở trên - Profile, Setting ở cuối)

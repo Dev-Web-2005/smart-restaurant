@@ -26,9 +26,15 @@ const {
 	refreshTokenAPI,
 } = USE_MOCK_API && mockAPI ? mockAPI : realAPI
 
-const UserContext = createContext()
+const UserContext = createContext(undefined)
 
-export const useUser = () => useContext(UserContext)
+export const useUser = () => {
+	const context = useContext(UserContext)
+	if (context === undefined) {
+		throw new Error('useUser must be used within a UserProvider')
+	}
+	return context
+}
 
 export const UserProvider = ({ children }) => {
 	const [user, setUser] = useState(null)
@@ -39,14 +45,25 @@ export const UserProvider = ({ children }) => {
 
 	/**
 	 * Map backend roles to frontend role names
+	 * Handles multiple formats:
+	 * - String array: ['ADMIN', 'USER']
+	 * - Object array: [{name: 'ADMIN'}, {name: 'USER'}]
 	 */
 	const mapUserRole = (roles) => {
 		if (!roles || roles.length === 0) return 'User'
-		if (roles.includes('ADMIN')) return 'Super Administrator'
-		if (roles.includes('CHEF')) return 'Chef'
-		if (roles.includes('STAFF')) return 'Staff'
-		if (roles.includes('CUSTOMER')) return 'Customer'
-		if (roles.includes('USER')) return 'User'
+
+		// Normalize roles to string array
+		const normalizedRoles = roles.map((role) => {
+			if (typeof role === 'string') return role
+			if (typeof role === 'object' && role.name) return role.name
+			return ''
+		})
+
+		if (normalizedRoles.includes('ADMIN')) return 'Super Administrator'
+		if (normalizedRoles.includes('CHEF')) return 'Chef'
+		if (normalizedRoles.includes('STAFF')) return 'Staff'
+		if (normalizedRoles.includes('CUSTOMER')) return 'Customer'
+		if (normalizedRoles.includes('USER')) return 'User'
 		return 'User'
 	}
 
@@ -204,10 +221,12 @@ export const UserProvider = ({ children }) => {
 
 					if (result.success) {
 						// ✅ Access token còn valid
+						const roles = result.user.roles || []
 						const userData = {
 							...result.user,
-							role: result.user.roles.includes('ADMIN') ? 'Super Administrator' : 'User',
+							role: mapUserRole(roles),
 							name: result.user.username,
+							ownerId: result.user.ownerId || null,
 						}
 						setUser(userData)
 						console.log('✅ Session restored from access token')

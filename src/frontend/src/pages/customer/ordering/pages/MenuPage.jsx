@@ -465,27 +465,21 @@ const MenuPage = ({ tenantId, onAddToCart, onBack }) => {
 						<div className="w-full max-w-4xl mb-8">
 							<div className="flex flex-col items-center gap-1 mb-4">
 								<div className="flex items-center gap-2">
-									<span className="material-symbols-outlined text-orange-400 text-2xl">
-										local_fire_department
-									</span>
 									<h2 className="text-xl font-bold text-white">Popular Dishes</h2>
 								</div>
-								<span className="text-[#9dabb9] text-sm">
-									Based on customer orders
-								</span>
 							</div>
-							<div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+							<div className="grid gap-2 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
 								{popularItems.map((item) => (
 									<motion.div
 										key={item.id}
 										initial={{ opacity: 0, y: 20 }}
 										animate={{ opacity: 1, y: 0 }}
 										transition={{ duration: 0.3 }}
-										className="group relative overflow-hidden rounded-xl backdrop-blur-xl bg-[#1A202C]/80 shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl border border-white/20 cursor-pointer flex h-24"
+										className="group relative overflow-hidden rounded-xl backdrop-blur-xl bg-[#1A202C]/80 shadow-lg transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl border border-white/20 cursor-pointer aspect-square"
 										onClick={() => handleViewDetails(item)}
 									>
-										{/* Image - Left side */}
-										<div className="w-24 h-24 flex-shrink-0 relative overflow-hidden">
+										{/* Image - Full card */}
+										<div className="w-full h-full relative overflow-hidden">
 											<img
 												src={
 													item.photos?.[0]?.url ||
@@ -498,48 +492,33 @@ const MenuPage = ({ tenantId, onAddToCart, onBack }) => {
 												}}
 											/>
 											{/* Order count badge */}
-											<div className="absolute top-1 left-1 px-1.5 py-0.5 bg-orange-500/90 rounded-full flex items-center gap-0.5">
-												<span className="material-symbols-outlined text-white text-[10px]">
+											<div className="absolute top-1 left-1 px-1.5 py-0.5 bg-orange-500/90 backdrop-blur-sm rounded-full flex items-center gap-0.5">
+												<span className="material-symbols-outlined text-white text-xs">
 													local_fire_department
 												</span>
-												<span className="text-white text-[10px] font-medium">
+												<span className="text-white text-xs font-bold">
 													{item.orderCount}
 												</span>
 											</div>
-										</div>
-										{/* Content - Right side */}
-										<div className="flex-1 p-3 flex flex-col justify-center min-w-0">
-											<div className="flex items-start gap-1">
-												<h3 className="text-sm font-bold text-white truncate flex-1">
-													{item.name}
-												</h3>
-												{/* Chef recommended badge */}
-												{item.isChefRecommended && (
-													<span className="material-symbols-outlined text-yellow-400 text-sm flex-shrink-0">
+											{/* Chef recommended badge */}
+											{item.isChefRecommended && (
+												<div className="absolute top-1 right-1 p-1 bg-yellow-500/90 backdrop-blur-sm rounded-full">
+													<span className="material-symbols-outlined text-white text-xs">
 														star
 													</span>
-												)}
-											</div>
-											{item.description && (
-												<p className="text-[#9dabb9] text-xs mt-1 line-clamp-1">
-													{item.description}
-												</p>
+												</div>
 											)}
-											<div className="flex items-center justify-between mt-2">
-												<span className="text-[#4ade80] font-bold text-sm">
+											{/* Name overlay on hover */}
+											<div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+												<h3 className="text-xs font-bold text-white line-clamp-2">
+													{item.name}
+												</h3>
+												<span className="text-[#4ade80] font-bold text-xs">
 													$
 													{typeof item.price === 'number'
 														? item.price.toFixed(2)
 														: item.price}
 												</span>
-												{item.prepTimeMinutes && (
-													<span className="text-[#9dabb9] text-xs flex items-center gap-0.5">
-														<span className="material-symbols-outlined text-xs">
-															schedule
-														</span>
-														{item.prepTimeMinutes}m
-													</span>
-												)}
 											</div>
 										</div>
 									</motion.div>
@@ -561,11 +540,11 @@ const MenuPage = ({ tenantId, onAddToCart, onBack }) => {
 									</h2>
 								</div>
 							</div>
-							<div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-								{[1, 2, 3, 4, 5, 6].map((i) => (
+							<div className="grid gap-2 grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+								{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
 									<div
 										key={i}
-										className="h-24 rounded-xl bg-[#1A202C]/50 animate-pulse border border-white/10"
+										className="aspect-square rounded-xl bg-[#1A202C]/50 animate-pulse border border-white/10"
 									/>
 								))}
 							</div>
@@ -577,9 +556,6 @@ const MenuPage = ({ tenantId, onAddToCart, onBack }) => {
 						<div className="w-full max-w-4xl mb-4">
 							<div className="flex flex-col items-center gap-1">
 								<div className="flex items-center gap-2">
-									<span className="material-symbols-outlined text-[#137fec] text-2xl">
-										category
-									</span>
 									<h2 className="text-xl font-bold text-white">Browse by Category</h2>
 								</div>
 							</div>

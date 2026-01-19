@@ -105,7 +105,7 @@ const RestaurantQRHandler = () => {
 			// Table QR - navigate directly to that table
 			const table = tableNumber || '0'
 			localStorage.setItem('currentTableNumber', table)
-			navigate(`/order/${ownerId}/table/${table}`)
+			navigate(`/tenant/${ownerId}/table/${table}`)
 		} else {
 			// Restaurant QR - show table selection
 			navigate(`/select-table/${ownerId}`)
