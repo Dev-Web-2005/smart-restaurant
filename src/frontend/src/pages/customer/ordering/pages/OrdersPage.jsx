@@ -7,7 +7,7 @@ import {
 } from '../../../../services/api/orderAPI'
 
 // Auto refresh interval (15 seconds)
-const AUTO_REFRESH_INTERVAL = 300000
+const AUTO_REFRESH_INTERVAL = 150000
 
 /**
  * Map backend order to customer-friendly display format
@@ -161,8 +161,6 @@ const OrdersPage = ({
 	const [loadingQr, setLoadingQr] = useState(false)
 	const [paymentError, setPaymentError] = useState(null)
 	const [paymentStep, setPaymentStep] = useState('bill') // 'bill' | 'qr' | 'success'
-	const [downloadingReceipt, setDownloadingReceipt] = useState(false)
-	const receiptRef = useRef(null)
 
 	// ✅ Auto refresh effect
 	useEffect(() => {
@@ -338,48 +336,6 @@ const OrdersPage = ({
 		}, 2000)
 	}
 
-	// ✅ Download receipt as image
-	const handleDownloadReceipt = async () => {
-		if (!receiptRef.current || !billData) return
-
-		setDownloadingReceipt(true)
-
-		try {
-			// Dynamically import html2canvas
-			const html2canvas = (await import('html2canvas')).default
-
-			// Capture the receipt element
-			const canvas = await html2canvas(receiptRef.current, {
-				backgroundColor: '#1A202C',
-				scale: 2, // Higher quality
-				logging: false,
-				allowTaint: true,
-				useCORS: true,
-			})
-
-			// Convert canvas to blob
-			canvas.toBlob((blob) => {
-				if (!blob) return
-
-				// Create download link
-				const url = URL.createObjectURL(blob)
-				const link = document.createElement('a')
-				const fileName = `receipt-${billData.order.orderId.slice(0, 8)}-${new Date().getTime()}.png`
-				link.href = url
-				link.download = fileName
-				document.body.appendChild(link)
-				link.click()
-				document.body.removeChild(link)
-				URL.revokeObjectURL(url)
-			}, 'image/png')
-		} catch (error) {
-			console.error('Error downloading receipt:', error)
-			alert('Failed to download receipt. Please try again.')
-		} finally {
-			setDownloadingReceipt(false)
-		}
-	}
-
 	// ✅ Close payment modal
 	const closePaymentModal = () => {
 		setShowPaymentModal(false)
@@ -468,46 +424,6 @@ const OrdersPage = ({
 							Track your order status and view history
 						</p>
 					</div>
-
-					{/* ✅ Auto Refresh Controls */}
-					{onRefresh && (
-						<div className="flex items-center gap-3">
-							{/* Auto refresh toggle */}
-							<button
-								onClick={() => setIsAutoRefreshEnabled(!isAutoRefreshEnabled)}
-								className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-all ${
-									isAutoRefreshEnabled
-										? 'bg-green-500/20 text-green-400 border border-green-500/30'
-										: 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-								}`}
-								title={
-									isAutoRefreshEnabled ? 'Disable auto refresh' : 'Enable auto refresh'
-								}
-							>
-								<span className="material-symbols-outlined text-base">
-									{isAutoRefreshEnabled ? 'sync' : 'sync_disabled'}
-								</span>
-								<span className="hidden sm:inline">
-									{isAutoRefreshEnabled ? `${countdown}s` : 'Off'}
-								</span>
-							</button>
-
-							{/* Manual refresh button */}
-							<button
-								onClick={handleManualRefresh}
-								disabled={loading}
-								className="flex items-center gap-2 px-3 py-1.5 bg-[#137fec]/20 text-[#137fec] rounded-lg text-sm hover:bg-[#137fec]/30 transition-all disabled:opacity-50 border border-[#137fec]/30"
-								title="Refresh now"
-							>
-								<span
-									className={`material-symbols-outlined text-base ${loading ? 'animate-spin' : ''}`}
-								>
-									refresh
-								</span>
-								<span className="hidden sm:inline">Refresh</span>
-							</button>
-						</div>
-					)}
 				</div>
 			</div>
 
@@ -727,9 +643,7 @@ const OrdersPage = ({
 
 								{/* Bill Content */}
 								{!loadingBill && billData && (
-								<>
-									{/* Receipt Container - for screenshot */}
-									<div ref={receiptRef} className="bg-[#1A202C] p-6 rounded-xl space-y-4 mb-4">
+									<div className="space-y-4">
 										<div className="flex justify-between text-sm">
 											<span className="text-[#9dabb9]">Date</span>
 											<span className="text-white">
@@ -738,6 +652,8 @@ const OrdersPage = ({
 													: 'N/A'}
 											</span>
 										</div>
+
+										{/* Payment Status Badge */}
 										<div className="flex justify-center">
 											<span className="px-4 py-2 bg-green-500/20 text-green-400 rounded-full text-sm font-medium border border-green-500/30">
 												✓ PAID
@@ -808,42 +724,21 @@ const OrdersPage = ({
 												</span>
 											</div>
 										</div>
+
+										{/* Actions */}
+										<div className="pt-4">
+											<button
+												onClick={handleFinalComplete}
+												className="w-full px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+											>
+												Done - Return to Menu
+											</button>
+										</div>
 									</div>
+								)}
 
-									{/* Actions */}
-									<div className="pt-4 space-y-3">
-										{/* Download Receipt Button */}
-										<button
-										onClick={handleDownloadReceipt}
-										disabled={downloadingReceipt}
-										className="w-full px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-									>
-										{downloadingReceipt ? (
-											<>
-												<span className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full"></span>
-												<span>Generating...</span>
-											</>
-										) : (
-											<>
-												<span className="material-symbols-outlined text-xl">download</span>
-												<span>Download Receipt</span>
-											</>
-										)}
-									</button>
-
-									{/* Done Button */}
-									<button
-										onClick={handleFinalComplete}
-										className="w-full px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
-									>
-										Done - Return to Menu
-									</button>
-								</div>
-								</>
-							)}
-
-							{/* Error or No Bill Yet */}
-							{!loadingBill && !billData && (
+								{/* Error or No Bill Yet */}
+								{!loadingBill && !billData && (
 									<div className="space-y-4">
 										{paymentError ? (
 											<div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4 text-center">

@@ -135,15 +135,15 @@ const WaiterPanel = () => {
 	// === HELP State (Keep existing logic) ===
 	const [helpRequests, setHelpRequests] = useState(mockHelpRequests)
 
-	// === Auto-refresh and Fullscreen State ===
-	const [autoRefresh, setAutoRefresh] = useState(true)
+	// === Fullscreen State ===
 	const [isFullscreen, setIsFullscreen] = useState(false)
 	const [lastUpdateTime, setLastUpdateTime] = useState(new Date())
 
 	// Debounce timer ref for WebSocket events - prevents "too many requests"
 	const fetchDebounceRef = useRef(null)
 	const isFetchingRef = useRef(false)
-	const refreshIntervalRef = useRef(null)
+	// Track tables being processed for batch serve
+	const [processingTables, setProcessingTables] = useState(new Set())
 
 	/**
 	 * Fetch orders from API - useCallback to stabilize function reference
@@ -523,6 +523,76 @@ const WaiterPanel = () => {
 	}
 
 	/**
+	 * Mark ALL ready items for a specific table as served (batch operation)
+	 * Similar to handleMarkServed but processes all READY items for a table at once
+	 * This emits 'order.items.served' WebSocket event for customer notification
+	 *
+	 * @param {string} orderId - Order ID
+	 * @param {string} tableName - Table name for display
+	 */
+	const handleServeAllForTable = async (orderId, tableName) => {
+		// Get all READY items for this order
+		const order = orders.find((o) => o.id === orderId)
+		if (!order) {
+			console.error('❌ Order not found:', orderId)
+			return
+		}
+
+		const readyItems = order.items.filter((item) => item.status === ITEM_STATUS.READY)
+		if (readyItems.length === 0) {
+			console.warn('⚠️ No ready items to serve for this table')
+			return
+		}
+
+		const tableKey = `${orderId}-${tableName}`
+		// Prevent double-click
+		if (processingTables.has(tableKey)) {
+			console.warn('⚠️ Already processing table:', tableName)
+			return
+		}
+
+		try {
+			const tenantId = user?.ownerId || ownerId || localStorage.getItem('currentTenantId')
+			const waiterId = user?.userId
+
+			if (!tenantId || !waiterId) {
+				console.error('❌ Missing tenantId or waiterId')
+				return
+			}
+
+			// Mark table as processing
+			setProcessingTables((prev) => new Set(prev).add(tableKey))
+
+			const itemIds = readyItems.map((item) => item.id)
+			console.log(`✅ Serving all ${itemIds.length} ready items for ${tableName}`)
+
+			// Call API to mark all items served - uses PATCH /items-status with status='SERVED'
+			await markItemsServedAPI({
+				tenantId,
+				orderId,
+				itemIds,
+				waiterId,
+			})
+
+			console.log(`✅ All items served for ${tableName}`)
+			showSuccess(`All items served for ${tableName}`)
+
+			// Refresh orders to get updated status
+			await fetchOrders(true)
+		} catch (error) {
+			console.error('❌ Error serving all items for table:', error)
+			alert(error.response?.data?.message || 'Failed to serve items')
+		} finally {
+			// Remove from processing
+			setProcessingTables((prev) => {
+				const next = new Set(prev)
+				next.delete(tableKey)
+				return next
+			})
+		}
+	}
+
+	/**
 	 * Initial load
 	 */
 	useEffect(() => {
@@ -547,25 +617,6 @@ const WaiterPanel = () => {
 
 		initialize()
 	}, [fetchOrders]) // Run once on mount with fetchOrders dependency
-
-	/**
-	 * Auto-refresh every 30 seconds (like KitchenDisplay)
-	 */
-	useEffect(() => {
-		if (autoRefresh) {
-			refreshIntervalRef.current = setInterval(async () => {
-				await fetchOrders(true) // silent refresh
-				setLastUpdateTime(new Date())
-			}, 30000) // 30 seconds
-		}
-
-		return () => {
-			if (refreshIntervalRef.current) {
-				clearInterval(refreshIntervalRef.current)
-				refreshIntervalRef.current = null
-			}
-		}
-	}, [autoRefresh, fetchOrders])
 
 	/**
 	 * WebSocket setup - Separate useEffect to prevent reconnections
@@ -1132,6 +1183,7 @@ const WaiterPanel = () => {
 											{expandedOrders.has(order.id) && (
 												<div className="border-t border-white/10 p-4 space-y-3">
 													{/* Bulk Actions for PENDING orders - Right aligned compact */}
+													{/* Bulk Actions for PENDING orders */}
 													{ordersView === 'PENDING' &&
 														order.items.some(
 															(item) => item.status === ITEM_STATUS.PENDING,
@@ -1174,6 +1226,41 @@ const WaiterPanel = () => {
 																		check
 																	</span>
 																	Accept All
+																</button>
+															</div>
+														)}
+
+													{/* Bulk Serve All for READY orders - per table */}
+													{ordersView === 'READY' &&
+														order.items.some(
+															(item) => item.status === ITEM_STATUS.READY,
+														) && (
+															<div className="flex justify-end gap-2 mb-3">
+																<button
+																	onClick={() =>
+																		handleServeAllForTable(
+																			order.id,
+																			order.snapshotTableName ||
+																				order.table?.name ||
+																				`Table ${order.tableId?.slice(0, 8)}`,
+																		)
+																	}
+																	disabled={processingTables.has(
+																		`${order.id}-${order.snapshotTableName || order.table?.name || `Table ${order.tableId?.slice(0, 8)}`}`,
+																	)}
+																	title="Serve all ready items for this table"
+																	className="px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded text-sm font-medium transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+																>
+																	<span className="material-symbols-outlined text-base">
+																		check_circle
+																	</span>
+																	Serve All (
+																	{
+																		order.items.filter(
+																			(i) => i.status === ITEM_STATUS.READY,
+																		).length
+																	}
+																	)
 																</button>
 															</div>
 														)}
@@ -1283,26 +1370,15 @@ const WaiterPanel = () => {
 																</div>
 															</div>
 
-															<div className="flex gap-2">
-																<button
-																	onClick={() => handleMarkPaid(order.id, 'CASH')}
-																	className="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors"
-																>
-																	💵 Cash
-																</button>
-																<button
-																	onClick={() => handleMarkPaid(order.id, 'CARD')}
-																	className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
-																>
-																	💳 Card
-																</button>
-																<button
-																	onClick={() => handleMarkPaid(order.id, 'MOMO')}
-																	className="flex-1 px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-medium transition-colors"
-																>
-																	📱 MoMo
-																</button>
-															</div>
+															<button
+																onClick={() => handleMarkPaid(order.id, 'CASH')}
+																className="w-full px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+															>
+																<span className="material-symbols-outlined">
+																	payments
+																</span>
+																Mark as Paid (Cash)
+															</button>
 														</div>
 													)}
 												</div>
@@ -1362,28 +1438,6 @@ const WaiterPanel = () => {
 						)}
 					</div>
 				)}
-			</div>
-
-			{/* Footer Info - Auto-refresh status and last update time */}
-			<div className="fixed bottom-3 right-3 sm:bottom-4 sm:right-4 bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-2 sm:p-3 text-xs text-gray-400">
-				<div className="flex items-center gap-2">
-					<span
-						className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-green-500' : 'bg-gray-500'}`}
-					/>
-					<span className="hidden sm:inline">
-						Auto-refresh {autoRefresh ? 'ON' : 'OFF'}
-					</span>
-					<span className="sm:hidden">{autoRefresh ? 'Auto' : 'Manual'}</span>
-					<button
-						onClick={() => setAutoRefresh(!autoRefresh)}
-						className="ml-1 sm:ml-2 px-2 py-0.5 bg-white/10 hover:bg-white/20 rounded text-xs transition-colors"
-					>
-						{autoRefresh ? 'Off' : 'On'}
-					</button>
-				</div>
-				<div className="mt-1 text-gray-500 text-[10px] sm:text-xs">
-					{lastUpdateTime.toLocaleTimeString()}
-				</div>
 			</div>
 		</div>
 	)

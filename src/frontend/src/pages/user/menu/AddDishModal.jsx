@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
 import ReactDOM from 'react-dom'
 import { uploadFile } from '../../../services/api/fileAPI'
+import { useAlert } from '../../../contexts/AlertContext'
 
 const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) => {
+	const { showWarning, showError } = useAlert()
 	const modalRef = useRef(null)
 	const nameInputRef = useRef(null)
 	const priceInputRef = useRef(null)
@@ -107,7 +109,8 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 		// Limit to 5 images
 		const remainingSlots = 5 - images.length
 		if (files.length > remainingSlots) {
-			alert(
+			showWarning(
+				'Image Limit',
 				`You can only upload ${remainingSlots} more image(s). Maximum 5 images per item.`,
 			)
 			return
@@ -162,7 +165,7 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 									...img,
 									uploading: false,
 									error: error.message || 'Upload failed',
-							  }
+								}
 							: img,
 					),
 				)
@@ -214,14 +217,15 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 
 		// Check if any image upload is still in progress
 		if (uploadingCount > 0) {
-			alert('Please wait for all image uploads to complete.')
+			showWarning('Please Wait', 'Please wait for all image uploads to complete.')
 			return
 		}
 
 		// Check if any image upload failed
 		const failedImages = images.filter((img) => img.error)
 		if (failedImages.length > 0) {
-			alert(
+			showWarning(
+				'Upload Failed',
 				`${failedImages.length} image(s) failed to upload. Please retry or remove them before saving.`,
 			)
 			return
@@ -256,7 +260,7 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 			onClose()
 		} catch (error) {
 			console.error('❌ Error submitting dish:', error)
-			alert(error.message || 'Failed to save dish. Please try again.')
+			showError('Error', error.message || 'Failed to save dish. Please try again.')
 		} finally {
 			setLoading(false)
 		}
@@ -406,7 +410,7 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 													? {
 															backgroundImage: `url(${image.preview})`,
 															border: 'none',
-													  }
+														}
 													: {}
 											}
 										>
@@ -520,8 +524,8 @@ const AddDishModal = ({ isOpen, onClose, onSave, categorySlug, categoryName }) =
 									uploadingCount > 0
 										? 'Please wait for all image uploads to complete'
 										: images.some((img) => img.error)
-										? 'Please fix image upload errors before saving'
-										: ''
+											? 'Please fix image upload errors before saving'
+											: ''
 								}
 							>
 								{loading ? (

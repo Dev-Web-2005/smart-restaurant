@@ -105,11 +105,6 @@ const Sidebar = ({ activeRoute, userProfile, handleLogout, isCollapsed, onToggle
 										{item.icon}
 									</span>
 									<p className="truncate flex-1">{item.label}</p>
-									{notificationCount > 0 && (
-										<span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 bg-red-500 text-white text-xs font-bold rounded-full shadow-lg">
-											{notificationCount}
-										</span>
-									)}
 								</button>
 							)
 						})}

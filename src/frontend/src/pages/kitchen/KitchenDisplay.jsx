@@ -200,13 +200,11 @@ const KitchenDisplay = () => {
 	const [sortBy, setSortBy] = useState('OLDEST') // OLDEST, NEWEST, PRIORITY
 	const [showStats, setShowStats] = useState(false)
 	const [isFullscreen, setIsFullscreen] = useState(false)
-	const [autoRefresh, setAutoRefresh] = useState(true)
 	const [lastUpdateTime, setLastUpdateTime] = useState(new Date())
 
 	// Debounce refs to prevent "too many requests" error
 	const fetchDebounceRef = useRef(null)
 	const isFetchingRef = useRef(false)
-	const refreshIntervalRef = useRef(null)
 	const lastFetchRef = useRef(0)
 	const pendingActionsRef = useRef(new Set()) // ✅ Track pending actions to prevent double-click
 
@@ -844,23 +842,6 @@ const KitchenDisplay = () => {
 	}, [ticketUpdates, clearTicketUpdates, debouncedFetchKitchenData])
 
 	/**
-	 * Auto-refresh every 30 seconds
-	 */
-	useEffect(() => {
-		if (autoRefresh) {
-			refreshIntervalRef.current = setInterval(() => {
-				fetchKitchenData(true) // Silent refresh
-			}, 30000)
-		}
-
-		return () => {
-			if (refreshIntervalRef.current) {
-				clearInterval(refreshIntervalRef.current)
-			}
-		}
-	}, [autoRefresh, fetchKitchenData])
-
-	/**
 	 * Initial load
 	 */
 	useEffect(() => {
@@ -893,16 +874,7 @@ const KitchenDisplay = () => {
 							<h1 className="text-xl md:text-2xl font-bold text-white">
 								Kitchen Display
 							</h1>
-							<div className="flex items-center gap-2">
-								<span
-									className={`w-3 h-3 rounded-full ${
-										isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'
-									}`}
-								/>
-								<span className="text-sm text-gray-400">
-									{isConnected ? 'Live' : 'Offline'}
-								</span>
-							</div>
+
 							{/* User info */}
 							<div className="flex items-center gap-2 ml-auto lg:ml-0">
 								<span className="text-sm text-gray-400">
@@ -1075,19 +1047,6 @@ const KitchenDisplay = () => {
 						))}
 					</div>
 				)}
-			</div>
-
-			{/* Footer Info */}
-			<div className="fixed bottom-4 right-4 bg-white/5 backdrop-blur-md rounded-lg border border-white/10 p-3 text-xs text-gray-400">
-				<div className="flex items-center gap-2">
-					<span
-						className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-green-500' : 'bg-gray-500'}`}
-					/>
-					<span>Auto-refresh {autoRefresh ? 'ON' : 'OFF'}</span>
-				</div>
-				<div className="mt-1 text-gray-500">
-					Updated: {lastUpdateTime.toLocaleTimeString()}
-				</div>
 			</div>
 		</div>
 	)
