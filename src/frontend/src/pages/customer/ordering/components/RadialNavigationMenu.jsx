@@ -215,10 +215,41 @@ const RadialNavigationMenu = ({
 
 	// Handle successful authentication
 	const handleAuthSuccess = (customerData) => {
-		// Reload customer auth from localStorage
-		loadCustomerAuth()
-		// Navigate to profile page
-		setView('PROFILE')
+		// Handle guest mode
+		if (customerData?.isGuest) {
+			console.log('🚶 Guest mode enabled from RadialNavigationMenu')
+			localStorage.setItem('isGuestMode', 'true')
+			// Remove any existing auth tokens for guest
+			localStorage.removeItem('authToken')
+			localStorage.removeItem('customerAuth')
+			localStorage.removeItem('customerData')
+			// Set guest placeholder in state
+			setCustomerAuth({ isGuest: true })
+		} else {
+			// Normal login - store customer data
+			localStorage.setItem('isGuestMode', 'false')
+
+			// ✅ Store access token for persistence (used to restore window.accessToken on refresh)
+			if (customerData?.accessToken) {
+				localStorage.setItem('authToken', customerData.accessToken)
+				window.accessToken = customerData.accessToken // Ensure it's also in memory
+				console.log('✅ Stored access token for persistence')
+			} else if (customerData?.token) {
+				localStorage.setItem('authToken', customerData.token)
+				window.accessToken = customerData.token
+				console.log('✅ Stored token for persistence')
+			}
+
+			if (customerData) {
+				// Store in customerAuth (used by ProfilePage)
+				localStorage.setItem('customerAuth', JSON.stringify(customerData))
+			}
+
+			// Reload customer auth from localStorage
+			loadCustomerAuth()
+			// Navigate to profile page (only for non-guest users)
+			setView('PROFILE')
+		}
 		// Close auth modal
 		setShowAuthModal(false)
 	}

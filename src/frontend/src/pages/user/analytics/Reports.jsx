@@ -450,9 +450,20 @@ const PopularItemsTrend = ({ data, loading, error, onRetry }) => {
 		CHART_COLORS.pink,
 	]
 
+	// Calculate totalQuantity and totalRevenue from dailyData if not provided
+	const processedData = data.map((item) => {
+		const totalQuantity =
+			item.totalQuantity ??
+			(item.dailyData?.reduce((sum, d) => sum + (d.quantity || 0), 0) || 0)
+		const totalRevenue =
+			item.totalRevenue ??
+			(item.dailyData?.reduce((sum, d) => sum + (d.revenue || 0), 0) || 0)
+		return { ...item, totalQuantity, totalRevenue }
+	})
+
 	return (
 		<div className="space-y-4">
-			{data.map((item, index) => (
+			{processedData.map((item, index) => (
 				<div
 					key={item.menuItemId || index}
 					className="p-3 bg-white/5 backdrop-blur-sm rounded-lg border border-white/5"
@@ -465,9 +476,14 @@ const PopularItemsTrend = ({ data, loading, error, onRetry }) => {
 							/>
 							<span className="text-white font-medium truncate">{item.menuItemName}</span>
 						</div>
-						<span className="text-gray-400 text-sm flex-shrink-0">
-							Total: {formatNumber(item.totalQuantity)} units
-						</span>
+						<div className="flex flex-col items-end text-sm flex-shrink-0">
+							<span className="text-gray-400">
+								Qty: {formatNumber(item.totalQuantity)} units
+							</span>
+							<span className="text-green-400 text-xs">
+								{formatCurrency(item.totalRevenue)}
+							</span>
+						</div>
 					</div>
 					{item.dailyData && item.dailyData.length > 0 && (
 						<div className="h-[60px]">
@@ -561,20 +577,66 @@ const Reports = () => {
 		analytics: null,
 	})
 
-	// =============== DEBOUNCE HELPER ===============
-	const DEBOUNCE_DELAY = 500 // ms
+	// Request queue to prevent rate limiting (5 API/s limit)
+	const requestQueueRef = useRef([])
+	const isProcessingQueueRef = useRef(false)
+	const lastRequestTimeRef = useRef(0)
+	const MIN_REQUEST_INTERVAL = 250 // ms between requests (allows max ~4 requests/sec)
 
-	const debouncedFetch = useCallback((key, fetchFn) => {
-		// Clear existing timeout
-		if (fetchTimeoutRefs.current[key]) {
-			clearTimeout(fetchTimeoutRefs.current[key])
+	// =============== DEBOUNCE HELPER ===============
+	const DEBOUNCE_DELAY = 1200 // ms - increased to reduce rapid API calls
+
+	// Process request queue with rate limiting
+	const processRequestQueue = useCallback(async () => {
+		if (isProcessingQueueRef.current || requestQueueRef.current.length === 0) return
+
+		isProcessingQueueRef.current = true
+
+		while (requestQueueRef.current.length > 0) {
+			const timeSinceLastRequest = Date.now() - lastRequestTimeRef.current
+			const waitTime = Math.max(0, MIN_REQUEST_INTERVAL - timeSinceLastRequest)
+
+			if (waitTime > 0) {
+				await new Promise((resolve) => setTimeout(resolve, waitTime))
+			}
+
+			const fetchFn = requestQueueRef.current.shift()
+			if (fetchFn) {
+				lastRequestTimeRef.current = Date.now()
+				try {
+					await fetchFn()
+				} catch (error) {
+					console.error('Queue request error:', error)
+				}
+			}
 		}
 
-		// Set new timeout
-		fetchTimeoutRefs.current[key] = setTimeout(() => {
-			fetchFn()
-		}, DEBOUNCE_DELAY)
+		isProcessingQueueRef.current = false
 	}, [])
+
+	// Add request to queue with rate limiting
+	const queueRequest = useCallback(
+		(fetchFn) => {
+			requestQueueRef.current.push(fetchFn)
+			processRequestQueue()
+		},
+		[processRequestQueue],
+	)
+
+	const debouncedFetch = useCallback(
+		(key, fetchFn) => {
+			// Clear existing timeout
+			if (fetchTimeoutRefs.current[key]) {
+				clearTimeout(fetchTimeoutRefs.current[key])
+			}
+
+			// Set new timeout with queue
+			fetchTimeoutRefs.current[key] = setTimeout(() => {
+				queueRequest(fetchFn)
+			}, DEBOUNCE_DELAY)
+		},
+		[queueRequest],
+	)
 
 	// =============== FETCH FUNCTIONS ===============
 
@@ -704,18 +766,19 @@ const Reports = () => {
 		setIsRefreshing(true)
 		clearReportCache()
 
-		// Clear any pending debounced fetches
+		// Clear any pending debounced fetches and queue
 		Object.values(fetchTimeoutRefs.current).forEach((timeout) => {
 			if (timeout) clearTimeout(timeout)
 		})
+		requestQueueRef.current = [] // Clear pending queue
 
 		try {
-			// Fetch sequentially with small delays to avoid rate limiting
+			// Fetch sequentially with 300ms delays to stay under 5 API/s rate limit
 			await fetchRevenueReport(false)
-			await new Promise((resolve) => setTimeout(resolve, 150))
+			await new Promise((resolve) => setTimeout(resolve, 300))
 
 			await fetchTopItemsReport(false)
-			await new Promise((resolve) => setTimeout(resolve, 150))
+			await new Promise((resolve) => setTimeout(resolve, 300))
 
 			await fetchAnalyticsReport(false)
 
@@ -754,7 +817,7 @@ const Reports = () => {
 		const fetchAllReports = async () => {
 			setInitialLoadDone(true)
 
-			// Fetch sequentially with small delays to avoid "too many requests"
+			// Fetch sequentially with 300ms delays to stay under 5 API/s rate limit
 			try {
 				// 1. Fetch revenue report first
 				setRevenueLoading(true)
@@ -768,8 +831,8 @@ const Reports = () => {
 				}
 				setRevenueLoading(false)
 
-				// Small delay before next request
-				await new Promise((resolve) => setTimeout(resolve, 100))
+				// 300ms delay before next request (max ~3 requests/sec to be safe)
+				await new Promise((resolve) => setTimeout(resolve, 300))
 
 				// 2. Fetch top items report
 				setTopItemsLoading(true)
@@ -785,8 +848,8 @@ const Reports = () => {
 				}
 				setTopItemsLoading(false)
 
-				// Small delay before next request
-				await new Promise((resolve) => setTimeout(resolve, 100))
+				// 300ms delay before next request
+				await new Promise((resolve) => setTimeout(resolve, 300))
 
 				// 3. Fetch analytics report
 				setAnalyticsLoading(true)
@@ -910,7 +973,7 @@ const Reports = () => {
 						icon="payments"
 						label="Total Revenue"
 						value={formatCurrency(analyticsData.summary.totalRevenue)}
-						subValue={`Currency: ${analyticsData.summary.currency || 'VND'}`}
+						subValue={`Currency: ${analyticsData.summary.currency || 'USD'}`}
 						color="green"
 					/>
 					<SummaryCard
@@ -1116,7 +1179,7 @@ const Reports = () => {
 						</span>
 					</div>
 					<div className="flex items-center gap-4 text-xs text-gray-500">
-						<span>Currency: VND</span>
+						<span>Currency: USD</span>
 						<span>•</span>
 						<span>Tenant ID: {tenantId?.substring(0, 8)}...</span>
 					</div>

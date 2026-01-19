@@ -5,7 +5,7 @@ import apiClient from '../../../services/apiClient'
 /**
  * Table Selection Page
  * Route: /select-table/:ownerId
- * 
+ *
  * After customer logs in via restaurant QR (no specific table),
  * they select which table they're sitting at.
  */
@@ -22,7 +22,7 @@ const SelectTable = () => {
 				setLoading(true)
 				// Fetch available tables for this restaurant (public endpoint)
 				const response = await apiClient.get(`/public/tenants/${ownerId}/tables`)
-				
+
 				if (response.data && Array.isArray(response.data)) {
 					setTables(response.data)
 				} else if (response.data.code === 200 && response.data.data) {
@@ -47,7 +47,7 @@ const SelectTable = () => {
 		// Save selected table
 		localStorage.setItem('currentTableNumber', tableNumber.toString())
 		// Navigate to ordering interface
-		navigate(`/order/${ownerId}/table/${tableNumber}`)
+		navigate(`/tenant/${ownerId}/table/${tableNumber}`)
 	}
 
 	if (loading) {
@@ -102,13 +102,15 @@ const SelectTable = () => {
 								{table.tableName && (
 									<div className="text-sm text-gray-500">{table.tableName}</div>
 								)}
-								<div className={`mt-3 px-3 py-1 rounded-full text-xs font-semibold ${
-									table.status === 'AVAILABLE' 
-										? 'bg-green-100 text-green-700'
-										: table.status === 'OCCUPIED'
-										? 'bg-red-100 text-red-700'
-										: 'bg-yellow-100 text-yellow-700'
-								}`}>
+								<div
+									className={`mt-3 px-3 py-1 rounded-full text-xs font-semibold ${
+										table.status === 'AVAILABLE'
+											? 'bg-green-100 text-green-700'
+											: table.status === 'OCCUPIED'
+												? 'bg-red-100 text-red-700'
+												: 'bg-yellow-100 text-yellow-700'
+									}`}
+								>
 									{table.status || 'Available'}
 								</div>
 							</div>
@@ -120,7 +122,9 @@ const SelectTable = () => {
 					<div className="text-center bg-white/10 backdrop-blur-md rounded-2xl p-12">
 						<div className="text-6xl mb-4">🍽️</div>
 						<h2 className="text-2xl font-bold text-white mb-2">No Tables Available</h2>
-						<p className="text-white/80">Please contact restaurant staff for assistance.</p>
+						<p className="text-white/80">
+							Please contact restaurant staff for assistance.
+						</p>
 					</div>
 				)}
 			</div>

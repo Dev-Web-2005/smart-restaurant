@@ -1823,44 +1823,16 @@ const OrderManagement = () => {
 																handleMarkPaid(order.id, 'CASH')
 															}}
 															disabled={processingOrders.has(order.id)}
-															className={`flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+															className={`flex-1 px-4 py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
 																processingOrders.has(order.id)
 																	? 'opacity-50 cursor-not-allowed'
 																	: ''
 															}`}
 														>
 															<span>💵</span>
-															{processingOrders.has(order.id) ? 'Processing...' : 'Cash'}
-														</button>
-														<button
-															onClick={(e) => {
-																e.stopPropagation()
-																handleMarkPaid(order.id, 'CARD')
-															}}
-															disabled={processingOrders.has(order.id)}
-															className={`flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
-																processingOrders.has(order.id)
-																	? 'opacity-50 cursor-not-allowed'
-																	: ''
-															}`}
-														>
-															<span>💳</span>
-															{processingOrders.has(order.id) ? 'Processing...' : 'Card'}
-														</button>
-														<button
-															onClick={(e) => {
-																e.stopPropagation()
-																handleMarkPaid(order.id, 'MOMO')
-															}}
-															disabled={processingOrders.has(order.id)}
-															className={`flex-1 px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
-																processingOrders.has(order.id)
-																	? 'opacity-50 cursor-not-allowed'
-																	: ''
-															}`}
-														>
-															<span>📱</span>
-															{processingOrders.has(order.id) ? 'Processing...' : 'MoMo'}
+															{processingOrders.has(order.id)
+																? 'Processing...'
+																: 'Pay with Cash'}
 														</button>
 													</div>
 

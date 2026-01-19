@@ -42,20 +42,28 @@ const ProtectedRoute = ({ children, allowedRoles = [], requireTenant = false }) 
 	}
 
 	// Map role từ backend sang frontend - STRICT validation
+	// Handles multiple formats: string array or object array
 	const getUserRole = () => {
 		// Always prefer roles array from backend
 		const roles = user.roles || []
 
+		// Normalize roles to string array (handle both ['ADMIN'] and [{name: 'ADMIN'}])
+		const normalizedRoles = roles.map((role) => {
+			if (typeof role === 'string') return role
+			if (typeof role === 'object' && role.name) return role.name
+			return ''
+		})
+
 		// Check for ADMIN role first (highest priority)
-		if (roles.includes('ADMIN')) return 'Super Administrator'
+		if (normalizedRoles.includes('ADMIN')) return 'Super Administrator'
 		// Check for CHEF role - tenant-specific role
-		if (roles.includes('CHEF')) return 'Chef'
+		if (normalizedRoles.includes('CHEF')) return 'Chef'
 		// Check for STAFF (waiter) role - tenant-specific role
-		if (roles.includes('STAFF')) return 'Staff'
+		if (normalizedRoles.includes('STAFF')) return 'Staff'
 		// Check for CUSTOMER role - tenant-specific role
-		if (roles.includes('CUSTOMER')) return 'Customer'
+		if (normalizedRoles.includes('CUSTOMER')) return 'Customer'
 		// Check for USER (restaurant owner) role
-		if (roles.includes('USER')) return 'User'
+		if (normalizedRoles.includes('USER')) return 'User'
 
 		// Fallback to user.role if roles array is empty (legacy support)
 		// But validate it's a known role

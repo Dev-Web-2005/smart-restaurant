@@ -4,11 +4,13 @@ import FloatingInputField from '../../components/form/FloatingInputField'
 import PasswordStrengthIndicator from '../../components/form/PasswordStrengthIndicator'
 import BackgroundImage from '../../components/common/BackgroundImage'
 import { useLoading } from '../../contexts/LoadingContext'
+import { useAlert } from '../../contexts/AlertContext'
 
 const ResetPassword = () => {
 	const navigate = useNavigate()
 	const [searchParams] = useSearchParams()
 	const { showLoading, hideLoading } = useLoading()
+	const { showSuccess, showError } = useAlert()
 
 	const [formData, setFormData] = useState({
 		password: '',
@@ -16,17 +18,16 @@ const ResetPassword = () => {
 	})
 	const [passwordVisible, setPasswordVisible] = useState(false)
 	const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false)
-	const [errorMessage, setErrorMessage] = useState('')
-	const [successMessage, setSuccessMessage] = useState('')
 	const [loading, setLoading] = useState(false)
 	const [tokenValid, setTokenValid] = useState(true)
+	const [tokenErrorMessage, setTokenErrorMessage] = useState('')
 
 	const token = searchParams.get('token')
 
 	useEffect(() => {
 		if (!token) {
 			setTokenValid(false)
-			setErrorMessage(
+			setTokenErrorMessage(
 				'Invalid or missing reset token. Please request a new password reset link.',
 			)
 		}
@@ -39,22 +40,20 @@ const ResetPassword = () => {
 
 	const handleSubmit = async (e) => {
 		e.preventDefault()
-		setErrorMessage('')
-		setSuccessMessage('')
 
 		// Validation
 		if (!formData.password.trim()) {
-			setErrorMessage('Password is required.')
+			showError('Validation Error', 'Password is required.')
 			return
 		}
 
 		if (formData.password.length < 8) {
-			setErrorMessage('Password must be at least 8 characters long.')
+			showError('Validation Error', 'Password must be at least 8 characters long.')
 			return
 		}
 
 		if (formData.password !== formData.confirmPassword) {
-			setErrorMessage('Passwords do not match.')
+			showError('Validation Error', 'Passwords do not match.')
 			return
 		}
 
@@ -77,22 +76,35 @@ const ResetPassword = () => {
 
 			const data = await response.json()
 
-			if (response.ok && data.code === 1000) {
-				setSuccessMessage('Password reset successfully! Redirecting to login...')
+			if (response.ok && data.code === 200) {
+				showSuccess(
+					'Success',
+					'Password reset successfully! Redirecting to login...',
+					3000,
+				)
 				setTimeout(() => {
 					navigate('/login')
 				}, 3000)
 			} else {
 				if (data.message?.includes('expired')) {
-					setErrorMessage('Reset link has expired. Please request a new one.')
+					showError(
+						'Token Expired',
+						'Reset link has expired. Please request a new one.',
+						5000,
+					)
 					setTokenValid(false)
+					setTokenErrorMessage('Reset link has expired. Please request a new one.')
 				} else {
-					setErrorMessage(data.message || 'Failed to reset password. Please try again.')
+					showError(
+						'Reset Failed',
+						data.message || 'Failed to reset password. Please try again.',
+						5000,
+					)
 				}
 			}
 		} catch (error) {
 			console.error('Reset password error:', error)
-			setErrorMessage('An error occurred. Please try again later.')
+			showError('Error', 'An error occurred. Please try again later.', 5000)
 		} finally {
 			setLoading(false)
 			hideLoading()
@@ -119,7 +131,7 @@ const ResetPassword = () => {
 					{!tokenValid ? (
 						<div className="text-center">
 							<div className="text-sm text-red-400 bg-red-600/10 p-4 rounded-lg mb-6">
-								{errorMessage}
+								{tokenErrorMessage}
 							</div>
 							<Link
 								to="/forgot-password"
@@ -130,20 +142,6 @@ const ResetPassword = () => {
 						</div>
 					) : (
 						<form className="flex flex-col gap-5" onSubmit={handleSubmit}>
-							{/* Error Message */}
-							{errorMessage && (
-								<div className="text-sm text-red-400 bg-red-600/10 p-3 rounded-lg text-center">
-									{errorMessage}
-								</div>
-							)}
-
-							{/* Success Message */}
-							{successMessage && (
-								<div className="text-sm text-green-400 bg-green-600/10 p-3 rounded-lg text-center">
-									{successMessage}
-								</div>
-							)}
-
 							{/* New Password Input */}
 							<div>
 								<div className="relative">

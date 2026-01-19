@@ -1100,9 +1100,9 @@ const ModifierGroupEditor = ({ group, onSave, onCancel, saving }) => {
 										option.priceDelta !== undefined && option.priceDelta !== null
 											? option.priceDelta
 											: option.priceAdjustment !== undefined &&
-											  option.priceAdjustment !== null
-											? option.priceAdjustment
-											: ''
+												  option.priceAdjustment !== null
+												? option.priceAdjustment
+												: ''
 									}
 									onChange={(e) => {
 										const value = e.target.value
@@ -2441,7 +2441,7 @@ const EditCategoryModal = ({ isOpen, onClose, onSave, categoryData }) => {
 											? {
 													backgroundImage: `url(${previewImage})`,
 													border: 'none',
-											  }
+												}
 											: {}
 									}
 								>
@@ -3059,9 +3059,7 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 												: 'bg-gray-500/20 text-gray-400'
 										}`}
 									>
-										{categoryDetail.status === 'ACTIVE'
-											? 'Đang hoạt động'
-											: 'Không hoạt động'}
+										{categoryDetail.status === 'ACTIVE' ? 'Active' : 'Inactive'}
 									</span>
 									<span className="text-xs text-[#9dabb9]">
 										Thứ tự: {categoryDetail.displayOrder}

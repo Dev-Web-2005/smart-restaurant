@@ -57,8 +57,8 @@ const AddTableModal = ({ isOpen, onClose, onSave, existingTables, floor, floorId
 			)
 
 			if (isDuplicate) {
-				setErrors((prev) => ({ ...prev, name: 'Tên bàn đã tồn tại' }))
-			} else if (errors.name === 'Tên bàn đã tồn tại') {
+				setErrors((prev) => ({ ...prev, name: 'Table name already exists' }))
+			} else if (errors.name === 'Table name already exists') {
 				// Xóa lỗi nếu đã hết trùng
 				setErrors((prev) => ({ ...prev, name: '' }))
 			}
@@ -70,10 +70,10 @@ const AddTableModal = ({ isOpen, onClose, onSave, existingTables, floor, floorId
 		if (debouncedCapacity.trim()) {
 			const capacity = parseInt(debouncedCapacity)
 			if (isNaN(capacity)) {
-				setErrors((prev) => ({ ...prev, capacity: 'Sức chứa phải là số' }))
+				setErrors((prev) => ({ ...prev, capacity: 'Capacity must be a number' }))
 			} else if (capacity < 1 || capacity > 20) {
-				setErrors((prev) => ({ ...prev, capacity: 'Sức chứa phải từ 1-20' }))
-			} else if (errors.capacity && !errors.capacity.includes('bắt buộc')) {
+				setErrors((prev) => ({ ...prev, capacity: 'Capacity must be between 1-20' }))
+			} else if (errors.capacity && !errors.capacity.includes('required')) {
 				// Xóa lỗi nếu hợp lệ (trừ lỗi "bắt buộc")
 				setErrors((prev) => ({ ...prev, capacity: '' }))
 			}
@@ -85,13 +85,13 @@ const AddTableModal = ({ isOpen, onClose, onSave, existingTables, floor, floorId
 
 		// Validate name (required)
 		if (!formData.name.trim()) {
-			newErrors.name = 'Tên bàn là bắt buộc'
+			newErrors.name = 'Table name is required'
 		}
 
 		// Validate capacity (required)
 		const capacityStr = formData.capacity.trim()
 		if (!capacityStr) {
-			newErrors.capacity = 'Sức chứa là bắt buộc'
+			newErrors.capacity = 'Capacity is required'
 		}
 
 		// Merge với errors hiện tại (đã được validate real-time)
@@ -148,7 +148,7 @@ const AddTableModal = ({ isOpen, onClose, onSave, existingTables, floor, floorId
 				>
 					<div className="sticky top-0 z-10 bg-gradient-to-br from-gray-900 via-black to-gray-900 pb-4 mb-6 border-b border-white/10">
 						<div className="flex items-center justify-between">
-							<h3 className="text-2xl font-bold text-white">Tạo Bàn Mới</h3>
+							<h3 className="text-2xl font-bold text-white">Create New Table</h3>
 							<button
 								onClick={onClose}
 								className="text-gray-400 hover:text-white hover:bg-red-600/20 rounded-full w-10 h-10 flex items-center justify-center transition-all duration-200"
@@ -161,14 +161,14 @@ const AddTableModal = ({ isOpen, onClose, onSave, existingTables, floor, floorId
 					<form onSubmit={handleSubmit} className="space-y-6">
 						<div className="space-y-2">
 							<label className="text-sm font-semibold text-gray-300">
-								Tên Bàn <span className="text-red-500">*</span>
+								Table Name <span className="text-red-500">*</span>
 							</label>
 							<input
 								type="text"
 								value={formData.name}
 								onChange={(e) => handleChange('name', e.target.value)}
 								className="w-full px-4 py-3 bg-black/30 border-2 border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#137fec] transition-colors"
-								placeholder='Ví dụ: "Bàn 1", "VIP 2"'
+								placeholder='E.g: "Table 1", "VIP 2"'
 								autoFocus
 							/>
 							{errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
@@ -176,14 +176,14 @@ const AddTableModal = ({ isOpen, onClose, onSave, existingTables, floor, floorId
 
 						<div className="space-y-2">
 							<label className="text-sm font-semibold text-gray-300">
-								Sức Chứa (Số chỗ ngồi) <span className="text-red-500">*</span>
+								Capacity (Seats) <span className="text-red-500">*</span>
 							</label>
 							<input
 								type="text"
 								value={formData.capacity}
 								onChange={(e) => handleChange('capacity', e.target.value)}
 								className="w-full px-4 py-3 bg-black/30 border-2 border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#137fec] transition-colors"
-								placeholder="Nhập số chỗ ngồi (1-20)"
+								placeholder="Enter number of seats (1-20)"
 							/>
 							{errors.capacity && (
 								<p className="text-red-500 text-sm mt-1">{errors.capacity}</p>
@@ -192,14 +192,14 @@ const AddTableModal = ({ isOpen, onClose, onSave, existingTables, floor, floorId
 
 						<div className="space-y-2">
 							<label className="text-sm font-semibold text-gray-300">
-								Mô tả (Tùy chọn)
+								Description (Optional)
 							</label>
 							<textarea
 								value={formData.description}
 								onChange={(e) => handleChange('description', e.target.value)}
 								rows="3"
 								className="w-full px-4 py-3 bg-black/30 border-2 border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#137fec] transition-colors resize-none"
-								placeholder="Nhập mô tả cho bàn (tùy chọn)"
+								placeholder="Enter table description (optional)"
 							/>
 						</div>
 
@@ -209,13 +209,13 @@ const AddTableModal = ({ isOpen, onClose, onSave, existingTables, floor, floorId
 								onClick={onClose}
 								className="px-6 py-3 rounded-lg bg-black/40 backdrop-blur-md text-white font-bold hover:bg-black/60 transition-colors"
 							>
-								Hủy
+								Cancel
 							</button>
 							<button
 								type="submit"
 								className="px-6 py-3 rounded-lg bg-[#137fec] text-white font-bold hover:bg-blue-700 transition-colors"
 							>
-								Tạo Bàn
+								Create Table
 							</button>
 						</div>
 					</form>
