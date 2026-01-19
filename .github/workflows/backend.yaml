@@ -131,7 +131,9 @@ jobs:
           key: ${{ secrets.VPS_KEY }}
           port: ${{ secrets.VPS_PORT }}
           username: ${{ secrets.VPS_USER }}
+          command_timeout: 10m
           script: |
+            set -e
             mkdir -p /home/${{ secrets.VPS_USER }}/projects/backup
             TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
             cd /home/${{ secrets.VPS_USER }}/projects/result
@@ -269,7 +271,9 @@ jobs:
           key: ${{ secrets.VPS_KEY }}
           port: ${{ secrets.VPS_PORT }}
           username: ${{ secrets.VPS_USER }}
+          command_timeout: 30m
           script: |
+            set -e
             cd /home/${{ secrets.VPS_USER }}/projects/result
 
             BUILD_ALL="${{ needs.detect-changes.outputs.build-all }}"
