@@ -170,8 +170,9 @@ const UnifiedLogin = () => {
 	}
 
 	const handleGoogleLogin = () => {
-		const clientId = import.meta.env.VITE_CLIENT_ID
-		const redirectUri = import.meta.env.VITE_REDIRECT_URI
+		const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+		const redirectUri =
+			import.meta.env.VITE_REDIRECT_URI || import.meta.env.VITE_GOOGLE_REDIRECT_URI
 
 		// Include ownerId in state for post-OAuth routing
 		const state = JSON.stringify({
@@ -265,6 +266,17 @@ const UnifiedLogin = () => {
 							</button>
 						</div>
 
+						{isOwnerLogin && (
+							<div className="text-right">
+								<Link
+									to="/forgot-password"
+									className="text-sm text-[#137fec] hover:text-white transition-colors"
+								>
+									Forgot password?
+								</Link>
+							</div>
+						)}
+
 						<button
 							className={`${
 								loading ? 'opacity-70 cursor-wait' : ''
@@ -298,6 +310,21 @@ const UnifiedLogin = () => {
 							)}
 						</button>
 					</form>
+				</div>
+
+				{/* Sign Up Link */}
+				<div className="mt-4 text-center z-50">
+					{isOwnerLogin && (
+						<p className="text-sm text-white">
+							Don't have an account?{' '}
+							<Link
+								to="/signup"
+								className="text-[#137fec] font-medium hover:text-white transition-colors"
+							>
+								Sign up
+							</Link>
+						</p>
+					)}
 				</div>
 			</div>
 		</div>
