@@ -19,9 +19,7 @@ import GoogleAuthenticate from './pages/auth/GoogleAuthenticate/GoogleAuthentica
 import SetPassword from './pages/auth/SetPassword/SetPassword'
 import CustomerLogin from './pages/auth/CustomerLogin/CustomerLogin'
 
-import Dashboard from './pages/admin/Dashboard'
-import TenantManagementListView from './pages/admin/tenant-management/TenantManagementListView'
-import SystemSettings from './pages/admin/settings/SystemSettings'
+import UserManagement from './pages/admin/tenant-management/UserManagement'
 
 import Menu from './pages/user/menu/Menu'
 import CategoryDishes from './pages/user/menu/CategoryDishes'
@@ -68,13 +66,23 @@ const RoleBasedRedirect = () => {
 	const roles = user.roles || []
 	const userOwnerId = user.ownerId || localStorage.getItem('currentTenantId')
 
+	// Normalize roles to string array (handle both ['ADMIN'] and [{name: 'ADMIN'}])
+	const normalizedRoles = roles.map((role) => {
+		if (typeof role === 'string') return role
+		if (typeof role === 'object' && role.name) return role.name
+		return ''
+	})
+
 	// Admin redirect to dashboard
-	if (roles.includes('ADMIN') || user.role?.toLowerCase().includes('administrator')) {
+	if (
+		normalizedRoles.includes('ADMIN') ||
+		user.role?.toLowerCase().includes('administrator')
+	) {
 		return <Navigate to="/admin/dashboard" replace />
 	}
 
 	// Chef redirect to kitchen (with tenant context) - STRICT: must have ownerId
-	if (roles.includes('CHEF')) {
+	if (normalizedRoles.includes('CHEF')) {
 		if (userOwnerId) {
 			return <Navigate to={`/r/${userOwnerId}/kitchen`} replace />
 		}
@@ -92,7 +100,7 @@ const RoleBasedRedirect = () => {
 	}
 
 	// Staff redirect to waiter panel (with tenant context) - STRICT: must have ownerId
-	if (roles.includes('STAFF')) {
+	if (normalizedRoles.includes('STAFF')) {
 		if (userOwnerId) {
 			return <Navigate to={`/r/${userOwnerId}/waiter`} replace />
 		}
@@ -110,7 +118,7 @@ const RoleBasedRedirect = () => {
 	}
 
 	// Customer redirect to ordering interface (with tenant context) - STRICT: must have ownerId
-	if (roles.includes('CUSTOMER')) {
+	if (normalizedRoles.includes('CUSTOMER')) {
 		if (userOwnerId) {
 			return <Navigate to={`/r/${userOwnerId}/order/table/0`} replace />
 		}
@@ -128,12 +136,12 @@ const RoleBasedRedirect = () => {
 	}
 
 	// User (Owner) redirect to menu - ONLY for USER role explicitly
-	if (roles.includes('USER')) {
+	if (normalizedRoles.includes('USER')) {
 		return <Navigate to="/user/menu" replace />
 	}
 
 	// SECURITY: Unknown role - don't default to user/menu, redirect to login
-	console.warn('🚫 Unknown role detected - redirecting to login:', roles)
+	console.warn('🚫 Unknown role detected - redirecting to login:', normalizedRoles)
 	localStorage.removeItem('user')
 	localStorage.removeItem('currentTenantId')
 	return (
@@ -203,15 +211,7 @@ function App() {
 										path="/admin/dashboard"
 										element={
 											<ProtectedRoute allowedRoles={['Super Administrator']}>
-												<TenantManagementListView />
-											</ProtectedRoute>
-										}
-									/>
-									<Route
-										path="/admin/tenant-management"
-										element={
-											<ProtectedRoute allowedRoles={['Super Administrator']}>
-												<TenantManagementListView />
+												<UserManagement />
 											</ProtectedRoute>
 										}
 									/>
@@ -219,20 +219,7 @@ function App() {
 										path="/admin/user-management"
 										element={
 											<ProtectedRoute allowedRoles={['Super Administrator']}>
-												{/* TODO: Create UserManagement component */}
-												<div className="flex min-h-screen bg-[#101922] items-center justify-center">
-													<p className="text-white text-xl">
-														👥 User Management - Coming Soon
-													</p>
-												</div>
-											</ProtectedRoute>
-										}
-									/>
-									<Route
-										path="/admin/settings"
-										element={
-											<ProtectedRoute allowedRoles={['Super Administrator']}>
-												<SystemSettings />
+												<UserManagement />
 											</ProtectedRoute>
 										}
 									/>
@@ -344,11 +331,11 @@ function App() {
 									<Route path="/kitchen" element={<RoleBasedRedirect />} />
 									<Route path="/waiter" element={<RoleBasedRedirect />} />
 
-									{/* Profile - Available for both roles */}
+									{/* Profile - Only for User role (tenant admin) */}
 									<Route
 										path="/profile"
 										element={
-											<ProtectedRoute>
+											<ProtectedRoute allowedRoles={['User']}>
 												<Profile />
 											</ProtectedRoute>
 										}

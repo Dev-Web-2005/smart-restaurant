@@ -464,15 +464,40 @@ export const refreshTokenAPI = async () => {
 
 		if (code === 1000) {
 			// ✅ Token refreshed from httpOnly cookie
-			const { accessToken, userId, username, email, roles } = data
-
-			console.log('✅ Token refreshed from httpOnly cookie')
+			const { accessToken, userId, username, email, roles, ownerId, authorities } = data
 
 			// ✅ Store access token in memory (window.accessToken)
 			window.accessToken = accessToken
 
+			// 🔄 FALLBACK: If refresh API doesn't return roles, get from localStorage
+			let finalRoles = roles
+			let finalOwnerId = ownerId
+			let finalAuthorities = authorities
+
+			if (!roles || roles.length === 0) {
+				const savedUser = localStorage.getItem('user')
+				if (savedUser) {
+					try {
+						const parsed = JSON.parse(savedUser)
+						finalRoles = parsed.roles || []
+						finalOwnerId = finalOwnerId || parsed.ownerId || null
+						finalAuthorities = finalAuthorities || parsed.authorities
+					} catch (e) {
+						console.warn('⚠️ Failed to parse saved user from localStorage')
+					}
+				}
+			}
+
 			// Update localStorage with user data (non-sensitive)
-			const userData = { userId, username, email, roles }
+			// Include ownerId and authorities for completeness
+			const userData = {
+				userId,
+				username,
+				email,
+				roles: finalRoles,
+				ownerId: finalOwnerId || null,
+				authorities: finalAuthorities,
+			}
 			localStorage.setItem('user', JSON.stringify(userData))
 
 			return {

@@ -450,9 +450,20 @@ const PopularItemsTrend = ({ data, loading, error, onRetry }) => {
 		CHART_COLORS.pink,
 	]
 
+	// Calculate totalQuantity and totalRevenue from dailyData if not provided
+	const processedData = data.map((item) => {
+		const totalQuantity =
+			item.totalQuantity ??
+			(item.dailyData?.reduce((sum, d) => sum + (d.quantity || 0), 0) || 0)
+		const totalRevenue =
+			item.totalRevenue ??
+			(item.dailyData?.reduce((sum, d) => sum + (d.revenue || 0), 0) || 0)
+		return { ...item, totalQuantity, totalRevenue }
+	})
+
 	return (
 		<div className="space-y-4">
-			{data.map((item, index) => (
+			{processedData.map((item, index) => (
 				<div
 					key={item.menuItemId || index}
 					className="p-3 bg-white/5 backdrop-blur-sm rounded-lg border border-white/5"
@@ -465,9 +476,14 @@ const PopularItemsTrend = ({ data, loading, error, onRetry }) => {
 							/>
 							<span className="text-white font-medium truncate">{item.menuItemName}</span>
 						</div>
-						<span className="text-gray-400 text-sm flex-shrink-0">
-							Total: {formatNumber(item.totalQuantity)} units
-						</span>
+						<div className="flex flex-col items-end text-sm flex-shrink-0">
+							<span className="text-gray-400">
+								Qty: {formatNumber(item.totalQuantity)} units
+							</span>
+							<span className="text-green-400 text-xs">
+								{formatCurrency(item.totalRevenue)}
+							</span>
+						</div>
 					</div>
 					{item.dailyData && item.dailyData.length > 0 && (
 						<div className="h-[60px]">
