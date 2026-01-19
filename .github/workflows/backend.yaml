@@ -182,11 +182,10 @@ jobs:
           mkdir -p result
           echo "services_built=true" >> $GITHUB_OUTPUT
 
-          if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.shared }}" == "true" ]; then
-            echo "Building shared..."
-            cd src/backend/shared && npm ci && npm run build && rm -rf test
-            mkdir -p ../../../result/shared && cp -r . ../../../result/shared/ && cd ../../..
-          fi
+          # Build shared first - it's a dependency for other services
+          echo "Building shared..."
+          cd src/backend/shared && npm ci && npm run build && rm -rf test
+          mkdir -p ../../../result/shared && cp -r . ../../../result/shared/ && cd ../../..
 
           if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.api-gateway }}" == "true" ]; then
             echo "Building api-gateway..."
