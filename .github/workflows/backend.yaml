@@ -286,9 +286,8 @@ jobs:
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.api-gateway }}" == "true" ]; then
               echo "Restarting api-gateway..."
               if [ "$BUILD_ALL" != "true" ]; then
-                pm2 stop api-gateway || true
-                pm2 delete api-gateway || true
-                pkill -f "api-gateway/src/main.js" || true
+                pm2 delete api-gateway 2>/dev/null || true
+                pkill -f "api-gateway/src/main.js" 2>/dev/null || true
                 sleep 1
               fi
               cd api-gateway
@@ -350,9 +349,8 @@ jobs:
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.identity }}" == "true" ]; then
               echo "Restarting identity..."
               if [ "$BUILD_ALL" != "true" ]; then
-                pm2 stop identity || true
-                pm2 delete identity || true
-                pkill -f "identity/src/main.js" || true
+                pm2 delete identity 2>/dev/null || true
+                pkill -f "identity/src/main.js" 2>/dev/null || true
                 sleep 1
               fi
               cd identity
@@ -392,9 +390,8 @@ jobs:
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.product }}" == "true" ]; then
               echo "Restarting product..."
               if [ "$BUILD_ALL" != "true" ]; then
-                pm2 stop product || true
-                pm2 delete product || true
-                pkill -f "product/src/main.js" || true
+                pm2 delete product 2>/dev/null || true
+                pkill -f "product/src/main.js" 2>/dev/null || true
                 sleep 1
               fi
               cd product
@@ -416,9 +413,8 @@ jobs:
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.profile }}" == "true" ]; then
               echo "Restarting profile..."
               if [ "$BUILD_ALL" != "true" ]; then
-                pm2 stop profile || true
-                pm2 delete profile || true
-                pkill -f "profile/src/main.js" || true
+                pm2 delete profile 2>/dev/null || true
+                pkill -f "profile/src/main.js" 2>/dev/null || true
                 sleep 1
               fi
               cd profile
@@ -440,9 +436,8 @@ jobs:
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.table }}" == "true" ]; then
               echo "Restarting table..."
               if [ "$BUILD_ALL" != "true" ]; then
-                pm2 stop table || true
-                pm2 delete table || true
-                pkill -f "table/src/main.js" || true
+                pm2 delete table 2>/dev/null || true
+                pkill -f "table/src/main.js" 2>/dev/null || true
                 sleep 1
               fi
               cd table
@@ -469,9 +464,8 @@ jobs:
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.kitchen }}" == "true" ]; then
               echo "Restarting kitchen..."
               if [ "$BUILD_ALL" != "true" ]; then
-                pm2 stop kitchen || true
-                pm2 delete kitchen || true
-                pkill -f "kitchen/src/main.js" || true
+                pm2 delete kitchen 2>/dev/null || true
+                pkill -f "kitchen/src/main.js" 2>/dev/null || true
                 sleep 1
               fi
               cd kitchen
@@ -505,9 +499,8 @@ jobs:
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.notification }}" == "true" ]; then
               echo "Restarting notification..."
               if [ "$BUILD_ALL" != "true" ]; then
-                pm2 stop notification || true
-                pm2 delete notification || true
-                pkill -f "notification/src/main.js" || true
+                pm2 delete notification 2>/dev/null || true
+                pkill -f "notification/src/main.js" 2>/dev/null || true
                 sleep 1
               fi
               cd notification
@@ -540,9 +533,8 @@ jobs:
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.order }}" == "true" ]; then
               echo "Restarting order..."
               if [ "$BUILD_ALL" != "true" ]; then
-                pm2 stop order || true
-                pm2 delete order || true
-                pkill -f "order/src/main.js" || true
+                pm2 delete order 2>/dev/null || true
+                pkill -f "order/src/main.js" 2>/dev/null || true
                 sleep 1
               fi
               cd order
@@ -585,9 +577,8 @@ jobs:
             if [ "$BUILD_ALL" == "true" ] || [ "${{ needs.detect-changes.outputs.waiter }}" == "true" ]; then
               echo "Restarting waiter..."
               if [ "$BUILD_ALL" != "true" ]; then
-                pm2 stop waiter || true
-                pm2 delete waiter || true
-                pkill -f "waiter/src/main.js" || true
+                pm2 delete waiter 2>/dev/null || true
+                pkill -f "waiter/src/main.js" 2>/dev/null || true
                 sleep 1
               fi
               cd waiter
