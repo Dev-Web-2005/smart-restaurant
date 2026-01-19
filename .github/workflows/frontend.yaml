@@ -54,7 +54,7 @@ jobs:
           VITE_PROD: "true"
         run: |
           cd src/frontend
-          
+
           # Create .env file for Vite to read during build
           echo "Creating .env file for Vite..."
           cat > .env << EOF
@@ -69,19 +69,19 @@ jobs:
           VITE_REDIRECT_URI=$VITE_REDIRECT_URI
           VITE_PROD=true
           EOF
-          
+
           echo "========== DEBUG: .env file content =========="
           cat .env
           echo "=============================================="
-          
+
           echo "========== DEBUG: Checking VITE_CLIENT_ID =========="
           echo "VITE_CLIENT_ID length: ${#VITE_CLIENT_ID}"
           echo "VITE_CLIENT_ID first 25 chars: ${VITE_CLIENT_ID:0:25}"
           echo "===================================================="
-          
+
           npm install
           npm run build
-          
+
           # Verify CLIENT_ID is in build output
           echo "========== DEBUG: Checking build output for CLIENT_ID =========="
           grep -r "424511485278" dist/assets/*.js | head -1 || echo "CLIENT_ID not found in build!"
