@@ -13,6 +13,7 @@ export default class GetProfileResponseDto {
 	cvv?: string;
 	frontImage?: string;
 	backImage?: string;
+	imageBackground?: string;
 	createdAt: Date;
 	updatedAt: Date;
 	verified: boolean;

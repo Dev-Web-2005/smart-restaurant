@@ -48,5 +48,8 @@ export class ModifyProfileRequestDto {
 	backImage?: string;
 
 	@IsOptional()
+	imageBackground?: string;
+
+	@IsOptional()
 	verified?: boolean;
 }

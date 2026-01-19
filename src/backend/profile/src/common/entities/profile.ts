@@ -44,6 +44,9 @@ export default class Profile {
 	@Column({ nullable: true })
 	backImage: string;
 
+	@Column({ nullable: true })
+	imageBackground: string;
+
 	@Column({ nullable: false, type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
 	createdAt: Date;
 

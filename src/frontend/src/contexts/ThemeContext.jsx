@@ -4,6 +4,8 @@
 // ============================================================================
 
 import React, { createContext, useState, useEffect, useContext } from 'react'
+import { uploadFile } from '../services/api/fileAPI'
+import { getMyProfileAPI, updateProfileAPI } from '../services/api/authAPI'
 
 const ThemeContext = createContext()
 
@@ -27,6 +29,55 @@ export const ThemeProvider = ({ children }) => {
 		return saved || 'dark'
 	})
 
+	// State để theo dõi việc đã load từ profile chưa
+	const [isBackgroundLoaded, setIsBackgroundLoaded] = useState(false)
+
+	// Load background từ profile API khi user đăng nhập
+	const loadBackgroundFromProfile = async () => {
+		try {
+			const user = localStorage.getItem('user')
+			if (!user) return
+
+			const response = await getMyProfileAPI()
+			if (response.success && response.data?.imageBackground) {
+				setBackgroundImage(response.data.imageBackground)
+				localStorage.setItem('app_background_image', response.data.imageBackground)
+				console.log('✅ Background loaded from profile:', response.data.imageBackground)
+			}
+			setIsBackgroundLoaded(true)
+		} catch (error) {
+			console.error('❌ Failed to load background from profile:', error)
+			setIsBackgroundLoaded(true)
+		}
+	}
+
+	// Load background khi component mount và user có session
+	useEffect(() => {
+		const user = localStorage.getItem('user')
+		if (user && !isBackgroundLoaded) {
+			loadBackgroundFromProfile()
+		}
+	}, [isBackgroundLoaded])
+
+	// Listen for user login/logout changes (storage event)
+	useEffect(() => {
+		const handleStorageChange = (e) => {
+			if (e.key === 'user') {
+				if (e.newValue) {
+					// User logged in - reload background
+					setIsBackgroundLoaded(false)
+				} else {
+					// User logged out - reset to default
+					setBackgroundImage(DEFAULT_BACKGROUND)
+					localStorage.setItem('app_background_image', DEFAULT_BACKGROUND)
+				}
+			}
+		}
+
+		window.addEventListener('storage', handleStorageChange)
+		return () => window.removeEventListener('storage', handleStorageChange)
+	}, [])
+
 	// Lưu background image khi thay đổi
 	useEffect(() => {
 		localStorage.setItem('app_background_image', backgroundImage)
@@ -43,43 +94,49 @@ export const ThemeProvider = ({ children }) => {
 
 	/**
 	 * Upload và set background image mới từ file
+	 * Upload lên file service, lưu URL vào profile
 	 * @param {File} file - File ảnh được upload
 	 * @returns {Promise<string>} - URL của ảnh mới
 	 */
 	const uploadBackgroundImage = async (file) => {
-		return new Promise((resolve, reject) => {
-			if (!file) {
-				reject(new Error('No file provided'))
-				return
+		if (!file) {
+			throw new Error('No file provided')
+		}
+
+		// Validate file type
+		if (!file.type.startsWith('image/')) {
+			throw new Error('File must be an image')
+		}
+
+		// Validate file size (max 5MB)
+		if (file.size > 5 * 1024 * 1024) {
+			throw new Error('Image size must be less than 5MB')
+		}
+
+		try {
+			// 1. Upload file to file service
+			console.log('📤 Uploading background image to file service...')
+			const imageUrl = await uploadFile(file, 'image')
+			console.log('✅ File uploaded, URL:', imageUrl)
+
+			// 2. Save URL to profile
+			console.log('💾 Saving background URL to profile...')
+			const updateResult = await updateProfileAPI({ imageBackground: imageUrl })
+
+			if (!updateResult.success) {
+				throw new Error(updateResult.message || 'Failed to save background to profile')
 			}
+			console.log('✅ Background saved to profile')
 
-			// Validate file type
-			if (!file.type.startsWith('image/')) {
-				reject(new Error('File must be an image'))
-				return
-			}
+			// 3. Update local state
+			setBackgroundImage(imageUrl)
+			localStorage.setItem('app_background_image', imageUrl)
 
-			// Validate file size (max 5MB)
-			if (file.size > 5 * 1024 * 1024) {
-				reject(new Error('Image size must be less than 5MB'))
-				return
-			}
-
-			const reader = new FileReader()
-
-			reader.onload = (e) => {
-				const imageUrl = e.target.result
-				setBackgroundImage(imageUrl)
-				console.log('✅ Background image updated')
-				resolve(imageUrl)
-			}
-
-			reader.onerror = () => {
-				reject(new Error('Failed to read file'))
-			}
-
-			reader.readAsDataURL(file)
-		})
+			return imageUrl
+		} catch (error) {
+			console.error('❌ Upload background error:', error)
+			throw error
+		}
 	}
 
 	/**
@@ -96,11 +153,25 @@ export const ThemeProvider = ({ children }) => {
 	}
 
 	/**
-	 * Reset về ảnh nền mặc định
+	 * Reset về ảnh nền mặc định và lưu vào profile
 	 */
-	const resetBackground = () => {
-		setBackgroundImage(DEFAULT_BACKGROUND)
-		console.log('✅ Background reset to default')
+	const resetBackground = async () => {
+		try {
+			// Save default to profile
+			const updateResult = await updateProfileAPI({ imageBackground: DEFAULT_BACKGROUND })
+			if (!updateResult.success) {
+				console.warn('⚠️ Failed to save default background to profile')
+			}
+
+			setBackgroundImage(DEFAULT_BACKGROUND)
+			localStorage.setItem('app_background_image', DEFAULT_BACKGROUND)
+			console.log('✅ Background reset to default')
+		} catch (error) {
+			console.error('❌ Reset background error:', error)
+			// Still reset locally even if API fails
+			setBackgroundImage(DEFAULT_BACKGROUND)
+			localStorage.setItem('app_background_image', DEFAULT_BACKGROUND)
+		}
 	}
 
 	/**
@@ -108,6 +179,13 @@ export const ThemeProvider = ({ children }) => {
 	 */
 	const toggleTheme = () => {
 		setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
+	}
+
+	/**
+	 * Reload background từ profile (gọi khi user login)
+	 */
+	const reloadBackgroundFromProfile = () => {
+		setIsBackgroundLoaded(false)
 	}
 
 	// ============================================================================
@@ -125,6 +203,8 @@ export const ThemeProvider = ({ children }) => {
 		resetBackground,
 		setTheme,
 		toggleTheme,
+		reloadBackgroundFromProfile,
+		loadBackgroundFromProfile,
 
 		// Constants
 		DEFAULT_BACKGROUND,

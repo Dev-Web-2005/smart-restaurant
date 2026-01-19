@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react'
 import { useUser } from '../../../contexts/UserContext' // 👈 IMPORT CONTEXT
 import { useTheme } from '../../../contexts/ThemeContext' // 👈 IMPORT THEME CONTEXT
 import { useLoading } from '../../../contexts/LoadingContext'
+import { useAlert } from '../../../contexts/AlertContext' // 👈 IMPORT ALERT CONTEXT
 import BasePageLayout from '../../../components/layout/BasePageLayout' // 👈 IMPORT LAYOUT CHUNG
 import { ButtonLoader, InlineLoader } from '../../../components/common/LoadingSpinner'
 import AccountManagement from './AccountManagement' // 👈 IMPORT ACCOUNT MANAGEMENT
@@ -15,6 +16,7 @@ const mockSettings = {
 const ApplicationSettings = () => {
 	const { user, loading: contextLoading } = useUser()
 	const { backgroundImage, uploadBackgroundImage, resetBackground } = useTheme()
+	const { showSuccess, showError, showConfirm } = useAlert() // 👈 USE ALERT CONTEXT
 
 	// 1. State chính cho form settings
 	const [settings, setSettings] = useState(mockSettings)
@@ -60,9 +62,9 @@ const ApplicationSettings = () => {
 		try {
 			const imageUrl = await uploadBackgroundImage(file)
 			setBackgroundPreview(imageUrl)
-			alert('✅ Background image updated successfully!')
+			showSuccess('Background Updated', 'Background image has been updated successfully!')
 		} catch (error) {
-			alert(`❌ ${error.message}`)
+			showError('Upload Failed', error.message || 'Failed to upload background image')
 			console.error('Upload error:', error)
 		} finally {
 			setUploadingBackground(false)
@@ -70,11 +72,23 @@ const ApplicationSettings = () => {
 	}
 
 	// 3c. Hàm reset background về mặc định
-	const handleResetBackground = () => {
-		if (confirm('Reset background to default image?')) {
-			resetBackground()
-			setBackgroundPreview(null)
-			alert('✅ Background reset to default!')
+	const handleResetBackground = async () => {
+		const confirmed = await showConfirm(
+			'Reset Background',
+			'Are you sure you want to reset background to default image?'
+		)
+		if (confirmed) {
+			setUploadingBackground(true)
+			try {
+				await resetBackground()
+				setBackgroundPreview(null)
+				showSuccess('Background Reset', 'Background has been reset to default!')
+			} catch (error) {
+				showError('Reset Failed', error.message || 'Failed to reset background')
+				console.error('Reset error:', error)
+			} finally {
+				setUploadingBackground(false)
+			}
 		}
 	}
 
