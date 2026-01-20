@@ -565,7 +565,7 @@ const OrdersPage = ({
 										<div className="text-center mb-6">
 											<p className="text-[#9dabb9] text-sm">Amount to pay</p>
 											<p className="text-3xl font-bold text-green-400">
-												${(paymentQrData.amount || 0).toFixed(2)}{' '}
+												${((paymentQrData.amount || 0) / 100).toFixed(2)}{' '}
 												{paymentQrData.currency?.toUpperCase()}
 											</p>
 										</div>

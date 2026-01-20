@@ -39,21 +39,30 @@ const CustomDropdown = ({ value, onChange, options, disabled, className = '' }) 
 	const [isOpen, setIsOpen] = useState(false)
 	const dropdownRef = useRef(null)
 	const buttonRef = useRef(null)
+	const menuRef = useRef(null)
 	const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
 
 	useEffect(() => {
 		const handleClickOutside = (event) => {
-			if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+			// Check if click is outside both the dropdown button AND the menu
+			const isOutsideDropdown =
+				dropdownRef.current && !dropdownRef.current.contains(event.target)
+			const isOutsideMenu = !menuRef.current || !menuRef.current.contains(event.target)
+
+			if (isOutsideDropdown && isOutsideMenu) {
 				setIsOpen(false)
 			}
 		}
 
 		if (isOpen) {
-			document.addEventListener('mousedown', handleClickOutside)
-		}
-
-		return () => {
-			document.removeEventListener('mousedown', handleClickOutside)
+			// Use setTimeout to avoid the click that opened the dropdown from immediately closing it
+			const timer = setTimeout(() => {
+				document.addEventListener('mousedown', handleClickOutside)
+			}, 0)
+			return () => {
+				clearTimeout(timer)
+				document.removeEventListener('mousedown', handleClickOutside)
+			}
 		}
 	}, [isOpen])
 
@@ -62,7 +71,7 @@ const CustomDropdown = ({ value, onChange, options, disabled, className = '' }) 
 		if (isOpen && buttonRef.current) {
 			const rect = buttonRef.current.getBoundingClientRect()
 			setDropdownPosition({
-				top: rect.bottom + 4, // position: fixed uses viewport coordinates, no need for scrollY
+				top: rect.bottom + 4,
 				left: rect.left,
 				width: rect.width,
 			})
@@ -71,44 +80,10 @@ const CustomDropdown = ({ value, onChange, options, disabled, className = '' }) 
 
 	const selectedOption = options.find((opt) => opt.value === value)
 
-	const DropdownMenu = () => (
-		<AnimatePresence>
-			{isOpen && (
-				<motion.div
-					initial={{ opacity: 0, y: -10 }}
-					animate={{ opacity: 1, y: 0 }}
-					exit={{ opacity: 0, y: -10 }}
-					transition={{ duration: 0.15 }}
-					style={{
-						position: 'fixed',
-						top: `${dropdownPosition.top}px`,
-						left: `${dropdownPosition.left}px`,
-						width: `${dropdownPosition.width}px`,
-						zIndex: 99999,
-					}}
-					className="rounded-lg bg-black/60 backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden"
-				>
-					{options.map((option) => (
-						<button
-							key={option.value}
-							type="button"
-							onClick={() => {
-								onChange(option.value)
-								setIsOpen(false)
-							}}
-							className={`w-full px-4 py-2.5 text-left text-sm transition-all duration-150 ${
-								option.value === value
-									? 'bg-[#137fec]/30 text-white font-medium'
-									: 'text-[#9dabb9] hover:bg-white/10 hover:text-white'
-							}`}
-						>
-							{option.label}
-						</button>
-					))}
-				</motion.div>
-			)}
-		</AnimatePresence>
-	)
+	const handleOptionClick = (optionValue) => {
+		onChange(optionValue)
+		setIsOpen(false)
+	}
 
 	return (
 		<>
@@ -130,7 +105,47 @@ const CustomDropdown = ({ value, onChange, options, disabled, className = '' }) 
 					expand_more
 				</span>
 			</div>
-			{ReactDOM.createPortal(<DropdownMenu />, document.body)}
+			{ReactDOM.createPortal(
+				<AnimatePresence>
+					{isOpen && (
+						<motion.div
+							ref={menuRef}
+							initial={{ opacity: 0, y: -10 }}
+							animate={{ opacity: 1, y: 0 }}
+							exit={{ opacity: 0, y: -10 }}
+							transition={{ duration: 0.15 }}
+							style={{
+								position: 'fixed',
+								top: `${dropdownPosition.top}px`,
+								left: `${dropdownPosition.left}px`,
+								width: `${dropdownPosition.width}px`,
+								zIndex: 99999,
+							}}
+							className="rounded-lg bg-black/60 backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden"
+						>
+							{options.map((option) => (
+								<button
+									key={option.value}
+									type="button"
+									onClick={(e) => {
+										e.preventDefault()
+										e.stopPropagation()
+										handleOptionClick(option.value)
+									}}
+									className={`w-full px-4 py-2.5 text-left text-sm transition-all duration-150 ${
+										option.value === value
+											? 'bg-[#137fec]/30 text-white font-medium'
+											: 'text-[#9dabb9] hover:bg-white/10 hover:text-white'
+									}`}
+								>
+									{option.label}
+								</button>
+							))}
+						</motion.div>
+					)}
+				</AnimatePresence>,
+				document.body,
+			)}
 		</>
 	)
 }
@@ -151,12 +166,12 @@ const getStatusColor = (status) => {
 const getStatusLabel = (status) => {
 	switch (status) {
 		case 'AVAILABLE':
-			return 'Có sẵn'
+			return 'Available'
 		case 'SOLD_OUT':
-			return 'Hết hàng'
+			return 'Sold out'
 		case 'UNAVAILABLE':
 		default:
-			return 'Không có sẵn'
+			return 'Unavailable'
 	}
 }
 
@@ -1792,7 +1807,7 @@ const DishDetailsModal = ({
 										<span className="material-symbols-outlined text-sm">
 											check_circle
 										</span>
-										Có sẵn
+										Available
 									</button>
 									<button
 										onClick={() => onToggleStatus(dish, 'SOLD_OUT')}
@@ -1805,7 +1820,7 @@ const DishDetailsModal = ({
 										<span className="material-symbols-outlined text-sm">
 											production_quantity_limits
 										</span>
-										Hết hàng
+										Sold out
 									</button>
 									<button
 										onClick={() => onToggleStatus(dish, 'UNAVAILABLE')}
@@ -1816,7 +1831,7 @@ const DishDetailsModal = ({
 										}`}
 									>
 										<span className="material-symbols-outlined text-sm">block</span>
-										Không sẵn
+										Unavailable
 									</button>
 								</div>
 							</div>
@@ -2086,19 +2101,19 @@ const DishCard = ({ dish, onDelete, onClick, viewMode = 'grid' }) => {
 			case 'AVAILABLE':
 				return (
 					<span className="text-green-400 text-sm font-bold bg-green-500/20 px-2 py-1 rounded-full">
-						Có sẵn
+						Available
 					</span>
 				)
 			case 'UNAVAILABLE':
 				return (
 					<span className="text-gray-400 text-sm font-bold bg-gray-500/20 px-2 py-1 rounded-full">
-						Không có sẵn
+						Unavailable
 					</span>
 				)
 			case 'SOLD_OUT':
 				return (
 					<span className="text-orange-400 text-sm font-bold bg-orange-500/20 px-2 py-1 rounded-full">
-						Hết hàng
+						Sold out
 					</span>
 				)
 			default:
@@ -2610,6 +2625,20 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 				params.isChefRecommended = chefRecommendedFilter === 'YES'
 			}
 
+			// Add status filter if not ALL
+			if (statusFilter !== 'ALL') {
+				params.status = statusFilter
+			}
+
+			// Add search query if provided
+			if (debouncedSearch.trim()) {
+				params.search = debouncedSearch.trim()
+			}
+
+			// Add sorting params
+			params.sortBy = sortBy
+			params.sortOrder = sortOrder
+
 			const result = await getMenuItemsAPI(tenantId, params)
 
 			if (result.success) {
@@ -2985,49 +3014,14 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 		}
 	}
 
+	// filteredDishes now just returns dishes as-is since all filtering/sorting
+	// is now handled by the backend API with proper pagination support
 	const filteredDishes = React.useMemo(() => {
-		let result = [...dishes]
-
-		// Client-side search filter (for now, will move to API later)
-		if (debouncedSearch.trim()) {
-			const query = debouncedSearch.toLowerCase()
-			result = result.filter(
-				(dish) =>
-					dish.name.toLowerCase().includes(query) ||
-					(dish.description && dish.description.toLowerCase().includes(query)),
-			)
-		}
-
-		// Client-side status filter
-		if (statusFilter !== 'ALL') {
-			result = result.filter((dish) => dish.status === statusFilter)
-		}
-
-		// Client-side sorting
-		switch (sortBy) {
-			case 'name':
-				result.sort((a, b) =>
-					sortOrder === 'ASC'
-						? a.name.localeCompare(b.name)
-						: b.name.localeCompare(a.name),
-				)
-				break
-			case 'price':
-				result.sort((a, b) =>
-					sortOrder === 'ASC' ? a.price - b.price : b.price - a.price,
-				)
-				break
-			case 'createdAt':
-			default:
-				// Assuming dishes come sorted by createdAt DESC from API
-				if (sortOrder === 'ASC') {
-					result.reverse()
-				}
-				break
-		}
-
-		return result
-	}, [dishes, debouncedSearch, statusFilter, sortBy, sortOrder])
+		// All filtering (search, status, chefRecommended) and sorting (sortBy, sortOrder)
+		// is now done server-side in fetchDishes via API params
+		// This ensures correct results when using pagination
+		return dishes
+	}, [dishes])
 
 	if (contextLoading || loading) {
 		return (
@@ -3061,8 +3055,8 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 											restaurant_menu
 										</span>
 										{categoryDetail.itemCount !== undefined
-											? `${categoryDetail.itemCount} món`
-											: `${dishes.length} món`}
+											? `${categoryDetail.itemCount} items`
+											: `${dishes.length} items`}
 									</span>
 									<span
 										className={`text-xs px-2 py-1 rounded ${
@@ -3074,7 +3068,7 @@ const CategoryDishes = ({ categorySlug = 'noodle-dishes', category, onBack }) =>
 										{categoryDetail.status === 'ACTIVE' ? 'Active' : 'Inactive'}
 									</span>
 									<span className="text-xs text-[#9dabb9]">
-										Thứ tự: {categoryDetail.displayOrder}
+										No. {categoryDetail.displayOrder}
 									</span>
 								</div>
 							)}
