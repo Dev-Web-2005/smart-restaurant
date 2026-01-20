@@ -105,7 +105,7 @@ const EmailConfirmation = () => {
 
 	return (
 		<div className="min-h-screen flex items-center justify-center p-4 font-['Work_Sans',_sans-serif] relative">
-			<BackgroundImage overlayOpacity={75} fixed={true} />
+			<BackgroundImage overlayOpacity={75} fixed={true} useDefault={true} />
 
 			<div className="relative z-10 w-full max-w-md">
 				<div className="bg-black/60 backdrop-blur-md rounded-xl p-8 shadow-2xl border border-white/10">

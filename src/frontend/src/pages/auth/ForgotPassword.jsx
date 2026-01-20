@@ -91,7 +91,7 @@ const ForgotPassword = () => {
 
 	return (
 		<div className="flex min-h-screen flex-col items-center justify-center p-4 font-[Work_Sans] w-full">
-			<BackgroundImage overlayOpacity={75} fixed={true} />
+			<BackgroundImage overlayOpacity={75} fixed={true} useDefault={true} />
 
 			<div className="flex w-full max-w-md flex-col items-center">
 				{/* Logo */}

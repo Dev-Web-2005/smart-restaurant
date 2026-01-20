@@ -15,13 +15,32 @@ export const useTheme = () => useContext(ThemeContext)
 const DEFAULT_BACKGROUND =
 	'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=2070'
 
+/**
+ * Get current user ID from localStorage
+ */
+const getCurrentUserId = () => {
+	try {
+		const user = localStorage.getItem('user')
+		if (user) {
+			const parsed = JSON.parse(user)
+			return parsed.userId || null
+		}
+	} catch (e) {
+		console.error('Error parsing user:', e)
+	}
+	return null
+}
+
+/**
+ * Get localStorage key for background (per user)
+ */
+const getBackgroundKey = (userId) => {
+	return userId ? `app_background_image_${userId}` : null
+}
+
 export const ThemeProvider = ({ children }) => {
-	// State cho background image
-	const [backgroundImage, setBackgroundImage] = useState(() => {
-		// Load từ localStorage nếu có
-		const saved = localStorage.getItem('app_background_image')
-		return saved || DEFAULT_BACKGROUND
-	})
+	// State cho background image - always start with DEFAULT for public pages
+	const [backgroundImage, setBackgroundImage] = useState(DEFAULT_BACKGROUND)
 
 	// State cho theme settings khác (có thể mở rộng)
 	const [theme, setTheme] = useState(() => {
@@ -35,14 +54,33 @@ export const ThemeProvider = ({ children }) => {
 	// Load background từ profile API khi user đăng nhập
 	const loadBackgroundFromProfile = async () => {
 		try {
-			const user = localStorage.getItem('user')
-			if (!user) return
+			const userId = getCurrentUserId()
+			if (!userId) {
+				// No user logged in - use default
+				setBackgroundImage(DEFAULT_BACKGROUND)
+				setIsBackgroundLoaded(true)
+				return
+			}
 
+			// Check localStorage cache first (per-user key)
+			const cacheKey = getBackgroundKey(userId)
+			const cached = cacheKey ? localStorage.getItem(cacheKey) : null
+			if (cached) {
+				setBackgroundImage(cached)
+				console.log('✅ Background loaded from cache:', cached)
+			}
+
+			// Always fetch from API to get latest
 			const response = await getMyProfileAPI()
 			if (response.success && response.data?.imageBackground) {
 				setBackgroundImage(response.data.imageBackground)
-				localStorage.setItem('app_background_image', response.data.imageBackground)
+				if (cacheKey) {
+					localStorage.setItem(cacheKey, response.data.imageBackground)
+				}
 				console.log('✅ Background loaded from profile:', response.data.imageBackground)
+			} else if (!cached) {
+				// No background in profile and no cache - use default
+				setBackgroundImage(DEFAULT_BACKGROUND)
 			}
 			setIsBackgroundLoaded(true)
 		} catch (error) {
@@ -64,12 +102,12 @@ export const ThemeProvider = ({ children }) => {
 		const handleStorageChange = (e) => {
 			if (e.key === 'user') {
 				if (e.newValue) {
-					// User logged in - reload background
+					// User logged in - reload background from profile
 					setIsBackgroundLoaded(false)
 				} else {
 					// User logged out - reset to default
 					setBackgroundImage(DEFAULT_BACKGROUND)
-					localStorage.setItem('app_background_image', DEFAULT_BACKGROUND)
+					setIsBackgroundLoaded(false)
 				}
 			}
 		}
@@ -77,11 +115,6 @@ export const ThemeProvider = ({ children }) => {
 		window.addEventListener('storage', handleStorageChange)
 		return () => window.removeEventListener('storage', handleStorageChange)
 	}, [])
-
-	// Lưu background image khi thay đổi
-	useEffect(() => {
-		localStorage.setItem('app_background_image', backgroundImage)
-	}, [backgroundImage])
 
 	// Lưu theme khi thay đổi
 	useEffect(() => {
@@ -128,9 +161,13 @@ export const ThemeProvider = ({ children }) => {
 			}
 			console.log('✅ Background saved to profile')
 
-			// 3. Update local state
+			// 3. Update local state and cache
 			setBackgroundImage(imageUrl)
-			localStorage.setItem('app_background_image', imageUrl)
+			const userId = getCurrentUserId()
+			const cacheKey = getBackgroundKey(userId)
+			if (cacheKey) {
+				localStorage.setItem(cacheKey, imageUrl)
+			}
 
 			return imageUrl
 		} catch (error) {
@@ -164,13 +201,16 @@ export const ThemeProvider = ({ children }) => {
 			}
 
 			setBackgroundImage(DEFAULT_BACKGROUND)
-			localStorage.setItem('app_background_image', DEFAULT_BACKGROUND)
+			const userId = getCurrentUserId()
+			const cacheKey = getBackgroundKey(userId)
+			if (cacheKey) {
+				localStorage.setItem(cacheKey, DEFAULT_BACKGROUND)
+			}
 			console.log('✅ Background reset to default')
 		} catch (error) {
 			console.error('❌ Reset background error:', error)
 			// Still reset locally even if API fails
 			setBackgroundImage(DEFAULT_BACKGROUND)
-			localStorage.setItem('app_background_image', DEFAULT_BACKGROUND)
 		}
 	}
 

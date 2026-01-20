@@ -13,15 +13,19 @@ import { useTheme } from '../../contexts/ThemeContext'
  * @param {object} props
  * @param {number} props.overlayOpacity - Độ mờ của overlay (0-100), default: 75
  * @param {boolean} props.fixed - Background attachment fixed hay không, default: true
+ * @param {boolean} props.useDefault - Luôn dùng ảnh mặc định (cho login page), default: false
  */
-const BackgroundImage = ({ overlayOpacity = 75, fixed = true }) => {
-	const { backgroundImage } = useTheme()
+const BackgroundImage = ({ overlayOpacity = 75, fixed = true, useDefault = false }) => {
+	const { backgroundImage, DEFAULT_BACKGROUND } = useTheme()
+
+	// Use default background for public pages (login, signup, etc.)
+	const displayBackground = useDefault ? DEFAULT_BACKGROUND : backgroundImage
 
 	return (
 		<div
 			className="fixed inset-0 -z-10"
 			style={{
-				backgroundImage: `url("${backgroundImage}")`,
+				backgroundImage: `url("${displayBackground}")`,
 				backgroundSize: 'cover',
 				backgroundPosition: 'center',
 				backgroundAttachment: fixed ? 'fixed' : 'scroll',

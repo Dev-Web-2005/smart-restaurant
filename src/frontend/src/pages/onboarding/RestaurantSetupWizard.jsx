@@ -891,7 +891,7 @@ const RestaurantOnboarding = () => {
 	return (
 		<div className="page-wrapper flex min-h-screen w-full flex-col items-center justify-center p-4 font-['Work_Sans',_sans-serif] relative">
 			{/* Background image - Sử dụng component tập trung */}
-			<BackgroundImage overlayOpacity={75} fixed={true} />
+			<BackgroundImage overlayOpacity={75} fixed={true} useDefault={true} />
 
 			<div className="content-container w-full max-w-4xl z-50">
 				<div className="my-8 text-center">
