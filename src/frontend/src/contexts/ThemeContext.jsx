@@ -50,50 +50,84 @@ export const ThemeProvider = ({ children }) => {
 
 	// State để theo dõi việc đã load từ profile chưa
 	const [isBackgroundLoaded, setIsBackgroundLoaded] = useState(false)
+	
+	// State để track current user ID để detect user change
+	const [currentLoadedUserId, setCurrentLoadedUserId] = useState(null)
 
 	// Load background từ profile API khi user đăng nhập
 	const loadBackgroundFromProfile = async () => {
 		try {
 			const userId = getCurrentUserId()
+			
+			// No user logged in - use default
 			if (!userId) {
-				// No user logged in - use default
 				setBackgroundImage(DEFAULT_BACKGROUND)
+				setCurrentLoadedUserId(null)
 				setIsBackgroundLoaded(true)
 				return
 			}
 
-			// Check localStorage cache first (per-user key)
-			const cacheKey = getBackgroundKey(userId)
-			const cached = cacheKey ? localStorage.getItem(cacheKey) : null
-			if (cached) {
-				setBackgroundImage(cached)
-				console.log('✅ Background loaded from cache:', cached)
-			}
+			// IMPORTANT: Reset to default FIRST before loading new user's background
+			// This prevents showing old user's background while loading
+			setBackgroundImage(DEFAULT_BACKGROUND)
 
-			// Always fetch from API to get latest
+			// Always fetch from API to get latest (don't trust cache for different users)
+			console.log('📤 Loading background from profile for user:', userId)
 			const response = await getMyProfileAPI()
+			
 			if (response.success && response.data?.imageBackground) {
+				// User has custom background
 				setBackgroundImage(response.data.imageBackground)
+				// Cache for this user
+				const cacheKey = getBackgroundKey(userId)
 				if (cacheKey) {
 					localStorage.setItem(cacheKey, response.data.imageBackground)
 				}
 				console.log('✅ Background loaded from profile:', response.data.imageBackground)
-			} else if (!cached) {
-				// No background in profile and no cache - use default
+			} else {
+				// No background in profile - use default
 				setBackgroundImage(DEFAULT_BACKGROUND)
+				console.log('ℹ️ No custom background in profile, using default')
 			}
+			
+			setCurrentLoadedUserId(userId)
 			setIsBackgroundLoaded(true)
 		} catch (error) {
 			console.error('❌ Failed to load background from profile:', error)
+			setBackgroundImage(DEFAULT_BACKGROUND)
 			setIsBackgroundLoaded(true)
 		}
 	}
+
+	// Check if user changed and reload background
+	useEffect(() => {
+		const checkUserChange = () => {
+			const userId = getCurrentUserId()
+			
+			// User changed or logged out
+			if (userId !== currentLoadedUserId) {
+				console.log('🔄 User changed, reloading background...', { from: currentLoadedUserId, to: userId })
+				setIsBackgroundLoaded(false)
+			}
+		}
+		
+		// Check on mount and periodically (for same-tab login/logout detection)
+		checkUserChange()
+		const interval = setInterval(checkUserChange, 500)
+		
+		return () => clearInterval(interval)
+	}, [currentLoadedUserId])
 
 	// Load background khi component mount và user có session
 	useEffect(() => {
 		const user = localStorage.getItem('user')
 		if (user && !isBackgroundLoaded) {
 			loadBackgroundFromProfile()
+		} else if (!user && !isBackgroundLoaded) {
+			// No user - ensure default background
+			setBackgroundImage(DEFAULT_BACKGROUND)
+			setCurrentLoadedUserId(null)
+			setIsBackgroundLoaded(true)
 		}
 	}, [isBackgroundLoaded])
 
