@@ -428,10 +428,10 @@ export class UsersService {
 			throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR);
 		}
 
-		// Construct URL
+		// Construct URL - Simple format for staff/chef login
 		const baseUrl =
 			this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
-		const url = `${baseUrl}/restaurant/${userId}/${token}`;
+		const url = `${baseUrl}/login/${userId}`;
 
 		const response = new RestaurantQrResponseDto();
 		response.qrUrl = url;
@@ -512,9 +512,10 @@ export class UsersService {
 			return await this.generateRestaurantQr(userId);
 		}
 
+		// Construct URL - Simple format for staff/chef login
 		const baseUrl =
 			this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
-		const url = `${baseUrl}/restaurant/${userId}/${user.restaurantQrToken}`;
+		const url = `${baseUrl}/login/${userId}`;
 
 		const response = new RestaurantQrResponseDto();
 		response.qrUrl = url;

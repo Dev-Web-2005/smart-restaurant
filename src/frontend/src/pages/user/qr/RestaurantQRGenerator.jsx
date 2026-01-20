@@ -213,7 +213,7 @@ const RestaurantQRGenerator = () => {
 	return (
 		<BasePageLayout
 			title="Restaurant QR Code"
-			subtitle="Generate a permanent QR code for customers to access your restaurant"
+			subtitle="Generate a QR code for your staff and chefs to login to your restaurant"
 		>
 			<div className="max-w-4xl mx-auto p-6">
 				{loading ? (
@@ -281,7 +281,7 @@ const RestaurantQRGenerator = () => {
 						<div className="space-y-6">
 							{/* URL Display */}
 							<div className="bg-black/40 backdrop-blur-md rounded-xl border border-white/10 p-6">
-								<h4 className="font-semibold text-lg mb-3 text-white">Restaurant URL</h4>
+								<h4 className="font-semibold text-lg mb-3 text-white">Staff Login URL</h4>
 								<div className="flex gap-2">
 									<input
 										type="text"
@@ -313,11 +313,9 @@ const RestaurantQRGenerator = () => {
 								</h4>
 								<ol className="list-decimal list-inside space-y-2 text-sm text-blue-200">
 									<li>Download or print the QR code</li>
-									<li>
-										Display it prominently in your restaurant (entrance, tables, etc.)
-									</li>
-									<li>Customers scan the QR to access your restaurant's page</li>
-									<li>They can login, signup, and place orders</li>
+									<li>Share it with your staff members (waiters, chefs)</li>
+									<li>Staff scan the QR to access your restaurant's login page</li>
+									<li>They can login with their credentials to start working</li>
 								</ol>
 							</div>
 
