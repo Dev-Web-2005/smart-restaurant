@@ -290,7 +290,6 @@ jobs:
               echo "Restarting api-gateway..."
               if [ "$BUILD_ALL" != "true" ]; then
                 pm2 delete api-gateway 2>/dev/null || true
-                pgrep -f "node.*api-gateway" | xargs -r kill 2>/dev/null || true
                 sleep 1
               fi
               cd api-gateway
@@ -353,7 +352,6 @@ jobs:
               echo "Restarting identity..."
               if [ "$BUILD_ALL" != "true" ]; then
                 pm2 delete identity 2>/dev/null || true
-                pgrep -f "node.*identity" | xargs -r kill 2>/dev/null || true
                 sleep 1
               fi
               cd identity
@@ -394,7 +392,6 @@ jobs:
               echo "Restarting product..."
               if [ "$BUILD_ALL" != "true" ]; then
                 pm2 delete product 2>/dev/null || true
-                pgrep -f "node.*product" | xargs -r kill 2>/dev/null || true
                 sleep 1
               fi
               cd product
@@ -417,7 +414,6 @@ jobs:
               echo "Restarting profile..."
               if [ "$BUILD_ALL" != "true" ]; then
                 pm2 delete profile 2>/dev/null || true
-                pgrep -f "node.*profile" | xargs -r kill 2>/dev/null || true
                 sleep 1
               fi
               cd profile
@@ -440,7 +436,6 @@ jobs:
               echo "Restarting table..."
               if [ "$BUILD_ALL" != "true" ]; then
                 pm2 delete table 2>/dev/null || true
-                pgrep -f "node.*table" | xargs -r kill 2>/dev/null || true
                 sleep 1
               fi
               cd table
@@ -468,7 +463,6 @@ jobs:
               echo "Restarting kitchen..."
               if [ "$BUILD_ALL" != "true" ]; then
                 pm2 delete kitchen 2>/dev/null || true
-                pgrep -f "node.*kitchen" | xargs -r kill 2>/dev/null || true
                 sleep 1
               fi
               cd kitchen
@@ -503,7 +497,6 @@ jobs:
               echo "Restarting notification..."
               if [ "$BUILD_ALL" != "true" ]; then
                 pm2 delete notification 2>/dev/null || true
-                pgrep -f "node.*notification" | xargs -r kill 2>/dev/null || true
                 sleep 1
               fi
               cd notification
@@ -537,7 +530,6 @@ jobs:
               echo "Restarting order..."
               if [ "$BUILD_ALL" != "true" ]; then
                 pm2 delete order 2>/dev/null || true
-                pgrep -f "node.*order" | xargs -r kill 2>/dev/null || true
                 sleep 1
               fi
               cd order
@@ -581,7 +573,6 @@ jobs:
               echo "Restarting waiter..."
               if [ "$BUILD_ALL" != "true" ]; then
                 pm2 delete waiter 2>/dev/null || true
-                pgrep -f "node.*waiter" | xargs -r kill 2>/dev/null || true
                 sleep 1
               fi
               cd waiter
