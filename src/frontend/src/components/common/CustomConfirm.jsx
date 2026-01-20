@@ -69,7 +69,7 @@ const CustomConfirm = ({
 	}
 
 	return ReactDOM.createPortal(
-		<div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+		<div className="fixed inset-0 z-[9999999] flex items-center justify-center bg-black/70 backdrop-blur-sm">
 			<div
 				className="relative backdrop-blur-xl bg-[#1A202C]/95 rounded-xl shadow-2xl w-full max-w-md mx-4 border border-white/20"
 				style={{ animation: 'fadeIn 0.2s ease-out' }}
