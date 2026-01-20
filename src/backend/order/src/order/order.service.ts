@@ -540,7 +540,8 @@ export class OrderService implements OnModuleDestroy {
 
 			// ✅ Use amqplib directly for proper fanout exchange publishing
 			await this.publishToExchange(
-				this.configService.get<string>('ORDER_EVENTS_EXCHANGE') || 'order_events_exchange',
+				this.configService.get<string>('ORDER_EVENTS_EXCHANGE') ||
+					'order_events_exchange',
 				'order.new_items',
 				eventPayload,
 			);
@@ -1682,15 +1683,39 @@ export class OrderService implements OnModuleDestroy {
 		const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
 		const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-		// Find peak hour
-		const peakHourData = peakHours.reduce((max, hour) =>
-			hour.orderCount > max.orderCount ? hour : max,
-		);
+		// Find peak hour (peakHours always has 24 items, so provide initial value for safety)
+		const defaultHourData: HourlyOrderData = {
+			hour: 0,
+			hourLabel: '00:00',
+			orderCount: 0,
+			totalRevenue: 0,
+			averageOrderValue: 0,
+		};
+		const peakHourData =
+			peakHours.length > 0
+				? peakHours.reduce((max, hour) => (hour.orderCount > max.orderCount ? hour : max))
+				: defaultHourData;
 
-		// Find busiest day
-		const busiestDayData = dailyOrders.reduce((max, day) =>
-			day.orderCount > max.orderCount ? day : max,
-		);
+		// Find busiest day (dailyOrders can be empty if no orders exist)
+		const defaultDayData: DailyOrderData = {
+			date: startDate.toISOString().split('T')[0],
+			dayOfWeek: [
+				'Sunday',
+				'Monday',
+				'Tuesday',
+				'Wednesday',
+				'Thursday',
+				'Friday',
+				'Saturday',
+			][startDate.getDay()],
+			orderCount: 0,
+			totalRevenue: 0,
+			averageOrderValue: 0,
+		};
+		const busiestDayData =
+			dailyOrders.length > 0
+				? dailyOrders.reduce((max, day) => (day.orderCount > max.orderCount ? day : max))
+				: defaultDayData;
 
 		return {
 			dailyOrders,
