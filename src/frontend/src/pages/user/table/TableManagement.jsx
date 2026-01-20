@@ -273,6 +273,29 @@ const TableStatusModal = ({
 	const [editedName, setEditedName] = useState('')
 	const [editedCapacity, setEditedCapacity] = useState('')
 	const [isSaving, setIsSaving] = useState(false)
+	const [capacityError, setCapacityError] = useState('')
+	const [nameError, setNameError] = useState('')
+	const [activeInput, setActiveInput] = useState(null) // Track which input is active: 'name' or 'capacity'
+
+	// Auto-focus on active input after re-render
+	useEffect(() => {
+		if (isEditMode && activeInput) {
+			const timer = requestAnimationFrame(() => {
+				if (activeInput === 'name' && nameInputRef.current) {
+					nameInputRef.current.focus()
+					// Move cursor to end of input
+					const len = nameInputRef.current.value.length
+					nameInputRef.current.setSelectionRange(len, len)
+				} else if (activeInput === 'capacity' && capacityInputRef.current) {
+					capacityInputRef.current.focus()
+					// Move cursor to end of input
+					const len = capacityInputRef.current.value.length
+					capacityInputRef.current.setSelectionRange(len, len)
+				}
+			})
+			return () => cancelAnimationFrame(timer)
+		}
+	}, [isEditMode, activeInput, editedName, editedCapacity])
 
 	// Initialize edit values when table changes
 	useEffect(() => {
@@ -623,6 +646,13 @@ const TableStatusModal = ({
 										if (confirmed) {
 											const result = await regenerateTableQRAPI(table.id)
 											if (result.success) {
+												// 🚀 Clear QR cache for this table to ensure fresh QR is fetched next time
+												globalQRCodeCache.delete(table.id)
+												console.log(
+													'🗑️ QR cache cleared for table after regeneration:',
+													table.id,
+												)
+
 												showSuccess(
 													'QR Code regenerated!',
 													'The old QR is expired and no longer works.',
@@ -653,39 +683,86 @@ const TableStatusModal = ({
 							<div className="bg-black/30 rounded-lg p-4 border border-white/10">
 								<p className="text-xs text-gray-400 mb-1">Table Name</p>
 								{isEditMode ? (
-									<input
-										ref={nameInputRef}
-										type="text"
-										value={editedName}
-										onChange={(e) => {
-											setEditedName(e.target.value)
-											setTimeout(() => nameInputRef.current?.focus(), 0)
-										}}
-										className="w-full bg-white/10 text-white text-lg font-bold rounded px-2 py-1 border border-white/20 focus:outline-none focus:border-blue-500"
-										placeholder="Enter table name"
-										maxLength={50}
-									/>
+									<>
+										<input
+											ref={nameInputRef}
+											type="text"
+											value={editedName}
+											onFocus={() => setActiveInput('name')}
+											onChange={(e) => {
+												const value = e.target.value
+												setEditedName(value)
+												// Validate name
+												if (!value.trim()) {
+													setNameError('Table name cannot be empty')
+												} else {
+													setNameError('')
+												}
+											}}
+											className={`w-full bg-white/10 text-white text-lg font-bold rounded px-2 py-1 border focus:outline-none transition-colors ${
+												nameError
+													? 'border-red-500 focus:border-red-400'
+													: 'border-white/20 focus:border-blue-500'
+											}`}
+											placeholder="Enter table name"
+											maxLength={50}
+											autoComplete="off"
+										/>
+										{nameError && (
+											<p className="text-xs text-red-400 mt-1">{nameError}</p>
+										)}
+									</>
 								) : (
 									<p className="text-lg font-bold text-white">{table.name}</p>
 								)}
 							</div>
 							{/* Sức Chứa - Editable */}
 							<div className="bg-black/30 rounded-lg p-4 border border-white/10">
-								<p className="text-xs text-gray-400 mb-1">Capacity</p>
+								<p className="text-xs text-gray-400 mb-1">Capacity (1-20)</p>
 								{isEditMode ? (
-									<input
-										ref={capacityInputRef}
-										type="number"
-										value={editedCapacity}
-										onChange={(e) => {
-											setEditedCapacity(e.target.value)
-											setTimeout(() => capacityInputRef.current?.focus(), 0)
-										}}
-										className="w-full bg-white/10 text-white text-lg font-bold rounded px-2 py-1 border border-white/20 focus:outline-none focus:border-blue-500"
-										placeholder="Seats"
-										min="1"
-										max="20"
-									/>
+									<>
+										<input
+											ref={capacityInputRef}
+											type="number"
+											value={editedCapacity}
+											onFocus={() => setActiveInput('capacity')}
+											onChange={(e) => {
+												const value = e.target.value
+												setEditedCapacity(value)
+												// Real-time validation
+												const numValue = parseInt(value)
+												if (value === '') {
+													setCapacityError('Please enter capacity')
+												} else if (isNaN(numValue)) {
+													setCapacityError('Please enter a valid number')
+												} else if (numValue < 1) {
+													setCapacityError('Capacity must be at least 1')
+												} else if (numValue > 20) {
+													setCapacityError('Capacity cannot exceed 20')
+												} else {
+													setCapacityError('')
+												}
+											}}
+											onKeyDown={(e) => {
+												// Prevent e, E, +, - characters in number input
+												if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+													e.preventDefault()
+												}
+											}}
+											className={`w-full bg-white/10 text-white text-lg font-bold rounded px-2 py-1 border focus:outline-none transition-colors ${
+												capacityError
+													? 'border-red-500 focus:border-red-400'
+													: 'border-white/20 focus:border-blue-500'
+											}`}
+											placeholder="Seats"
+											min="1"
+											max="20"
+											autoComplete="off"
+										/>
+										{capacityError && (
+											<p className="text-xs text-red-400 mt-1">{capacityError}</p>
+										)}
+									</>
 								) : (
 									<p className="text-lg font-bold text-white">{table.capacity} seats</p>
 								)}
@@ -758,8 +835,11 @@ const TableStatusModal = ({
 							<button
 								onClick={() => {
 									setIsEditMode(false)
-									setEditedName(table.name)
+									setEditedName(table.name || '')
 									setEditedCapacity(table.capacity?.toString() || '')
+									setNameError('')
+									setCapacityError('')
+									setActiveInput(null)
 								}}
 								disabled={isSaving}
 								className="h-10 px-4 rounded-lg bg-gray-600/40 backdrop-blur-md text-white text-sm font-bold hover:bg-gray-600/60 transition-colors disabled:opacity-50"
@@ -770,12 +850,23 @@ const TableStatusModal = ({
 								onClick={async () => {
 									// Validation
 									if (!editedName.trim()) {
+										setNameError('Table name cannot be empty')
 										showWarning('Input Error', 'Table name cannot be empty')
 										return
 									}
 									const capacity = parseInt(editedCapacity)
 									if (!capacity || capacity < 1 || capacity > 20) {
+										setCapacityError('Capacity must be between 1 and 20')
 										showWarning('Input Error', 'Capacity must be between 1 and 20 seats')
+										return
+									}
+
+									// Check if there are any validation errors
+									if (nameError || capacityError) {
+										showWarning(
+											'Input Error',
+											'Please fix the validation errors before saving',
+										)
 										return
 									}
 
@@ -788,10 +879,13 @@ const TableStatusModal = ({
 
 									if (result) {
 										setIsEditMode(false)
+										setNameError('')
+										setCapacityError('')
+										setActiveInput(null)
 									}
 								}}
-								disabled={isSaving}
-								className="h-10 px-4 rounded-lg bg-blue-600 backdrop-blur-md text-white text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+								disabled={isSaving || !!nameError || !!capacityError}
+								className="h-10 px-4 rounded-lg bg-blue-600 backdrop-blur-md text-white text-sm font-bold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
 							>
 								{isSaving ? (
 									<>
@@ -1230,10 +1324,21 @@ const RestaurantTableManagement = () => {
 	// 🚀 Helper function to invalidate all caches (call after major changes like floor create/delete)
 	const invalidateAllCaches = useCallback(() => {
 		globalTablesCache.clear()
+		globalQRCodeCache.clear()
 		globalFloorsCache.data = null
 		globalFloorsCache.timestamp = 0
-		console.log('🗑️ All global caches cleared')
+		console.log('🗑️ All global caches cleared (including QR codes)')
 		setCacheVersion((prev) => prev + 1)
+	}, [])
+
+	// 🚀 Helper function to invalidate QR cache for a specific table (call after QR regeneration)
+	const invalidateTableQRCache = useCallback((tableId) => {
+		globalQRCodeCache.delete(tableId)
+		console.log('🗑️ QR cache cleared for table:', tableId)
+		// Also clear qrCodeUrl from tables state to force fresh fetch
+		setTables((prev) =>
+			prev.map((t) => (t.id === tableId ? { ...t, qrCodeUrl: null } : t)),
+		)
 	}, [])
 
 	const fetchTableStats = useCallback(async () => {
@@ -1273,14 +1378,17 @@ const RestaurantTableManagement = () => {
 		setSelectedTable(latestTable)
 		setIsStatusModalOpen(true)
 
-		// 🚀 Lazy load QR code if not already loaded
-		if (!latestTable.qrCodeUrl) {
-			console.log('🔄 Fetching QR code for table:', latestTable.id)
-			const qrCodeUrl = await fetchTableQRCode(latestTable.id)
-			if (qrCodeUrl) {
-				// Update selected table with QR code
-				setSelectedTable((prev) => (prev ? { ...prev, qrCodeUrl } : prev))
-			}
+		// 🚀 ALWAYS fetch fresh QR code from API to ensure we have the latest QR
+		// This prevents using stale/regenerated QR codes from cache
+		console.log('🔄 Fetching fresh QR code for table:', latestTable.id)
+
+		// Clear any cached QR code for this table to force fresh fetch
+		globalQRCodeCache.delete(latestTable.id)
+
+		const qrCodeUrl = await fetchTableQRCode(latestTable.id)
+		if (qrCodeUrl) {
+			// Update selected table with fresh QR code
+			setSelectedTable((prev) => (prev ? { ...prev, qrCodeUrl } : prev))
 		}
 	}
 

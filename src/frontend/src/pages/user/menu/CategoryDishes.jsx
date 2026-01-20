@@ -414,6 +414,7 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 		}
 
 		setSaving(true)
+		let createdGroupId = null // Track newly created group ID for later use
 		try {
 			if (isAddingNew) {
 				// Create new group
@@ -425,9 +426,9 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 				})
 
 				// Backend returns { status, message, data: { id, ... } }
-				const newGroupId = response.data?.id || response.id
+				createdGroupId = response.data?.id || response.id
 
-				if (!newGroupId) {
+				if (!createdGroupId) {
 					console.error('❌ No group ID in response:', response)
 					throw new Error('Failed to get group ID from server response')
 				}
@@ -435,7 +436,7 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 				// Create options for the new group
 				for (const option of group.options) {
 					if (option.label?.trim()) {
-						await createModifierOptionAPI(user.userId, newGroupId, {
+						await createModifierOptionAPI(user.userId, createdGroupId, {
 							label: option.label || option.name,
 							priceDelta: option.priceDelta || option.priceAdjustment || 0,
 							displayOrder: option.displayOrder,
@@ -495,15 +496,19 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 			}
 
 			// ✅ Optimize: Update local state instead of fetching all data
-			if (isAddingNew) {
+			if (isAddingNew && createdGroupId) {
 				// Fetch the newly created group with its options
 				try {
-					const optionsResponse = await getModifierOptionsAPI(user.userId, newGroupId, {
-						isActive: true,
-					})
+					const optionsResponse = await getModifierOptionsAPI(
+						user.userId,
+						createdGroupId,
+						{
+							isActive: true,
+						},
+					)
 					const newGroupWithOptions = {
 						...group,
-						id: newGroupId,
+						id: createdGroupId,
 						options: optionsResponse.data || [],
 					}
 					setModifierGroups((prev) => [...prev, newGroupWithOptions])
@@ -512,7 +517,7 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 					// Fallback to full fetch if something goes wrong
 					await fetchModifierData()
 				}
-			} else {
+			} else if (!isAddingNew) {
 				// Update existing group in local state
 				setModifierGroups((prev) =>
 					prev.map((g) => (g.id === group.id ? { ...g, ...group } : g)),
@@ -568,11 +573,8 @@ const ModifiersModal = ({ isOpen, dish, onClose, onSave }) => {
 			setAttachedGroups((prev) => prev.filter((ag) => ag.modifierGroupId !== groupId))
 
 			showSuccess('Success', 'Nhóm modifier đã được xóa thành công!')
-
-			// ✅ Close modal after successful delete to prevent unnecessary re-renders
-			setTimeout(() => {
-				onClose()
-			}, 500) // Small delay to show success message
+		} catch (error) {
+			console.error('❌ Error deleting group:', error)
 			const errorMessage =
 				error.response?.data?.message ||
 				error.response?.data?.error ||
@@ -1772,7 +1774,7 @@ const DishDetailsModal = ({
 									</span>
 									{(dishDetail || dish).isChefRecommended
 										? 'Chef Recommendation'
-										: 'Đánh dấu Chef Recommendation'}
+										: 'Chef Recommendation'}
 								</button>
 							</div>
 
@@ -2017,7 +2019,7 @@ const DishDetailsModal = ({
 									className="flex items-center gap-2 text-white text-sm cursor-pointer"
 								>
 									<span className="material-symbols-outlined text-yellow-400">star</span>
-									<span>��nh d?u Chef Recommendation</span>
+									<span>Chef Recommendation</span>
 								</label>
 							</div>
 
