@@ -1,16 +1,16 @@
 # Final project Self-assessment report
 
-Team: \<StudentID1\>-\<StudentID2\>-\<StudentID3\>
+Team: 23120194-23120200-23120222
 
-GitHub repo URL: \<Your GitHub Repository URL\>
+GitHub repo URL: https://github.com/Dev-Web-2005/smart-restaurant
 
 # **TEAM INFORMATION**
 
-| Student ID  | Full name            | Git account       | Contribution                        | Contribution percentage (100% total) | Expected total points | Final total points |
-| :---------- | :------------------- | :---------------- | :---------------------------------- | :----------------------------------- | :-------------------- | :----------------- |
-| \23120194\> | \Võ Cao Tâm Chính\>  | \<account git\>   | \<List of tasks done by student 1\> | 33%                                  |                       |                    |
-| \23120200\> | \Nguyễn Hưng Thịnh\> | \<git_account_2\> | \<List of tasks done by student 2\> | 33%                                  |                       |                    |
-| \23120222\> | \Lê Thành Công\>     | \<git_account_3\> | \<List of tasks done by student 3\> | 34%                                  |                       |                    |
+| Student ID | Full name         | Git account           | Contribution                                           | Contribution percentage (100% total) | Expected total points | Final total points |
+| :--------- | :---------------- | :-------------------- | :----------------------------------------------------- | :----------------------------------- | :-------------------- | :----------------- |
+| 23120194   | Võ Cao Tâm Chính  | vctchinh              | Frontend Lead, Waiter Service                          | 33.3%                                |                       |                    |
+| 23120200   | Nguyễn Hưng Thịnh | oppaii230205          | Product, Table, Order, Kitchen                         | 33.3%                                |                       |                    |
+| 23120222   | Lê Thành Công     | LeThanhCong, ltchcmus | Backend Lead, Gateway, Identity, Profile, Notification | 33.4%                                |                       |                    |
 
 # **FEATURE LIST**
 
@@ -137,24 +137,6 @@ Students must input minus points to every uncompleted feature in the SE column.
 |       | CI/CD                                               | 0.25      | 0.25     |          | GitHub Actions for automated testing and deployment                                                                                                                                                                   |
 |       | WebSocket real-time updates                         | 0.5       | 0.5      |          | Socket.IO for real-time features: KDS order notifications, customer order status tracking, waiter new order alerts, kitchen ready notifications, table status updates                                                 |
 |       | Multilingual support                                | 0.25      |          |          | i18n for English/Vietnamese language selection                                                                                                                                                                        |
-
-# **GIT HISTORY**
-
-## **Contributors**
-
-| Avatar | Username           | Commits | Additions | Deletions |
-| :----- | :----------------- | :------ | :-------- | :-------- |
-|        | \<git_username_1\> |         |           |           |
-|        | \<git_username_2\> |         |           |           |
-|        | \<git_username_3\> |         |           |           |
-
-## **Commits**
-
-_List significant commits here with format:_
-
-| Date       | Author     | Commit Message     | Files Changed |
-| :--------- | :--------- | :----------------- | :------------ |
-| YYYY-MM-DD | \<author\> | \<commit message\> | \<number\>    |
 
 ---
 
